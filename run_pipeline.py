@@ -2,11 +2,11 @@
 import argparse
 from pathlib import Path
 
+from rich import box
 from rich.console import Console
-from rich.table import Table
 from rich.panel import Panel
 from rich.progress import track
-from rich import box
+from rich.table import Table
 
 console = Console()
 
@@ -28,7 +28,7 @@ def main():
 
     console.print(
         Panel.fit(
-            f"[bold white]PDFtoPodcast[/bold white]\n[dim]PDF → JSON → Appraisal → Script/Shownotes/Rapport[/dim]",
+            "[bold white]PDFtoPodcast[/bold white]\n[dim]PDF → JSON → Appraisal → Script/Shownotes/Rapport[/dim]",
             border_style="magenta",
         )
     )
@@ -53,6 +53,7 @@ def main():
     # Probeer de echte pipeline te importeren
     try:
         from src.pipeline import run_pipeline  # type: ignore
+
         have_pipeline = True
     except Exception as e:
         have_pipeline = False
@@ -88,9 +89,16 @@ def main():
         n_keys = len(result.get("extraction", {}).keys())
         summary.add_row("Titel (extractie)", title)
         summary.add_row("Velden in extractie", str(n_keys))
-        summary.add_row("Shownotes", "gegenereerd" if result.get("deliverables", {}).get("shownotes") else "—")
-        summary.add_row("Podcast script", "gegenereerd" if result.get("deliverables", {}).get("podcast_script") else "—")
-        summary.add_row("Rapport", "gegenereerd" if result.get("deliverables", {}).get("report") else "—")
+        summary.add_row(
+            "Shownotes", "gegenereerd" if result.get("deliverables", {}).get("shownotes") else "—"
+        )
+        summary.add_row(
+            "Podcast script",
+            "gegenereerd" if result.get("deliverables", {}).get("podcast_script") else "—",
+        )
+        summary.add_row(
+            "Rapport", "gegenereerd" if result.get("deliverables", {}).get("report") else "—"
+        )
     except Exception:
         summary.add_row("Resultaat", "Beschikbaar, maar niet samengevat")
 
