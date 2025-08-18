@@ -1,6 +1,6 @@
 # 📁 src/ — Projectstructuur
 
-In deze map staat de kern van de **PDF → Podcast pipeline**.  
+In deze map staat de kern van de **PDF → Podcast pipeline**.
 De code is modulair opgezet, zodat iedere component een duidelijke verantwoordelijkheid heeft.
 
 ---

@@ -1,0 +1,28 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.5.0
+    hooks:
+      - id: ruff
+      - id: ruff-format
+
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+      - id: black
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-yaml
+      - id: check-json
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: detect-private-key
+
+  - repo: local
+    hooks:
+      - id: forbid-env
+        name: Block .env files
+        entry: bash -c 'if git diff --cached --name-only | grep -qE "(.env$|.env\.)"; then echo "❌ .env in commit!"; exit 1; fi'
+        language: system
+        types: [file]
