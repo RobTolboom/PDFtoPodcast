@@ -1,0 +1,14 @@
+# --- Core ---
+openai>=1.51.0			# officiële OpenAI client (Responses API, JSON schema etc.)
+pydantic>=2.7			# validatie en JSON-schema’s
+python-dotenv>=1.0		# .env bestanden laden
+
+# --- PDF handling ---
+pymupdf>=1.24			# robuuste PDF-tekstextractie (fitz)
+
+# --- Reliability ---
+tenacity>=8.2			# retry/backoff bij API errors
+
+# --- Output ---
+structlog				# voor structured logging
+rich					# mooiere console-output

@@ -1,0 +1,34 @@
+# ---- Python basics ----
+__pycache__/
+*.py[cod]
+*$py.class
+
+# ---- Virtual environments ----
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+.python-version
+
+# ---- Direnv ----
+.envrc
+.direnv/
+
+# ---- Environment variables ----
+.env
+.env.*
+
+# ---- Project outputs ----
+out/
+*.log
+
+# ---- Jupyter / notebooks ----
+.ipynb_checkpoints/
+*.ipynb
+
+# ---- macOS rommel ----
+.DS_Store
+
+# ---- persoonlijke dev aantekeningen ----
+aantekeningen.txt
