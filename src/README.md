@@ -16,8 +16,6 @@ De code is modulair opgezet, zodat iedere component een duidelijke verantwoordel
 
 ### 📄 `pdf_io.py`
 - Opent en leest PDF-bestanden met **PyMuPDF**.
-- Haalt platte tekst per pagina op.
-- Optie om verwerking te beperken tot `--max-pages` voor snelle tests.
 
 ---
 
@@ -71,11 +69,3 @@ Na een run met `run_pipeline.py` worden in `out/` bestanden weggeschreven:
 - `*_02_appraisal.json` → validatie + verbeterde JSON
 - `*_03_outputs.json` → eindresultaten (script, shownotes, rapport)
 - `*_podcast_script.md`, `*_shownotes.md`, `*_rapport.md`
-
----
-
-## Waarom deze structuur?
-- **Duidelijk gescheiden verantwoordelijkheden**: makkelijk testen en vervangen.
-- **Herbruikbaar**: `llm.py` en `prompts.py` kun je ook in andere projecten gebruiken.
-- **Veilig**: secrets in `.env`, niet in code.
-- **Uitbreidbaar**: eenvoudig nieuwe stappen/tools toevoegen in `pipeline.py`.
