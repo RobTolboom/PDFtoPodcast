@@ -48,3 +48,13 @@ test:
 # Run pipeline op willekeurige PDF (pad meegeven)
 run:
 	$(PYTHON) run_pipeline.py "$(file)" --max-pages 5
+
+# --------------------------------------
+# Commit helper
+# --------------------------------------
+
+# Maak code netjes en draai pre-commit hooks vóór commit
+commit: lint-fix fmt
+	pre-commit run --all-files
+	@echo "✅ Code netjes gemaakt en pre-commit checks uitgevoerd."
+	@echo "👉 Nu kun je veilig committen met: git commit -m '...'"
