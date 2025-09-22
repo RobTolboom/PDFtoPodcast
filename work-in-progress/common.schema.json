@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://example.org/schemas/common.schema.json",
+  "$id": "common.schema.json",
   "title": "Common Definitions for Medical Evidence Schemas",
   "type": "object",
   "description": "Shared $defs for all publication-type schemas (interventional, observational, diagnostic accuracy, evidence synthesis, etc.). Reference with $ref to #/$defs/*.",

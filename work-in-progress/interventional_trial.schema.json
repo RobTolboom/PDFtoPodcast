@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "extraction.schema.json",
+  "$id": "interventional_trial.schema.json",
   "title": "Clinical Trial Extraction (Interventional Studies)",
   "type": "object",
   "additionalProperties": false,
@@ -91,6 +91,22 @@
     },
     "risk_of_bias": { "$ref": "common.schema.json#/$defs/RiskOfBias" },
     "protocol_deviations": { "type": "string" },
+    "protocol_deviations_structured": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/ProtocolDeviation" },
+      "default": []
+    },
+    "consort_reporting": { "$ref": "#/$defs/ConsortReporting" },
+    "sensitivity_analyses": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/SensitivityAnalysis" },
+      "default": []
+    },
+    "subgroup_analyses": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/SubgroupAnalysis" },
+      "default": []
+    },
     "extraction_warnings": {
       "type": "array",
       "items": { "$ref": "common.schema.json#/$defs/ExtractionWarning" },
@@ -98,7 +114,6 @@
     },
     "truncated": { "$ref": "common.schema.json#/$defs/TruncationInfo" }
   },
-
   "allOf": [
     {
       "if": {
@@ -133,7 +148,6 @@
       "then": { "properties": { "arms": { "minItems": 1 } } }
     }
   ],
-
   "$defs": {
     "StudyDesign": {
       "type": "object",
@@ -174,18 +188,15 @@
         "analysis_population": { "type": "string", "enum": ["ITT", "mITT", "PP", "Safety", "Other"] },
         "non_inferiority_margin": { "type": "string" },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
-
         "crossover": { "type": "boolean", "default": false },
         "washout_period_iso8601": { "$ref": "common.schema.json#/$defs/ISO8601Duration" },
         "periods": { "type": "integer", "minimum": 2 },
         "sequences": { "type": "array", "items": { "type": "string" }, "default": [] },
         "carryover_checked": { "type": "boolean", "default": false },
-
         "cluster_unit": { "type": "string", "enum": ["hospital", "clinic", "ward", "provider", "other"] },
         "clusters_per_arm": { "type": "integer", "minimum": 1 },
         "avg_cluster_size": { "type": "number", "minimum": 0 },
         "icc_reported": { "type": "number", "minimum": 0 },
-
         "factors": {
           "type": "array",
           "items": {
@@ -199,19 +210,15 @@
           },
           "default": []
         },
-
         "interim_analyses": { "type": "integer", "minimum": 0 },
         "stopping_rules": { "type": "string" },
         "response_adaptive_randomisation": { "type": "boolean", "default": false },
         "sample_size_reassessment": { "type": "boolean", "default": false },
-
         "steps": { "type": "integer", "minimum": 2 },
         "rollout_schedule_iso8601": { "$ref": "common.schema.json#/$defs/ISO8601Duration" },
-
         "design_subtype_notes": { "type": "string" }
       }
     },
-
     "Population": {
       "type": "object",
       "additionalProperties": false,
@@ -243,7 +250,6 @@
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       }
     },
-
     "Intervention": {
       "type": "object",
       "additionalProperties": false,
@@ -263,7 +269,6 @@
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       }
     },
-
     "Arm": {
       "type": "object",
       "additionalProperties": false,
@@ -279,10 +284,19 @@
           "description": "Mapping van factor-niveaus naar deze arm (alleen bij factorial-ontwerpen).",
           "additionalProperties": { "type": "string" },
           "default": {}
+        },
+        "adherence_pct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "% deelnemers die de toegewezen interventie ontvingen"
+        },
+        "crossovers_to": {
+          "type": "string",
+          "description": "arm_id waarheen deelnemers zijn gecrossoverd (indien relevant)"
         }
       }
     },
-
     "Comparison": {
       "type": "object",
       "additionalProperties": false,
@@ -311,7 +325,6 @@
         "is_primary": { "type": "boolean", "default": false }
       }
     },
-
     "Outcome": {
       "type": "object",
       "additionalProperties": false,
@@ -333,7 +346,6 @@
         "unit_ucum": { "type": "string", "description": "UCUM code if available" }
       }
     },
-
     "PerArmResult": {
       "type": "object",
       "additionalProperties": false,
@@ -372,9 +384,7 @@
         }
       ]
     },
-
     "ContrastEffect": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
-
     "ContrastResult": {
       "type": "object",
       "additionalProperties": false,
@@ -402,7 +412,6 @@
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       }
     },
-
     "HarmsResult": {
       "type": "object",
       "additionalProperties": false,
@@ -419,10 +428,10 @@
           "type": "string",
           "enum": ["related", "probable", "possible", "unlikely", "not_related", "unknown"],
           "default": "unknown"
-        }
+        },
+        "meddra_code": { "type": "string", "description": "MedDRA PT/LLT code indien beschikbaar" }
       }
     },
-
     "Results": {
       "type": "object",
       "additionalProperties": false,
@@ -430,6 +439,76 @@
         "per_arm": { "type": "array", "items": { "$ref": "#/$defs/PerArmResult" }, "default": [] },
         "contrasts": { "type": "array", "items": { "$ref": "#/$defs/ContrastResult" }, "default": [] },
         "harms": { "type": "array", "items": { "$ref": "#/$defs/HarmsResult" }, "default": [] }
+      }
+    },
+    "ProtocolDeviation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "severity": { "type": "string", "enum": ["major", "minor", "unclear"] },
+        "count": { "type": "integer", "minimum": 0 },
+        "description": { "type": "string" },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      }
+    },
+    "ConsortReporting": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": { "type": "string", "enum": ["CONSORT 2010", "CONSORT 2010-extension", "other"], "default": "CONSORT 2010" },
+        "claimed": { "type": "boolean", "default": false },
+        "checklist_available": { "type": "boolean", "default": false },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["item_id", "reported"],
+            "properties": {
+              "item_id": { "type": "string", "description": "bv. 1a, 1b, 2a…" },
+              "reported": { "type": "string", "enum": ["yes", "partially", "no", "unclear"] },
+              "location": { "type": "string" },
+              "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+            }
+          },
+          "default": []
+        },
+        "notes": { "type": "string" }
+      }
+    },
+    "SensitivityAnalysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "label": { "type": "string" },
+        "population": { "type": "string", "enum": ["ITT", "mITT", "PP", "Safety", "Other"] },
+        "analysis_change": { "type": "string", "description": "Wijziging t.o.v. hoofdmodel (bv. imputatie, exclusies)" },
+        "effect": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      }
+    },
+    "SubgroupAnalysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["factor"],
+      "properties": {
+        "factor": { "type": "string", "description": "bv. leeftijd, ASA, centrum" },
+        "levels": { "type": "array", "items": { "type": "string" }, "default": [] },
+        "interaction_p": { "type": "number", "minimum": 0, "maximum": 1 },
+        "effects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "level": { "type": "string" },
+              "effect": { "$ref": "common.schema.json#/$defs/ContrastEffect" }
+            }
+          },
+          "default": []
+        },
+        "pre_specified": { "type": "boolean", "default": false },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       }
     }
   }
