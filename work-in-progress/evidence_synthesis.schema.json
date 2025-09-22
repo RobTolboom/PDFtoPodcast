@@ -1,0 +1,575 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "evidence_synthesis.schema.json",
+  "title": "Evidence Synthesis Extraction (Systematic Review / Meta-analysis / NMA / IPD / Umbrella)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "metadata",
+    "review_type",
+    "eligibility",
+    "search",
+    "prisma_flow",
+    "outcomes",
+    "syntheses"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^v\\d+\\.\\d+(\\.\\d+)?$",
+      "description": "Semantic-like version tag, e.g. v1.0 or v1.2.3"
+    },
+
+    "document": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["filename", "page_count"],
+      "properties": {
+        "filename": { "type": "string" },
+        "content_type": { "type": "string", "enum": ["application/pdf"], "default": "application/pdf" },
+        "size_bytes": { "type": "integer", "minimum": 0 },
+        "page_count": { "type": "integer", "minimum": 1 }
+      }
+    },
+
+    "study_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]+$",
+      "description": "Internal opaque ID for this article (the review itself)"
+    },
+
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "model", "timestamp"],
+      "properties": {
+        "name": { "type": "string" },
+        "model": { "type": "string" },
+        "temperature": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
+    },
+
+    "language": { "$ref": "common.schema.json#/$defs/LanguageCode" },
+    "metadata": { "$ref": "common.schema.json#/$defs/Metadata" },
+
+    "review_type": {
+      "type": "string",
+      "enum": [
+        "Systematic review (no meta-analysis)",
+        "Pairwise meta-analysis",
+        "Network meta-analysis",
+        "IPD meta-analysis",
+        "Umbrella/Overview review",
+        "Scoping review"
+      ]
+    },
+
+    "protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "prospero_id": { "type": "string" },
+        "protocol_doi": { "type": "string", "pattern": "^10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+$" },
+        "registration": { "$ref": "common.schema.json#/$defs/Registration" },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      }
+    },
+
+    "eligibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["population", "intervention_or_exposure", "comparators", "outcomes", "study_designs"],
+      "properties": {
+        "population": { "type": "string" },
+        "intervention_or_exposure": { "type": "string" },
+        "comparators": { "type": "string" },
+        "outcomes": { "type": "string" },
+        "study_designs": { "type": "string", "description": "Eligible primary study designs (e.g., RCTs, cohorts)" },
+        "setting": { "type": "string" },
+        "language_restrictions": { "type": "string" },
+        "timeframe": { "type": "string", "description": "Publication date limits, if any" },
+        "exclusion_criteria": { "type": "string" },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      }
+    },
+
+    "search": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["databases", "last_search_date"],
+      "properties": {
+        "databases": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "other_sources": {
+          "type": "array",
+          "description": "Trial registries, grey literature, handsearching, reference lists",
+          "items": { "type": "string" },
+          "default": []
+        },
+        "search_strings": {
+          "type": "array",
+          "description": "Optional per-database search strategies",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "database": { "type": "string" },
+              "query": { "type": "string" }
+            }
+          },
+          "default": []
+        },
+        "date_from": { "type": "string", "format": "date" },
+        "date_to": { "type": "string", "format": "date" },
+        "last_search_date": { "type": "string", "format": "date" },
+        "deduplication_approach": { "type": "string" },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      }
+    },
+
+    "prisma_flow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["records_identified", "studies_included"],
+      "properties": {
+        "records_identified": { "type": "integer", "minimum": 0 },
+        "records_after_duplicates": { "type": "integer", "minimum": 0 },
+        "records_screened": { "type": "integer", "minimum": 0 },
+        "records_excluded": { "type": "integer", "minimum": 0 },
+        "full_text_assessed": { "type": "integer", "minimum": 0 },
+        "full_text_excluded": { "type": "integer", "minimum": 0 },
+        "studies_included": { "type": "integer", "minimum": 0 },
+        "reasons_excluded": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": []
+        },
+        "prisma_figure": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      }
+    },
+
+    "data_collection": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "risk_of_bias_tool": { "type": "string", "enum": ["RoB2", "ROBINS-I", "Other", "Not reported"] },
+        "effect_size_computation": { "type": "string", "description": "Rules for effect measure selection & transformation" },
+        "unit_of_analysis_issues": { "type": "string" },
+        "multiplicity_strategy": { "type": "string", "description": "Handling multiple outcomes/timepoints/arms" },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      }
+    },
+
+    "included_studies": {
+      "type": "array",
+      "description": "Minimal per-study references used in the synthesis.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["study_label"],
+        "properties": {
+          "study_label": { "type": "string", "description": "Short label or citation key (e.g., 'Smith 2020')" },
+          "design": { "type": "string" },
+          "n": { "type": "integer", "minimum": 0 },
+          "doi": { "type": "string", "pattern": "^10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+$" },
+          "pmid": { "type": "string", "pattern": "^\\d{1,8}$" },
+          "notes": { "type": "string" },
+          "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+        }
+      },
+      "default": []
+    },
+
+    "outcomes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/SynthesisOutcome" },
+      "minItems": 1
+    },
+
+    "syntheses": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Synthesis" },
+      "default": []
+    },
+
+    "risk_of_bias_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tool": { "type": "string", "enum": ["RoB2", "ROBINS-I", "Other"] },
+        "summary_text": { "type": "string" },
+        "fig_source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      }
+    },
+
+    "certainty_of_evidence": {
+      "type": "array",
+      "description": "GRADE per outcome (if reported).",
+      "items": { "$ref": "#/$defs/GradeAssessment" },
+      "default": []
+    },
+
+    "publication_bias": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "funnel_plot_source": { "$ref": "common.schema.json#/$defs/SourceRef" },
+        "egger_test_p": { "type": "number", "minimum": 0, "maximum": 1 },
+        "trim_and_fill_applied": { "type": "boolean", "default": false },
+        "notes": { "type": "string" }
+      }
+    },
+
+    "tables_parsed": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/ParsedTable" },
+      "default": []
+    },
+    "figures_summary": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/FigureSummary" },
+      "default": []
+    },
+
+    "extraction_warnings": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/ExtractionWarning" },
+      "default": []
+    },
+
+    "truncated": { "$ref": "common.schema.json#/$defs/TruncationInfo" }
+  },
+
+  "$defs": {
+    "SynthesisOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome_id", "name", "type"],
+      "properties": {
+        "outcome_id": { "type": "string" },
+        "name": { "type": "string" },
+        "definition": { "type": "string" },
+        "type": { "type": "string", "enum": ["binary", "continuous", "time_to_event", "ordinal", "count"] },
+        "direction_of_benefit": { "type": "string", "enum": ["higher_better", "lower_better", "neutral_or_na"] },
+        "preferred_effect_measure": {
+          "type": "string",
+          "enum": ["RR", "IRR", "OR", "HR", "MD", "SMD", "RD", "RMST", "Other"]
+        },
+        "unit": { "type": "string" },
+        "timepoint": { "type": "string" },
+        "timepoint_iso8601": { "$ref": "common.schema.json#/$defs/ISO8601Duration" },
+        "measurement_method": { "type": "string" },
+        "scale_min": { "type": "number" },
+        "scale_max": { "type": "number" },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      }
+    },
+
+    "PooledEffect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["effect"],
+      "properties": {
+        "k_studies": { "type": "integer", "minimum": 1 },
+        "model": { "type": "string", "enum": ["fixed", "random", "bayesian", "na"] },
+        "method": {
+          "type": "string",
+          "description": "Estimator or approach (e.g., DL, REML, ML, Bayesian MCMC)"
+        },
+        "effect": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
+        "prediction_interval": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": { "lower": { "type": "number" }, "upper": { "type": "number" } }
+        },
+        "heterogeneity": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "Q": { "type": "number" },
+            "df": { "type": "number" },
+            "p_Q": { "type": "number", "minimum": 0, "maximum": 1 },
+            "I2_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+            "tau2": { "type": "number", "minimum": 0 },
+            "tau": { "type": "number", "minimum": 0 },
+            "H": { "type": "number", "minimum": 0 }
+          }
+        },
+        "subgroup": { "type": "string" },
+        "meta_regression_terms": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": []
+        },
+        "notes": { "type": "string" },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      }
+    },
+
+    "PairwiseMetaAnalysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["comparison_label", "outcome_id", "pooled"],
+      "properties": {
+        "comparison_label": { "type": "string", "description": "e.g., Drug A vs placebo" },
+        "outcome_id": { "type": "string" },
+        "per_study_effects": {
+          "type": "array",
+          "description": "Optional: study-level effect sizes contributing to the pool",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["study_label", "effect"],
+            "properties": {
+              "study_label": { "type": "string" },
+              "effect": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
+              "weight_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+              "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+            }
+          },
+          "default": []
+        },
+        "pooled": { "$ref": "#/$defs/PooledEffect" }
+      }
+    },
+
+    "NetworkMetaAnalysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome_id", "treatments", "reference_treatment", "model", "pooled_effects"],
+      "properties": {
+        "outcome_id": { "type": "string" },
+        "treatments": { "type": "array", "items": { "type": "string" }, "minItems": 2 },
+        "reference_treatment": { "type": "string" },
+        "model": { "type": "string", "enum": ["fixed", "random", "bayesian"] },
+        "consistency_assumed": { "type": "boolean", "default": true },
+        "pooled_effects": {
+          "type": "array",
+          "description": "Relative effects for pairs vs reference or all pairs.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["treatment_a", "treatment_b", "effect"],
+            "properties": {
+              "treatment_a": { "type": "string" },
+              "treatment_b": { "type": "string" },
+              "effect": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
+              "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+            }
+          }
+        },
+        "ranking": {
+          "type": "array",
+          "description": "Optional ranking metrics per treatment (e.g., SUCRA).",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["treatment", "metric_name", "value"],
+            "properties": {
+              "treatment": { "type": "string" },
+              "metric_name": { "type": "string", "enum": ["SUCRA", "P(best)", "other"] },
+              "value": { "type": "number", "minimum": 0 }
+            }
+          },
+          "default": []
+        },
+        "inconsistency": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "global_test_p": { "type": "number", "minimum": 0, "maximum": 1 },
+            "node_splitting": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "comparison": { "type": "string" },
+                  "p_inconsistency": { "type": "number", "minimum": 0, "maximum": 1 }
+                }
+              },
+              "default": []
+            },
+            "design_by_treatment": { "type": "string" }
+          }
+        },
+        "transitivity_assessment": { "type": "string" },
+        "network_geometry": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "nodes": { "type": "integer", "minimum": 0 },
+            "edges": { "type": "integer", "minimum": 0 },
+            "two_armed_loops": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "notes": { "type": "string" }
+      }
+    },
+
+    "IPDMetaAnalysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome_id", "model"],
+      "properties": {
+        "outcome_id": { "type": "string" },
+        "model": { "type": "string", "enum": ["one_stage", "two_stage"] },
+        "covariates": { "type": "array", "items": { "type": "string" }, "default": [] },
+        "effect_modifier_analysis": { "type": "string" },
+        "pooled": { "$ref": "#/$defs/PooledEffect" }
+      }
+    },
+
+    "NarrativeSynthesis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome_id", "summary_text"],
+      "properties": {
+        "outcome_id": { "type": "string" },
+        "summary_text": { "type": "string" },
+        "fig_or_table": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      }
+    },
+
+    "Synthesis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "outcome_id"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "narrative",
+            "pairwise_meta",
+            "network_meta",
+            "ipd_meta",
+            "umbrella_summary"
+          ]
+        },
+        "outcome_id": { "type": "string" },
+
+        "pairwise_meta": { "$ref": "#/$defs/PairwiseMetaAnalysis" },
+        "network_meta": { "$ref": "#/$defs/NetworkMetaAnalysis" },
+        "ipd_meta": { "$ref": "#/$defs/IPDMetaAnalysis" },
+        "narrative": { "$ref": "#/$defs/NarrativeSynthesis" },
+
+        "umbrella_summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "evidence_map": { "type": "string" },
+            "key_findings": { "type": "string" },
+            "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+          }
+        }
+      }
+    },
+
+    "GradeAssessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome_id", "certainty"],
+      "properties": {
+        "outcome_id": { "type": "string" },
+        "certainty": {
+          "type": "string",
+          "enum": ["high", "moderate", "low", "very_low"]
+        },
+        "domains": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "risk_of_bias": { "type": "string", "enum": ["no_serious", "serious", "very_serious", "unclear"] },
+            "inconsistency": { "type": "string", "enum": ["no_serious", "serious", "very_serious", "unclear"] },
+            "indirectness": { "type": "string", "enum": ["no_serious", "serious", "very_serious", "unclear"] },
+            "imprecision": { "type": "string", "enum": ["no_serious", "serious", "very_serious", "unclear"] },
+            "publication_bias": { "type": "string", "enum": ["no_serious", "serious", "very_serious", "unclear"] },
+            "other": { "type": "string" }
+          }
+        },
+        "footnotes": { "type": "string" },
+        "summary_of_findings_source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      }
+    }
+  },
+
+  "allOf": [
+    {
+      "if": { "properties": { "review_type": { "const": "Systematic review (no meta-analysis)" } } },
+      "then": {
+        "properties": {
+          "syntheses": {
+            "items": {
+              "properties": {
+                "type": { "const": "narrative" }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "review_type": { "const": "Pairwise meta-analysis" } } },
+      "then": {
+        "properties": {
+          "syntheses": {
+            "items": {
+              "properties": {
+                "type": { "const": "pairwise_meta" },
+                "pairwise_meta": { "required": ["pooled"] }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "review_type": { "const": "Network meta-analysis" } } },
+      "then": {
+        "properties": {
+          "syntheses": {
+            "items": {
+              "properties": {
+                "type": { "const": "network_meta" },
+                "network_meta": { "required": ["pooled_effects"] }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "review_type": { "const": "IPD meta-analysis" } } },
+      "then": {
+        "properties": {
+          "syntheses": {
+            "items": {
+              "properties": {
+                "type": { "const": "ipd_meta" }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "review_type": { "const": "Umbrella/Overview review" } } },
+      "then": {
+        "properties": {
+          "syntheses": {
+            "items": {
+              "properties": {
+                "type": { "const": "umbrella_summary" }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
