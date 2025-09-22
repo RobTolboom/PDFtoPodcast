@@ -37,7 +37,7 @@ Algorithm Overview:
        d. Rewrite external references to local #/$defs/ references
        e. Output bundled schema as *_bundled.json
 
-Author: Medical Literature Data Extraction Schema Framework
+Author: Rob Tolboom
 Version: 2.0 - Enhanced for batch processing
 """
 
