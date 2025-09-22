@@ -156,7 +156,7 @@
               "other"
             ]
           },
-          "default": []
+        "default": []
         },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
         "design_notes": { "type": "string" }
@@ -319,6 +319,7 @@
         },
         "total": { "type": "integer", "minimum": 0 },
         "unit": { "type": "string" },
+        "person_time": { "type": "number", "minimum": 0, "description": "Person-time for this group (e.g., person-years), if applicable" },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       },
       "oneOf": [
@@ -354,6 +355,7 @@
           "type": "string",
           "enum": ["cox", "logistic", "linear", "poisson", "nb", "gee", "mixed", "ipw", "iv", "g-methods", "other", "na"]
         },
+        "offset_variable": { "type": "string", "description": "Name of offset variable used in count models (e.g., log person-time)" },
         "propensity_score": {
           "type": "object",
           "additionalProperties": false,
