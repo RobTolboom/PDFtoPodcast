@@ -67,7 +67,7 @@
     "arms": {
       "type": "array",
       "items": { "$ref": "#/$defs/Arm" },
-      "minItems": 1,
+      "minItems": 2,
       "uniqueItems": true
     },
     "comparisons": {
@@ -79,7 +79,12 @@
       "type": "array",
       "items": { "$ref": "#/$defs/Outcome" },
       "minItems": 1,
-      "uniqueItems": false
+      "uniqueItems": false,
+      "contains": {
+        "type": "object",
+        "properties": { "is_primary": { "const": true } },
+        "required": ["is_primary"]
+      }
     },
     "results": { "$ref": "#/$defs/Results" },
     "tables_parsed": {
@@ -101,6 +106,26 @@
     },
     "truncated": { "$ref": "#/$defs/TruncationInfo" }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "study_design": {
+            "properties": { "label": { "const": "RCT" } }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "study_design": {
+            "properties": {
+              "randomisation": { "not": { "const": "none" } }
+            }
+          }
+        }
+      }
+    }
+  ],
   "$defs": {
     "SourceRef": {
       "type": "object",
@@ -579,7 +604,17 @@
               "domain": { "type": "string" },
               "judgement": {
                 "type": "string",
-                "enum": ["low", "some", "high", "unclear", "moderate", "serious", "critical", "no_information", "some_concerns"]
+                "enum": [
+                  "low",
+                  "some",
+                  "high",
+                  "unclear",
+                  "moderate",
+                  "serious",
+                  "critical",
+                  "no_information",
+                  "some_concerns"
+                ]
               },
               "notes": { "type": "string" }
             }
