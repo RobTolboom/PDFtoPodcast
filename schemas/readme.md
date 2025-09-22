@@ -20,12 +20,12 @@ Een collectie van JSON Schema's voor gestructureerde data-extractie uit medisch-
 ### Modulaire Schema's (Development)
 | Schema | Onderzoekstype | Beschrijving | Compliance | Status |
 |--------|----------------|--------------|------------|--------|
-| [`common.schema.json`](#common-schema) | Gedeelde componenten | Provenance, ontology, internationale registries | Global standards | ✅ Enhanced |
+| [`common.schema.json`](#common-schema) | Gedeelde componenten | Document processing, provenance, internationale registries | Global standards | ✅ Enhanced |
 | [`interventional_trial.schema.json`](#interventional-trial-schema) | Interventionele studies | CONSORT 2010, kwaliteitsborging, provenance | CONSORT/ICH-GCP | ✅ Gold Standard |
 | [`observational_analytic.schema.json`](#observational-analytic-schema) | Observationele studies | Target trial emulation, causal inference | STROBE/GRADE | ✅ Gold Standard |
 | [`evidence_synthesis.schema.json`](#evidence-synthesis-schema) | Evidence synthese | PRISMA 2020, AMSTAR-2, Open Science | PRISMA/Cochrane | ✅ Gold Standard |
 | [`prediction_prognosis.schema.json`](#prediction-prognosis-schema) | Predictiemodellen | TRIPOD framework, PROBAST | TRIPOD/PROBAST | ✅ Gold Standard |
-| [`editorials_opinion.schema.json`](#editorial-opinion-schema) | Non-research content | Editorials, commentaries, opinies | - | ✅ Compleet |
+| [`editorials_opinion.schema.json`](#editorial-opinion-schema) | Non-research content | Evidence linking, argument tracking, target articles | - | ✅ Enhanced |
 
 ### Bundled Schema's (Production)
 | Bundled Schema | Gebruik | Voordelen |
@@ -156,6 +156,13 @@ Alle schema's gebruiken een **modulaire architectuur** waarbij gemeenschappelijk
 - **ISO8601Duration**: Gestandaardiseerde tijdsduren (inclusief weken)
 - **CountryCode/LanguageCode**: Gevalideerde internationale codes
 
+#### 🆕 Document Processing Componenten:
+- **BoundingBox**: Precisie coordinaten voor PDF text/figure extractie
+- **Passage**: Tekst passages met page/bbox locatie informatie
+- **ParsingContext**: Document parsing metadata en content integrity tracking
+- **SupplementFile**: Supplementary materials met hash verificatie
+- **ValueWithRaw**: Processed values met originele tekst preservation
+
 #### 🆕 Enhanced Componenten:
 - **Provenance**: Data extraction tracking met confidence scores en timestamps
 - **OntologyTerm**: Gestandaardiseerde terminologie (MeSH, SNOMED, LOINC, MedDRA)
@@ -163,6 +170,30 @@ Alle schema's gebruiken een **modulaire architectuur** waarbij gemeenschappelijk
 - **ValueWithRaw**: Processed values met originele tekst preservation
 - **Measurement**: Laboratorium waardes met UCUM units en reference ranges
 - **Adjudication**: Disagreement resolution tracking voor data extraction
+
+#### Document Processing Voorbeeld:
+```json
+{
+  "parsing_context": {
+    "parser_name": "PDFPlumber",
+    "parser_version": "0.10.3",
+    "extraction_timestamp": "2025-09-22T14:30:00Z",
+    "page_count": 12,
+    "parsing_warnings": ["OCR quality low on page 3"]
+  },
+  "notable_quotes": [
+    {
+      "text": "The primary endpoint was achieved in 87% of patients",
+      "context": "Results section",
+      "source": {
+        "page": 8,
+        "anchor": "Results, paragraph 2",
+        "bbox": { "x": 72, "y": 456, "width": 324, "height": 14 }
+      }
+    }
+  ]
+}
+```
 
 #### Provenance Tracking Voorbeeld:
 ```json
@@ -341,6 +372,69 @@ Alle schema's gebruiken een **modulaire architectuur** waarbij gemeenschappelijk
     }
   ],
   "competing_risks_method": "Fine-Gray"
+}
+```
+
+---
+
+### Editorial & Opinion Schema - Enhanced Evidence Linking
+
+**`editorials_opinion.schema.json`** - Voor editorials, commentaries en opinion pieces met geavanceerde evidence linking
+
+#### 🆕 Evidence Linking Framework:
+Het schema ondersteunt nu geavanceerde cross-referencing tussen argumenten en extern bewijs:
+
+```json
+{
+  "arguments": [
+    {
+      "claim_id": "arg_001",
+      "text": "Recent trials show significant improvement in patient outcomes",
+      "stance": "pro",
+      "evidence_type": "primary_study",
+      "evidence_links": [
+        {
+          "external_id": {
+            "source": "PMID",
+            "id": "12345678"
+          },
+          "passage": {
+            "text": "Primary endpoint was met with statistical significance (p<0.001)",
+            "page": 3,
+            "bbox": { "x": 72, "y": 234, "width": 456, "height": 18 }
+          },
+          "notes": "Key supporting evidence for main argument"
+        }
+      ],
+      "cited_refs": [
+        {
+          "citation_text": "Smith et al. NEJM 2024",
+          "pmid": "12345678",
+          "doi": "10.1056/NEJMoa2024001"
+        }
+      ]
+    }
+  ]
+}
+```
+
+#### Argument Tracking Features:
+- **Stance Classification**: Pro/con/neutral/unclear positions
+- **Evidence Types**: Systematische categorisering van bewijs (primary study, expert opinion, etc.)
+- **LinkedEvidence**: Directe verbindingen naar specifieke studies met passage-level referenties
+- **Support Strength**: Authorial assessment van evidence kwaliteit
+- **Counterarguments**: Expliciete tracking van tegenargumenten
+
+#### Target Article Integration:
+```json
+{
+  "target_article": {
+    "title": "Efficacy of Novel Treatment X: A Randomized Trial",
+    "pmid": "87654321",
+    "doi": "10.1056/NEJMoa2024002",
+    "type": "primary_study",
+    "citation_text": "Johnson et al. conducted a phase III trial..."
+  }
 }
 ```
 
@@ -540,6 +634,40 @@ python json-bundler.py --verbose
 
 ## 🛠️ Gebruik en Implementatie
 
+### Document Processing Workflow
+
+```python
+import json
+import jsonschema
+
+# Voorbeeld: PDF extractie met document processing features
+pdf_extraction_data = {
+    "schema_version": "v1.0",
+    "metadata": {
+        "title": "Efficacy of Treatment X: A Randomized Trial",
+        "content_hash_sha256": "a1b2c3d4e5f6789..."
+    },
+    "parsing_context": {
+        "parser_name": "PDFPlumber",
+        "parser_version": "0.10.3",
+        "extraction_timestamp": "2025-09-22T14:30:00Z",
+        "page_count": 15,
+        "parsing_warnings": ["Low OCR confidence on page 12"]
+    },
+    "notable_quotes": [
+        {
+            "text": "The primary endpoint was achieved in 78% of patients (95% CI: 71-85%)",
+            "context": "Main results",
+            "source": {
+                "page": 8,
+                "anchor": "Results section, paragraph 3",
+                "bbox": { "x": 72, "y": 456, "width": 432, "height": 16 }
+            }
+        }
+    ]
+}
+```
+
 ### Geavanceerde Validatie
 
 ```python
@@ -602,24 +730,38 @@ Dit genereert standalone schema's met alle common definities geïnternaliseerd, 
 
 ### Version 2.0 - Enhanced Quality & Compliance (September 2025)
 
+#### 📄 **Document Processing & Parsing**
+- **BoundingBox Coordinates**: Precisie locatie tracking voor PDF extractie
+- **Passage Extraction**: Tekst passages met page/coordinate mapping
+- **ParsingContext**: Document processing metadata en integrity verification
+- **Content Hash Tracking**: SHA-256 verification voor document integrity
+- **Multi-format Support**: Enhanced PDF, supplementary materials processing
+
+#### 🔗 **Evidence Linking & Cross-Referencing**
+- **LinkedEvidence Framework**: Direct linking tussen argumenten en externe studies
+- **Cross-Study References**: PMID/DOI gebaseerde evidence verbindingen
+- **Argument Tracking**: Gestructureerde pro/contra argument documentatie
+- **Target Article Integration**: Specifiek artikel dat editorial/commentary adresseert
+- **Citation Enhancement**: Uitgebreide citatie metadata met passage-level referenties
+
 #### 🔍 **Data Quality & Provenance**
-- **Provenance Tracking**: Volledige traceability van data extraction proces
-- **Extraction Quality**: Double data entry, inter-rater agreement, reviewer tracking
-- **Confidence Scoring**: Numerieke confidence scores voor geëxtraheerde data
-- **Method Tracking**: Human vs. LLM-assisted vs. rule-based extraction
+- **Provenance Tracking**: Volledige traceerbaarheid van data extractie proces
+- **Extraction Quality**: Dubbele data entry, inter-rater agreement, reviewer tracking
+- **Confidence Scoring**: Numerieke betrouwbaarheidsscores voor geëxtraheerde data
+- **Method Tracking**: Humane vs. LLM-geassisteerde vs. regel-gebaseerde extractie
 
 #### 🌐 **International Standards Enhancement**
-- **Ontology Integration**: MeSH, SNOMED, LOINC, MedDRA terminology support
-- **External ID Linking**: PMID, PMC, DOI, clinical trial registry integration
+- **Ontology Integration**: MeSH, SNOMED, LOINC, MedDRA terminologie ondersteuning
+- **External ID Linking**: PMID, PMC, DOI, clinical trial registry integratie
 - **Enhanced Compliance**: Verbeterde CONSORT 2010, PRISMA 2020, TRIPOD frameworks
-- **Global Registry Support**: Uitgebreid met UMIN-CTR, JPRN, PACTR, IRCT registries
+- **Global Registry Support**: Uitgebreid met UMIN-CTR, JPRN, PACTR, IRCT registraties
 
-#### 🧬 **Advanced Epidemiology (Observational Studies)**
-- **Target Trial Emulation**: Framework voor causal inference
-- **New User Design**: Prevalent user bias mitigation
-- **Immortal Time Handling**: Time-varying exposure, landmarking methods
-- **Grace Periods**: Latency/induction window definitions
-- **Competing Risks**: Fine-Gray subdistribution hazards
+#### 🧬 **Geavanceerde Epidemiologie (Observationele Studies)**
+- **Target Trial Emulation**: Framework voor causale inferentie
+- **New User Design**: Prevalent user bias mitigatie
+- **Immortal Time Handling**: Tijd-variërende exposure, landmarking methoden
+- **Grace Periods**: Latentie/inductie window definities
+- **Competing Risks**: Fine-Gray subdistributie hazards
 
 #### 🔬 **Clinical Trial Enhancements (Interventional Studies)**
 - **Sample Size Calculations**: Structured power analysis documentation
@@ -645,29 +787,10 @@ Dit genereert standalone schema's met alle common definities geïnternaliseerd, 
 
 Geplande schema's voor gespecialiseerde domeinen:
 
-### Diagnostische Studies
-- **`diagnostic_accuracy.schema.json`**
-- STARD 2015-compliant extractie
-- 2×2 tabellen, ROC curves, cut-off analyses
-- Sensitivity/specificity frameworks
-
-### Health Economics & HTA
-- **`health_econ.schema.json`**
-- CEA/CUA/CBA/BIA studies
-- Markov modellen, QALY, ICER
-- CHEERS guideline compliance
-
-### Implementation Science
-- **`implementation_qi.schema.json`**
-- PDSA cycles, mixed methods
-- RE-AIM framework support
-- Context en procesvariabelen
-
-### Preclinical Research
-- **`preclinical_lab.schema.json`**
-- ARRIVE 2.0-compliant dierstudies
-- In-vitro en omics pipelines
-- Reproducibility frameworks
+- **Diagnostische Studies**: STARD 2015-compliant accuracy studies
+- **Health Economics**: CHEERS guideline-compliant economic evaluations
+- **Implementation Science**: RE-AIM framework-based quality improvement studies
+- **Preclinical Research**: ARRIVE 2.0-compliant preclinical studies
 
 ---
 
@@ -681,7 +804,7 @@ Voor automatische schema selectie zijn de volgende labels gedefinieerd:
 | `observational_analytic` | observational_analytic.schema.json | STROBE, causal inference | Observationele analyses |
 | `evidence_synthesis` | evidence_synthesis.schema.json | PRISMA 2020, AMSTAR-2 | Systematische reviews |
 | `prediction_prognosis` | prediction_prognosis.schema.json | TRIPOD, PROBAST | Predictiemodellen |
-| `editorial_opinion` | editorials_opinion.schema.json | - | Editorials en opinies |
+| `editorial_opinion` | editorials_opinion.schema.json | Evidence linking | Editorials, commentaries en opinion pieces |
 | `other` | - | - | Niet-geclassificeerde content |
 
 ---
@@ -798,7 +921,8 @@ Deze schema's zijn ontwikkeld voor medisch-wetenschappelijk onderzoek en data-ex
 
 **Laatste update**: September 2025
 **Framework versie**: 2.0 - Enhanced Quality & Compliance
+**Nieuwe features**: Document processing, evidence linking, enhanced common schema
 **Compliance status**: Regulatory Ready
-**Author**: Rob Tolboom
+**Auteur**: Rob Tolboom
 **Schema Coverage**: 5 core domains + bundled variants
 **International Standards**: CONSORT 2010, PRISMA 2020, TRIPOD, STROBE, PROBAST
