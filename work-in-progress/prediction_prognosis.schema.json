@@ -1,0 +1,469 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "prediction_prognosis.schema.json",
+  "title": "Prediction / Prognosis Model Study Extraction",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "metadata",
+    "study_design",
+    "population",
+    "predictors",
+    "outcomes",
+    "datasets",
+    "models",
+    "performance"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^v\\d+\\.\\d+(\\.\\d+)?$",
+      "description": "Semantic-like version tag, e.g. v1.0 or v1.2.3"
+    },
+
+    "document": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["filename", "page_count"],
+      "properties": {
+        "filename": { "type": "string" },
+        "content_type": { "type": "string", "enum": ["application/pdf"], "default": "application/pdf" },
+        "size_bytes": { "type": "integer", "minimum": 0 },
+        "page_count": { "type": "integer", "minimum": 1 }
+      }
+    },
+
+    "study_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]+$",
+      "description": "Internal opaque ID for this article"
+    },
+
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "model", "timestamp"],
+      "properties": {
+        "name": { "type": "string" },
+        "model": { "type": "string" },
+        "temperature": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
+    },
+
+    "language": { "$ref": "common.schema.json#/$defs/LanguageCode" },
+    "metadata": { "$ref": "common.schema.json#/$defs/Metadata" },
+
+    "study_design": { "$ref": "#/$defs/StudyDesign" },
+    "population": { "$ref": "#/$defs/Population" },
+
+    "predictors": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Predictor" },
+      "minItems": 1
+    },
+
+    "outcomes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Outcome" },
+      "minItems": 1
+    },
+
+    "datasets": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Dataset" },
+      "minItems": 1
+    },
+
+    "models": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/ModelSpec" },
+      "minItems": 1
+    },
+
+    "performance": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/PerformanceResult" },
+      "default": []
+    },
+
+    "decision_curves": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/DecisionCurve" },
+      "default": []
+    },
+
+    "tables_parsed": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/ParsedTable" },
+      "default": []
+    },
+    "figures_summary": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/FigureSummary" },
+      "default": []
+    },
+
+    "risk_of_bias": { "$ref": "common.schema.json#/$defs/RiskOfBias" },
+
+    "protocol_deviations": { "type": "string" },
+
+    "extraction_warnings": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/ExtractionWarning" },
+      "default": []
+    },
+
+    "truncated": { "$ref": "common.schema.json#/$defs/TruncationInfo" }
+  },
+
+  "$defs": {
+    "StudyDesign": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label"],
+      "properties": {
+        "label": { "type": "string", "enum": ["Prediction/Prognosis"] },
+        "purpose": {
+          "type": "array",
+          "description": "One or more purposes aligned with TRIPOD",
+          "items": {
+            "type": "string",
+            "enum": [
+              "development",
+              "internal_validation",
+              "temporal_validation",
+              "external_validation",
+              "update",
+              "impact",
+              "comparison"
+            ]
+          },
+          "default": []
+        },
+        "design_type": { "type": "string", "enum": ["prospective", "retrospective", "mixed", "unclear"] },
+        "centres": { "type": "integer", "minimum": 1 },
+        "countries": {
+          "type": "array",
+          "items": { "$ref": "common.schema.json#/$defs/CountryCode" },
+          "default": []
+        },
+        "setting": { "type": "string" },
+        "time_window_iso8601": { "$ref": "common.schema.json#/$defs/ISO8601Duration" },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
+        "design_notes": { "type": "string" }
+      }
+    },
+
+    "Population": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "n_total": { "type": "integer", "minimum": 0 },
+        "events": { "type": "integer", "minimum": 0, "description": "Number of outcome events in derivation cohort (if applicable)" },
+        "age_mean": { "type": "number" },
+        "age_sd": { "type": "number", "minimum": 0 },
+        "sex_female_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+        "inclusion_criteria": { "type": "string" },
+        "exclusion_criteria": { "type": "string" },
+        "follow_up_duration_iso8601": { "$ref": "common.schema.json#/$defs/ISO8601Duration" },
+        "outcome_incidence_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+        "missing_data_overview": { "type": "string" },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      }
+    },
+
+    "Predictor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["predictor_id", "name", "type"],
+      "properties": {
+        "predictor_id": { "type": "string" },
+        "name": { "type": "string" },
+        "definition": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": ["numeric", "categorical", "binary", "ordinal", "text", "image", "composite", "other"]
+        },
+        "unit": { "type": "string" },
+        "measurement_time": { "type": "string", "enum": ["baseline", "followup", "unknown"], "default": "baseline" },
+        "coding": { "type": "string", "description": "e.g., one-hot, ordinal scores, splines, standardization" },
+        "transformations": { "type": "string", "description": "e.g., log, Box-Cox, restricted cubic spline" },
+        "missing_fraction_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+        "imputation": { "type": "string", "description": "e.g., MICE, mean, indicator method" },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      }
+    },
+
+    "Outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome_id", "name", "type"],
+      "properties": {
+        "outcome_id": { "type": "string" },
+        "name": { "type": "string" },
+        "definition": { "type": "string" },
+        "type": { "type": "string", "enum": ["binary", "time_to_event", "continuous", "ordinal"] },
+        "time_horizon": { "type": "string", "description": "e.g., 30-day mortality, 1-year risk" },
+        "time_horizon_iso8601": { "$ref": "common.schema.json#/$defs/ISO8601Duration" },
+        "measurement_method": { "type": "string" },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      }
+    },
+
+    "Dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["dataset_id", "role"],
+      "properties": {
+        "dataset_id": { "type": "string" },
+        "role": {
+          "type": "string",
+          "enum": [
+            "derivation",
+            "internal_validation",
+            "temporal_validation",
+            "external_validation",
+            "test",
+            "update"
+          ]
+        },
+        "label": { "type": "string" },
+        "centres": { "type": "integer", "minimum": 0 },
+        "countries": {
+          "type": "array",
+          "items": { "$ref": "common.schema.json#/$defs/CountryCode" },
+          "default": []
+        },
+        "start_date": { "type": "string", "format": "date" },
+        "end_date": { "type": "string", "format": "date" },
+        "n": { "type": "integer", "minimum": 0 },
+        "events": { "type": "integer", "minimum": 0 },
+        "case_mix_notes": { "type": "string" },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      }
+    },
+
+    "ModelSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model_id", "label", "algorithm", "outcome_id", "training_dataset_id"],
+      "properties": {
+        "model_id": { "type": "string" },
+        "label": { "type": "string" },
+        "outcome_id": { "type": "string" },
+        "training_dataset_id": { "type": "string" },
+        "algorithm": {
+          "type": "string",
+          "enum": [
+            "logistic",
+            "cox",
+            "fine_gray",
+            "linear",
+            "lasso",
+            "ridge",
+            "elastic_net",
+            "gbm",
+            "xgboost",
+            "random_forest",
+            "svm",
+            "knn",
+            "neural_network",
+            "bayesian",
+            "other"
+          ]
+        },
+        "link_function": { "type": "string", "description": "e.g., logit, cloglog, identity" },
+        "regularization": { "type": "string", "enum": ["none", "lasso", "ridge", "elastic_net", "other"], "default": "none" },
+        "feature_selection": { "type": "string", "description": "e.g., AIC/BIC, stepwise, clinical pre-specification" },
+        "predictors_used": { "type": "array", "items": { "type": "string" }, "default": [] },
+
+        "coefficients": {
+          "type": "array",
+          "description": "For regression-type models; beta coefficients per predictor",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["predictor", "beta"],
+            "properties": {
+              "predictor": { "type": "string" },
+              "beta": { "type": "number" },
+              "se": { "type": "number", "minimum": 0 }
+            }
+          },
+          "default": []
+        },
+        "intercept": { "type": "number", "description": "Regression intercept; for Cox, log-baseline hazard not used" },
+        "baseline_hazard": {
+          "type": "string",
+          "description": "If Cox/Fine-Gray: description or function of baseline hazard/cumulative baseline hazard"
+        },
+
+        "variable_importance": {
+          "type": "array",
+          "description": "For ML models; scale and definition per paper",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["predictor", "importance"],
+            "properties": {
+              "predictor": { "type": "string" },
+              "importance": { "type": "number" }
+            }
+          },
+          "default": []
+        },
+
+        "hyperparameters": {
+          "type": "array",
+          "description": "Key hyperparameters as name/value pairs for portability",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "value"],
+            "properties": {
+              "name": { "type": "string" },
+              "value": { "type": "string" }
+            }
+          },
+          "default": []
+        },
+
+        "internal_validation_method": {
+          "type": "string",
+          "enum": ["none", "split_sample", "kfold_cv", "bootstrap", "repeated_cv", "other"],
+          "default": "none"
+        },
+        "missing_data_strategy": { "type": "string", "description": "Training-time handling of missing values" },
+        "calibration_method": { "type": "string", "description": "e.g., Platt scaling, isotonic, recalibration slope" },
+
+        "presentation": {
+          "type": "string",
+          "description": "e.g., nomogram, score chart, web/mobile calculator"
+        },
+        "web_calculator_url": { "type": "string", "format": "uri" },
+
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
+        "notes": { "type": "string" }
+      }
+    },
+
+    "PerformanceResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model_id", "dataset_id", "outcome_id"],
+      "properties": {
+        "model_id": { "type": "string" },
+        "dataset_id": { "type": "string" },
+        "outcome_id": { "type": "string" },
+
+        "time_horizon_iso8601": { "$ref": "common.schema.json#/$defs/ISO8601Duration" },
+
+        "discrimination": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "auc_roc": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "point": { "type": "number", "minimum": 0, "maximum": 1 },
+                "ci": { "$ref": "common.schema.json#/$defs/EffectCI" }
+              }
+            },
+            "c_statistic": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "point": { "type": "number", "minimum": 0, "maximum": 1 },
+                "ci": { "$ref": "common.schema.json#/$defs/EffectCI" }
+              },
+              "description": "Harrell's C for time-to-event, if reported"
+            },
+            "pr_auc": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "point": { "type": "number", "minimum": 0, "maximum": 1 },
+                "ci": { "$ref": "common.schema.json#/$defs/EffectCI" }
+              }
+            }
+          }
+        },
+
+        "calibration": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "intercept": { "type": "number" },
+            "slope": { "type": "number" },
+            "o_e_ratio": { "type": "number", "description": "Observed/Expected" },
+            "brier": { "type": "number", "minimum": 0 },
+            "hl_test_p": { "type": "number", "minimum": 0, "maximum": 1 },
+            "calibration_plot_source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+          }
+        },
+
+        "threshold_metrics": {
+          "type": "array",
+          "description": "Metrics at specific decision thresholds",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["threshold"],
+            "properties": {
+              "threshold": { "type": "number" },
+              "sensitivity": { "type": "number", "minimum": 0, "maximum": 1 },
+              "specificity": { "type": "number", "minimum": 0, "maximum": 1 },
+              "ppv": { "type": "number", "minimum": 0, "maximum": 1 },
+              "npv": { "type": "number", "minimum": 0, "maximum": 1 },
+              "accuracy": { "type": "number", "minimum": 0, "maximum": 1 },
+              "f1": { "type": "number", "minimum": 0, "maximum": 1 },
+              "youden_j": { "type": "number" }
+            }
+          },
+          "default": []
+        },
+
+        "recalibration": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "intercept_adjustment": { "type": "number" },
+            "slope_adjustment": { "type": "number" },
+            "method": { "type": "string" },
+            "notes": { "type": "string" }
+          }
+        },
+
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
+        "notes": { "type": "string" }
+      }
+    },
+
+    "DecisionCurve": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model_id", "dataset_id"],
+      "properties": {
+        "model_id": { "type": "string" },
+        "dataset_id": { "type": "string" },
+        "points": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["threshold", "net_benefit"],
+            "properties": {
+              "threshold": { "type": "number", "minimum": 0, "maximum": 1 },
+              "net_benefit": { "type": "number" }
+            }
+          },
+          "default": []
+        },
+        "figure_source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      }
+    }
+  }
+}
