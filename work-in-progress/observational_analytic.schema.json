@@ -4,21 +4,9 @@
   "title": "Observational Analytic Study Extraction",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "schema_version",
-    "metadata",
-    "study_design",
-    "population",
-    "exposures",
-    "outcomes",
-    "results"
-  ],
+  "required": ["schema_version", "metadata", "study_design", "population", "exposures", "outcomes", "results"],
   "properties": {
-    "schema_version": {
-      "type": "string",
-      "pattern": "^v\\d+\\.\\d+(\\.\\d+)?$",
-      "description": "Semantic-like version tag, e.g. v1.0 or v1.2.3"
-    },
+    "schema_version": { "type": "string", "pattern": "^v\\d+\\.\\d+(\\.\\d+)?$", "description": "Semantic-like version tag, e.g. v1.0 or v1.2.3" },
     "document": {
       "type": "object",
       "additionalProperties": false,
@@ -30,11 +18,7 @@
         "page_count": { "type": "integer", "minimum": 1 }
       }
     },
-    "study_id": {
-      "type": "string",
-      "pattern": "^[A-Za-z0-9._-]+$",
-      "description": "Internal opaque ID for this study/article"
-    },
+    "study_id": { "type": "string", "pattern": "^[A-Za-z0-9._-]+$", "description": "Internal opaque ID for this study/article" },
     "generator": {
       "type": "object",
       "additionalProperties": false,
@@ -46,10 +30,7 @@
         "timestamp": { "type": "string", "format": "date-time" }
       }
     },
-    "language": {
-      "$ref": "common.schema.json#/$defs/LanguageCode"
-    },
-
+    "language": { "$ref": "common.schema.json#/$defs/LanguageCode" },
     "metadata": { "$ref": "common.schema.json#/$defs/Metadata" },
     "study_design": { "$ref": "#/$defs/StudyDesign" },
     "population": { "$ref": "#/$defs/Population" },
@@ -84,23 +65,11 @@
 
     "results": { "$ref": "#/$defs/Results" },
 
-    "tables_parsed": {
-      "type": "array",
-      "items": { "$ref": "common.schema.json#/$defs/ParsedTable" },
-      "default": []
-    },
-    "figures_summary": {
-      "type": "array",
-      "items": { "$ref": "common.schema.json#/$defs/FigureSummary" },
-      "default": []
-    },
+    "tables_parsed": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/ParsedTable" }, "default": [] },
+    "figures_summary": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/FigureSummary" }, "default": [] },
     "risk_of_bias": { "$ref": "common.schema.json#/$defs/RiskOfBias" },
     "protocol_deviations": { "type": "string" },
-    "extraction_warnings": {
-      "type": "array",
-      "items": { "$ref": "common.schema.json#/$defs/ExtractionWarning" },
-      "default": []
-    },
+    "extraction_warnings": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/ExtractionWarning" }, "default": [] },
     "truncated": { "$ref": "common.schema.json#/$defs/TruncationInfo" }
   },
 
@@ -125,15 +94,11 @@
     },
     {
       "if": { "properties": { "study_design": { "properties": { "label": { "const": "Cross-sectional" } } } } },
-      "then": {
-        "properties": { "study_design": { "required": ["sampling_frame"] } }
-      }
+      "then": { "properties": { "study_design": { "required": ["sampling_frame"] } } }
     },
     {
       "if": { "properties": { "study_design": { "properties": { "label": { "const": "Ecological" } } } } },
-      "then": {
-        "properties": { "study_design": { "required": ["ecological_level"] } }
-      }
+      "then": { "properties": { "study_design": { "required": ["ecological_level"] } } }
     },
     {
       "if": { "properties": { "study_design": { "properties": { "label": { "const": "Case-control" } } } } },
@@ -141,10 +106,7 @@
         "properties": {
           "study_design": {
             "allOf": [
-              {
-                "if": { "properties": { "matching": { "enum": ["individual", "frequency"] } } },
-                "then": { "required": ["matching_variables"] }
-              }
+              { "if": { "properties": { "matching": { "enum": ["individual", "frequency"] } } }, "then": { "required": ["matching_variables"] } }
             ]
           }
         }
@@ -158,15 +120,8 @@
       "additionalProperties": false,
       "required": ["label"],
       "properties": {
-        "label": {
-          "type": "string",
-          "enum": ["Cohort", "Case-control", "Cross-sectional", "Ecological"]
-        },
-
-        "cohort_direction": {
-          "type": "string",
-          "enum": ["prospective", "retrospective", "ambidirectional", "unclear"]
-        },
+        "label": { "type": "string", "enum": ["Cohort", "Case-control", "Cross-sectional", "Ecological"] },
+        "cohort_direction": { "type": "string", "enum": ["prospective", "retrospective", "ambidirectional", "unclear"] },
         "time_origin": { "type": "string", "description": "Index date origin (e.g., diagnosis, admission)" },
         "follow_up_scheme": { "type": "string", "description": "Fixed vs variable follow-up; scheduled visits" },
 
@@ -259,7 +214,18 @@
         "time_window_iso8601": { "$ref": "common.schema.json#/$defs/ISO8601Duration" },
         "instrumental_variable": { "type": "string", "description": "If IV used, specify" },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
-      }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "type": { "const": "categorical" } } },
+          "then": {
+            "required": ["categories"],
+            "properties": {
+              "categories": { "minItems": 2 }
+            }
+          }
+        }
+      ]
     },
 
     "Group": {
@@ -373,9 +339,7 @@
       ]
     },
 
-    "ContrastEffect": {
-      "$ref": "common.schema.json#/$defs/ContrastEffect"
-    },
+    "ContrastEffect": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
 
     "ContrastResult": {
       "type": "object",
@@ -384,7 +348,6 @@
       "properties": {
         "outcome_id": { "type": "string" },
         "comparison_id": { "type": "string" },
-
         "adjusted": { "type": "boolean", "default": true },
         "covariates": { "type": "array", "items": { "type": "string" }, "default": [] },
         "model": {
