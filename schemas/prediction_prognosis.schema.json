@@ -19,7 +19,7 @@
     "schema_version": {
       "type": "string",
       "pattern": "^v\\d+\\.\\d+(\\.\\d+)?$",
-      "description": "Semantic-like version tag, e.g. v1.0 or v1.2.3"
+      "description": "Semantic-like version tag, e.g. v1.0 of v1.2.3"
     },
 
     "document": {
@@ -109,6 +109,71 @@
 
     "protocol_deviations": { "type": "string" },
 
+    "tripod_reporting": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": { "type": "string", "enum": ["TRIPOD 2015", "TRIPOD-AI 2020", "other"], "default": "TRIPOD 2015" },
+        "claimed": { "type": "boolean", "default": false },
+        "checklist_available": { "type": "boolean", "default": false },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["item_id", "reported"],
+            "properties": {
+              "item_id": { "type": "string" },
+              "reported": { "type": "string", "enum": ["yes","partially","no","unclear"] },
+              "location": { "type": "string" },
+              "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
+              "notes": { "type": "string" }
+            }
+          },
+          "default": []
+        }
+      }
+    },
+
+    "fairness_assessment": {
+      "type": "array",
+      "description": "Discriminatie/kalibratie per subgroep (bias/algemeneerbaarheid).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["model_id", "dataset_id", "subgroup_var", "level"],
+        "properties": {
+          "model_id": { "type": "string" },
+          "dataset_id": { "type": "string" },
+          "subgroup_var": { "type": "string", "description": "Bijv. leeftijd, geslacht, etniciteit, ASA, comorbiditeit" },
+          "level": { "type": "string" },
+          "auc_roc": {
+            "oneOf": [
+              { "type": "number", "minimum": 0, "maximum": 1 },
+              { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+            ]
+          },
+          "calibration_slope": {
+            "oneOf": [
+              { "type": "number" },
+              { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+            ]
+          },
+          "o_e_ratio": {
+            "oneOf": [
+              { "type": "number" },
+              { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+            ]
+          },
+          "n": { "type": "integer", "minimum": 0 },
+          "events": { "type": "integer", "minimum": 0 },
+          "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
+          "notes": { "type": "string" }
+        }
+      },
+      "default": []
+    },
+
     "extraction_warnings": {
       "type": "array",
       "items": { "$ref": "common.schema.json#/$defs/ExtractionWarning" },
@@ -127,7 +192,7 @@
         "label": { "type": "string", "enum": ["Prediction/Prognosis"] },
         "purpose": {
           "type": "array",
-          "description": "One or more purposes aligned with TRIPOD",
+          "description": "Aligned with TRIPOD",
           "items": {
             "type": "string",
             "enum": [
@@ -162,13 +227,33 @@
       "properties": {
         "n_total": { "type": "integer", "minimum": 0 },
         "events": { "type": "integer", "minimum": 0, "description": "Number of outcome events in derivation cohort (if applicable)" },
-        "age_mean": { "type": "number" },
-        "age_sd": { "type": "number", "minimum": 0 },
-        "sex_female_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+        "age_mean": {
+          "oneOf": [
+            { "type": "number" },
+            { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+          ]
+        },
+        "age_sd": {
+          "oneOf": [
+            { "type": "number", "minimum": 0 },
+            { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+          ]
+        },
+        "sex_female_pct": {
+          "oneOf": [
+            { "type": "number", "minimum": 0, "maximum": 100 },
+            { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+          ]
+        },
         "inclusion_criteria": { "type": "string" },
         "exclusion_criteria": { "type": "string" },
         "follow_up_duration_iso8601": { "$ref": "common.schema.json#/$defs/ISO8601Duration" },
-        "outcome_incidence_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+        "outcome_incidence_pct": {
+          "oneOf": [
+            { "type": "number", "minimum": 0, "maximum": 100 },
+            { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+          ]
+        },
         "missing_data_overview": { "type": "string" },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       }
@@ -190,7 +275,12 @@
         "measurement_time": { "type": "string", "enum": ["baseline", "followup", "unknown"], "default": "baseline" },
         "coding": { "type": "string", "description": "e.g., one-hot, ordinal scores, splines, standardization" },
         "transformations": { "type": "string", "description": "e.g., log, Box-Cox, restricted cubic spline" },
-        "missing_fraction_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+        "missing_fraction_pct": {
+          "oneOf": [
+            { "type": "number", "minimum": 0, "maximum": 100 },
+            { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+          ]
+        },
         "imputation": { "type": "string", "description": "e.g., MICE, mean, indicator method" },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       }
@@ -288,13 +378,29 @@
             "required": ["predictor", "beta"],
             "properties": {
               "predictor": { "type": "string" },
-              "beta": { "type": "number" },
-              "se": { "type": "number", "minimum": 0 }
+              "beta": {
+                "oneOf": [
+                  { "type": "number" },
+                  { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                ]
+              },
+              "se": {
+                "oneOf": [
+                  { "type": "number", "minimum": 0 },
+                  { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                ]
+              }
             }
           },
           "default": []
         },
-        "intercept": { "type": "number", "description": "Regression intercept; for Cox, log-baseline hazard not used" },
+        "intercept": {
+          "oneOf": [
+            { "type": "number" },
+            { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+          ],
+          "description": "Regression intercept; for Cox, log-baseline hazard not used"
+        },
         "baseline_hazard": {
           "type": "string",
           "description": "If Cox/Fine-Gray: description or function of baseline hazard/cumulative baseline hazard"
@@ -309,7 +415,12 @@
             "required": ["predictor", "importance"],
             "properties": {
               "predictor": { "type": "string" },
-              "importance": { "type": "number" }
+              "importance": {
+                "oneOf": [
+                  { "type": "number" },
+                  { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                ]
+              }
             }
           },
           "default": []
@@ -368,7 +479,12 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {
-                "point": { "type": "number", "minimum": 0, "maximum": 1 },
+                "point": {
+                  "oneOf": [
+                    { "type": "number", "minimum": 0, "maximum": 1 },
+                    { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                  ]
+                },
                 "ci": { "$ref": "common.schema.json#/$defs/EffectCI" }
               }
             },
@@ -376,16 +492,26 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {
-                "point": { "type": "number", "minimum": 0, "maximum": 1 },
+                "point": {
+                  "oneOf": [
+                    { "type": "number", "minimum": 0, "maximum": 1 },
+                    { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                  ]
+                },
                 "ci": { "$ref": "common.schema.json#/$defs/EffectCI" }
               },
-              "description": "Harrell's C for time-to-event, if reported"
+              "description": "Harrell's C voor time-to-event, indien gerapporteerd"
             },
             "pr_auc": {
               "type": "object",
               "additionalProperties": false,
               "properties": {
-                "point": { "type": "number", "minimum": 0, "maximum": 1 },
+                "point": {
+                  "oneOf": [
+                    { "type": "number", "minimum": 0, "maximum": 1 },
+                    { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                  ]
+                },
                 "ci": { "$ref": "common.schema.json#/$defs/EffectCI" }
               }
             }
@@ -396,31 +522,97 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "intercept": { "type": "number" },
-            "slope": { "type": "number" },
-            "o_e_ratio": { "type": "number", "description": "Observed/Expected" },
-            "brier": { "type": "number", "minimum": 0 },
-            "hl_test_p": { "type": "number", "minimum": 0, "maximum": 1 },
+            "intercept": {
+              "oneOf": [
+                { "type": "number" },
+                { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+              ]
+            },
+            "slope": {
+              "oneOf": [
+                { "type": "number" },
+                { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+              ]
+            },
+            "o_e_ratio": {
+              "oneOf": [
+                { "type": "number" },
+                { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+              ],
+              "description": "Observed/Expected"
+            },
+            "brier": {
+              "oneOf": [
+                { "type": "number", "minimum": 0 },
+                { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+              ]
+            },
+            "hl_test_p": {
+              "oneOf": [
+                { "type": "number", "minimum": 0, "maximum": 1 },
+                { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+              ]
+            },
             "calibration_plot_source": { "$ref": "common.schema.json#/$defs/SourceRef" }
           }
         },
 
         "threshold_metrics": {
           "type": "array",
-          "description": "Metrics at specific decision thresholds",
+          "description": "Metrics bij specifieke beslisdrempels",
           "items": {
             "type": "object",
             "additionalProperties": false,
             "required": ["threshold"],
             "properties": {
-              "threshold": { "type": "number" },
-              "sensitivity": { "type": "number", "minimum": 0, "maximum": 1 },
-              "specificity": { "type": "number", "minimum": 0, "maximum": 1 },
-              "ppv": { "type": "number", "minimum": 0, "maximum": 1 },
-              "npv": { "type": "number", "minimum": 0, "maximum": 1 },
-              "accuracy": { "type": "number", "minimum": 0, "maximum": 1 },
-              "f1": { "type": "number", "minimum": 0, "maximum": 1 },
-              "youden_j": { "type": "number" }
+              "threshold": {
+                "oneOf": [
+                  { "type": "number" },
+                  { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                ]
+              },
+              "sensitivity": {
+                "oneOf": [
+                  { "type": "number", "minimum": 0, "maximum": 1 },
+                  { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                ]
+              },
+              "specificity": {
+                "oneOf": [
+                  { "type": "number", "minimum": 0, "maximum": 1 },
+                  { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                ]
+              },
+              "ppv": {
+                "oneOf": [
+                  { "type": "number", "minimum": 0, "maximum": 1 },
+                  { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                ]
+              },
+              "npv": {
+                "oneOf": [
+                  { "type": "number", "minimum": 0, "maximum": 1 },
+                  { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                ]
+              },
+              "accuracy": {
+                "oneOf": [
+                  { "type": "number", "minimum": 0, "maximum": 1 },
+                  { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                ]
+              },
+              "f1": {
+                "oneOf": [
+                  { "type": "number", "minimum": 0, "maximum": 1 },
+                  { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                ]
+              },
+              "youden_j": {
+                "oneOf": [
+                  { "type": "number" },
+                  { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                ]
+              }
             }
           },
           "default": []
@@ -430,8 +622,18 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "intercept_adjustment": { "type": "number" },
-            "slope_adjustment": { "type": "number" },
+            "intercept_adjustment": {
+              "oneOf": [
+                { "type": "number" },
+                { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+              ]
+            },
+            "slope_adjustment": {
+              "oneOf": [
+                { "type": "number" },
+                { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+              ]
+            },
             "method": { "type": "string" },
             "notes": { "type": "string" }
           }
@@ -456,8 +658,18 @@
             "additionalProperties": false,
             "required": ["threshold", "net_benefit"],
             "properties": {
-              "threshold": { "type": "number", "minimum": 0, "maximum": 1 },
-              "net_benefit": { "type": "number" }
+              "threshold": {
+                "oneOf": [
+                  { "type": "number", "minimum": 0, "maximum": 1 },
+                  { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                ]
+              },
+              "net_benefit": {
+                "oneOf": [
+                  { "type": "number" },
+                  { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                ]
+              }
             }
           },
           "default": []

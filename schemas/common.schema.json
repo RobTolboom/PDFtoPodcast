@@ -98,7 +98,20 @@
         "epub_ahead_of_print_date": { "type": "string" },
         "vancouver_citation": { "type": "string" },
         "vancouver_source": { "$ref": "#/$defs/SourceRef" },
-        "source": { "$ref": "#/$defs/SourceRef" }
+        "source": { "$ref": "#/$defs/SourceRef" },
+
+        "external_ids": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ExternalId" },
+          "default": []
+        },
+        "supplements": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/SupplementFile" },
+          "default": []
+        },
+        "parsing_context": { "$ref": "#/$defs/ParsingContext" },
+        "content_hash_sha256": { "type": "string", "description": "Hash van bronbestand of platte tekst" }
       }
     },
 
@@ -382,6 +395,91 @@
           "enum": ["PMID","PMCID","DOI","NCT","ISRCTN","EudraCT","EU-CTR","CTIS","Other"]
         },
         "id": { "type": "string" }
+      }
+    },
+
+    "BoundingBox": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "x": { "type": "number", "minimum": 0 },
+        "y": { "type": "number", "minimum": 0 },
+        "width": { "type": "number", "minimum": 0 },
+        "height": { "type": "number", "minimum": 0 }
+      }
+    },
+
+    "Passage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text"],
+      "properties": {
+        "text": { "type": "string" },
+        "page": { "type": "integer", "minimum": 1 },
+        "bbox": { "$ref": "#/$defs/BoundingBox" },
+        "anchor": { "type": "string" }
+      }
+    },
+
+    "Quantity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["value"],
+      "properties": {
+        "value": { "type": "number" },
+        "unit_text": { "type": "string" },
+        "unit_ucum": { "type": "string" }
+      }
+    },
+
+    "NumberOrValueWithRaw": {
+      "oneOf": [
+        { "type": "number" },
+        { "$ref": "#/$defs/ValueWithRaw" }
+      ]
+    },
+
+    "StringOrValueWithRaw": {
+      "oneOf": [
+        { "type": "string" },
+        { "$ref": "#/$defs/ValueWithRaw" }
+      ]
+    },
+
+    "TimepointAnchor": {
+      "type": "string",
+      "enum": [
+        "baseline","preoperative","intraoperative","postoperative","discharge",
+        "30d","90d","6m","12m","longest_followup","other","unknown"
+      ]
+    },
+
+    "ParsingContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "language_detected": { "type": "string" },
+        "ocr_engine": { "type": "string" },
+        "ocr_quality_score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "pdf_producer": { "type": "string" },
+        "sections_detected": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": []
+        }
+      }
+    },
+
+    "SupplementFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label"],
+      "properties": {
+        "label": { "type": "string" },
+        "filename": { "type": "string" },
+        "url": { "type": "string", "format": "uri" },
+        "doi": { "type": "string", "pattern": "^10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+$" },
+        "content_type": { "type": "string" }
       }
     }
   }

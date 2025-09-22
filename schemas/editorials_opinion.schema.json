@@ -191,6 +191,16 @@
       }
     },
 
+    "LinkedEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "external_id": { "$ref": "common.schema.json#/$defs/ExternalId" },
+        "passage": { "$ref": "common.schema.json#/$defs/Passage" },
+        "notes": { "type": "string" }
+      }
+    },
+
     "Argument": {
       "type": "object",
       "additionalProperties": false,
@@ -216,6 +226,11 @@
         "cited_refs": {
           "type": "array",
           "items": { "$ref": "#/$defs/CitedRef" },
+          "default": []
+        },
+        "evidence_links": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/LinkedEvidence" },
           "default": []
         },
         "support_strength": {

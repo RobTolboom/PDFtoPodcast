@@ -18,7 +18,7 @@
     "schema_version": {
       "type": "string",
       "pattern": "^v\\d+\\.\\d+(\\.\\d+)?$",
-      "description": "Semantic-like version tag, e.g. v1.0 or v1.2.3"
+      "description": "Semantic-like version tag, e.g. v1.0 of v1.2.3"
     },
     "document": {
       "type": "object",
@@ -295,6 +295,27 @@
         },
         "source": {
           "$ref": "#/$defs/SourceRef"
+        },
+        "software": {
+          "type": "string",
+          "description": "Bijv. RevMan, R (metafor/netmeta), Stata, JASP"
+        },
+        "double_extraction": {
+          "type": "boolean",
+          "default": false
+        },
+        "adjudication_rate_pct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "conversion_rules": {
+          "type": "string",
+          "description": "Bijv. median→mean/SD, HR uit KM, SMD↔MD"
+        },
+        "unit_harmonization": {
+          "type": "string",
+          "description": "Regels voor omrekenen units/schalen"
         }
       }
     },
@@ -394,6 +415,10 @@
         "trim_and_fill_applied": {
           "type": "boolean",
           "default": false
+        },
+        "small_study_methods": {
+          "type": "string",
+          "description": "Egger, Begg, contour-enhanced funnel, selection models"
         },
         "notes": {
           "type": "string"
@@ -1222,7 +1247,7 @@
       "properties": {
         "statement": {
           "type": "string",
-          "description": "Verbatim or summarized availability statement"
+          "description": "Verbatim of summarized availability statement"
         },
         "links": {
           "type": "array",
@@ -1486,6 +1511,27 @@
         },
         "source": {
           "$ref": "#/$defs/SourceRef"
+        },
+        "external_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExternalId"
+          },
+          "default": []
+        },
+        "supplements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SupplementFile"
+          },
+          "default": []
+        },
+        "parsing_context": {
+          "$ref": "#/$defs/ParsingContext"
+        },
+        "content_hash_sha256": {
+          "type": "string",
+          "description": "Hash van bronbestand of platte tekst"
         }
       }
     },

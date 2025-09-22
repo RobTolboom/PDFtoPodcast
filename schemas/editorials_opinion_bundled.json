@@ -270,6 +270,21 @@
         }
       }
     },
+    "LinkedEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "external_id": {
+          "$ref": "#/$defs/ExternalId"
+        },
+        "passage": {
+          "$ref": "#/$defs/Passage"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
     "Argument": {
       "type": "object",
       "additionalProperties": false,
@@ -312,6 +327,13 @@
           "type": "array",
           "items": {
             "$ref": "#/$defs/CitedRef"
+          },
+          "default": []
+        },
+        "evidence_links": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LinkedEvidence"
           },
           "default": []
         },
@@ -366,6 +388,33 @@
         },
         "source": {
           "$ref": "#/$defs/SourceRef"
+        }
+      }
+    },
+    "ExternalId": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "id"
+      ],
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": [
+            "PMID",
+            "PMCID",
+            "DOI",
+            "NCT",
+            "ISRCTN",
+            "EudraCT",
+            "EU-CTR",
+            "CTIS",
+            "Other"
+          ]
+        },
+        "id": {
+          "type": "string"
         }
       }
     },
@@ -532,6 +581,27 @@
         },
         "source": {
           "$ref": "#/$defs/SourceRef"
+        },
+        "external_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExternalId"
+          },
+          "default": []
+        },
+        "supplements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SupplementFile"
+          },
+          "default": []
+        },
+        "parsing_context": {
+          "$ref": "#/$defs/ParsingContext"
+        },
+        "content_hash_sha256": {
+          "type": "string",
+          "description": "Hash van bronbestand of platte tekst"
         }
       }
     },
@@ -585,6 +655,28 @@
         },
         "source": {
           "$ref": "#/$defs/SourceRef"
+        }
+      }
+    },
+    "Passage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "text"
+      ],
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "bbox": {
+          "$ref": "#/$defs/BoundingBox"
+        },
+        "anchor": {
+          "type": "string"
         }
       }
     },
