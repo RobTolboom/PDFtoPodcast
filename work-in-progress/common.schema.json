@@ -65,6 +65,10 @@
             "CTIS",
             "ChiCTR",
             "ANZCTR",
+            "UMIN-CTR",
+            "JPRN",
+            "PACTR",
+            "IRCT",
             "Other"
           ]
         },
@@ -141,7 +145,7 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "tool": { "type": "string", "enum": ["RoB2", "ROBINS-I", "Other"] },
+        "tool": { "type": "string", "enum": ["RoB2", "ROBINS-I", "PROBAST", "Other"] },
         "overall": { "type": "string" },
         "domains": {
           "type": "array",
@@ -169,6 +173,16 @@
             }
           },
           "default": []
+        },
+        "applicability": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "participants": { "type": "string", "enum": ["low", "high", "unclear"] },
+            "predictors": { "type": "string", "enum": ["low", "high", "unclear"] },
+            "outcome": { "type": "string", "enum": ["low", "high", "unclear"] },
+            "notes": { "type": "string" }
+          }
         }
       },
       "allOf": [
@@ -222,6 +236,36 @@
                   }
                 },
                 "minItems": 7
+              }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "tool": { "const": "PROBAST" } } },
+          "then": {
+            "properties": {
+              "overall": { "type": "string", "enum": ["low", "high", "unclear"] },
+              "domains": {
+                "items": {
+                  "properties": {
+                    "domain": {
+                      "type": "string",
+                      "enum": ["participants", "predictors", "outcome", "analysis"]
+                    },
+                    "judgement": { "type": "string", "enum": ["low", "high", "unclear"] }
+                  }
+                },
+                "minItems": 4
+              },
+              "applicability": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "participants": { "type": "string", "enum": ["low", "high", "unclear"] },
+                  "predictors": { "type": "string", "enum": ["low", "high", "unclear"] },
+                  "outcome": { "type": "string", "enum": ["low", "high", "unclear"] },
+                  "notes": { "type": "string" }
+                }
               }
             }
           }
