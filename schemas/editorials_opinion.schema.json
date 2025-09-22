@@ -75,6 +75,8 @@
 
     "invited": { "type": "boolean", "default": false },
 
+    "editorial_context": { "$ref": "#/$defs/EditorialContext" },
+
     "target_article": {
       "$ref": "#/$defs/TargetArticle"
     },
@@ -135,6 +137,16 @@
       "description": "Any stated limitations or potential biases acknowledged by the authors"
     },
 
+    "conflict_of_interest": { "$ref": "#/$defs/ConflictOfInterest" },
+
+    "response_chain": { "$ref": "#/$defs/ResponseChain" },
+
+    "impact_metrics": { "$ref": "#/$defs/ImpactMetrics" },
+
+    "quality_assessment": { "$ref": "#/$defs/QualityAssessment" },
+
+    "digital_features": { "$ref": "#/$defs/DigitalFeatures" },
+
     "tables_parsed": {
       "type": "array",
       "items": { "$ref": "common.schema.json#/$defs/ParsedTable" },
@@ -157,6 +169,753 @@
   },
 
   "$defs": {
+    "EditorialContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Editorial context and board information",
+      "properties": {
+        "editorial_board_member": {
+          "type": "boolean",
+          "description": "Whether author is a member of the journal's editorial board"
+        },
+        "guest_editor": {
+          "type": "boolean",
+          "description": "Whether author served as guest editor for this issue"
+        },
+        "solicited": {
+          "type": "boolean",
+          "description": "Whether the editorial was specifically solicited by the journal"
+        },
+        "editorial_type": {
+          "type": "string",
+          "enum": ["accompanying", "standalone", "response", "invited", "unsolicited"],
+          "description": "Type of editorial in relation to other content"
+        },
+        "publication_timeline": {
+          "type": "object",
+          "properties": {
+            "submitted": { "type": "string", "format": "date" },
+            "accepted": { "type": "string", "format": "date" },
+            "published_online": { "type": "string", "format": "date" },
+            "published_print": { "type": "string", "format": "date" }
+          }
+        },
+        "editorial_process": {
+          "type": "object",
+          "properties": {
+            "peer_reviewed": { "type": "boolean" },
+            "editor_reviewed": { "type": "boolean" },
+            "fast_tracked": { "type": "boolean" },
+            "revision_count": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+
+    "ConflictOfInterest": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Comprehensive conflict of interest declaration for editorial content",
+      "properties": {
+        "declared": {
+          "type": "boolean",
+          "description": "Whether conflicts of interest were formally declared"
+        },
+        "statement": {
+          "type": "string",
+          "description": "Full conflict of interest statement as published"
+        },
+        "financial_interests": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["consultant", "speaker", "advisory_board", "stock_ownership", "employment", "grants", "patents", "royalties", "other"]
+              },
+              "entity": { "type": "string", "description": "Company or organization name" },
+              "amount_range": {
+                "type": "string",
+                "enum": ["<$1000", "$1000-$5000", "$5000-$10000", "$10000-$50000", ">$50000", "undisclosed"]
+              },
+              "timeframe": { "type": "string", "description": "Time period of the relationship" },
+              "relevance": {
+                "type": "string",
+                "enum": ["directly_relevant", "potentially_relevant", "not_relevant"],
+                "description": "Relevance to the editorial topic"
+              }
+            }
+          }
+        },
+        "institutional_affiliations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "institution": { "type": "string" },
+              "role": { "type": "string" },
+              "potential_bias": { "type": "string" }
+            }
+          }
+        },
+        "personal_relationships": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "relationship_type": {
+                "type": "string",
+                "enum": ["family", "close_friend", "collaborator", "mentor", "former_colleague"]
+              },
+              "person_role": { "type": "string", "description": "Role of the person in relation to editorial topic" },
+              "impact_assessment": {
+                "type": "string",
+                "enum": ["high", "moderate", "low", "none"]
+              }
+            }
+          }
+        },
+        "intellectual_interests": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "theory_or_position": { "type": "string" },
+              "publications": { "type": "array", "items": { "type": "string" } },
+              "strength_of_position": {
+                "type": "string",
+                "enum": ["strong_advocate", "moderate_support", "neutral", "skeptical"]
+              }
+            }
+          }
+        }
+      }
+    },
+
+    "ResponseChain": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Editorial response and counter-response tracking",
+      "properties": {
+        "is_response": {
+          "type": "boolean",
+          "description": "Whether this editorial is a response to another piece"
+        },
+        "responds_to": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": { "type": "string" },
+              "authors": { "type": "array", "items": { "type": "string" } },
+              "doi": { "type": "string" },
+              "pmid": { "type": "string" },
+              "publication_date": { "type": "string", "format": "date" },
+              "response_type": {
+                "type": "string",
+                "enum": ["direct_response", "counter_argument", "clarification", "extension", "rebuttal"]
+              }
+            }
+          }
+        },
+        "has_responses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": { "type": "string" },
+              "authors": { "type": "array", "items": { "type": "string" } },
+              "doi": { "type": "string" },
+              "pmid": { "type": "string" },
+              "publication_date": { "type": "string", "format": "date" },
+              "response_type": {
+                "type": "string",
+                "enum": ["support", "criticism", "clarification", "extension", "rebuttal"]
+              },
+              "tone": {
+                "type": "string",
+                "enum": ["supportive", "critical", "neutral", "hostile", "constructive"]
+              }
+            }
+          }
+        },
+        "thread_position": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Position in the response thread (1=original, 2=first response, etc.)"
+        },
+        "thread_id": {
+          "type": "string",
+          "description": "Identifier linking all pieces in the same discussion thread"
+        }
+      }
+    },
+
+    "DigitalFeatures": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Modern digital publishing features and interactive elements",
+      "properties": {
+        "multimedia_content": {
+          "type": "object",
+          "properties": {
+            "embedded_videos": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "url": { "type": "string", "format": "uri" },
+                  "title": { "type": "string" },
+                  "duration": { "type": "string", "pattern": "^PT\\d+M\\d+S$" },
+                  "description": { "type": "string" },
+                  "transcript_available": { "type": "boolean" }
+                }
+              }
+            },
+            "interactive_graphics": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": ["interactive_chart", "data_visualization", "simulation", "calculator", "quiz"]
+                  },
+                  "url": { "type": "string", "format": "uri" },
+                  "description": { "type": "string" }
+                }
+              }
+            },
+            "audio_content": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "type": "string",
+                    "enum": ["podcast_episode", "audio_summary", "interview", "commentary"]
+                  },
+                  "url": { "type": "string", "format": "uri" },
+                  "duration": { "type": "string" },
+                  "transcript_url": { "type": "string", "format": "uri" }
+                }
+              }
+            }
+          }
+        },
+        "social_media_integration": {
+          "type": "object",
+          "properties": {
+            "thread_summaries": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "platform": {
+                    "type": "string",
+                    "enum": ["twitter", "linkedin", "mastodon", "bluesky"]
+                  },
+                  "thread_url": { "type": "string", "format": "uri" },
+                  "author_handle": { "type": "string" },
+                  "engagement_metrics": {
+                    "type": "object",
+                    "properties": {
+                      "likes": { "type": "integer", "minimum": 0 },
+                      "shares": { "type": "integer", "minimum": 0 },
+                      "comments": { "type": "integer", "minimum": 0 }
+                    }
+                  }
+                }
+              }
+            },
+            "hashtags": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Relevant hashtags for social media promotion"
+            }
+          }
+        },
+        "version_control": {
+          "type": "object",
+          "properties": {
+            "is_living_document": { "type": "boolean" },
+            "version_history": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "version": { "type": "string" },
+                  "date": { "type": "string", "format": "date-time" },
+                  "changes": { "type": "string" },
+                  "change_type": {
+                    "type": "string",
+                    "enum": ["minor_edit", "content_update", "correction", "major_revision"]
+                  }
+                }
+              }
+            },
+            "preprint_versions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "platform": {
+                    "type": "string",
+                    "enum": ["medRxiv", "bioRxiv", "arXiv", "SSRN", "other"]
+                  },
+                  "preprint_doi": { "type": "string" },
+                  "posted_date": { "type": "string", "format": "date" },
+                  "version": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "peer_commentary": {
+          "type": "object",
+          "properties": {
+            "open_peer_review": { "type": "boolean" },
+            "public_comments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "commenter_name": { "type": "string" },
+                  "commenter_credentials": { "type": "string" },
+                  "comment_text": { "type": "string" },
+                  "comment_date": { "type": "string", "format": "date-time" },
+                  "moderation_status": {
+                    "type": "string",
+                    "enum": ["approved", "pending", "rejected", "flagged"]
+                  }
+                }
+              }
+            },
+            "expert_annotations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "annotator": { "type": "string" },
+                  "section": { "type": "string" },
+                  "annotation_type": {
+                    "type": "string",
+                    "enum": ["clarification", "disagreement", "supporting_evidence", "methodological_note"]
+                  },
+                  "annotation_text": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "accessibility": {
+          "type": "object",
+          "properties": {
+            "screen_reader_compatible": { "type": "boolean" },
+            "alt_text_provided": { "type": "boolean" },
+            "high_contrast_available": { "type": "boolean" },
+            "font_size_adjustable": { "type": "boolean" },
+            "translations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "language": { "$ref": "common.schema.json#/$defs/LanguageCode" },
+                  "translation_type": {
+                    "type": "string",
+                    "enum": ["human", "machine", "hybrid"]
+                  },
+                  "quality_score": { "type": "number", "minimum": 0, "maximum": 1 },
+                  "url": { "type": "string", "format": "uri" }
+                }
+              }
+            },
+            "plain_language_version": {
+              "type": "object",
+              "properties": {
+                "available": { "type": "boolean" },
+                "url": { "type": "string", "format": "uri" },
+                "reading_level": { "type": "string" }
+              }
+            }
+          }
+        },
+        "real_time_updates": {
+          "type": "object",
+          "properties": {
+            "update_notifications": { "type": "boolean" },
+            "rss_feed": { "type": "string", "format": "uri" },
+            "webhook_endpoints": {
+              "type": "array",
+              "items": { "type": "string", "format": "uri" }
+            },
+            "last_updated": { "type": "string", "format": "date-time" }
+          }
+        }
+      }
+    },
+
+    "QualityAssessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Comprehensive quality and credibility assessment for editorial content",
+      "properties": {
+        "author_expertise": {
+          "type": "object",
+          "properties": {
+            "domain_expertise": {
+              "type": "string",
+              "enum": ["recognized_expert", "established_researcher", "emerging_expert", "limited_expertise", "outside_domain"],
+              "description": "Assessment of author expertise in the editorial topic area"
+            },
+            "h_index": { "type": "integer", "minimum": 0 },
+            "years_experience": { "type": "integer", "minimum": 0 },
+            "relevant_publications": { "type": "integer", "minimum": 0 },
+            "institutional_affiliation_quality": {
+              "type": "string",
+              "enum": ["tier_1", "tier_2", "tier_3", "unranked", "non_academic"],
+              "description": "Quality tier of author's institutional affiliation"
+            },
+            "previous_editorial_experience": { "type": "boolean" }
+          }
+        },
+        "source_credibility": {
+          "type": "object",
+          "properties": {
+            "source_types": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "peer_reviewed_journal", "systematic_review", "meta_analysis", "clinical_guideline",
+                  "government_report", "white_paper", "news_article", "blog_post", "personal_communication", "other"
+                ]
+              }
+            },
+            "citation_quality_score": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 10,
+              "description": "Overall quality assessment of cited sources"
+            },
+            "primary_source_ratio": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Proportion of citations that are primary sources"
+            },
+            "recent_source_ratio": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Proportion of citations from last 5 years"
+            },
+            "source_independence": {
+              "type": "string",
+              "enum": ["independent", "some_conflicts", "significant_conflicts", "undisclosed"],
+              "description": "Independence of cited sources from potential conflicts"
+            }
+          }
+        },
+        "fact_checking": {
+          "type": "object",
+          "properties": {
+            "factual_claims_verified": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Proportion of factual claims that have been verified"
+            },
+            "verification_method": {
+              "type": "string",
+              "enum": ["automated", "manual", "crowd_sourced", "expert_review", "not_verified"]
+            },
+            "disputed_claims": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "claim": { "type": "string" },
+                  "dispute_source": { "type": "string" },
+                  "dispute_reasoning": { "type": "string" },
+                  "resolution_status": {
+                    "type": "string",
+                    "enum": ["resolved", "ongoing", "unresolved"]
+                  }
+                }
+              }
+            },
+            "corrections_issued": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "correction_type": {
+                    "type": "string",
+                    "enum": ["factual_error", "interpretation_error", "citation_error", "methodological_error"]
+                  },
+                  "correction_date": { "type": "string", "format": "date" },
+                  "correction_text": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "transparency": {
+          "type": "object",
+          "properties": {
+            "methodology_disclosed": { "type": "boolean" },
+            "data_availability": {
+              "type": "string",
+              "enum": ["fully_available", "partially_available", "available_on_request", "not_available"],
+              "description": "Availability of underlying data"
+            },
+            "funding_disclosed": { "type": "boolean" },
+            "conflicts_disclosed": { "type": "boolean" },
+            "peer_review_process": {
+              "type": "string",
+              "enum": ["open_peer_review", "single_blind", "double_blind", "editorial_review", "not_peer_reviewed"]
+            },
+            "editorial_independence": {
+              "type": "string",
+              "enum": ["fully_independent", "mostly_independent", "some_influence", "significant_influence", "unclear"]
+            }
+          }
+        },
+        "readability": {
+          "type": "object",
+          "properties": {
+            "flesch_reading_ease": { "type": "number", "minimum": 0, "maximum": 100 },
+            "flesch_kincaid_grade": { "type": "number", "minimum": 0 },
+            "target_audience_appropriateness": {
+              "type": "string",
+              "enum": ["general_public", "healthcare_professionals", "researchers", "specialists", "mixed"]
+            },
+            "technical_jargon_level": {
+              "type": "string",
+              "enum": ["minimal", "moderate", "high", "excessive"]
+            },
+            "accessibility_features": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["plain_language_summary", "visual_aids", "glossary", "translation_available"]
+              }
+            }
+          }
+        },
+        "overall_quality_score": {
+          "type": "object",
+          "properties": {
+            "composite_score": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100,
+              "description": "Overall quality score (0-100)"
+            },
+            "scoring_methodology": {
+              "type": "string",
+              "description": "Method used to calculate composite score"
+            },
+            "quality_tier": {
+              "type": "string",
+              "enum": ["exceptional", "high", "moderate", "low", "poor"],
+              "description": "Categorical quality assessment"
+            },
+            "reliability_confidence": {
+              "type": "string",
+              "enum": ["very_high", "high", "moderate", "low", "very_low"],
+              "description": "Confidence in the reliability of this assessment"
+            }
+          }
+        }
+      }
+    },
+
+    "ImpactMetrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Editorial impact and influence tracking across multiple dimensions",
+      "properties": {
+        "citation_metrics": {
+          "type": "object",
+          "properties": {
+            "citation_count": { "type": "integer", "minimum": 0 },
+            "h_index_contribution": { "type": "number", "minimum": 0 },
+            "field_weighted_citation_impact": { "type": "number", "minimum": 0 },
+            "relative_citation_ratio": { "type": "number", "minimum": 0 },
+            "citing_papers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "doi": { "type": "string" },
+                  "title": { "type": "string" },
+                  "publication_date": { "type": "string", "format": "date" },
+                  "citation_context": {
+                    "type": "string",
+                    "enum": ["supportive", "critical", "neutral", "methodological"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "altmetrics": {
+          "type": "object",
+          "properties": {
+            "altmetric_score": { "type": "number", "minimum": 0 },
+            "social_media": {
+              "type": "object",
+              "properties": {
+                "twitter_mentions": { "type": "integer", "minimum": 0 },
+                "facebook_shares": { "type": "integer", "minimum": 0 },
+                "linkedin_shares": { "type": "integer", "minimum": 0 },
+                "reddit_mentions": { "type": "integer", "minimum": 0 },
+                "sentiment_analysis": {
+                  "type": "object",
+                  "properties": {
+                    "positive": { "type": "number", "minimum": 0, "maximum": 1 },
+                    "negative": { "type": "number", "minimum": 0, "maximum": 1 },
+                    "neutral": { "type": "number", "minimum": 0, "maximum": 1 }
+                  }
+                }
+              }
+            },
+            "news_mentions": {
+              "type": "object",
+              "properties": {
+                "mainstream_media": { "type": "integer", "minimum": 0 },
+                "science_blogs": { "type": "integer", "minimum": 0 },
+                "policy_documents": { "type": "integer", "minimum": 0 }
+              }
+            },
+            "downloads": {
+              "type": "object",
+              "properties": {
+                "total_downloads": { "type": "integer", "minimum": 0 },
+                "unique_users": { "type": "integer", "minimum": 0 },
+                "geographic_distribution": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "country": { "type": "string" },
+                      "download_count": { "type": "integer", "minimum": 0 }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "policy_impact": {
+          "type": "object",
+          "properties": {
+            "policy_citations": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "policy_document": { "type": "string" },
+                  "issuing_organization": { "type": "string" },
+                  "policy_type": {
+                    "type": "string",
+                    "enum": ["guideline", "regulation", "position_statement", "recommendation", "legislation"]
+                  },
+                  "citation_date": { "type": "string", "format": "date" },
+                  "influence_level": {
+                    "type": "string",
+                    "enum": ["major_influence", "moderate_influence", "minor_mention", "background_citation"]
+                  }
+                }
+              }
+            },
+            "healthcare_practice_changes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "practice_area": { "type": "string" },
+                  "change_description": { "type": "string" },
+                  "evidence_of_change": { "type": "string" },
+                  "scale_of_impact": {
+                    "type": "string",
+                    "enum": ["international", "national", "regional", "institutional"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "expert_reception": {
+          "type": "object",
+          "properties": {
+            "expert_responses": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "expert_name": { "type": "string" },
+                  "expertise_area": { "type": "string" },
+                  "response_type": {
+                    "type": "string",
+                    "enum": ["endorsement", "criticism", "clarification", "extension", "rebuttal"]
+                  },
+                  "response_venue": {
+                    "type": "string",
+                    "enum": ["peer_reviewed_response", "blog_post", "social_media", "conference", "interview"]
+                  },
+                  "influence_score": { "type": "number", "minimum": 0, "maximum": 10 }
+                }
+              }
+            },
+            "professional_society_reactions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "society_name": { "type": "string" },
+                  "reaction_type": {
+                    "type": "string",
+                    "enum": ["formal_endorsement", "position_statement", "public_disagreement", "neutral_acknowledgment"]
+                  },
+                  "statement_text": { "type": "string" },
+                  "statement_date": { "type": "string", "format": "date" }
+                }
+              }
+            }
+          }
+        },
+        "longitudinal_impact": {
+          "type": "object",
+          "properties": {
+            "impact_timeline": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "time_period": {
+                    "type": "string",
+                    "enum": ["1_month", "3_months", "6_months", "1_year", "2_years", "5_years"]
+                  },
+                  "citation_count": { "type": "integer", "minimum": 0 },
+                  "altmetric_score": { "type": "number", "minimum": 0 },
+                  "policy_mentions": { "type": "integer", "minimum": 0 }
+                }
+              }
+            },
+            "sustained_influence": {
+              "type": "string",
+              "enum": ["lasting_impact", "moderate_longevity", "short_term_interest", "minimal_impact"],
+              "description": "Assessment of long-term influence sustainability"
+            }
+          }
+        }
+      }
+    },
+
     "CitedRef": {
       "type": "object",
       "additionalProperties": false,
@@ -242,7 +1001,225 @@
           "items": { "type": "string" },
           "default": []
         },
+        "rhetorical_analysis": { "$ref": "#/$defs/RhetoricalAnalysis" },
+        "bias_indicators": { "$ref": "#/$defs/BiasIndicators" },
+        "logical_structure": { "$ref": "#/$defs/LogicalStructure" },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      }
+    },
+
+    "RhetoricalAnalysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Analysis of rhetorical devices and persuasive techniques",
+      "properties": {
+        "rhetorical_devices": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "ethos", "pathos", "logos", "metaphor", "analogy", "repetition",
+              "rhetorical_question", "appeal_to_authority", "appeal_to_emotion",
+              "appeal_to_fear", "bandwagon", "strawman", "false_dilemma", "slippery_slope"
+            ]
+          }
+        },
+        "persuasive_techniques": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "technique": { "type": "string" },
+              "description": { "type": "string" },
+              "effectiveness_assessment": {
+                "type": "string",
+                "enum": ["highly_effective", "moderately_effective", "less_effective", "ineffective"]
+              },
+              "target_audience": { "type": "string" }
+            }
+          }
+        },
+        "tone_analysis": {
+          "type": "object",
+          "properties": {
+            "overall_tone": {
+              "type": "string",
+              "enum": ["authoritative", "persuasive", "neutral", "critical", "supportive", "emotional", "analytical"]
+            },
+            "emotional_appeal": {
+              "type": "string",
+              "enum": ["high", "moderate", "low", "none"]
+            },
+            "formality_level": {
+              "type": "string",
+              "enum": ["very_formal", "formal", "semi_formal", "informal", "conversational"]
+            }
+          }
+        }
+      }
+    },
+
+    "BiasIndicators": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Systematic analysis of potential biases in editorial content",
+      "properties": {
+        "selection_bias": {
+          "type": "object",
+          "properties": {
+            "cherry_picking": {
+              "type": "boolean",
+              "description": "Evidence of selective citation or data presentation"
+            },
+            "omitted_evidence": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Key evidence or perspectives that are notably absent"
+            },
+            "source_diversity": {
+              "type": "string",
+              "enum": ["diverse", "limited", "narrow", "single_perspective"],
+              "description": "Diversity of sources and viewpoints presented"
+            }
+          }
+        },
+        "confirmation_bias": {
+          "type": "object",
+          "properties": {
+            "predetermined_conclusion": {
+              "type": "boolean",
+              "description": "Evidence that conclusion was predetermined"
+            },
+            "selective_interpretation": {
+              "type": "boolean",
+              "description": "Evidence of interpreting ambiguous data to support position"
+            },
+            "dismissal_of_contradictory_evidence": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Contradictory evidence that is dismissed without adequate justification"
+            }
+          }
+        },
+        "framing_bias": {
+          "type": "object",
+          "properties": {
+            "loaded_language": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Emotionally charged or biased language used"
+            },
+            "false_dichotomy": {
+              "type": "boolean",
+              "description": "Presentation of complex issues as binary choices"
+            },
+            "contextualization": {
+              "type": "string",
+              "enum": ["balanced", "one_sided", "misleading", "incomplete"],
+              "description": "How information is contextualized"
+            }
+          }
+        },
+        "authority_bias": {
+          "type": "object",
+          "properties": {
+            "inappropriate_appeals_to_authority": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Appeals to authority outside their expertise"
+            },
+            "argument_from_position": {
+              "type": "boolean",
+              "description": "Arguments based on author's position rather than evidence"
+            }
+          }
+        },
+        "statistical_bias": {
+          "type": "object",
+          "properties": {
+            "misrepresentation_of_data": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Ways in which data is misrepresented"
+            },
+            "correlation_causation_confusion": {
+              "type": "boolean",
+              "description": "Inappropriate inference of causation from correlation"
+            },
+            "sample_size_issues": {
+              "type": "boolean",
+              "description": "Inappropriate generalizations from small samples"
+            }
+          }
+        }
+      }
+    },
+
+    "LogicalStructure": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Analysis of logical reasoning and argument structure",
+      "properties": {
+        "argument_type": {
+          "type": "string",
+          "enum": ["deductive", "inductive", "abductive", "analogical", "causal", "mixed"],
+          "description": "Primary type of logical reasoning used"
+        },
+        "logical_fallacies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "fallacy_type": {
+                "type": "string",
+                "enum": [
+                  "ad_hominem", "straw_man", "false_dilemma", "slippery_slope",
+                  "appeal_to_ignorance", "bandwagon", "hasty_generalization",
+                  "circular_reasoning", "false_cause", "appeal_to_emotion",
+                  "appeal_to_authority", "red_herring", "tu_quoque"
+                ]
+              },
+              "description": { "type": "string" },
+              "severity": {
+                "type": "string",
+                "enum": ["critical", "major", "minor", "negligible"]
+              },
+              "location": { "$ref": "common.schema.json#/$defs/SourceRef" }
+            }
+          }
+        },
+        "argument_strength": {
+          "type": "object",
+          "properties": {
+            "premise_validity": {
+              "type": "string",
+              "enum": ["strong", "moderate", "weak", "invalid"]
+            },
+            "logical_coherence": {
+              "type": "string",
+              "enum": ["coherent", "mostly_coherent", "some_gaps", "incoherent"]
+            },
+            "evidence_quality": {
+              "type": "string",
+              "enum": ["high_quality", "moderate_quality", "low_quality", "insufficient"]
+            },
+            "conclusion_support": {
+              "type": "string",
+              "enum": ["strongly_supported", "moderately_supported", "weakly_supported", "unsupported"]
+            }
+          }
+        },
+        "counterargument_consideration": {
+          "type": "object",
+          "properties": {
+            "acknowledges_counterarguments": { "type": "boolean" },
+            "addresses_counterarguments": { "type": "boolean" },
+            "strength_of_rebuttal": {
+              "type": "string",
+              "enum": ["convincing", "partial", "weak", "none"]
+            }
+          }
+        }
       }
     },
 
