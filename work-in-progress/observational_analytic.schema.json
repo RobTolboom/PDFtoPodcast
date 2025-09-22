@@ -1,0 +1,437 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "observational_analytic.schema.json",
+  "title": "Observational Analytic Study Extraction",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "metadata",
+    "study_design",
+    "population",
+    "exposures",
+    "outcomes",
+    "results"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^v\\d+\\.\\d+(\\.\\d+)?$",
+      "description": "Semantic-like version tag, e.g. v1.0 or v1.2.3"
+    },
+    "document": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["filename", "page_count"],
+      "properties": {
+        "filename": { "type": "string" },
+        "content_type": { "type": "string", "enum": ["application/pdf"], "default": "application/pdf" },
+        "size_bytes": { "type": "integer", "minimum": 0 },
+        "page_count": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "study_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]+$",
+      "description": "Internal opaque ID for this study/article"
+    },
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "model", "timestamp"],
+      "properties": {
+        "name": { "type": "string" },
+        "model": { "type": "string" },
+        "temperature": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
+    },
+    "language": {
+      "$ref": "common.schema.json#/$defs/LanguageCode"
+    },
+
+    "metadata": { "$ref": "common.schema.json#/$defs/Metadata" },
+    "study_design": { "$ref": "#/$defs/StudyDesign" },
+    "population": { "$ref": "#/$defs/Population" },
+
+    "exposures": {
+      "type": "array",
+      "description": "Exposure variables assessed in the study.",
+      "items": { "$ref": "#/$defs/Exposure" },
+      "minItems": 1
+    },
+
+    "groups": {
+      "type": "array",
+      "description": "Optional derived groups (e.g., exposed/unexposed, categories).",
+      "items": { "$ref": "#/$defs/Group" },
+      "default": []
+    },
+
+    "comparisons": {
+      "type": "array",
+      "description": "Contrasts to estimate effects (between groups or exposure levels).",
+      "items": { "$ref": "#/$defs/Comparison" },
+      "default": []
+    },
+
+    "outcomes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Outcome" },
+      "minItems": 1,
+      "uniqueItems": false
+    },
+
+    "results": { "$ref": "#/$defs/Results" },
+
+    "tables_parsed": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/ParsedTable" },
+      "default": []
+    },
+    "figures_summary": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/FigureSummary" },
+      "default": []
+    },
+    "risk_of_bias": { "$ref": "common.schema.json#/$defs/RiskOfBias" },
+    "protocol_deviations": { "type": "string" },
+    "extraction_warnings": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/ExtractionWarning" },
+      "default": []
+    },
+    "truncated": { "$ref": "common.schema.json#/$defs/TruncationInfo" }
+  },
+
+  "allOf": [
+    {
+      "if": { "properties": { "study_design": { "properties": { "label": { "const": "Cohort" } } } } },
+      "then": {
+        "properties": {
+          "study_design": { "required": ["cohort_direction"] },
+          "population": { "required": ["n_total"] }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "study_design": { "properties": { "label": { "const": "Case-control" } } } } },
+      "then": {
+        "properties": {
+          "population": { "required": ["n_cases", "n_controls"] },
+          "study_design": { "properties": { "matching": { "default": "none" } } }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "study_design": { "properties": { "label": { "const": "Cross-sectional" } } } } },
+      "then": {
+        "properties": { "study_design": { "required": ["sampling_frame"] } }
+      }
+    },
+    {
+      "if": { "properties": { "study_design": { "properties": { "label": { "const": "Ecological" } } } } },
+      "then": {
+        "properties": { "study_design": { "required": ["ecological_level"] } }
+      }
+    },
+    {
+      "if": { "properties": { "study_design": { "properties": { "label": { "const": "Case-control" } } } } },
+      "then": {
+        "properties": {
+          "study_design": {
+            "allOf": [
+              {
+                "if": { "properties": { "matching": { "enum": ["individual", "frequency"] } } },
+                "then": { "required": ["matching_variables"] }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+
+  "$defs": {
+    "StudyDesign": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label"],
+      "properties": {
+        "label": {
+          "type": "string",
+          "enum": ["Cohort", "Case-control", "Cross-sectional", "Ecological"]
+        },
+
+        "cohort_direction": {
+          "type": "string",
+          "enum": ["prospective", "retrospective", "ambidirectional", "unclear"]
+        },
+        "time_origin": { "type": "string", "description": "Index date origin (e.g., diagnosis, admission)" },
+        "follow_up_scheme": { "type": "string", "description": "Fixed vs variable follow-up; scheduled visits" },
+
+        "matching": { "type": "string", "enum": ["none", "individual", "frequency"] },
+        "matching_ratio": { "type": "number", "minimum": 0 },
+        "matching_variables": { "type": "array", "items": { "type": "string" }, "default": [] },
+        "control_sampling": { "type": "string", "enum": ["incidence_density", "cumulative", "nested", "other"] },
+
+        "sampling_frame": { "type": "string", "description": "Source population frame (for cross-sectional)" },
+        "weighting_used": { "type": "boolean", "default": false },
+
+        "ecological_level": { "type": "string", "description": "Unit of analysis (e.g., region, hospital)" },
+
+        "exposure_assessment": { "type": "string" },
+        "outcome_assessment": { "type": "string" },
+        "confounding_strategy": {
+          "type": "array",
+          "description": "Approaches used to control confounding",
+          "items": {
+            "type": "string",
+            "enum": [
+              "multivariable",
+              "matching",
+              "stratification",
+              "IPTW",
+              "IPCW",
+              "SMR-weighting",
+              "propensity_score",
+              "instrumental_variable",
+              "g-methods",
+              "standardization",
+              "other"
+            ]
+          },
+          "default": []
+        },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
+        "design_notes": { "type": "string" }
+      }
+    },
+
+    "Population": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "n_total": { "type": "integer", "minimum": 0, "description": "Total cohort/sample size" },
+        "n_cases": { "type": "integer", "minimum": 0, "description": "For case-control designs" },
+        "n_controls": { "type": "integer", "minimum": 0, "description": "For case-control designs" },
+        "person_time_total": { "type": "number", "minimum": 0, "description": "Total person-time (e.g., person-years)" },
+        "age_mean": { "type": "number" },
+        "age_sd": { "type": "number", "minimum": 0 },
+        "sex_female_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+        "inclusion_criteria": { "type": "string" },
+        "exclusion_criteria": { "type": "string" },
+        "follow_up_duration_iso8601": {
+          "$ref": "common.schema.json#/$defs/ISO8601Duration",
+          "description": "ISO 8601 duration (typical for cohort)"
+        },
+        "loss_to_follow_up_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+        "missing_data": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "variables_with_missing": { "type": "array", "items": { "type": "string" }, "default": [] },
+            "imputation": { "type": "string" }
+          }
+        },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      }
+    },
+
+    "Exposure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["exposure_id", "name", "type"],
+      "properties": {
+        "exposure_id": { "type": "string" },
+        "name": { "type": "string" },
+        "definition": { "type": "string" },
+        "type": { "type": "string", "enum": ["binary", "categorical", "continuous", "time_varying"] },
+        "categories": {
+          "type": "array",
+          "description": "For categorical exposures: ordered list of levels",
+          "items": { "type": "string" },
+          "default": []
+        },
+        "unit": { "type": "string" },
+        "per_unit_effect": { "type": "number", "description": "Optional: unit increase for contrast definition (meta info)" },
+        "measurement_time": { "type": "string", "enum": ["baseline", "time_varying", "unknown"], "default": "baseline" },
+        "time_window_iso8601": { "$ref": "common.schema.json#/$defs/ISO8601Duration" },
+        "instrumental_variable": { "type": "string", "description": "If IV used, specify" },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      }
+    },
+
+    "Group": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["group_id", "label"],
+      "properties": {
+        "group_id": { "type": "string" },
+        "label": { "type": "string" },
+        "n": { "type": "integer", "minimum": 0 },
+        "description": { "type": "string" },
+        "exposure_levels": {
+          "type": "object",
+          "description": "Mapping exposure->level/value for this group",
+          "additionalProperties": { "type": "string" },
+          "default": {}
+        }
+      }
+    },
+
+    "Comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["comparison_id", "comparison_type", "outcome_scope"],
+      "properties": {
+        "comparison_id": { "type": "string" },
+        "comparison_type": { "type": "string", "enum": ["group_vs_group", "exposure_contrast", "trend"] },
+        "group_a": { "type": "string", "description": "group_id (for group_vs_group)" },
+        "group_b": { "type": "string", "description": "group_id (for group_vs_group)" },
+        "exposure_contrast": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "exposure_id": { "type": "string" },
+            "level_a": { "type": "string" },
+            "level_b": { "type": "string" },
+            "per_unit": { "type": "number", "description": "For continuous exposure, effect per unit" }
+          }
+        },
+        "trend_spec": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "exposure_id": { "type": "string" },
+            "coding": { "type": "string", "enum": ["ordinal", "quantile", "spline", "other"] }
+          }
+        },
+        "outcome_scope": { "type": "string", "enum": ["all_outcomes", "primary_only", "specified_list"] },
+        "specified_outcomes": { "type": "array", "items": { "type": "string" }, "default": [] },
+        "is_primary": { "type": "boolean", "default": false }
+      }
+    },
+
+    "Outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome_id", "name", "type"],
+      "properties": {
+        "outcome_id": { "type": "string" },
+        "name": { "type": "string" },
+        "definition": { "type": "string" },
+        "type": { "type": "string", "enum": ["binary", "continuous", "time_to_event", "ordinal", "count"] },
+        "direction_of_benefit": { "type": "string", "enum": ["higher_better", "lower_better", "neutral_or_na"] },
+        "unit": { "type": "string" },
+        "timepoint": { "type": "string" },
+        "timepoint_iso8601": { "$ref": "common.schema.json#/$defs/ISO8601Duration" },
+        "measurement_method": { "type": "string" },
+        "scale_min": { "type": "number" },
+        "scale_max": { "type": "number" },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
+        "unit_ucum": { "type": "string", "description": "UCUM code if available" }
+      }
+    },
+
+    "PerGroupResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome_id", "group_id"],
+      "properties": {
+        "outcome_id": { "type": "string" },
+        "group_id": { "type": "string" },
+        "n": { "type": "integer", "minimum": 0 },
+        "events": { "type": "integer", "minimum": 0 },
+        "mean": { "type": "number" },
+        "sd": { "type": "number", "minimum": 0 },
+        "median": { "type": "number" },
+        "iqr": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": { "p25": { "type": "number" }, "p75": { "type": "number" } }
+        },
+        "total": { "type": "integer", "minimum": 0 },
+        "unit": { "type": "string" },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      },
+      "oneOf": [
+        {
+          "required": ["mean", "sd"],
+          "not": { "anyOf": [ { "required": ["median"] }, { "required": ["iqr"] }, { "required": ["events"] } ] }
+        },
+        {
+          "required": ["median", "iqr"],
+          "not": { "anyOf": [ { "required": ["mean"] }, { "required": ["sd"] }, { "required": ["events"] } ] },
+          "properties": { "iqr": { "required": ["p25", "p75"] } }
+        },
+        {
+          "description": "Binary outcome per group",
+          "required": ["events"],
+          "anyOf": [ { "required": ["n"] }, { "required": ["total"] } ]
+        }
+      ]
+    },
+
+    "ContrastEffect": {
+      "$ref": "common.schema.json#/$defs/ContrastEffect"
+    },
+
+    "ContrastResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome_id", "comparison_id", "effect"],
+      "properties": {
+        "outcome_id": { "type": "string" },
+        "comparison_id": { "type": "string" },
+
+        "adjusted": { "type": "boolean", "default": true },
+        "covariates": { "type": "array", "items": { "type": "string" }, "default": [] },
+        "model": {
+          "type": "string",
+          "enum": ["cox", "logistic", "linear", "poisson", "nb", "gee", "mixed", "ipw", "iv", "g-methods", "other", "na"]
+        },
+        "propensity_score": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "method": { "type": "string", "enum": ["matching", "stratification", "IPTW", "SMR-weighting", "overlap", "other"] },
+            "matching_ratio": { "type": "number", "minimum": 0 },
+            "caliper": { "type": "number", "minimum": 0 },
+            "variables": { "type": "array", "items": { "type": "string" }, "default": [] },
+            "balance_ok": { "type": "boolean", "default": false },
+            "max_smd_after": { "type": "number", "description": "Max absolute standardized mean difference post-balance" }
+          }
+        },
+        "effect": { "$ref": "#/$defs/ContrastEffect" },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      }
+    },
+
+    "HarmsResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event", "group_id", "events", "total", "source"],
+      "properties": {
+        "event": { "type": "string" },
+        "group_id": { "type": "string" },
+        "severity_grade_scale": { "type": "string", "enum": ["CTCAE", "Clavien-Dindo", "Other", "NA"] },
+        "events": { "type": "integer", "minimum": 0 },
+        "total": { "type": "integer", "minimum": 0 },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
+        "serious": { "type": "boolean", "default": false },
+        "relatedness": { "type": "string", "enum": ["related", "probable", "possible", "unlikely", "not_related", "unknown"], "default": "unknown" }
+      }
+    },
+
+    "Results": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "per_group": { "type": "array", "items": { "$ref": "#/$defs/PerGroupResult" }, "default": [] },
+        "contrasts": { "type": "array", "items": { "$ref": "#/$defs/ContrastResult" }, "default": [] },
+        "harms": { "type": "array", "items": { "$ref": "#/$defs/HarmsResult" }, "default": [] }
+      }
+    }
+  }
+}
