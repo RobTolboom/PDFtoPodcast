@@ -34,37 +34,40 @@
     "metadata": { "$ref": "common.schema.json#/$defs/Metadata" },
     "study_design": { "$ref": "#/$defs/StudyDesign" },
     "population": { "$ref": "#/$defs/Population" },
-
     "exposures": {
       "type": "array",
       "description": "Exposure variables assessed in the study.",
       "items": { "$ref": "#/$defs/Exposure" },
       "minItems": 1
     },
-
     "groups": {
       "type": "array",
       "description": "Optional derived groups (e.g., exposed/unexposed, categories).",
       "items": { "$ref": "#/$defs/Group" },
       "default": []
     },
-
     "comparisons": {
       "type": "array",
       "description": "Contrasts to estimate effects (between groups or exposure levels).",
       "items": { "$ref": "#/$defs/Comparison" },
       "default": []
     },
-
     "outcomes": {
       "type": "array",
       "items": { "$ref": "#/$defs/Outcome" },
       "minItems": 1,
       "uniqueItems": false
     },
-
     "results": { "$ref": "#/$defs/Results" },
-
+    "subgroup_analyses": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/SubgroupAnalysisObs" },
+      "default": []
+    },
+    "analysis_plan_registered": {
+      "type": "string",
+      "description": "Link/registratie van vooraf gespecificeerd analyseplan (indien aanwezig)"
+    },
     "tables_parsed": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/ParsedTable" }, "default": [] },
     "figures_summary": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/FigureSummary" }, "default": [] },
     "risk_of_bias": { "$ref": "common.schema.json#/$defs/RiskOfBias" },
@@ -72,7 +75,6 @@
     "extraction_warnings": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/ExtractionWarning" }, "default": [] },
     "truncated": { "$ref": "common.schema.json#/$defs/TruncationInfo" }
   },
-
   "allOf": [
     {
       "if": { "properties": { "study_design": { "properties": { "label": { "const": "Cohort" } } } } },
@@ -113,7 +115,6 @@
       }
     }
   ],
-
   "$defs": {
     "StudyDesign": {
       "type": "object",
@@ -124,17 +125,15 @@
         "cohort_direction": { "type": "string", "enum": ["prospective", "retrospective", "ambidirectional", "unclear"] },
         "time_origin": { "type": "string", "description": "Index date origin (e.g., diagnosis, admission)" },
         "follow_up_scheme": { "type": "string", "description": "Fixed vs variable follow-up; scheduled visits" },
-
+        "time_at_risk_definition": { "type": "string", "description": "Start/stop regels; grace periods" },
+        "immortal_time_handling": { "type": "string", "enum": ["excluded", "time-varying_exposure", "landmarking", "unknown", "other"] },
         "matching": { "type": "string", "enum": ["none", "individual", "frequency"] },
         "matching_ratio": { "type": "number", "minimum": 0 },
         "matching_variables": { "type": "array", "items": { "type": "string" }, "default": [] },
         "control_sampling": { "type": "string", "enum": ["incidence_density", "cumulative", "nested", "other"] },
-
         "sampling_frame": { "type": "string", "description": "Source population frame (for cross-sectional)" },
         "weighting_used": { "type": "boolean", "default": false },
-
         "ecological_level": { "type": "string", "description": "Unit of analysis (e.g., region, hospital)" },
-
         "exposure_assessment": { "type": "string" },
         "outcome_assessment": { "type": "string" },
         "confounding_strategy": {
@@ -156,13 +155,12 @@
               "other"
             ]
           },
-        "default": []
+          "default": []
         },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
         "design_notes": { "type": "string" }
       }
     },
-
     "Population": {
       "type": "object",
       "additionalProperties": false,
@@ -192,7 +190,6 @@
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       }
     },
-
     "Exposure": {
       "type": "object",
       "additionalProperties": false,
@@ -213,6 +210,7 @@
         "measurement_time": { "type": "string", "enum": ["baseline", "time_varying", "unknown"], "default": "baseline" },
         "time_window_iso8601": { "$ref": "common.schema.json#/$defs/ISO8601Duration" },
         "instrumental_variable": { "type": "string", "description": "If IV used, specify" },
+        "misclassification_risk": { "type": "string", "enum": ["low", "moderate", "high", "unclear"] },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       },
       "allOf": [
@@ -227,7 +225,6 @@
         }
       ]
     },
-
     "Group": {
       "type": "object",
       "additionalProperties": false,
@@ -245,7 +242,6 @@
         }
       }
     },
-
     "Comparison": {
       "type": "object",
       "additionalProperties": false,
@@ -278,7 +274,6 @@
         "is_primary": { "type": "boolean", "default": false }
       }
     },
-
     "Outcome": {
       "type": "object",
       "additionalProperties": false,
@@ -295,11 +290,11 @@
         "measurement_method": { "type": "string" },
         "scale_min": { "type": "number" },
         "scale_max": { "type": "number" },
+        "misclassification_risk": { "type": "string", "enum": ["low", "moderate", "high", "unclear"] },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
         "unit_ucum": { "type": "string", "description": "UCUM code if available" }
       }
     },
-
     "PerGroupResult": {
       "type": "object",
       "additionalProperties": false,
@@ -319,7 +314,6 @@
         },
         "total": { "type": "integer", "minimum": 0 },
         "unit": { "type": "string" },
-        "person_time": { "type": "number", "minimum": 0, "description": "Person-time for this group (e.g., person-years), if applicable" },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       },
       "oneOf": [
@@ -339,9 +333,17 @@
         }
       ]
     },
-
     "ContrastEffect": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
-
+    "SensitivityCI": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "e_value": { "type": "number", "description": "E-value voor geschat effect" },
+        "negative_control_outcome": { "type": "string" },
+        "negative_control_exposure": { "type": "string" },
+        "notes": { "type": "string" }
+      }
+    },
     "ContrastResult": {
       "type": "object",
       "additionalProperties": false,
@@ -355,7 +357,6 @@
           "type": "string",
           "enum": ["cox", "logistic", "linear", "poisson", "nb", "gee", "mixed", "ipw", "iv", "g-methods", "other", "na"]
         },
-        "offset_variable": { "type": "string", "description": "Name of offset variable used in count models (e.g., log person-time)" },
         "propensity_score": {
           "type": "object",
           "additionalProperties": false,
@@ -368,11 +369,14 @@
             "max_smd_after": { "type": "number", "description": "Max absolute standardized mean difference post-balance" }
           }
         },
+        "ps_overlap_ok": { "type": "boolean", "default": false },
+        "ps_overlap_notes": { "type": "string" },
+        "competing_risks_method": { "type": "string", "enum": ["none", "Fine-Gray", "cause-specific", "other"] },
+        "sensitivity": { "$ref": "#/$defs/SensitivityCI" },
         "effect": { "$ref": "#/$defs/ContrastEffect" },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       }
     },
-
     "HarmsResult": {
       "type": "object",
       "additionalProperties": false,
@@ -385,10 +389,10 @@
         "total": { "type": "integer", "minimum": 0 },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
         "serious": { "type": "boolean", "default": false },
-        "relatedness": { "type": "string", "enum": ["related", "probable", "possible", "unlikely", "not_related", "unknown"], "default": "unknown" }
+        "relatedness": { "type": "string", "enum": ["related", "probable", "possible", "unlikely", "not_related", "unknown"], "default": "unknown" },
+        "meddra_code": { "type": "string", "description": "MedDRA PT/LLT code indien beschikbaar" }
       }
     },
-
     "Results": {
       "type": "object",
       "additionalProperties": false,
@@ -396,6 +400,27 @@
         "per_group": { "type": "array", "items": { "$ref": "#/$defs/PerGroupResult" }, "default": [] },
         "contrasts": { "type": "array", "items": { "$ref": "#/$defs/ContrastResult" }, "default": [] },
         "harms": { "type": "array", "items": { "$ref": "#/$defs/HarmsResult" }, "default": [] }
+      }
+    },
+    "SubgroupAnalysisObs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["factor"],
+      "properties": {
+        "factor": { "type": "string" },
+        "levels": { "type": "array", "items": { "type": "string" }, "default": [] },
+        "interaction_p": { "type": "number", "minimum": 0, "maximum": 1 },
+        "effects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": { "level": { "type": "string" }, "effect": { "$ref": "common.schema.json#/$defs/ContrastEffect" } }
+          },
+          "default": []
+        },
+        "pre_specified": { "type": "boolean", "default": false },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       }
     }
   }
