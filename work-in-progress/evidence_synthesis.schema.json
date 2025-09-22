@@ -20,7 +20,6 @@
       "pattern": "^v\\d+\\.\\d+(\\.\\d+)?$",
       "description": "Semantic-like version tag, e.g. v1.0 or v1.2.3"
     },
-
     "document": {
       "type": "object",
       "additionalProperties": false,
@@ -32,13 +31,11 @@
         "page_count": { "type": "integer", "minimum": 1 }
       }
     },
-
     "study_id": {
       "type": "string",
       "pattern": "^[A-Za-z0-9._-]+$",
       "description": "Internal opaque ID for this article (the review itself)"
     },
-
     "generator": {
       "type": "object",
       "additionalProperties": false,
@@ -50,7 +47,6 @@
         "timestamp": { "type": "string", "format": "date-time" }
       }
     },
-
     "language": { "$ref": "common.schema.json#/$defs/LanguageCode" },
     "metadata": { "$ref": "common.schema.json#/$defs/Metadata" },
 
@@ -73,6 +69,7 @@
         "prospero_id": { "type": "string" },
         "protocol_doi": { "type": "string", "pattern": "^10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+$" },
         "registration": { "$ref": "common.schema.json#/$defs/Registration" },
+        "deviations_from_protocol": { "type": "string" },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       }
     },
@@ -100,11 +97,7 @@
       "additionalProperties": false,
       "required": ["databases", "last_search_date"],
       "properties": {
-        "databases": {
-          "type": "array",
-          "items": { "type": "string" },
-          "minItems": 1
-        },
+        "databases": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
         "other_sources": {
           "type": "array",
           "description": "Trial registries, grey literature, handsearching, reference lists",
@@ -117,10 +110,7 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "properties": {
-              "database": { "type": "string" },
-              "query": { "type": "string" }
-            }
+            "properties": { "database": { "type": "string" }, "query": { "type": "string" } }
           },
           "default": []
         },
@@ -144,11 +134,7 @@
         "full_text_assessed": { "type": "integer", "minimum": 0 },
         "full_text_excluded": { "type": "integer", "minimum": 0 },
         "studies_included": { "type": "integer", "minimum": 0 },
-        "reasons_excluded": {
-          "type": "array",
-          "items": { "type": "string" },
-          "default": []
-        },
+        "reasons_excluded": { "type": "array", "items": { "type": "string" }, "default": [] },
         "prisma_figure": { "$ref": "common.schema.json#/$defs/SourceRef" }
       }
     },
@@ -225,6 +211,8 @@
       }
     },
 
+    "prisma_reporting": { "$ref": "#/$defs/PrismaReporting" },
+
     "tables_parsed": {
       "type": "array",
       "items": { "$ref": "common.schema.json#/$defs/ParsedTable" },
@@ -277,10 +265,7 @@
       "properties": {
         "k_studies": { "type": "integer", "minimum": 1 },
         "model": { "type": "string", "enum": ["fixed", "random", "bayesian", "na"] },
-        "method": {
-          "type": "string",
-          "description": "Estimator or approach (e.g., DL, REML, ML, Bayesian MCMC)"
-        },
+        "method": { "type": "string", "description": "Estimator or approach (e.g., DL, REML, ML, Bayesian MCMC)" },
         "effect": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
         "prediction_interval": {
           "type": "object",
@@ -301,11 +286,7 @@
           }
         },
         "subgroup": { "type": "string" },
-        "meta_regression_terms": {
-          "type": "array",
-          "items": { "type": "string" },
-          "default": []
-        },
+        "meta_regression_terms": { "type": "array", "items": { "type": "string" }, "default": [] },
         "notes": { "type": "string" },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       }
@@ -443,21 +424,13 @@
       "properties": {
         "type": {
           "type": "string",
-          "enum": [
-            "narrative",
-            "pairwise_meta",
-            "network_meta",
-            "ipd_meta",
-            "umbrella_summary"
-          ]
+          "enum": ["narrative", "pairwise_meta", "network_meta", "ipd_meta", "umbrella_summary"]
         },
         "outcome_id": { "type": "string" },
-
         "pairwise_meta": { "$ref": "#/$defs/PairwiseMetaAnalysis" },
         "network_meta": { "$ref": "#/$defs/NetworkMetaAnalysis" },
         "ipd_meta": { "$ref": "#/$defs/IPDMetaAnalysis" },
         "narrative": { "$ref": "#/$defs/NarrativeSynthesis" },
-
         "umbrella_summary": {
           "type": "object",
           "additionalProperties": false,
@@ -476,10 +449,7 @@
       "required": ["outcome_id", "certainty"],
       "properties": {
         "outcome_id": { "type": "string" },
-        "certainty": {
-          "type": "string",
-          "enum": ["high", "moderate", "low", "very_low"]
-        },
+        "certainty": { "type": "string", "enum": ["high", "moderate", "low", "very_low"] },
         "domains": {
           "type": "object",
           "additionalProperties": false,
@@ -495,6 +465,74 @@
         "footnotes": { "type": "string" },
         "summary_of_findings_source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       }
+    },
+
+    "PrismaReporting": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "string",
+          "enum": ["PRISMA 2020", "PRISMA 2020-ScR", "other"],
+          "default": "PRISMA 2020"
+        },
+        "claimed": { "type": "boolean", "default": false, "description": "Authors claim PRISMA adherence" },
+        "flow_diagram_present": { "type": "boolean", "default": false },
+        "checklist_available": { "type": "boolean", "default": false },
+        "items": {
+          "type": "array",
+          "description": "Item-by-item PRISMA reporting status.",
+          "items": { "$ref": "#/$defs/PrismaItem" },
+          "default": []
+        },
+        "adherence_summary": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "items_reported_count": { "type": "integer", "minimum": 0 },
+            "items_total_expected": { "type": "integer", "minimum": 0 },
+            "adherence_pct": { "type": "number", "minimum": 0, "maximum": 100 }
+          }
+        },
+        "checklist_source": { "$ref": "common.schema.json#/$defs/SourceRef" },
+        "notes": { "type": "string" }
+      }
+    },
+
+    "PrismaItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["item_id", "reported"],
+      "properties": {
+        "item_id": { "$ref": "#/$defs/PrismaItemId" },
+        "name": { "type": "string", "description": "Short title of the PRISMA item (optional)" },
+        "section": { "type": "string", "description": "Section of manuscript where item should appear" },
+        "reported": { "type": "string", "enum": ["yes", "partially", "no", "unclear"] },
+        "location": { "type": "string", "description": "Page/figure/appendix location" },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
+        "notes": { "type": "string" }
+      }
+    },
+
+    "PrismaItemId": {
+      "type": "string",
+      "description": "Enumerated PRISMA 2020 checklist item or sub-item code.",
+      "enum": [
+        "1","2",
+        "3","4",
+        "5","6","7","8","9",
+        "10a","10b",
+        "11","12",
+        "13a","13b","13c","13d","13e","13f",
+        "14","15",
+        "16a","16b",
+        "17","18","19",
+        "20a","20b","20c","20d",
+        "21","22",
+        "23a","23b","23c","23d",
+        "24a","24b","24c",
+        "25","26","27"
+      ]
     }
   },
 
@@ -504,11 +542,7 @@
       "then": {
         "properties": {
           "syntheses": {
-            "items": {
-              "properties": {
-                "type": { "const": "narrative" }
-              }
-            }
+            "items": { "properties": { "type": { "const": "narrative" } } }
           }
         }
       }
@@ -518,12 +552,7 @@
       "then": {
         "properties": {
           "syntheses": {
-            "items": {
-              "properties": {
-                "type": { "const": "pairwise_meta" },
-                "pairwise_meta": { "required": ["pooled"] }
-              }
-            }
+            "items": { "properties": { "type": { "const": "pairwise_meta" }, "pairwise_meta": { "required": ["pooled"] } } }
           }
         }
       }
@@ -533,12 +562,7 @@
       "then": {
         "properties": {
           "syntheses": {
-            "items": {
-              "properties": {
-                "type": { "const": "network_meta" },
-                "network_meta": { "required": ["pooled_effects"] }
-              }
-            }
+            "items": { "properties": { "type": { "const": "network_meta" }, "network_meta": { "required": ["pooled_effects"] } } }
           }
         }
       }
@@ -547,13 +571,7 @@
       "if": { "properties": { "review_type": { "const": "IPD meta-analysis" } } },
       "then": {
         "properties": {
-          "syntheses": {
-            "items": {
-              "properties": {
-                "type": { "const": "ipd_meta" }
-              }
-            }
-          }
+          "syntheses": { "items": { "properties": { "type": { "const": "ipd_meta" } } } }
         }
       }
     },
@@ -561,13 +579,7 @@
       "if": { "properties": { "review_type": { "const": "Umbrella/Overview review" } } },
       "then": {
         "properties": {
-          "syntheses": {
-            "items": {
-              "properties": {
-                "type": { "const": "umbrella_summary" }
-              }
-            }
-          }
+          "syntheses": { "items": { "properties": { "type": { "const": "umbrella_summary" } } } }
         }
       }
     }
