@@ -6,7 +6,11 @@
   "additionalProperties": false,
   "required": ["schema_version", "metadata", "study_design", "population", "exposures", "outcomes", "results"],
   "properties": {
-    "schema_version": { "type": "string", "pattern": "^v\\d+\\.\\d+(\\.\\d+)?$", "description": "Semantic-like version tag, e.g. v1.0 or v1.2.3" },
+    "schema_version": {
+      "type": "string",
+      "pattern": "^v\\d+\\.\\d+(\\.\\d+)?$",
+      "description": "Semantic-like version tag, e.g. v1.0 or v1.2.3"
+    },
     "document": {
       "type": "object",
       "additionalProperties": false,
@@ -19,6 +23,11 @@
       }
     },
     "study_id": { "type": "string", "pattern": "^[A-Za-z0-9._-]+$", "description": "Internal opaque ID for this study/article" },
+    "external_ids": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/ExternalId" },
+      "default": []
+    },
     "generator": {
       "type": "object",
       "additionalProperties": false,
@@ -34,40 +43,59 @@
     "metadata": { "$ref": "common.schema.json#/$defs/Metadata" },
     "study_design": { "$ref": "#/$defs/StudyDesign" },
     "population": { "$ref": "#/$defs/Population" },
+
     "exposures": {
       "type": "array",
       "description": "Exposure variables assessed in the study.",
       "items": { "$ref": "#/$defs/Exposure" },
       "minItems": 1
     },
+
     "groups": {
       "type": "array",
       "description": "Optional derived groups (e.g., exposed/unexposed, categories).",
       "items": { "$ref": "#/$defs/Group" },
       "default": []
     },
+
     "comparisons": {
       "type": "array",
       "description": "Contrasts to estimate effects (between groups or exposure levels).",
       "items": { "$ref": "#/$defs/Comparison" },
       "default": []
     },
+
     "outcomes": {
       "type": "array",
       "items": { "$ref": "#/$defs/Outcome" },
       "minItems": 1,
       "uniqueItems": false
     },
+
     "results": { "$ref": "#/$defs/Results" },
+
     "subgroup_analyses": {
       "type": "array",
       "items": { "$ref": "#/$defs/SubgroupAnalysisObs" },
       "default": []
     },
+
     "analysis_plan_registered": {
       "type": "string",
       "description": "Link/registratie van vooraf gespecificeerd analyseplan (indien aanwezig)"
     },
+
+    "extraction_quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "double_data_entry": { "type": "boolean", "default": false },
+        "inter_rater_agreement_kappa": { "type": "number" },
+        "reviewers": { "type": "array", "items": { "type": "string" }, "default": [] },
+        "notes": { "type": "string" }
+      }
+    },
+
     "tables_parsed": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/ParsedTable" }, "default": [] },
     "figures_summary": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/FigureSummary" }, "default": [] },
     "risk_of_bias": { "$ref": "common.schema.json#/$defs/RiskOfBias" },
@@ -75,6 +103,7 @@
     "extraction_warnings": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/ExtractionWarning" }, "default": [] },
     "truncated": { "$ref": "common.schema.json#/$defs/TruncationInfo" }
   },
+
   "allOf": [
     {
       "if": { "properties": { "study_design": { "properties": { "label": { "const": "Cohort" } } } } },
@@ -115,6 +144,7 @@
       }
     }
   ],
+
   "$defs": {
     "StudyDesign": {
       "type": "object",
@@ -122,20 +152,34 @@
       "required": ["label"],
       "properties": {
         "label": { "type": "string", "enum": ["Cohort", "Case-control", "Cross-sectional", "Ecological"] },
+
         "cohort_direction": { "type": "string", "enum": ["prospective", "retrospective", "ambidirectional", "unclear"] },
         "time_origin": { "type": "string", "description": "Index date origin (e.g., diagnosis, admission)" },
         "follow_up_scheme": { "type": "string", "description": "Fixed vs variable follow-up; scheduled visits" },
+
         "time_at_risk_definition": { "type": "string", "description": "Start/stop regels; grace periods" },
         "immortal_time_handling": { "type": "string", "enum": ["excluded", "time-varying_exposure", "landmarking", "unknown", "other"] },
+
+        "target_trial_emulation": { "type": "boolean", "default": false },
+        "new_user_design": { "type": "boolean", "default": false },
+        "prevalent_user_bias_risk": { "type": "string", "enum": ["low", "moderate", "high", "unclear"] },
+        "grace_period_days": { "type": "integer", "minimum": 0 },
+        "latency_induction_window_days": { "type": "integer", "minimum": 0 },
+        "censoring_rules": { "type": "string" },
+
         "matching": { "type": "string", "enum": ["none", "individual", "frequency"] },
         "matching_ratio": { "type": "number", "minimum": 0 },
         "matching_variables": { "type": "array", "items": { "type": "string" }, "default": [] },
         "control_sampling": { "type": "string", "enum": ["incidence_density", "cumulative", "nested", "other"] },
+
         "sampling_frame": { "type": "string", "description": "Source population frame (for cross-sectional)" },
         "weighting_used": { "type": "boolean", "default": false },
+
         "ecological_level": { "type": "string", "description": "Unit of analysis (e.g., region, hospital)" },
+
         "exposure_assessment": { "type": "string" },
         "outcome_assessment": { "type": "string" },
+
         "confounding_strategy": {
           "type": "array",
           "description": "Approaches used to control confounding",
@@ -157,10 +201,12 @@
           },
           "default": []
         },
+
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
         "design_notes": { "type": "string" }
       }
     },
+
     "Population": {
       "type": "object",
       "additionalProperties": false,
@@ -190,6 +236,7 @@
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       }
     },
+
     "Exposure": {
       "type": "object",
       "additionalProperties": false,
@@ -211,6 +258,12 @@
         "time_window_iso8601": { "$ref": "common.schema.json#/$defs/ISO8601Duration" },
         "instrumental_variable": { "type": "string", "description": "If IV used, specify" },
         "misclassification_risk": { "type": "string", "enum": ["low", "moderate", "high", "unclear"] },
+        "ontology_terms": {
+          "type": "array",
+          "items": { "$ref": "common.schema.json#/$defs/OntologyTerm" },
+          "default": []
+        },
+        "provenance": { "$ref": "common.schema.json#/$defs/Provenance" },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       },
       "allOf": [
@@ -225,6 +278,7 @@
         }
       ]
     },
+
     "Group": {
       "type": "object",
       "additionalProperties": false,
@@ -242,6 +296,7 @@
         }
       }
     },
+
     "Comparison": {
       "type": "object",
       "additionalProperties": false,
@@ -274,6 +329,7 @@
         "is_primary": { "type": "boolean", "default": false }
       }
     },
+
     "Outcome": {
       "type": "object",
       "additionalProperties": false,
@@ -291,10 +347,19 @@
         "scale_min": { "type": "number" },
         "scale_max": { "type": "number" },
         "misclassification_risk": { "type": "string", "enum": ["low", "moderate", "high", "unclear"] },
+        "event_competing_risks_present": { "type": "boolean", "default": false },
+        "censoring_informative_risk": { "type": "string", "enum": ["low", "moderate", "high", "unclear"] },
+        "ontology_terms": {
+          "type": "array",
+          "items": { "$ref": "common.schema.json#/$defs/OntologyTerm" },
+          "default": []
+        },
+        "provenance": { "$ref": "common.schema.json#/$defs/Provenance" },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
         "unit_ucum": { "type": "string", "description": "UCUM code if available" }
       }
     },
+
     "PerGroupResult": {
       "type": "object",
       "additionalProperties": false,
@@ -314,6 +379,7 @@
         },
         "total": { "type": "integer", "minimum": 0 },
         "unit": { "type": "string" },
+        "provenance": { "$ref": "common.schema.json#/$defs/Provenance" },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       },
       "oneOf": [
@@ -333,7 +399,9 @@
         }
       ]
     },
+
     "ContrastEffect": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
+
     "SensitivityCI": {
       "type": "object",
       "additionalProperties": false,
@@ -344,6 +412,7 @@
         "notes": { "type": "string" }
       }
     },
+
     "ContrastResult": {
       "type": "object",
       "additionalProperties": false,
@@ -372,11 +441,14 @@
         "ps_overlap_ok": { "type": "boolean", "default": false },
         "ps_overlap_notes": { "type": "string" },
         "competing_risks_method": { "type": "string", "enum": ["none", "Fine-Gray", "cause-specific", "other"] },
+        "censoring_informative_risk": { "type": "string", "enum": ["low", "moderate", "high", "unclear"] },
         "sensitivity": { "$ref": "#/$defs/SensitivityCI" },
         "effect": { "$ref": "#/$defs/ContrastEffect" },
+        "provenance": { "$ref": "common.schema.json#/$defs/Provenance" },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       }
     },
+
     "HarmsResult": {
       "type": "object",
       "additionalProperties": false,
@@ -385,14 +457,23 @@
         "event": { "type": "string" },
         "group_id": { "type": "string" },
         "severity_grade_scale": { "type": "string", "enum": ["CTCAE", "Clavien-Dindo", "Other", "NA"] },
+        "ctcae_version": { "type": "string", "description": "bv. 5.0" },
+        "ctcae_grade": { "type": "integer", "minimum": 1, "maximum": 5 },
         "events": { "type": "integer", "minimum": 0 },
         "total": { "type": "integer", "minimum": 0 },
+        "meddra_code": { "type": "string", "description": "MedDRA PT/LLT code indien beschikbaar" },
+        "ontology_terms": {
+          "type": "array",
+          "items": { "$ref": "common.schema.json#/$defs/OntologyTerm" },
+          "default": []
+        },
+        "provenance": { "$ref": "common.schema.json#/$defs/Provenance" },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
         "serious": { "type": "boolean", "default": false },
-        "relatedness": { "type": "string", "enum": ["related", "probable", "possible", "unlikely", "not_related", "unknown"], "default": "unknown" },
-        "meddra_code": { "type": "string", "description": "MedDRA PT/LLT code indien beschikbaar" }
+        "relatedness": { "type": "string", "enum": ["related", "probable", "possible", "unlikely", "not_related", "unknown"], "default": "unknown" }
       }
     },
+
     "Results": {
       "type": "object",
       "additionalProperties": false,
@@ -402,6 +483,7 @@
         "harms": { "type": "array", "items": { "$ref": "#/$defs/HarmsResult" }, "default": [] }
       }
     },
+
     "SubgroupAnalysisObs": {
       "type": "object",
       "additionalProperties": false,
@@ -420,6 +502,7 @@
           "default": []
         },
         "pre_specified": { "type": "boolean", "default": false },
+        "provenance": { "$ref": "common.schema.json#/$defs/Provenance" },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       }
     }
