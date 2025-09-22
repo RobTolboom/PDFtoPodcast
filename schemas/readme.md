@@ -1,17 +1,99 @@
 # Medical Literature Data Extraction Schemas
 
-Een collectie van JSON Schema's voor gestructureerde data-extractie uit medisch-wetenschappelijke artikelen. Deze schema's ondersteunen alle belangrijke onderzoeksmethodologieën met volledige compliance aan internationale richtlijnen en zorgen voor consistente, gevalideerde extractie van klinische studies, systematische reviews, en predictiemodellen.
+Een collectie van JSON Schema's voor gestructureerde data-extractie uit medisch-wetenschappelijke literatuur. Deze schema's ondersteunen alle belangrijke onderzoeksmethodologieën met volledige compliance aan internationale richtlijnen en zorgen voor consistente, gevalideerde extractie van klinische studies, systematische reviews, en predictiemodellen.
 
-## 📋 Overzicht van Schema's
+## 📑 Inhoudsopgave
 
+- [Schema Overzicht](#-schema-overzicht)
+- [Deployment Opties](#-deployment-opties)
+- [International Standards Compliance](#-international-standards-compliance)
+- [Modulaire Architectuur](#️-modulaire-architectuur)
+- [Schema Documentatie](#-schema-documentatie)
+- [Tool Documentatie](#️-tool-documentatie)
+- [Gebruik en Implementatie](#️-gebruik-en-implementatie)
+- [Recente Enhancements](#-recente-enhancements)
+- [Technische Specificaties](#️-technische-specificaties)
+- [Troubleshooting](#-troubleshooting)
+
+## 📋 Schema Overzicht
+
+### Modulaire Schema's (Development)
 | Schema | Onderzoekstype | Beschrijving | Compliance | Status |
 |--------|----------------|--------------|------------|--------|
-| [`common.schema.json`](#common-schema) | Gedeelde componenten | Internationale registries, PROBAST, effect measures | Global standards | ✅ Compleet |
-| [`interventional_trial.schema.json`](#interventional-trial-schema) | Interventionele studies | CONSORT 2010, alle trial designs | CONSORT/ICH-GCP | ✅ Gold Standard |
-| [`observational_analytic.schema.json`](#observational-analytic-schema) | Observationele studies | Causal inference, epidemiologie | STROBE/GRADE | ✅ Gold Standard |
+| [`common.schema.json`](#common-schema) | Gedeelde componenten | Provenance, ontology, internationale registries | Global standards | ✅ Enhanced |
+| [`interventional_trial.schema.json`](#interventional-trial-schema) | Interventionele studies | CONSORT 2010, kwaliteitsborging, provenance | CONSORT/ICH-GCP | ✅ Gold Standard |
+| [`observational_analytic.schema.json`](#observational-analytic-schema) | Observationele studies | Target trial emulation, causal inference | STROBE/GRADE | ✅ Gold Standard |
 | [`evidence_synthesis.schema.json`](#evidence-synthesis-schema) | Evidence synthese | PRISMA 2020, AMSTAR-2, Open Science | PRISMA/Cochrane | ✅ Gold Standard |
 | [`prediction_prognosis.schema.json`](#prediction-prognosis-schema) | Predictiemodellen | TRIPOD framework, PROBAST | TRIPOD/PROBAST | ✅ Gold Standard |
 | [`editorials_opinion.schema.json`](#editorial-opinion-schema) | Non-research content | Editorials, commentaries, opinies | - | ✅ Compleet |
+
+### Bundled Schema's (Production)
+| Bundled Schema | Gebruik | Voordelen |
+|----------------|---------|-----------|
+| `interventional_trial_bundled.json` | Standalone RCT validatie | Geen externe dependencies |
+| `observational_analytic_bundled.json` | Standalone observationele studies | Self-contained deployment |
+| `evidence_synthesis_bundled.json` | Standalone systematic reviews | CDN/API ready |
+| `prediction_prognosis_bundled.json` | Standalone predictiemodellen | Microservice compatible |
+| `editorials_opinion_bundled.json` | Standalone editorial content | Lightweight validation |
+
+> **💡 Tip**: Gebruik modulaire schemas voor development en bundled schemas voor production deployment.
+
+## 🚀 Deployment Opties
+
+### Modulaire Schema's (Recommended voor Development)
+```json
+{
+  "metadata": { "$ref": "common.schema.json#/$defs/Metadata" },
+  "risk_of_bias": { "$ref": "common.schema.json#/$defs/RiskOfBias" }
+}
+```
+
+**Voordelen:**
+- 🔄 Herbruikbare componenten
+- 🛠️ Eenvoudig onderhoud
+- 📦 Kleinere bestandsgroottes
+- 🎯 Consistente definities
+
+**Gebruik scenario's:**
+- Development en testing
+- Schema ontwikkeling en iteratie
+- Lokale validatie
+- Educatieve doeleinden
+
+### Bundled Schema's (Recommended voor Production)
+```bash
+# Genereer bundled schemas
+python json-bundler.py
+
+# Gebruik standalone schema
+import json, jsonschema
+schema = json.load(open('interventional_trial_bundled.json'))
+# Geen externe dependencies nodig!
+```
+
+**Voordelen:**
+- 🌐 Geen externe dependencies
+- ⚡ Snellere loading tijd
+- 📡 CDN/API compatible
+- 🔒 Self-contained deployment
+
+**Gebruik scenario's:**
+- Production environments
+- Microservices architectuur
+- API validatie endpoints
+- Offline applicaties
+- Third-party integraties
+
+### Wanneer Welke Kiezen?
+
+| Scenario | Aanbeveling | Reden |
+|----------|-------------|-------|
+| **Development/Testing** | Modulaire schemas | Flexibiliteit en onderhoud |
+| **Production API** | Bundled schemas | Performance en dependencies |
+| **Microservices** | Bundled schemas | Self-contained deployment |
+| **Schema ontwikkeling** | Modulaire schemas | Herbruikbaarheid |
+| **CDN distributie** | Bundled schemas | Standalone bestanden |
+| **Lokale validatie** | Beide | Afhankelijk van use case |
 
 ## 🏆 International Standards Compliance
 
@@ -63,16 +145,37 @@ Alle schema's gebruiken een **modulaire architectuur** waarbij gemeenschappelijk
 
 ### Common Schema
 
-**`common.schema.json`** - Gedeelde definities voor alle schema's
+**`common.schema.json`** - Enhanced gedeelde definities voor alle schema's
 
-#### Internationale componenten:
+#### Core Componenten:
 - **Metadata**: Auteurs, journal info, DOI, internationale registratienummers
 - **SourceRef**: Verwijzingen naar tabellen, figuren, pagina's
 - **RiskOfBias**: RoB2, ROBINS-I, PROBAST ondersteuning met conditional validation
-- **ContrastEffect**: Uitgebreide effect measures (RR, OR, HR, MD, SMD, IRR)
+- **ContrastEffect**: Uitgebreide effect measures (RR, OR, HR, MD, SMD, IRR) + direction
 - **ParsedTable/FigureSummary**: Geëxtraheerde tabellen en figuren
 - **ISO8601Duration**: Gestandaardiseerde tijdsduren (inclusief weken)
 - **CountryCode/LanguageCode**: Gevalideerde internationale codes
+
+#### 🆕 Enhanced Componenten:
+- **Provenance**: Data extraction tracking met confidence scores en timestamps
+- **OntologyTerm**: Gestandaardiseerde terminologie (MeSH, SNOMED, LOINC, MedDRA)
+- **ExternalId**: Linking naar registries en publicaties (PMID, DOI, NCT, etc.)
+- **ValueWithRaw**: Processed values met originele tekst preservation
+- **Measurement**: Laboratorium waardes met UCUM units en reference ranges
+- **Adjudication**: Disagreement resolution tracking voor data extraction
+
+#### Provenance Tracking Voorbeeld:
+```json
+{
+  "provenance": {
+    "extractor": "Research Assistant A",
+    "method": "human_double_entry",
+    "confidence": 0.95,
+    "timestamp": "2025-09-22T14:30:00Z",
+    "transformation_notes": "Converted mg/dL to mmol/L"
+  }
+}
+```
 
 #### Registry ondersteuning:
 ```json
@@ -168,21 +271,33 @@ Alle schema's gebruiken een **modulaire architectuur** waarbij gemeenschappelijk
 
 ---
 
-### Observational Analytic Schema - Causal Inference Excellence
+### Observational Analytic Schema - Advanced Epidemiology & Causal Inference
 
 **`observational_analytic.schema.json`** - Voor observationele studies met state-of-the-art epidemiologie
 
-#### Person-Time Support:
+#### 🆕 Target Trial Emulation & New User Design:
 ```json
 {
-  "per_group": [
-    {
-      "group_id": "exposed",
-      "events": 45,
-      "person_time": 1250.5,
-      "unit": "person-years"
-    }
-  ]
+  "study_design": {
+    "target_trial_emulation": true,
+    "new_user_design": true,
+    "prevalent_user_bias_risk": "low",
+    "grace_period_days": 30,
+    "latency_induction_window_days": 365,
+    "immortal_time_handling": "time-varying_exposure"
+  }
+}
+```
+
+#### 🆕 Extraction Quality Assurance:
+```json
+{
+  "extraction_quality": {
+    "double_data_entry": true,
+    "inter_rater_agreement_kappa": 0.89,
+    "reviewers": ["Reviewer A", "Reviewer B"],
+    "notes": "Disagreements resolved by senior reviewer"
+  }
 }
 ```
 
@@ -202,17 +317,30 @@ Alle schema's gebruiken een **modulaire architectuur** waarbij gemeenschappelijk
     "matching_ratio": 1.0,
     "caliper": 0.2,
     "variables": ["age", "sex", "comorbidity_index"],
-    "balance_assessment": "standardized_differences"
+    "balance_assessment": "standardized_differences",
+    "ps_overlap_ok": true
   }
 }
 ```
 
-#### Count Models met Offset:
+#### 🆕 Enhanced Safety & Competing Risks:
 ```json
 {
-  "model": "poisson",
-  "offset_variable": "log_person_time",
-  "effect": { "type": "IRR", "point": 1.25, "ci": { "lower": 1.05, "upper": 1.48 } }
+  "outcomes": [
+    {
+      "outcome_id": "mortality",
+      "event_competing_risks_present": true,
+      "censoring_informative_risk": "low",
+      "ontology_terms": [
+        {
+          "system": "ICD-10",
+          "code": "I50.9",
+          "display": "Heart failure, unspecified"
+        }
+      ]
+    }
+  ],
+  "competing_risks_method": "Fine-Gray"
 }
 ```
 
@@ -343,6 +471,73 @@ Alle schema's gebruiken een **modulaire architectuur** waarbij gemeenschappelijk
 
 ---
 
+## 🛠️ Tool Documentatie
+
+### JSON Schema Bundler (`json-bundler.py`)
+
+Een geavanceerde tool voor het genereren van standalone, self-contained schema's zonder externe dependencies.
+
+#### Features:
+- ✅ **Batch Processing** - Verwerkt alle schemas in één keer
+- ✅ **Dependency Resolution** - Automatische detectie van benodigde common definities
+- ✅ **Reference Rewriting** - Converteert externe naar lokale referenties
+- ✅ **Error Handling** - Comprehensive foutafhandeling en rapportage
+- ✅ **Progress Tracking** - Duidelijke voortgang en status updates
+
+#### Basis Gebruik:
+```bash
+# Genereer alle bundled schemas
+python json-bundler.py
+
+# Specifieke directory
+python json-bundler.py --directory /path/to/schemas
+
+# Help informatie
+python json-bundler.py --help
+```
+
+#### Output Voorbeeld:
+```
+Using common schema ID: common.schema.json
+Found 5 schema(s) to bundle:
+  - editorials_opinion.schema.json
+  - evidence_synthesis.schema.json
+  - interventional_trial.schema.json
+  - observational_analytic.schema.json
+  - prediction_prognosis.schema.json
+
+Processing interventional_trial.schema.json...
+  ✅ Created: interventional_trial_bundled.json
+
+🎉 Successfully bundled 5/5 schemas
+```
+
+#### Technische Details:
+- **Algoritme**: Recursive dependency discovery en embedding
+- **Referenties**: `"common.schema.json#/$defs/Component"` → `"#/$defs/Component"`
+- **Validatie**: Automatic JSON schema compliance checking
+- **Output**: Pretty-printed JSON met proper indentatie
+
+#### CLI Parameters:
+| Parameter | Beschrijving | Default |
+|-----------|--------------|---------|
+| `--directory`, `-d` | Schema directory path | Current directory |
+| `--help`, `-h` | Toon help informatie | - |
+
+#### Troubleshooting:
+```bash
+# Check voor common schema
+ls -la common.schema.json
+
+# Valideer JSON syntax
+python -m json.tool schema.json
+
+# Debug mode (voeg toe aan script)
+python json-bundler.py --verbose
+```
+
+---
+
 ## 🛠️ Gebruik en Implementatie
 
 ### Geavanceerde Validatie
@@ -400,6 +595,49 @@ python json-bundler.py
 ```
 
 Dit genereert standalone schema's met alle common definities geïnternaliseerd, klaar voor deployment.
+
+---
+
+## 🆕 Recente Enhancements
+
+### Version 2.0 - Enhanced Quality & Compliance (September 2025)
+
+#### 🔍 **Data Quality & Provenance**
+- **Provenance Tracking**: Volledige traceability van data extraction proces
+- **Extraction Quality**: Double data entry, inter-rater agreement, reviewer tracking
+- **Confidence Scoring**: Numerieke confidence scores voor geëxtraheerde data
+- **Method Tracking**: Human vs. LLM-assisted vs. rule-based extraction
+
+#### 🌐 **International Standards Enhancement**
+- **Ontology Integration**: MeSH, SNOMED, LOINC, MedDRA terminology support
+- **External ID Linking**: PMID, PMC, DOI, clinical trial registry integration
+- **Enhanced Compliance**: Verbeterde CONSORT 2010, PRISMA 2020, TRIPOD frameworks
+- **Global Registry Support**: Uitgebreid met UMIN-CTR, JPRN, PACTR, IRCT registries
+
+#### 🧬 **Advanced Epidemiology (Observational Studies)**
+- **Target Trial Emulation**: Framework voor causal inference
+- **New User Design**: Prevalent user bias mitigation
+- **Immortal Time Handling**: Time-varying exposure, landmarking methods
+- **Grace Periods**: Latency/induction window definitions
+- **Competing Risks**: Fine-Gray subdistribution hazards
+
+#### 🔬 **Clinical Trial Enhancements (Interventional Studies)**
+- **Sample Size Calculations**: Structured power analysis documentation
+- **Non-inferiority Margins**: Detailed margin specifications
+- **CTCAE Integration**: Common Terminology Criteria v5.0 support
+- **Crossover Analysis**: Enhanced period effects en carryover assessment
+
+#### 🛠 **Technical Improvements**
+- **JSON Schema Bundler**: Enhanced tool met comprehensive documentation
+- **Type Safety**: Complete TypeScript-compatible type definitions
+- **Validation Performance**: Optimized constraint checking
+- **Error Reporting**: Enhanced validation error messages
+
+#### 📈 **Production Readiness**
+- **Bundled Schemas**: Self-contained deployment-ready schemas
+- **CDN Compatible**: Standalone schema files voor web deployment
+- **Microservice Ready**: Zero-dependency validation schemas
+- **API Integration**: REST/GraphQL compatible schema definitions
 
 ---
 
@@ -493,10 +731,74 @@ Dit schema framework heeft **internationale erkenning** en ondersteunt:
 
 ---
 
+## 🔧 Troubleshooting
+
+### Veelvoorkomende Problemen
+
+#### Schema Validatie Fouten
+```python
+# Check schema syntax
+import json
+try:
+    with open('schema.json') as f:
+        schema = json.load(f)
+    print("✅ Schema is valid JSON")
+except json.JSONDecodeError as e:
+    print(f"❌ JSON Error: {e}")
+```
+
+#### Bundling Problemen
+```bash
+# Check common schema bestaat
+ls -la common.schema.json
+
+# Verifieer schema referenties
+grep -r "\$ref.*common.schema.json" *.json
+
+# Test bundler
+python json-bundler.py --help
+```
+
+#### External References
+```json
+// ❌ Incorrect reference
+{"$ref": "common.json#/$defs/Metadata"}
+
+// ✅ Correct reference
+{"$ref": "common.schema.json#/$defs/Metadata"}
+```
+
+#### Performance Issues
+- **Gebruik bundled schemas** voor production (sneller loading)
+- **Cache parsed schemas** in applicaties
+- **Valideer incrementeel** bij grote datasets
+
+### Ondersteuning
+
+Voor technische vragen of bug reports:
+1. **Check deze documentatie** eerst
+2. **Verifieer schema syntax** met JSON validator
+3. **Test met minimal example** data
+4. **Include error details** en schema versie
+
+### Compatibility
+
+| Component | Minimum Versie | Aanbevolen |
+|-----------|----------------|------------|
+| **JSON Schema** | Draft 2020-12 | Latest |
+| **Python** | 3.8+ | 3.11+ |
+| **jsonschema library** | 4.0+ | Latest |
+| **Node.js** | 16+ | 18+ LTS |
+
+---
+
 ## 📄 Licentie en Bijdragen
 
 Deze schema's zijn ontwikkeld voor medisch-wetenschappelijk onderzoek en data-extractie volgens internationale kwaliteitsstandaarden. Voor bijdragen of suggesties, zie de hoofdrepository.
 
 **Laatste update**: September 2025
-**Framework versie**: Gold Standard International
+**Framework versie**: 2.0 - Enhanced Quality & Compliance
 **Compliance status**: Regulatory Ready
+**Author**: Rob Tolboom
+**Schema Coverage**: 5 core domains + bundled variants
+**International Standards**: CONSORT 2010, PRISMA 2020, TRIPOD, STROBE, PROBAST
