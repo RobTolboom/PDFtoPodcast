@@ -1,0 +1,247 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "editorials_opinion.schema.json",
+  "title": "Editorials & Opinion Extraction",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "metadata",
+    "article_type",
+    "stance_overall",
+    "arguments"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^v\\d+\\.\\d+(\\.\\d+)?$",
+      "description": "Semantic-like version tag, e.g. v1.0 or v1.2.3"
+    },
+
+    "document": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["filename", "page_count"],
+      "properties": {
+        "filename": { "type": "string" },
+        "content_type": { "type": "string", "enum": ["application/pdf"], "default": "application/pdf" },
+        "size_bytes": { "type": "integer", "minimum": 0 },
+        "page_count": { "type": "integer", "minimum": 1 }
+      }
+    },
+
+    "study_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._-]+$",
+      "description": "Internal opaque ID for this article"
+    },
+
+    "generator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "model", "timestamp"],
+      "properties": {
+        "name": { "type": "string" },
+        "model": { "type": "string" },
+        "temperature": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
+    },
+
+    "language": { "$ref": "common.schema.json#/$defs/LanguageCode" },
+    "metadata": { "$ref": "common.schema.json#/$defs/Metadata" },
+
+    "article_type": {
+      "type": "string",
+      "enum": [
+        "Editorial",
+        "Commentary",
+        "Perspective",
+        "Viewpoint",
+        "Opinion",
+        "Letter",
+        "Reply",
+        "News & Views",
+        "Invited Commentary",
+        "Other"
+      ]
+    },
+
+    "peer_review_status": {
+      "type": "string",
+      "enum": ["peer_reviewed", "not_peer_reviewed", "unknown"],
+      "default": "unknown"
+    },
+
+    "invited": { "type": "boolean", "default": false },
+
+    "target_article": {
+      "$ref": "#/$defs/TargetArticle"
+    },
+
+    "topic_keywords": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    },
+
+    "stance_overall": {
+      "type": "string",
+      "enum": ["supportive", "critical", "mixed", "neutral", "unclear"]
+    },
+
+    "thesis_statement": {
+      "type": "string",
+      "description": "One-sentence summary of the main thesis/position"
+    },
+
+    "key_points": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    },
+
+    "arguments": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Argument" },
+      "minItems": 1
+    },
+
+    "recommendations": {
+      "type": "array",
+      "description": "Practice/policy/research recommendations, if any.",
+      "items": { "$ref": "#/$defs/Recommendation" },
+      "default": []
+    },
+
+    "notable_quotes": {
+      "type": "array",
+      "description": "Salient quotes from the piece.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["text"],
+        "properties": {
+          "text": { "type": "string" },
+          "context": { "type": "string" },
+          "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+        }
+      },
+      "default": []
+    },
+
+    "limitations_or_bias": {
+      "type": "string",
+      "description": "Any stated limitations or potential biases acknowledged by the authors"
+    },
+
+    "tables_parsed": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/ParsedTable" },
+      "default": []
+    },
+
+    "figures_summary": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/FigureSummary" },
+      "default": []
+    },
+
+    "extraction_warnings": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/ExtractionWarning" },
+      "default": []
+    },
+
+    "truncated": { "$ref": "common.schema.json#/$defs/TruncationInfo" }
+  },
+
+  "$defs": {
+    "CitedRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "citation_text": { "type": "string" },
+        "pmid": { "type": "string", "pattern": "^\\d{1,8}$" },
+        "doi": {
+          "type": "string",
+          "pattern": "^10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+$",
+          "description": "DOI; pattern accepts upper- and lowercase letters"
+        },
+        "url": { "type": "string", "format": "uri" },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      }
+    },
+
+    "TargetArticle": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string" },
+        "pmid": { "type": "string", "pattern": "^\\d{1,8}$" },
+        "doi": {
+          "type": "string",
+          "pattern": "^10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+$",
+          "description": "DOI; pattern accepts upper- and lowercase letters"
+        },
+        "citation_text": { "type": "string" },
+        "url": { "type": "string", "format": "uri" },
+        "type": { "type": "string", "enum": ["primary_study", "review", "guideline", "policy", "other"] },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      }
+    },
+
+    "Argument": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["claim_id", "text"],
+      "properties": {
+        "claim_id": { "type": "string" },
+        "text": { "type": "string" },
+        "stance": { "type": "string", "enum": ["pro", "con", "neutral", "unclear"], "default": "neutral" },
+        "evidence_type": {
+          "type": "string",
+          "enum": [
+            "primary_study",
+            "systematic_review",
+            "guideline",
+            "expert_opinion",
+            "anecdote",
+            "data_analysis",
+            "none",
+            "other"
+          ],
+          "default": "other"
+        },
+        "cited_refs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/CitedRef" },
+          "default": []
+        },
+        "support_strength": {
+          "type": "string",
+          "description": "Free-text assessment as stated by authors (e.g., strong, limited, speculative)"
+        },
+        "counterarguments": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": []
+        },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      }
+    },
+
+    "Recommendation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["area", "statement"],
+      "properties": {
+        "area": { "type": "string", "enum": ["clinical_practice", "policy", "research", "education", "other"] },
+        "statement": { "type": "string" },
+        "urgency": { "type": "string", "enum": ["low", "moderate", "high"], "default": "moderate" },
+        "target_audience": { "type": "string" },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      }
+    }
+  }
+}
