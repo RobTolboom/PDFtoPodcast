@@ -4,21 +4,9 @@
   "title": "Clinical Trial Extraction (Interventional Studies)",
   "type": "object",
   "additionalProperties": false,
-  "required": [
-    "schema_version",
-    "metadata",
-    "study_design",
-    "population",
-    "arms",
-    "outcomes",
-    "results"
-  ],
+  "required": ["schema_version","metadata","study_design","population","arms","outcomes","results"],
   "properties": {
-    "schema_version": {
-      "type": "string",
-      "pattern": "^v\\d+\\.\\d+(\\.\\d+)?$",
-      "description": "Semantic-like version tag, e.g. v1.0 or v1.2.3"
-    },
+    "schema_version": { "type": "string", "pattern": "^v\\d+\\.\\d+(\\.\\d+)?$", "description": "Semantic-like version tag, e.g. v1.0 or v1.2.3" },
     "document": {
       "type": "object",
       "additionalProperties": false,
@@ -30,10 +18,11 @@
         "page_count": { "type": "integer", "minimum": 1 }
       }
     },
-    "study_id": {
-      "type": "string",
-      "pattern": "^[A-Za-z0-9._-]+$",
-      "description": "Internal opaque ID for this study/article"
+    "study_id": { "type": "string", "pattern": "^[A-Za-z0-9._-]+$", "description": "Internal opaque ID for this study/article" },
+    "external_ids": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/ExternalId" },
+      "default": []
     },
     "generator": {
       "type": "object",
@@ -48,106 +37,72 @@
     },
     "language": { "$ref": "common.schema.json#/$defs/LanguageCode" },
     "metadata": { "$ref": "common.schema.json#/$defs/Metadata" },
+
     "study_design": { "$ref": "#/$defs/StudyDesign" },
     "population": { "$ref": "#/$defs/Population" },
+
     "interventions": {
       "type": "array",
       "description": "Optional free-text procedural details per arm; link via arm_id.",
       "items": { "$ref": "#/$defs/Intervention" },
       "default": []
     },
-    "arms": {
-      "type": "array",
-      "items": { "$ref": "#/$defs/Arm" },
-      "minItems": 2,
-      "uniqueItems": true
-    },
-    "comparisons": {
-      "type": "array",
-      "items": { "$ref": "#/$defs/Comparison" },
-      "default": []
-    },
+
+    "arms": { "type": "array", "items": { "$ref": "#/$defs/Arm" }, "minItems": 2, "uniqueItems": true },
+
+    "comparisons": { "type": "array", "items": { "$ref": "#/$defs/Comparison" }, "default": [] },
+
     "outcomes": {
       "type": "array",
       "items": { "$ref": "#/$defs/Outcome" },
       "minItems": 1,
       "uniqueItems": false,
-      "contains": {
-        "type": "object",
-        "properties": { "is_primary": { "const": true } },
-        "required": ["is_primary"]
+      "contains": { "type": "object", "properties": { "is_primary": { "const": true } }, "required": ["is_primary"] }
+    },
+
+    "results": { "$ref": "#/$defs/Results" },
+
+    "extraction_quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "double_data_entry": { "type": "boolean", "default": false },
+        "inter_rater_agreement_kappa": { "type": "number" },
+        "reviewers": { "type": "array", "items": { "type": "string" }, "default": [] },
+        "notes": { "type": "string" }
       }
     },
-    "results": { "$ref": "#/$defs/Results" },
-    "tables_parsed": {
-      "type": "array",
-      "items": { "$ref": "common.schema.json#/$defs/ParsedTable" },
-      "default": []
-    },
-    "figures_summary": {
-      "type": "array",
-      "items": { "$ref": "common.schema.json#/$defs/FigureSummary" },
-      "default": []
-    },
+
+    "tables_parsed": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/ParsedTable" }, "default": [] },
+    "figures_summary": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/FigureSummary" }, "default": [] },
+
     "risk_of_bias": { "$ref": "common.schema.json#/$defs/RiskOfBias" },
+
     "protocol_deviations": { "type": "string" },
-    "protocol_deviations_structured": {
-      "type": "array",
-      "items": { "$ref": "#/$defs/ProtocolDeviation" },
-      "default": []
-    },
+    "protocol_deviations_structured": { "type": "array", "items": { "$ref": "#/$defs/ProtocolDeviation" }, "default": [] },
+
     "consort_reporting": { "$ref": "#/$defs/ConsortReporting" },
-    "sensitivity_analyses": {
-      "type": "array",
-      "items": { "$ref": "#/$defs/SensitivityAnalysis" },
-      "default": []
-    },
-    "subgroup_analyses": {
-      "type": "array",
-      "items": { "$ref": "#/$defs/SubgroupAnalysis" },
-      "default": []
-    },
-    "extraction_warnings": {
-      "type": "array",
-      "items": { "$ref": "common.schema.json#/$defs/ExtractionWarning" },
-      "default": []
-    },
+
+    "sensitivity_analyses": { "type": "array", "items": { "$ref": "#/$defs/SensitivityAnalysis" }, "default": [] },
+
+    "subgroup_analyses": { "type": "array", "items": { "$ref": "#/$defs/SubgroupAnalysis" }, "default": [] },
+
+    "extraction_warnings": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/ExtractionWarning" }, "default": [] },
     "truncated": { "$ref": "common.schema.json#/$defs/TruncationInfo" }
   },
+
   "allOf": [
     {
-      "if": {
-        "properties": {
-          "study_design": { "properties": { "label": { "enum": ["RCT", "Cluster-RCT", "Crossover-RCT", "Factorial-RCT"] } } }
-        }
-      },
-      "then": {
-        "properties": {
-          "study_design": { "properties": { "randomisation": { "not": { "const": "none" } } } }
-        }
-      }
+      "if": { "properties": { "study_design": { "properties": { "label": { "enum": ["RCT","Cluster-RCT","Crossover-RCT","Factorial-RCT"] } } } } },
+      "then": { "properties": { "study_design": { "properties": { "randomisation": { "not": { "const": "none" } } } } } }
     },
-    {
-      "if": { "properties": { "study_design": { "properties": { "label": { "const": "Cluster-RCT" } } } } },
-      "then": { "properties": { "study_design": { "required": ["cluster_unit", "clusters_per_arm"] } } }
-    },
-    {
-      "if": { "properties": { "study_design": { "properties": { "label": { "const": "Crossover-RCT" } } } } },
-      "then": { "properties": { "study_design": { "required": ["periods"], "properties": { "periods": { "minimum": 2 } } } } }
-    },
-    {
-      "if": { "properties": { "study_design": { "properties": { "label": { "const": "Factorial-RCT" } } } } },
-      "then": { "properties": { "study_design": { "required": ["factors"], "properties": { "factors": { "minItems": 1 } } } } }
-    },
-    {
-      "if": { "properties": { "study_design": { "properties": { "label": { "const": "Stepped-wedge" } } } } },
-      "then": { "properties": { "study_design": { "required": ["steps", "rollout_schedule_iso8601"] } } }
-    },
-    {
-      "if": { "properties": { "study_design": { "properties": { "label": { "enum": ["Single-arm", "Before-after"] } } } } },
-      "then": { "properties": { "arms": { "minItems": 1 } } }
-    }
+    { "if": { "properties": { "study_design": { "properties": { "label": { "const": "Cluster-RCT" } } } } }, "then": { "properties": { "study_design": { "required": ["cluster_unit", "clusters_per_arm"] } } } },
+    { "if": { "properties": { "study_design": { "properties": { "label": { "const": "Crossover-RCT" } } } } }, "then": { "properties": { "study_design": { "required": ["periods"], "properties": { "periods": { "minimum": 2 } } } } } },
+    { "if": { "properties": { "study_design": { "properties": { "label": { "const": "Factorial-RCT" } } } } }, "then": { "properties": { "study_design": { "required": ["factors"], "properties": { "factors": { "minItems": 1 } } } } } },
+    { "if": { "properties": { "study_design": { "properties": { "label": { "const": "Stepped-wedge" } } } } }, "then": { "properties": { "study_design": { "required": ["steps","rollout_schedule_iso8601"] } } } },
+    { "if": { "properties": { "study_design": { "properties": { "label": { "enum": ["Single-arm","Before-after"] } } } } }, "then": { "properties": { "arms": { "minItems": 1 } } } }
   ],
+
   "$defs": {
     "StudyDesign": {
       "type": "object",
@@ -156,52 +111,39 @@
       "properties": {
         "label": {
           "type": "string",
-          "enum": [
-            "RCT",
-            "Cluster-RCT",
-            "Crossover-RCT",
-            "Factorial-RCT",
-            "Stepped-wedge",
-            "Adaptive",
-            "Nonrandomized",
-            "Before-after",
-            "Single-arm"
-          ]
+          "enum": ["RCT","Cluster-RCT","Crossover-RCT","Factorial-RCT","Stepped-wedge","Adaptive","Nonrandomized","Before-after","Single-arm"]
         },
         "ethics_approval": { "type": "string" },
-        "consent_obtained": { "type": "string", "enum": ["yes", "no", "unclear"] },
-        "population_context": { "type": "string", "enum": ["adult", "pediatric", "mixed", "unclear"] },
+        "consent_obtained": { "type": "string", "enum": ["yes","no","unclear"] },
+        "population_context": { "type": "string", "enum": ["adult","pediatric","mixed","unclear"] },
         "design_details": { "type": "string" },
         "centres": { "type": "integer", "minimum": 1 },
-        "countries": {
-          "type": "array",
-          "items": { "$ref": "common.schema.json#/$defs/CountryCode" },
-          "default": []
-        },
+        "countries": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/CountryCode" }, "default": [] },
         "setting": { "type": "string" },
-        "randomisation": {
-          "type": "string",
-          "enum": ["individual", "cluster", "blocked", "stratified", "minimisation", "none", "unclear"]
-        },
-        "allocation_concealment": { "type": "string", "enum": ["adequate", "inadequate", "unclear"] },
-        "blinding": { "type": "string", "enum": ["open-label", "single-blind", "double-blind", "triple-blind", "unclear"] },
-        "analysis_population": { "type": "string", "enum": ["ITT", "mITT", "PP", "Safety", "Other"] },
+        "randomisation": { "type": "string", "enum": ["individual","cluster","blocked","stratified","minimisation","none","unclear"] },
+        "allocation_concealment": { "type": "string", "enum": ["adequate","inadequate","unclear"] },
+        "blinding": { "type": "string", "enum": ["open-label","single-blind","double-blind","triple-blind","unclear"] },
+        "analysis_population": { "type": "string", "enum": ["ITT","mITT","PP","Safety","Other"] },
         "non_inferiority_margin": { "type": "string" },
+        "non_inferiority_margin_detail": { "$ref": "common.schema.json#/$defs/ValueWithRaw" },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
+
         "crossover": { "type": "boolean", "default": false },
         "washout_period_iso8601": { "$ref": "common.schema.json#/$defs/ISO8601Duration" },
         "periods": { "type": "integer", "minimum": 2 },
         "sequences": { "type": "array", "items": { "type": "string" }, "default": [] },
         "carryover_checked": { "type": "boolean", "default": false },
-        "cluster_unit": { "type": "string", "enum": ["hospital", "clinic", "ward", "provider", "other"] },
+
+        "cluster_unit": { "type": "string", "enum": ["hospital","clinic","ward","provider","other"] },
         "clusters_per_arm": { "type": "integer", "minimum": 1 },
         "avg_cluster_size": { "type": "number", "minimum": 0 },
         "icc_reported": { "type": "number", "minimum": 0 },
+
         "factors": {
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["name", "levels"],
+            "required": ["name","levels"],
             "additionalProperties": false,
             "properties": {
               "name": { "type": "string" },
@@ -210,15 +152,32 @@
           },
           "default": []
         },
+
         "interim_analyses": { "type": "integer", "minimum": 0 },
         "stopping_rules": { "type": "string" },
         "response_adaptive_randomisation": { "type": "boolean", "default": false },
         "sample_size_reassessment": { "type": "boolean", "default": false },
+
         "steps": { "type": "integer", "minimum": 2 },
         "rollout_schedule_iso8601": { "$ref": "common.schema.json#/$defs/ISO8601Duration" },
+
+        "sample_size_calculation": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "assumed_effect": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
+            "alpha": { "type": "number", "minimum": 0, "maximum": 1 },
+            "power": { "type": "number", "minimum": 0, "maximum": 1 },
+            "non_inferiority_margin": { "type": "string" },
+            "notes": { "type": "string" },
+            "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+          }
+        },
+
         "design_subtype_notes": { "type": "string" }
       }
     },
+
     "Population": {
       "type": "object",
       "additionalProperties": false,
@@ -250,10 +209,11 @@
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       }
     },
+
     "Intervention": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["arm_id", "arm_label"],
+      "required": ["arm_id","arm_label"],
       "properties": {
         "arm_id": { "type": "string" },
         "arm_label": { "type": "string" },
@@ -266,13 +226,16 @@
         "monitoring": { "type": "string" },
         "neuromuscular_block": { "type": "string" },
         "analgesia_strategy": { "type": "string" },
+        "ontology_terms": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/OntologyTerm" }, "default": [] },
+        "provenance": { "$ref": "common.schema.json#/$defs/Provenance" },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       }
     },
+
     "Arm": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["arm_id", "label"],
+      "required": ["arm_id","label"],
       "properties": {
         "arm_id": { "type": "string" },
         "label": { "type": "string" },
@@ -285,36 +248,25 @@
           "additionalProperties": { "type": "string" },
           "default": {}
         },
-        "adherence_pct": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 100,
-          "description": "% deelnemers die de toegewezen interventie ontvingen"
-        },
-        "crossovers_to": {
-          "type": "string",
-          "description": "arm_id waarheen deelnemers zijn gecrossoverd (indien relevant)"
-        }
+        "adherence_pct": { "type": "number", "minimum": 0, "maximum": 100, "description": "% deelnemers die de toegewezen interventie ontvingen" },
+        "crossovers_to": { "type": "string", "description": "arm_id waarheen deelnemers zijn gecrossoverd (indien relevant)" }
       }
     },
+
     "Comparison": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["comparison_id", "comparison_type"],
+      "required": ["comparison_id","comparison_type"],
       "properties": {
         "comparison_id": { "type": "string" },
-        "comparison_type": { "type": "string", "enum": ["arm_vs_arm", "main_effect", "interaction", "period_effect", "pre_post"] },
+        "comparison_type": { "type": "string", "enum": ["arm_vs_arm","main_effect","interaction","period_effect","pre_post"] },
         "arm_a": { "type": "string", "description": "arm_id (voor arm_vs_arm)" },
         "arm_b": { "type": "string", "description": "arm_id (voor arm_vs_arm)" },
         "factor_contrast": {
           "type": "object",
           "description": "Voor factorial: welk factorcontrast wordt geanalyseerd.",
           "additionalProperties": false,
-          "properties": {
-            "factor": { "type": "string" },
-            "level_a": { "type": "string" },
-            "level_b": { "type": "string" }
-          }
+          "properties": { "factor": { "type": "string" }, "level_a": { "type": "string" }, "level_b": { "type": "string" } }
         },
         "period_contrast": {
           "type": "object",
@@ -325,31 +277,37 @@
         "is_primary": { "type": "boolean", "default": false }
       }
     },
+
     "Outcome": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["outcome_id", "name", "type"],
+      "required": ["outcome_id","name","type"],
       "properties": {
         "outcome_id": { "type": "string" },
         "name": { "type": "string" },
         "definition": { "type": "string" },
-        "type": { "type": "string", "enum": ["binary", "continuous", "time_to_event", "ordinal", "count"] },
+        "type": { "type": "string", "enum": ["binary","continuous","time_to_event","ordinal","count"] },
         "is_primary": { "type": "boolean", "default": false },
-        "direction_of_benefit": { "type": "string", "enum": ["higher_better", "lower_better", "neutral_or_na"] },
+        "direction_of_benefit": { "type": "string", "enum": ["higher_better","lower_better","neutral_or_na"] },
         "unit": { "type": "string" },
         "timepoint": { "type": "string" },
         "timepoint_iso8601": { "$ref": "common.schema.json#/$defs/ISO8601Duration" },
         "measurement_method": { "type": "string" },
         "scale_min": { "type": "number" },
         "scale_max": { "type": "number" },
+        "event_competing_risks_present": { "type": "boolean", "default": false },
+        "censoring_informative_risk": { "type": "string", "enum": ["low","moderate","high","unclear"] },
+        "ontology_terms": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/OntologyTerm" }, "default": [] },
+        "provenance": { "$ref": "common.schema.json#/$defs/Provenance" },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
         "unit_ucum": { "type": "string", "description": "UCUM code if available" }
       }
     },
+
     "PerArmResult": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["outcome_id", "arm_id"],
+      "required": ["outcome_id","arm_id"],
       "properties": {
         "outcome_id": { "type": "string" },
         "arm_id": { "type": "string" },
@@ -358,80 +316,63 @@
         "mean": { "type": "number" },
         "sd": { "type": "number", "minimum": 0 },
         "median": { "type": "number" },
-        "iqr": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": { "p25": { "type": "number" }, "p75": { "type": "number" } }
-        },
+        "iqr": { "type": "object", "additionalProperties": false, "properties": { "p25": { "type": "number" }, "p75": { "type": "number" } } },
         "total": { "type": "integer", "minimum": 0 },
         "unit": { "type": "string" },
+        "provenance": { "$ref": "common.schema.json#/$defs/Provenance" },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       },
       "oneOf": [
-        {
-          "required": ["mean", "sd"],
-          "not": { "anyOf": [ { "required": ["median"] }, { "required": ["iqr"] }, { "required": ["events"] } ] }
-        },
-        {
-          "required": ["median", "iqr"],
-          "not": { "anyOf": [ { "required": ["mean"] }, { "required": ["sd"] }, { "required": ["events"] } ] },
-          "properties": { "iqr": { "required": ["p25", "p75"] } }
-        },
-        {
-          "description": "Binaire uitkomst per arm",
-          "required": ["events"],
-          "anyOf": [ { "required": ["n"] }, { "required": ["total"] } ]
-        }
+        { "required": ["mean","sd"], "not": { "anyOf": [ { "required": ["median"] }, { "required": ["iqr"] }, { "required": ["events"] } ] } },
+        { "required": ["median","iqr"], "not": { "anyOf": [ { "required": ["mean"] }, { "required": ["sd"] }, { "required": ["events"] } ] }, "properties": { "iqr": { "required": ["p25","p75"] } } },
+        { "description": "Binaire uitkomst per arm", "required": ["events"], "anyOf": [ { "required": ["n"] }, { "required": ["total"] } ] }
       ]
     },
+
     "ContrastEffect": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
+
     "ContrastResult": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["outcome_id", "comparison_id", "effect"],
+      "required": ["outcome_id","comparison_id","effect"],
       "properties": {
         "outcome_id": { "type": "string" },
         "comparison_id": { "type": "string" },
-        "population": { "type": "string", "enum": ["ITT", "mITT", "PP", "Safety", "Other"] },
+        "population": { "type": "string", "enum": ["ITT","mITT","PP","Safety","Other"] },
         "adjusted": { "type": "boolean", "default": false },
         "covariates": { "type": "array", "items": { "type": "string" }, "default": [] },
-        "model": {
-          "type": "string",
-          "enum": ["fixed", "random", "cox", "logistic", "linear", "poisson", "nb", "gee", "mixed", "other", "na"]
-        },
+        "model": { "type": "string", "enum": ["fixed","random","cox","logistic","linear","poisson","nb","gee","mixed","other","na"] },
         "cluster_adjusted": { "type": "boolean", "default": false },
-        "cluster_params": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "icc": { "type": "number", "minimum": 0 },
-            "method": { "type": "string", "enum": ["gee", "mixed", "cluster_robust", "other"] }
-          }
-        },
+        "cluster_params": { "type": "object", "additionalProperties": false, "properties": { "icc": { "type": "number", "minimum": 0 }, "method": { "type": "string", "enum": ["gee","mixed","cluster_robust","other"] } } },
+        "event_competing_risks_present": { "type": "boolean", "default": false },
+        "censoring_informative_risk": { "type": "string", "enum": ["low","moderate","high","unclear"] },
         "effect": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
+        "provenance": { "$ref": "common.schema.json#/$defs/Provenance" },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       }
     },
+
     "HarmsResult": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["event", "arm_id", "events", "total", "source"],
+      "required": ["event","arm_id","events","total","source"],
       "properties": {
         "event": { "type": "string" },
         "arm_id": { "type": "string" },
-        "severity_grade_scale": { "type": "string", "enum": ["CTCAE", "Clavien-Dindo", "Other", "NA"] },
+        "severity_grade_scale": { "type": "string", "enum": ["CTCAE","Clavien-Dindo","Other","NA"] },
+        "ctcae_version": { "type": "string", "description": "e.g., 5.0" },
+        "ctcae_grade": { "type": "integer", "minimum": 1, "maximum": 5 },
         "events": { "type": "integer", "minimum": 0 },
         "total": { "type": "integer", "minimum": 0 },
+        "ontology_terms": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/OntologyTerm" }, "default": [] },
+        "provenance": { "$ref": "common.schema.json#/$defs/Provenance" },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
         "serious": { "type": "boolean", "default": false },
-        "relatedness": {
-          "type": "string",
-          "enum": ["related", "probable", "possible", "unlikely", "not_related", "unknown"],
-          "default": "unknown"
-        },
+        "relatedness": { "type": "string", "enum": ["related","probable","possible","unlikely","not_related","unknown"], "default": "unknown" },
         "meddra_code": { "type": "string", "description": "MedDRA PT/LLT code indien beschikbaar" }
       }
     },
+
     "Results": {
       "type": "object",
       "additionalProperties": false,
@@ -441,21 +382,23 @@
         "harms": { "type": "array", "items": { "$ref": "#/$defs/HarmsResult" }, "default": [] }
       }
     },
+
     "ProtocolDeviation": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "severity": { "type": "string", "enum": ["major", "minor", "unclear"] },
+        "severity": { "type": "string", "enum": ["major","minor","unclear"] },
         "count": { "type": "integer", "minimum": 0 },
         "description": { "type": "string" },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       }
     },
+
     "ConsortReporting": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "version": { "type": "string", "enum": ["CONSORT 2010", "CONSORT 2010-extension", "other"], "default": "CONSORT 2010" },
+        "version": { "type": "string", "enum": ["CONSORT 2010","CONSORT 2010-extension","other"], "default": "CONSORT 2010" },
         "claimed": { "type": "boolean", "default": false },
         "checklist_available": { "type": "boolean", "default": false },
         "items": {
@@ -463,10 +406,10 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["item_id", "reported"],
+            "required": ["item_id","reported"],
             "properties": {
               "item_id": { "type": "string", "description": "bv. 1a, 1b, 2a…" },
-              "reported": { "type": "string", "enum": ["yes", "partially", "no", "unclear"] },
+              "reported": { "type": "string", "enum": ["yes","partially","no","unclear"] },
               "location": { "type": "string" },
               "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
             }
@@ -476,17 +419,20 @@
         "notes": { "type": "string" }
       }
     },
+
     "SensitivityAnalysis": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "label": { "type": "string" },
-        "population": { "type": "string", "enum": ["ITT", "mITT", "PP", "Safety", "Other"] },
+        "population": { "type": "string", "enum": ["ITT","mITT","PP","Safety","Other"] },
         "analysis_change": { "type": "string", "description": "Wijziging t.o.v. hoofdmodel (bv. imputatie, exclusies)" },
         "effect": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
+        "provenance": { "$ref": "common.schema.json#/$defs/Provenance" },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       }
     },
+
     "SubgroupAnalysis": {
       "type": "object",
       "additionalProperties": false,
@@ -497,17 +443,11 @@
         "interaction_p": { "type": "number", "minimum": 0, "maximum": 1 },
         "effects": {
           "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "level": { "type": "string" },
-              "effect": { "$ref": "common.schema.json#/$defs/ContrastEffect" }
-            }
-          },
+          "items": { "type": "object", "additionalProperties": false, "properties": { "level": { "type": "string" }, "effect": { "$ref": "common.schema.json#/$defs/ContrastEffect" } } },
           "default": []
         },
         "pre_specified": { "type": "boolean", "default": false },
+        "provenance": { "$ref": "common.schema.json#/$defs/Provenance" },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       }
     }
