@@ -213,6 +213,10 @@
 
     "prisma_reporting": { "$ref": "#/$defs/PrismaReporting" },
 
+    "amstar2_rating": { "$ref": "#/$defs/Amstar2Assessment" },
+
+    "open_science": { "$ref": "#/$defs/OpenScience" },
+
     "tables_parsed": {
       "type": "array",
       "items": { "$ref": "common.schema.json#/$defs/ParsedTable" },
@@ -471,11 +475,7 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "version": {
-          "type": "string",
-          "enum": ["PRISMA 2020", "PRISMA 2020-ScR", "other"],
-          "default": "PRISMA 2020"
-        },
+        "version": { "type": "string", "enum": ["PRISMA 2020", "PRISMA 2020-ScR", "other"], "default": "PRISMA 2020" },
         "claimed": { "type": "boolean", "default": false, "description": "Authors claim PRISMA adherence" },
         "flow_diagram_present": { "type": "boolean", "default": false },
         "checklist_available": { "type": "boolean", "default": false },
@@ -533,6 +533,77 @@
         "24a","24b","24c",
         "25","26","27"
       ]
+    },
+
+    "Amstar2Assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "overall": { "type": "string", "enum": ["high", "moderate", "low", "critically_low"] },
+        "rationale": { "type": "string" },
+        "items": {
+          "type": "array",
+          "description": "AMSTAR 2 item-level ratings (1–16). Mark critical domains with critical=true.",
+          "items": { "$ref": "#/$defs/Amstar2Item" },
+          "default": []
+        },
+        "critical_domains": {
+          "type": "array",
+          "description": "List of item_ids marked critical in this assessment (subset of 1–16).",
+          "items": { "type": "string", "pattern": "^(?:[1-9]|1[0-6])$" },
+          "default": []
+        },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      }
+    },
+
+    "Amstar2Item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["item_id", "rating"],
+      "properties": {
+        "item_id": { "type": "string", "pattern": "^(?:[1-9]|1[0-6])$", "description": "AMSTAR 2 item 1–16" },
+        "rating": { "type": "string", "enum": ["yes", "partial_yes", "no", "not_applicable", "unclear"] },
+        "critical": { "type": "boolean", "default": false },
+        "notes": { "type": "string" }
+      }
+    },
+
+    "OpenScience": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "data_availability": { "$ref": "#/$defs/Availability" },
+        "code_availability": { "$ref": "#/$defs/Availability" }
+      }
+    },
+
+    "Availability": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "statement": { "type": "string", "description": "Verbatim or summarized availability statement" },
+        "links": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/AvailabilityLink" },
+          "default": []
+        },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      }
+    },
+
+    "AvailabilityLink": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url"],
+      "properties": {
+        "label": { "type": "string" },
+        "url": { "type": "string", "format": "uri" },
+        "doi": { "type": "string", "pattern": "^10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+$" },
+        "access": { "type": "string", "enum": ["open", "restricted", "upon_request", "embargoed", "unknown"] },
+        "license": { "type": "string", "description": "e.g., CC BY 4.0, GPL-3.0" },
+        "notes": { "type": "string" }
+      }
     }
   },
 
@@ -552,7 +623,12 @@
       "then": {
         "properties": {
           "syntheses": {
-            "items": { "properties": { "type": { "const": "pairwise_meta" }, "pairwise_meta": { "required": ["pooled"] } } }
+            "items": {
+              "properties": {
+                "type": { "const": "pairwise_meta" },
+                "pairwise_meta": { "required": ["pooled"] }
+              }
+            }
           }
         }
       }
@@ -562,7 +638,12 @@
       "then": {
         "properties": {
           "syntheses": {
-            "items": { "properties": { "type": { "const": "network_meta" }, "network_meta": { "required": ["pooled_effects"] } } }
+            "items": {
+              "properties": {
+                "type": { "const": "network_meta" },
+                "network_meta": { "required": ["pooled_effects"] }
+              }
+            }
           }
         }
       }
