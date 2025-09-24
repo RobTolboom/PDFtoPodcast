@@ -140,6 +140,22 @@
     "results": {
       "$ref": "#/$defs/Results"
     },
+    "estimands": {
+      "type": "array",
+      "description": "ICH E9(R1) estimands framework for precise treatment effect definition",
+      "items": {
+        "$ref": "#/$defs/Estimand"
+      },
+      "default": []
+    },
+    "patient_reported_outcomes": {
+      "type": "array",
+      "description": "Patient-reported outcome measures (PROMs)",
+      "items": {
+        "$ref": "#/$defs/PatientReportedOutcome"
+      },
+      "default": []
+    },
     "extraction_quality": {
       "type": "object",
       "additionalProperties": false,
@@ -192,6 +208,57 @@
     },
     "consort_reporting": {
       "$ref": "#/$defs/ConsortReporting"
+    },
+    "tidier_checklist": {
+      "type": "object",
+      "description": "TIDieR (Template for Intervention Description and Replication) checklist for complex interventions",
+      "properties": {
+        "completed": {
+          "type": "boolean"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "item_number": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 12
+              },
+              "item_name": {
+                "type": "string",
+                "enum": [
+                  "name",
+                  "why",
+                  "what_materials",
+                  "what_procedures",
+                  "who_provided",
+                  "how",
+                  "where",
+                  "when_how_much",
+                  "tailoring",
+                  "modifications",
+                  "how_well_planned",
+                  "how_well_actual"
+                ]
+              },
+              "reported": {
+                "type": "string",
+                "enum": [
+                  "yes",
+                  "partially",
+                  "no",
+                  "not_applicable"
+                ]
+              },
+              "location": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
     },
     "sensitivity_analyses": {
       "type": "array",
@@ -391,6 +458,11 @@
             "Factorial-RCT",
             "Stepped-wedge",
             "Adaptive",
+            "Platform-trial",
+            "Basket-trial",
+            "Umbrella-trial",
+            "MAMS",
+            "Master-protocol",
             "Nonrandomized",
             "Before-after",
             "Single-arm"
@@ -445,6 +517,63 @@
             "unclear"
           ]
         },
+        "randomisation_ratio": {
+          "type": "string",
+          "description": "Allocation ratio (e.g., 1:1, 2:1, 1:1:1)",
+          "examples": [
+            "1:1",
+            "2:1",
+            "1:1:1"
+          ]
+        },
+        "randomisation_type": {
+          "type": "string",
+          "enum": [
+            "central",
+            "local",
+            "web_based",
+            "ivrs",
+            "pharmacy_controlled",
+            "other"
+          ]
+        },
+        "stratification_factors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "factor": {
+                "type": "string"
+              },
+              "levels": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": []
+        },
+        "block_size": {
+          "type": "object",
+          "properties": {
+            "fixed": {
+              "type": "integer",
+              "minimum": 2
+            },
+            "permuted": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 2
+              }
+            },
+            "random": {
+              "type": "boolean"
+            }
+          }
+        },
         "allocation_concealment": {
           "type": "string",
           "enum": [
@@ -460,8 +589,45 @@
             "single-blind",
             "double-blind",
             "triple-blind",
+            "quadruple-blind",
             "unclear"
           ]
+        },
+        "blinding_details": {
+          "type": "object",
+          "properties": {
+            "participants_blinded": {
+              "type": "boolean"
+            },
+            "care_providers_blinded": {
+              "type": "boolean"
+            },
+            "outcome_assessors_blinded": {
+              "type": "boolean"
+            },
+            "data_analysts_blinded": {
+              "type": "boolean"
+            },
+            "sham_procedure_used": {
+              "type": "boolean"
+            },
+            "blinding_success_assessed": {
+              "type": "boolean"
+            },
+            "blinding_success_result": {
+              "type": "string",
+              "enum": [
+                "successful",
+                "partially_successful",
+                "unsuccessful",
+                "not_assessed"
+              ]
+            },
+            "emergency_unblinding_events": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
         },
         "analysis_population": {
           "type": "string",
@@ -557,6 +723,83 @@
         "stopping_rules": {
           "type": "string"
         },
+        "dsmb_dmc": {
+          "type": "object",
+          "description": "Data Safety Monitoring Board / Data Monitoring Committee details",
+          "properties": {
+            "established": {
+              "type": "boolean"
+            },
+            "independent": {
+              "type": "boolean"
+            },
+            "charter_available": {
+              "type": "boolean"
+            },
+            "meeting_frequency": {
+              "type": "string"
+            },
+            "stopping_boundaries": {
+              "type": "object",
+              "properties": {
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "obrien_fleming",
+                    "pocock",
+                    "haybittle_peto",
+                    "lan_demets",
+                    "bayesian",
+                    "other"
+                  ]
+                },
+                "efficacy_boundary": {
+                  "type": "number"
+                },
+                "futility_boundary": {
+                  "type": "number"
+                },
+                "alpha_spending_function": {
+                  "type": "string"
+                }
+              }
+            },
+            "interim_analysis_results": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "analysis_number": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "information_fraction": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "conditional_power": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "continue",
+                      "stop_efficacy",
+                      "stop_futility",
+                      "modify_design"
+                    ]
+                  },
+                  "boundary_crossed": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
         "response_adaptive_randomisation": {
           "type": "boolean",
           "default": false
@@ -571,6 +814,92 @@
         },
         "rollout_schedule_iso8601": {
           "$ref": "#/$defs/ISO8601Duration"
+        },
+        "platform_trial_details": {
+          "type": "object",
+          "description": "Details for platform trials with shared control arm",
+          "properties": {
+            "shared_control": {
+              "type": "boolean"
+            },
+            "control_arm_id": {
+              "type": "string"
+            },
+            "experimental_arms": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "entry_exit_criteria": {
+              "type": "string"
+            },
+            "borrowing_across_comparisons": {
+              "type": "boolean"
+            }
+          }
+        },
+        "master_protocol_details": {
+          "type": "object",
+          "description": "Details for umbrella/basket trials",
+          "properties": {
+            "protocol_type": {
+              "type": "string",
+              "enum": [
+                "basket",
+                "umbrella",
+                "other"
+              ]
+            },
+            "biomarker_driven": {
+              "type": "boolean"
+            },
+            "biomarker_name": {
+              "type": "string"
+            },
+            "cohorts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "cohort_id": {
+                    "type": "string"
+                  },
+                  "biomarker_status": {
+                    "type": "string"
+                  },
+                  "tumor_type": {
+                    "type": "string"
+                  },
+                  "target": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "mams_details": {
+          "type": "object",
+          "description": "Multi-Arm Multi-Stage trial details",
+          "properties": {
+            "stages": {
+              "type": "integer",
+              "minimum": 2
+            },
+            "intermediate_outcomes": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "selection_rule": {
+              "type": "string"
+            },
+            "arm_dropping_criteria": {
+              "type": "string"
+            }
+          }
         },
         "sample_size_calculation": {
           "type": "object",
@@ -589,8 +918,43 @@
               "minimum": 0,
               "maximum": 1
             },
+            "actual_power": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Post-hoc calculated power"
+            },
             "non_inferiority_margin": {
               "type": "string"
+            },
+            "multiplicity_adjustment": {
+              "type": "object",
+              "properties": {
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "bonferroni",
+                    "holm",
+                    "hochberg",
+                    "hommel",
+                    "benjamini_hochberg",
+                    "gatekeeping",
+                    "fallback",
+                    "none",
+                    "other"
+                  ]
+                },
+                "adjusted_alpha": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "family_wise_error_rate": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              }
             },
             "notes": {
               "type": "string"
@@ -664,6 +1028,63 @@
         "follow_up_duration_iso8601": {
           "$ref": "#/$defs/ISO8601Duration"
         },
+        "attrition": {
+          "type": "object",
+          "description": "Detailed dropout and attrition tracking",
+          "properties": {
+            "overall_dropout_pct": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "per_arm_dropout": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "arm_id": {
+                    "type": "string"
+                  },
+                  "n_randomised": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "n_completed": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "dropout_pct": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100
+                  }
+                }
+              }
+            },
+            "dropout_reasons": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string"
+                  },
+                  "count": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "arm_id": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "differential_dropout": {
+              "type": "boolean",
+              "description": "Whether dropout differs significantly between arms"
+            }
+          }
+        },
         "missing_data": {
           "type": "object",
           "additionalProperties": false,
@@ -673,8 +1094,54 @@
               "minimum": 0,
               "maximum": 100
             },
+            "missing_pattern": {
+              "$ref": "#/$defs/MissingDataPattern"
+            },
             "imputation": {
               "type": "string"
+            },
+            "imputation_details": {
+              "type": "object",
+              "properties": {
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "complete_case",
+                    "last_observation_carried_forward",
+                    "multiple_imputation",
+                    "worst_case",
+                    "best_case",
+                    "baseline_observation_carried_forward",
+                    "mixed_model",
+                    "other"
+                  ]
+                },
+                "m_imputations": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Number of multiple imputations"
+                },
+                "variables_imputed": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "sensitivity_to_missing": {
+              "type": "object",
+              "properties": {
+                "tipping_point_analysis": {
+                  "type": "boolean"
+                },
+                "tipping_point_threshold": {
+                  "type": "string"
+                },
+                "conclusion_robust": {
+                  "type": "boolean"
+                }
+              }
             }
           }
         },
@@ -1252,6 +1719,48 @@
         "meddra_code": {
           "type": "string",
           "description": "MedDRA PT/LLT code indien beschikbaar"
+        },
+        "sae": {
+          "type": "boolean",
+          "description": "Serious Adverse Event"
+        },
+        "sae_criteria": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "death",
+              "life_threatening",
+              "hospitalization",
+              "disability",
+              "congenital_anomaly",
+              "medically_important"
+            ]
+          }
+        },
+        "aesi": {
+          "type": "boolean",
+          "description": "Adverse Event of Special Interest"
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "recovered",
+            "recovering",
+            "not_recovered",
+            "fatal",
+            "unknown"
+          ]
+        },
+        "action_taken": {
+          "type": "string",
+          "enum": [
+            "none",
+            "dose_reduced",
+            "dose_interrupted",
+            "drug_withdrawn",
+            "other"
+          ]
         }
       }
     },
@@ -1315,6 +1824,11 @@
           "enum": [
             "CONSORT 2010",
             "CONSORT 2010-extension",
+            "CONSORT-PRO",
+            "CONSORT-NPT",
+            "CONSORT-Harms",
+            "CONSORT-Equity",
+            "CONSORT-SPI",
             "other"
           ],
           "default": "CONSORT 2010"
@@ -1448,6 +1962,327 @@
         }
       }
     },
+    "Estimand": {
+      "type": "object",
+      "description": "ICH E9(R1) estimand framework for precise treatment effect definition",
+      "additionalProperties": false,
+      "required": [
+        "outcome_id",
+        "population",
+        "treatment",
+        "variable",
+        "population_level_summary"
+      ],
+      "properties": {
+        "outcome_id": {
+          "type": "string",
+          "description": "Link to outcome definition"
+        },
+        "estimand_id": {
+          "type": "string"
+        },
+        "estimand_type": {
+          "type": "string",
+          "enum": [
+            "treatment_policy",
+            "hypothetical",
+            "composite",
+            "principal_stratum",
+            "while_on_treatment"
+          ],
+          "description": "Type of estimand strategy"
+        },
+        "population": {
+          "type": "string",
+          "description": "Target population for this estimand"
+        },
+        "treatment": {
+          "type": "string",
+          "description": "Treatment condition being evaluated"
+        },
+        "variable": {
+          "type": "string",
+          "description": "Outcome variable of interest"
+        },
+        "population_level_summary": {
+          "type": "string",
+          "description": "How individual outcomes are summarized (e.g., mean difference, odds ratio)"
+        },
+        "intercurrent_events": {
+          "type": "array",
+          "description": "Events occurring after treatment initiation that affect interpretation",
+          "items": {
+            "type": "object",
+            "properties": {
+              "event_type": {
+                "type": "string",
+                "examples": [
+                  "treatment_discontinuation",
+                  "rescue_medication",
+                  "death",
+                  "protocol_deviation"
+                ]
+              },
+              "handling_strategy": {
+                "type": "string",
+                "enum": [
+                  "treatment_policy",
+                  "hypothetical",
+                  "composite",
+                  "while_on_treatment",
+                  "principal_stratum"
+                ],
+                "description": "How this intercurrent event is handled in the estimand"
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "sensitivity_estimands": {
+          "type": "array",
+          "description": "Alternative estimands for sensitivity analysis",
+          "items": {
+            "type": "object",
+            "properties": {
+              "estimand_type": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        }
+      }
+    },
+    "PatientReportedOutcome": {
+      "type": "object",
+      "description": "Patient-reported outcome measure (PROM)",
+      "additionalProperties": false,
+      "required": [
+        "instrument_name"
+      ],
+      "properties": {
+        "instrument_name": {
+          "type": "string",
+          "description": "Name of PRO instrument (e.g., EQ-5D, SF-36, EORTC QLQ-C30)"
+        },
+        "instrument_version": {
+          "type": "string"
+        },
+        "domain": {
+          "type": "string",
+          "description": "Domain assessed (e.g., physical functioning, pain, quality of life)"
+        },
+        "timepoints": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "completion_rate": {
+          "type": "object",
+          "properties": {
+            "baseline_pct": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "followup_pct": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "differential_by_arm": {
+              "type": "boolean"
+            }
+          }
+        },
+        "minimally_important_difference": {
+          "type": "object",
+          "properties": {
+            "value": {
+              "type": "number"
+            },
+            "anchor_based": {
+              "type": "boolean"
+            },
+            "distribution_based": {
+              "type": "boolean"
+            },
+            "source": {
+              "type": "string"
+            }
+          }
+        },
+        "scoring": {
+          "type": "object",
+          "properties": {
+            "scale_range": {
+              "type": "object",
+              "properties": {
+                "min": {
+                  "type": "number"
+                },
+                "max": {
+                  "type": "number"
+                }
+              }
+            },
+            "direction": {
+              "type": "string",
+              "enum": [
+                "higher_better",
+                "lower_better"
+              ]
+            },
+            "subscales": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "pro_ctcae": {
+          "type": "boolean",
+          "description": "Whether PRO-CTCAE (Patient-Reported Outcomes version of CTCAE) was used"
+        },
+        "results_per_arm": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "arm_id": {
+                "type": "string"
+              },
+              "timepoint": {
+                "type": "string"
+              },
+              "mean": {
+                "type": "number"
+              },
+              "sd": {
+                "type": "number"
+              },
+              "median": {
+                "type": "number"
+              },
+              "iqr": {
+                "type": "object",
+                "properties": {
+                  "p25": {
+                    "type": "number"
+                  },
+                  "p75": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        }
+      }
+    },
+    "CompositeOutcome": {
+      "type": "object",
+      "description": "Details for composite outcomes",
+      "additionalProperties": false,
+      "properties": {
+        "outcome_id": {
+          "type": "string"
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "component_name": {
+                "type": "string"
+              },
+              "component_id": {
+                "type": "string"
+              },
+              "clinical_importance": {
+                "type": "string",
+                "enum": [
+                  "high",
+                  "moderate",
+                  "low"
+                ]
+              },
+              "events_n": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "contribution_pct": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              }
+            }
+          }
+        },
+        "hierarchical": {
+          "type": "boolean",
+          "description": "Whether components are hierarchically ordered"
+        },
+        "hierarchy_order": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "win_ratio": {
+          "type": "object",
+          "description": "Win ratio analysis for hierarchical composite outcomes",
+          "properties": {
+            "win_ratio": {
+              "type": "number",
+              "minimum": 0
+            },
+            "ci_lower": {
+              "type": "number",
+              "minimum": 0
+            },
+            "ci_upper": {
+              "type": "number",
+              "minimum": 0
+            },
+            "p_value": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          }
+        },
+        "component_specific_effects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "component_id": {
+                "type": "string"
+              },
+              "effect": {
+                "$ref": "#/$defs/ContrastEffect"
+              }
+            }
+          }
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        }
+      }
+    },
     "CountryCode": {
       "$ref": "#/$defs/CountryCodeAlpha2"
     },
@@ -1470,13 +2305,79 @@
             "EudraCT",
             "EU-CTR",
             "CTIS",
+            "UMIN",
+            "JPRN",
+            "DRKS",
+            "ChiCTR",
+            "ANZCTR",
+            "arXiv",
+            "bioRxiv",
+            "medRxiv",
+            "PubPeer",
+            "ISBN",
+            "ISSN",
+            "Handle",
+            "URN",
             "Other"
-          ]
+          ],
+          "description": "External identifier source system including preprint servers and academic publishers"
         },
         "id": {
-          "type": "string"
+          "type": "string",
+          "description": "Identifier value within the source system",
+          "examples": [
+            "1234.5678",
+            "2023.01.001",
+            "10.1101/2023.01.01.123456",
+            "978-0-123456-78-9"
+          ]
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Optional direct URL to the external resource"
+        },
+        "version": {
+          "type": "string",
+          "description": "Version number for preprints or versioned documents"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "source": {
+                "const": "arXiv"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "id": {
+                "pattern": "^(\\d{4}\\.\\d{4,5}|[a-z-]+/\\d{7})$",
+                "description": "arXiv identifier (new: YYMM.NNNN or old: subject-class/YYMMnnn)"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "source": {
+                "const": "ISBN"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "id": {
+                "pattern": "^(?:978|979)[0-9]{10}$|^[0-9]{9}[0-9X]$",
+                "description": "ISBN-10 or ISBN-13 format"
+              }
+            }
+          }
+        }
+      ]
     },
     "ExtractionWarning": {
       "type": "object",
@@ -1536,14 +2437,39 @@
       }
     },
     "ISO8601Duration": {
+      "$anchor": "duration",
       "type": "string",
-      "pattern": "^P(T)?[\\dYMWDTHMS]+$",
-      "description": "Loose ISO 8601 duration (e.g., 'P30D', 'PT24H', 'P2W')."
+      "pattern": "^P(?:(?:\\d+Y)?(?:\\d+M)?(?:\\d+W)?(?:\\d+D)?)?(?:T(?:\\d+H)?(?:\\d+M)?(?:\\d+(?:\\.\\d+)?S)?)?$",
+      "description": "Strict ISO 8601 duration (e.g., 'P30D', 'PT24H', 'P2W', 'P1Y2M3DT4H5M6S').",
+      "examples": [
+        "P30D",
+        "PT24H",
+        "P2W",
+        "P6M",
+        "P1Y",
+        "PT2H30M",
+        "P1Y2M3DT4H5M6.789S"
+      ]
     },
     "LanguageCode": {
       "type": "string",
-      "pattern": "^[a-z]{2}$",
-      "description": "ISO 639-1 language code (e.g., 'en', 'nl')."
+      "pattern": "^[a-z]{2,3}(-[A-Z]{2})?(-[a-z]{2,8})*$",
+      "description": "BCP 47 language tag supporting language, region, and variants (e.g., 'en-US', 'zh-Hans-CN', 'ar-EG')",
+      "examples": [
+        "en",
+        "en-US",
+        "en-GB",
+        "nl",
+        "nl-NL",
+        "nl-BE",
+        "de-DE",
+        "fr-FR",
+        "es-ES",
+        "zh-Hans",
+        "zh-Hant",
+        "ar-EG",
+        "he-IL"
+      ]
     },
     "Metadata": {
       "type": "object",
@@ -1597,11 +2523,13 @@
         },
         "issn": {
           "type": "string",
-          "pattern": "^(\\d{4}-\\d{3}[\\dxX])$"
+          "pattern": "^\\d{4}-\\d{3}[\\dxX]$",
+          "description": "International Standard Serial Number (print version)"
         },
         "eissn": {
           "type": "string",
-          "pattern": "^(\\d{4}-\\d{3}[\\dxX])$"
+          "pattern": "^\\d{4}-\\d{3}[\\dxX]$",
+          "description": "Electronic International Standard Serial Number"
         },
         "authors": {
           "type": "array",
@@ -1620,8 +2548,12 @@
         },
         "doi": {
           "type": "string",
-          "pattern": "^10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+$",
-          "description": "DOI; pattern accepts upper- and lowercase letters"
+          "pattern": "^10\\.\\d{4,}(\\.\\d+)?/[-._;()/:A-Za-z0-9\\[\\]]+$",
+          "description": "DOI with comprehensive character support including brackets and extended punctuation",
+          "examples": [
+            "10.1056/NEJMoa2001017",
+            "10.1002/(SICI)1097-0142(19960101)77:1<1::AID-CNCR1>3.0.CO;2-Z"
+          ]
         },
         "registration": {
           "$ref": "#/$defs/Registration"
@@ -1666,7 +2598,148 @@
         },
         "content_hash_sha256": {
           "type": "string",
-          "description": "Hash van bronbestand of platte tekst"
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "description": "SHA-256 hash van bronbestand of platte tekst (64-char hex)"
+        }
+      },
+      "dependentSchemas": {
+        "published_date_precision": {
+          "required": [
+            "published_date"
+          ],
+          "properties": {
+            "published_date_precision": {
+              "description": "Precision can only be specified if published_date is present"
+            }
+          }
+        },
+        "page_end": {
+          "required": [
+            "page_start"
+          ],
+          "properties": {
+            "page_end": {
+              "description": "End page requires start page to be specified"
+            }
+          }
+        },
+        "vancouver_source": {
+          "required": [
+            "vancouver_citation"
+          ],
+          "properties": {
+            "vancouver_source": {
+              "description": "Vancouver source reference requires vancouver_citation to be present"
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "published_date_precision": {
+                "const": "day"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "published_date": {
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Day precision requires full date format YYYY-MM-DD"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "published_date_precision": {
+                "const": "month"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "published_date": {
+                "pattern": "^\\d{4}-\\d{2}(-\\d{2})?$",
+                "description": "Month precision allows YYYY-MM or YYYY-MM-DD format"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "published_date_precision": {
+                "const": "year"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "published_date": {
+                "pattern": "^\\d{4}(-\\d{2}(-\\d{2})?)?$",
+                "description": "Year precision allows YYYY, YYYY-MM, or YYYY-MM-DD format"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "MissingDataPattern": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Missing data analysis and patterns",
+      "properties": {
+        "mechanism": {
+          "type": "string",
+          "enum": [
+            "MCAR",
+            "MAR",
+            "MNAR",
+            "unknown"
+          ],
+          "description": "Missing data mechanism (Missing Completely At Random, Missing At Random, Missing Not At Random)"
+        },
+        "percentage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Percentage of missing data"
+        },
+        "pattern_analysis": {
+          "type": "object",
+          "properties": {
+            "monotone": {
+              "type": "boolean",
+              "description": "Whether missing pattern is monotone"
+            },
+            "little_test_p": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "P-value from Little's MCAR test"
+            }
+          }
+        },
+        "imputation_method": {
+          "type": "string",
+          "enum": [
+            "complete_case",
+            "last_observation_carried_forward",
+            "multiple_imputation",
+            "mean_imputation",
+            "regression_imputation",
+            "hot_deck",
+            "other"
+          ],
+          "description": "Method used to handle missing data"
+        },
+        "sensitivity_analysis": {
+          "type": "boolean",
+          "description": "Whether sensitivity analysis for missing data was performed"
         }
       }
     },
@@ -1680,13 +2753,36 @@
       "properties": {
         "system": {
           "type": "string",
-          "description": "e.g., MeSH, SNOMED, LOINC, MedDRA, ICD-10"
+          "enum": [
+            "MeSH",
+            "SNOMED-CT",
+            "LOINC",
+            "MedDRA",
+            "ICD-10",
+            "ICD-11",
+            "UMLS",
+            "RxNorm",
+            "ATC",
+            "CPT",
+            "HCPCS",
+            "Other"
+          ],
+          "description": "Standard medical terminology system"
         },
         "code": {
-          "type": "string"
+          "type": "string",
+          "description": "Code within the terminology system"
         },
         "display": {
-          "type": "string"
+          "type": "string",
+          "description": "Human-readable description of the code"
+        },
+        "version": {
+          "type": "string",
+          "description": "Version of the terminology system used"
+        },
+        "fhir_coding": {
+          "$ref": "#/$defs/FHIRCoding"
         }
       }
     },
@@ -1748,7 +2844,8 @@
       "additionalProperties": false,
       "properties": {
         "extractor": {
-          "type": "string"
+          "type": "string",
+          "description": "Person or system that performed extraction"
         },
         "method": {
           "type": "string",
@@ -1757,20 +2854,46 @@
             "human_single",
             "llm_assisted",
             "rule_based",
+            "automated",
             "other"
-          ]
+          ],
+          "description": "Extraction method used"
         },
         "confidence": {
           "type": "number",
           "minimum": 0,
-          "maximum": 1
+          "maximum": 1,
+          "description": "Extractor's confidence in the extraction"
         },
         "timestamp": {
           "type": "string",
-          "format": "date-time"
+          "format": "date-time",
+          "description": "When extraction was performed"
         },
         "transformation_notes": {
-          "type": "string"
+          "type": "string",
+          "description": "Notes about data processing or transformation"
+        },
+        "consensus_status": {
+          "type": "string",
+          "enum": [
+            "agreement",
+            "disagreement",
+            "resolved",
+            "single_reviewer",
+            "not_applicable"
+          ],
+          "description": "Status of reviewer consensus (for double extraction)"
+        },
+        "reviewers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of reviewers involved in extraction"
+        },
+        "adjudication": {
+          "$ref": "#/$defs/Adjudication"
         },
         "source": {
           "$ref": "#/$defs/SourceRef"
@@ -2048,6 +3171,7 @@
     "SourceRef": {
       "type": "object",
       "additionalProperties": false,
+      "description": "Reference to a specific location within a document",
       "properties": {
         "anchor": {
           "type": "string",
@@ -2055,13 +3179,16 @@
         },
         "page": {
           "type": "integer",
-          "minimum": 1
+          "minimum": 1,
+          "description": "Page number within the document"
         },
         "figure_id": {
-          "type": "string"
+          "type": "string",
+          "description": "Identifier of a specific figure"
         },
         "table_id": {
-          "type": "string"
+          "type": "string",
+          "description": "Identifier of a specific table"
         }
       }
     },
@@ -2095,13 +3222,22 @@
             "integer",
             "boolean",
             "null"
-          ]
+          ],
+          "description": "Processed/normalized value"
         },
         "raw_text": {
-          "type": "string"
+          "type": "string",
+          "description": "Original text as found in document"
         },
         "unit_ucum": {
-          "type": "string"
+          "type": "string",
+          "description": "UCUM unit code if applicable"
+        },
+        "transformation_confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Confidence in the raw→processed transformation"
         },
         "source": {
           "$ref": "#/$defs/SourceRef"
