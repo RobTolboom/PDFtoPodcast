@@ -62,6 +62,20 @@
 
     "results": { "$ref": "#/$defs/Results" },
 
+    "estimands": {
+      "type": "array",
+      "description": "ICH E9(R1) estimands framework for precise treatment effect definition",
+      "items": { "$ref": "#/$defs/Estimand" },
+      "default": []
+    },
+
+    "patient_reported_outcomes": {
+      "type": "array",
+      "description": "Patient-reported outcome measures (PROMs)",
+      "items": { "$ref": "#/$defs/PatientReportedOutcome" },
+      "default": []
+    },
+
     "extraction_quality": {
       "type": "object",
       "additionalProperties": false,
@@ -82,6 +96,26 @@
     "protocol_deviations_structured": { "type": "array", "items": { "$ref": "#/$defs/ProtocolDeviation" }, "default": [] },
 
     "consort_reporting": { "$ref": "#/$defs/ConsortReporting" },
+
+    "tidier_checklist": {
+      "type": "object",
+      "description": "TIDieR (Template for Intervention Description and Replication) checklist for complex interventions",
+      "properties": {
+        "completed": { "type": "boolean" },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "item_number": { "type": "integer", "minimum": 1, "maximum": 12 },
+              "item_name": { "type": "string", "enum": ["name", "why", "what_materials", "what_procedures", "who_provided", "how", "where", "when_how_much", "tailoring", "modifications", "how_well_planned", "how_well_actual"] },
+              "reported": { "type": "string", "enum": ["yes", "partially", "no", "not_applicable"] },
+              "location": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
 
     "sensitivity_analyses": { "type": "array", "items": { "$ref": "#/$defs/SensitivityAnalysis" }, "default": [] },
 
@@ -111,7 +145,22 @@
       "properties": {
         "label": {
           "type": "string",
-          "enum": ["RCT","Cluster-RCT","Crossover-RCT","Factorial-RCT","Stepped-wedge","Adaptive","Nonrandomized","Before-after","Single-arm"]
+          "enum": [
+            "RCT",
+            "Cluster-RCT",
+            "Crossover-RCT",
+            "Factorial-RCT",
+            "Stepped-wedge",
+            "Adaptive",
+            "Platform-trial",
+            "Basket-trial",
+            "Umbrella-trial",
+            "MAMS",
+            "Master-protocol",
+            "Nonrandomized",
+            "Before-after",
+            "Single-arm"
+          ]
         },
         "ethics_approval": { "type": "string" },
         "consent_obtained": { "type": "string", "enum": ["yes","no","unclear"] },
@@ -121,8 +170,42 @@
         "countries": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/CountryCode" }, "default": [] },
         "setting": { "type": "string" },
         "randomisation": { "type": "string", "enum": ["individual","cluster","blocked","stratified","minimisation","none","unclear"] },
+        "randomisation_ratio": { "type": "string", "description": "Allocation ratio (e.g., 1:1, 2:1, 1:1:1)", "examples": ["1:1", "2:1", "1:1:1"] },
+        "randomisation_type": { "type": "string", "enum": ["central", "local", "web_based", "ivrs", "pharmacy_controlled", "other"] },
+        "stratification_factors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "factor": { "type": "string" },
+              "levels": { "type": "array", "items": { "type": "string" } }
+            }
+          },
+          "default": []
+        },
+        "block_size": {
+          "type": "object",
+          "properties": {
+            "fixed": { "type": "integer", "minimum": 2 },
+            "permuted": { "type": "array", "items": { "type": "integer", "minimum": 2 } },
+            "random": { "type": "boolean" }
+          }
+        },
         "allocation_concealment": { "type": "string", "enum": ["adequate","inadequate","unclear"] },
-        "blinding": { "type": "string", "enum": ["open-label","single-blind","double-blind","triple-blind","unclear"] },
+        "blinding": { "type": "string", "enum": ["open-label","single-blind","double-blind","triple-blind","quadruple-blind","unclear"] },
+        "blinding_details": {
+          "type": "object",
+          "properties": {
+            "participants_blinded": { "type": "boolean" },
+            "care_providers_blinded": { "type": "boolean" },
+            "outcome_assessors_blinded": { "type": "boolean" },
+            "data_analysts_blinded": { "type": "boolean" },
+            "sham_procedure_used": { "type": "boolean" },
+            "blinding_success_assessed": { "type": "boolean" },
+            "blinding_success_result": { "type": "string", "enum": ["successful", "partially_successful", "unsuccessful", "not_assessed"] },
+            "emergency_unblinding_events": { "type": "integer", "minimum": 0 }
+          }
+        },
         "analysis_population": { "type": "string", "enum": ["ITT","mITT","PP","Safety","Other"] },
         "non_inferiority_margin": { "type": "string" },
         "non_inferiority_margin_detail": { "$ref": "common.schema.json#/$defs/ValueWithRaw" },
@@ -155,12 +238,86 @@
 
         "interim_analyses": { "type": "integer", "minimum": 0 },
         "stopping_rules": { "type": "string" },
+        "dsmb_dmc": {
+          "type": "object",
+          "description": "Data Safety Monitoring Board / Data Monitoring Committee details",
+          "properties": {
+            "established": { "type": "boolean" },
+            "independent": { "type": "boolean" },
+            "charter_available": { "type": "boolean" },
+            "meeting_frequency": { "type": "string" },
+            "stopping_boundaries": {
+              "type": "object",
+              "properties": {
+                "method": { "type": "string", "enum": ["obrien_fleming", "pocock", "haybittle_peto", "lan_demets", "bayesian", "other"] },
+                "efficacy_boundary": { "type": "number" },
+                "futility_boundary": { "type": "number" },
+                "alpha_spending_function": { "type": "string" }
+              }
+            },
+            "interim_analysis_results": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "analysis_number": { "type": "integer", "minimum": 1 },
+                  "information_fraction": { "type": "number", "minimum": 0, "maximum": 1 },
+                  "conditional_power": { "type": "number", "minimum": 0, "maximum": 1 },
+                  "decision": { "type": "string", "enum": ["continue", "stop_efficacy", "stop_futility", "modify_design"] },
+                  "boundary_crossed": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
         "response_adaptive_randomisation": { "type": "boolean", "default": false },
         "sample_size_reassessment": { "type": "boolean", "default": false },
 
         "steps": { "type": "integer", "minimum": 2 },
         "rollout_schedule_iso8601": { "$ref": "common.schema.json#/$defs/ISO8601Duration" },
 
+        "platform_trial_details": {
+          "type": "object",
+          "description": "Details for platform trials with shared control arm",
+          "properties": {
+            "shared_control": { "type": "boolean" },
+            "control_arm_id": { "type": "string" },
+            "experimental_arms": { "type": "array", "items": { "type": "string" } },
+            "entry_exit_criteria": { "type": "string" },
+            "borrowing_across_comparisons": { "type": "boolean" }
+          }
+        },
+        "master_protocol_details": {
+          "type": "object",
+          "description": "Details for umbrella/basket trials",
+          "properties": {
+            "protocol_type": { "type": "string", "enum": ["basket", "umbrella", "other"] },
+            "biomarker_driven": { "type": "boolean" },
+            "biomarker_name": { "type": "string" },
+            "cohorts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "cohort_id": { "type": "string" },
+                  "biomarker_status": { "type": "string" },
+                  "tumor_type": { "type": "string" },
+                  "target": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "mams_details": {
+          "type": "object",
+          "description": "Multi-Arm Multi-Stage trial details",
+          "properties": {
+            "stages": { "type": "integer", "minimum": 2 },
+            "intermediate_outcomes": { "type": "array", "items": { "type": "string" } },
+            "selection_rule": { "type": "string" },
+            "arm_dropping_criteria": { "type": "string" }
+          }
+        },
         "sample_size_calculation": {
           "type": "object",
           "additionalProperties": false,
@@ -168,7 +325,16 @@
             "assumed_effect": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
             "alpha": { "type": "number", "minimum": 0, "maximum": 1 },
             "power": { "type": "number", "minimum": 0, "maximum": 1 },
+            "actual_power": { "type": "number", "minimum": 0, "maximum": 1, "description": "Post-hoc calculated power" },
             "non_inferiority_margin": { "type": "string" },
+            "multiplicity_adjustment": {
+              "type": "object",
+              "properties": {
+                "method": { "type": "string", "enum": ["bonferroni", "holm", "hochberg", "hommel", "benjamini_hochberg", "gatekeeping", "fallback", "none", "other"] },
+                "adjusted_alpha": { "type": "number", "minimum": 0, "maximum": 1 },
+                "family_wise_error_rate": { "type": "number", "minimum": 0, "maximum": 1 }
+              }
+            },
             "notes": { "type": "string" },
             "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
           }
@@ -198,12 +364,60 @@
         "inclusion_criteria": { "type": "string" },
         "exclusion_criteria": { "type": "string" },
         "follow_up_duration_iso8601": { "$ref": "common.schema.json#/$defs/ISO8601Duration" },
+        "attrition": {
+          "type": "object",
+          "description": "Detailed dropout and attrition tracking",
+          "properties": {
+            "overall_dropout_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+            "per_arm_dropout": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "arm_id": { "type": "string" },
+                  "n_randomised": { "type": "integer", "minimum": 0 },
+                  "n_completed": { "type": "integer", "minimum": 0 },
+                  "dropout_pct": { "type": "number", "minimum": 0, "maximum": 100 }
+                }
+              }
+            },
+            "dropout_reasons": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "reason": { "type": "string" },
+                  "count": { "type": "integer", "minimum": 0 },
+                  "arm_id": { "type": "string" }
+                }
+              }
+            },
+            "differential_dropout": { "type": "boolean", "description": "Whether dropout differs significantly between arms" }
+          }
+        },
         "missing_data": {
           "type": "object",
           "additionalProperties": false,
           "properties": {
             "outcome_missing_pct": { "type": "number", "minimum": 0, "maximum": 100 },
-            "imputation": { "type": "string" }
+            "missing_pattern": { "$ref": "common.schema.json#/$defs/MissingDataPattern" },
+            "imputation": { "type": "string" },
+            "imputation_details": {
+              "type": "object",
+              "properties": {
+                "method": { "type": "string", "enum": ["complete_case", "last_observation_carried_forward", "multiple_imputation", "worst_case", "best_case", "baseline_observation_carried_forward", "mixed_model", "other"] },
+                "m_imputations": { "type": "integer", "minimum": 1, "description": "Number of multiple imputations" },
+                "variables_imputed": { "type": "array", "items": { "type": "string" } }
+              }
+            },
+            "sensitivity_to_missing": {
+              "type": "object",
+              "properties": {
+                "tipping_point_analysis": { "type": "boolean" },
+                "tipping_point_threshold": { "type": "string" },
+                "conclusion_robust": { "type": "boolean" }
+              }
+            }
           }
         },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
@@ -369,7 +583,15 @@
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
         "serious": { "type": "boolean", "default": false },
         "relatedness": { "type": "string", "enum": ["related","probable","possible","unlikely","not_related","unknown"], "default": "unknown" },
-        "meddra_code": { "type": "string", "description": "MedDRA PT/LLT code indien beschikbaar" }
+        "meddra_code": { "type": "string", "description": "MedDRA PT/LLT code indien beschikbaar" },
+        "sae": { "type": "boolean", "description": "Serious Adverse Event" },
+        "sae_criteria": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["death", "life_threatening", "hospitalization", "disability", "congenital_anomaly", "medically_important"] }
+        },
+        "aesi": { "type": "boolean", "description": "Adverse Event of Special Interest" },
+        "outcome": { "type": "string", "enum": ["recovered", "recovering", "not_recovered", "fatal", "unknown"] },
+        "action_taken": { "type": "string", "enum": ["none", "dose_reduced", "dose_interrupted", "drug_withdrawn", "other"] }
       }
     },
 
@@ -398,7 +620,20 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "version": { "type": "string", "enum": ["CONSORT 2010","CONSORT 2010-extension","other"], "default": "CONSORT 2010" },
+        "version": {
+          "type": "string",
+          "enum": [
+            "CONSORT 2010",
+            "CONSORT 2010-extension",
+            "CONSORT-PRO",
+            "CONSORT-NPT",
+            "CONSORT-Harms",
+            "CONSORT-Equity",
+            "CONSORT-SPI",
+            "other"
+          ],
+          "default": "CONSORT 2010"
+        },
         "claimed": { "type": "boolean", "default": false },
         "checklist_available": { "type": "boolean", "default": false },
         "items": {
@@ -448,6 +683,156 @@
         },
         "pre_specified": { "type": "boolean", "default": false },
         "provenance": { "$ref": "common.schema.json#/$defs/Provenance" },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      }
+    },
+
+    "Estimand": {
+      "type": "object",
+      "description": "ICH E9(R1) estimand framework for precise treatment effect definition",
+      "additionalProperties": false,
+      "required": ["outcome_id", "population", "treatment", "variable", "population_level_summary"],
+      "properties": {
+        "outcome_id": { "type": "string", "description": "Link to outcome definition" },
+        "estimand_id": { "type": "string" },
+        "estimand_type": {
+          "type": "string",
+          "enum": ["treatment_policy", "hypothetical", "composite", "principal_stratum", "while_on_treatment"],
+          "description": "Type of estimand strategy"
+        },
+        "population": { "type": "string", "description": "Target population for this estimand" },
+        "treatment": { "type": "string", "description": "Treatment condition being evaluated" },
+        "variable": { "type": "string", "description": "Outcome variable of interest" },
+        "population_level_summary": { "type": "string", "description": "How individual outcomes are summarized (e.g., mean difference, odds ratio)" },
+        "intercurrent_events": {
+          "type": "array",
+          "description": "Events occurring after treatment initiation that affect interpretation",
+          "items": {
+            "type": "object",
+            "properties": {
+              "event_type": { "type": "string", "examples": ["treatment_discontinuation", "rescue_medication", "death", "protocol_deviation"] },
+              "handling_strategy": {
+                "type": "string",
+                "enum": ["treatment_policy", "hypothetical", "composite", "while_on_treatment", "principal_stratum"],
+                "description": "How this intercurrent event is handled in the estimand"
+              },
+              "description": { "type": "string" }
+            }
+          }
+        },
+        "sensitivity_estimands": {
+          "type": "array",
+          "description": "Alternative estimands for sensitivity analysis",
+          "items": {
+            "type": "object",
+            "properties": {
+              "estimand_type": { "type": "string" },
+              "description": { "type": "string" }
+            }
+          }
+        },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      }
+    },
+
+    "PatientReportedOutcome": {
+      "type": "object",
+      "description": "Patient-reported outcome measure (PROM)",
+      "additionalProperties": false,
+      "required": ["instrument_name"],
+      "properties": {
+        "instrument_name": { "type": "string", "description": "Name of PRO instrument (e.g., EQ-5D, SF-36, EORTC QLQ-C30)" },
+        "instrument_version": { "type": "string" },
+        "domain": { "type": "string", "description": "Domain assessed (e.g., physical functioning, pain, quality of life)" },
+        "timepoints": { "type": "array", "items": { "type": "string" } },
+        "completion_rate": {
+          "type": "object",
+          "properties": {
+            "baseline_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+            "followup_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+            "differential_by_arm": { "type": "boolean" }
+          }
+        },
+        "minimally_important_difference": {
+          "type": "object",
+          "properties": {
+            "value": { "type": "number" },
+            "anchor_based": { "type": "boolean" },
+            "distribution_based": { "type": "boolean" },
+            "source": { "type": "string" }
+          }
+        },
+        "scoring": {
+          "type": "object",
+          "properties": {
+            "scale_range": { "type": "object", "properties": { "min": { "type": "number" }, "max": { "type": "number" } } },
+            "direction": { "type": "string", "enum": ["higher_better", "lower_better"] },
+            "subscales": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "pro_ctcae": {
+          "type": "boolean",
+          "description": "Whether PRO-CTCAE (Patient-Reported Outcomes version of CTCAE) was used"
+        },
+        "results_per_arm": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "arm_id": { "type": "string" },
+              "timepoint": { "type": "string" },
+              "mean": { "type": "number" },
+              "sd": { "type": "number" },
+              "median": { "type": "number" },
+              "iqr": { "type": "object", "properties": { "p25": { "type": "number" }, "p75": { "type": "number" } } }
+            }
+          }
+        },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      }
+    },
+
+    "CompositeOutcome": {
+      "type": "object",
+      "description": "Details for composite outcomes",
+      "additionalProperties": false,
+      "properties": {
+        "outcome_id": { "type": "string" },
+        "components": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "component_name": { "type": "string" },
+              "component_id": { "type": "string" },
+              "clinical_importance": { "type": "string", "enum": ["high", "moderate", "low"] },
+              "events_n": { "type": "integer", "minimum": 0 },
+              "contribution_pct": { "type": "number", "minimum": 0, "maximum": 100 }
+            }
+          }
+        },
+        "hierarchical": { "type": "boolean", "description": "Whether components are hierarchically ordered" },
+        "hierarchy_order": { "type": "array", "items": { "type": "string" } },
+        "win_ratio": {
+          "type": "object",
+          "description": "Win ratio analysis for hierarchical composite outcomes",
+          "properties": {
+            "win_ratio": { "type": "number", "minimum": 0 },
+            "ci_lower": { "type": "number", "minimum": 0 },
+            "ci_upper": { "type": "number", "minimum": 0 },
+            "p_value": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        },
+        "component_specific_effects": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "component_id": { "type": "string" },
+              "effect": { "$ref": "common.schema.json#/$defs/ContrastEffect" }
+            }
+          }
+        },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       }
     }
