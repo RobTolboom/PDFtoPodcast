@@ -74,6 +74,69 @@
       }
     },
 
+    "living_review": {
+      "type": "object",
+      "description": "Information for living systematic reviews that are continually updated",
+      "additionalProperties": false,
+      "properties": {
+        "is_living_review": { "type": "boolean", "default": false },
+        "version_number": { "type": "string", "description": "Version of this living review (e.g., v1.0, v2.1)" },
+        "version_date": { "type": "string", "format": "date" },
+        "update_schedule": {
+          "type": "object",
+          "properties": {
+            "frequency": { "type": "string", "enum": ["monthly", "quarterly", "biannually", "annually", "event_triggered", "continuous"] },
+            "next_planned_update": { "type": "string", "format": "date" },
+            "surveillance_method": { "type": "string", "description": "How new evidence is monitored (e.g., automated alerts, manual searches)" }
+          }
+        },
+        "trigger_criteria": {
+          "type": "object",
+          "description": "Criteria that trigger an update of the review",
+          "properties": {
+            "new_studies_threshold": { "type": "integer", "minimum": 1, "description": "Number of new studies needed to trigger update" },
+            "change_in_conclusion": { "type": "boolean", "description": "Update if new evidence changes conclusion" },
+            "substantial_new_evidence": { "type": "boolean" },
+            "methodological_advances": { "type": "boolean" },
+            "stakeholder_request": { "type": "boolean" }
+          }
+        },
+        "version_history": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "version": { "type": "string" },
+              "date": { "type": "string", "format": "date" },
+              "new_studies_added": { "type": "integer", "minimum": 0 },
+              "studies_excluded": { "type": "integer", "minimum": 0 },
+              "major_changes": { "type": "string" },
+              "conclusion_changed": { "type": "boolean" },
+              "doi": { "type": "string", "pattern": "^10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+$" }
+            }
+          },
+          "default": []
+        },
+        "changes_since_last_version": {
+          "type": "object",
+          "properties": {
+            "new_studies": { "type": "integer", "minimum": 0 },
+            "removed_studies": { "type": "integer", "minimum": 0 },
+            "updated_analyses": { "type": "array", "items": { "type": "string" } },
+            "narrative_summary": { "type": "string" }
+          }
+        },
+        "discontinuation": {
+          "type": "object",
+          "properties": {
+            "discontinued": { "type": "boolean", "default": false },
+            "discontinuation_date": { "type": "string", "format": "date" },
+            "reason": { "type": "string" }
+          }
+        }
+      }
+    },
+
     "eligibility": {
       "type": "object",
       "additionalProperties": false,
@@ -195,7 +258,30 @@
       "properties": {
         "tool": { "type": "string", "enum": ["RoB2", "ROBINS-I", "Other"] },
         "summary_text": { "type": "string" },
-        "fig_source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+        "fig_source": { "$ref": "common.schema.json#/$defs/SourceRef" },
+        "per_study_assessments": {
+          "type": "array",
+          "description": "Detailed risk of bias assessment per included study",
+          "items": {
+            "type": "object",
+            "required": ["study_label", "rob_assessment"],
+            "properties": {
+              "study_label": { "type": "string" },
+              "rob_assessment": { "$ref": "common.schema.json#/$defs/RiskOfBias" },
+              "weight_in_meta_analysis": { "type": "number", "minimum": 0, "maximum": 100 },
+              "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+            }
+          },
+          "default": []
+        },
+        "overall_rob_distribution": {
+          "type": "object",
+          "properties": {
+            "low_risk_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+            "some_concerns_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+            "high_risk_pct": { "type": "number", "minimum": 0, "maximum": 100 }
+          }
+        }
       }
     },
 
@@ -217,13 +303,114 @@
           "type": "string",
           "description": "Egger, Begg, contour-enhanced funnel, selection models"
         },
+        "p_curve_analysis": {
+          "type": "object",
+          "properties": {
+            "p_curve_plot_source": { "$ref": "common.schema.json#/$defs/SourceRef" },
+            "evidential_value": { "type": "string", "enum": ["present", "absent", "inadequate", "unclear"] },
+            "test_for_right_skew_p": { "type": "number", "minimum": 0, "maximum": 1 },
+            "test_for_flatness_p": { "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        },
+        "pet_peese": {
+          "type": "object",
+          "properties": {
+            "pet_estimate": { "type": "number" },
+            "pet_p_value": { "type": "number", "minimum": 0, "maximum": 1 },
+            "peese_estimate": { "type": "number" },
+            "peese_p_value": { "type": "number", "minimum": 0, "maximum": 1 },
+            "recommended_estimate": { "type": "string", "enum": ["pet", "peese", "neither"] }
+          }
+        },
+        "selection_models": {
+          "type": "object",
+          "properties": {
+            "model_type": { "type": "string", "enum": ["copas", "3psm", "step_function", "other"] },
+            "adjusted_estimate": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
+            "tau2_adjusted": { "type": "number", "minimum": 0 },
+            "notes": { "type": "string" }
+          }
+        },
+        "excess_significance_test": {
+          "type": "object",
+          "properties": {
+            "observed_significant": { "type": "integer", "minimum": 0 },
+            "expected_significant": { "type": "number", "minimum": 0 },
+            "p_value": { "type": "number", "minimum": 0, "maximum": 1 },
+            "evidence_of_bias": { "type": "boolean" }
+          }
+        },
+        "contour_enhanced_funnel": {
+          "type": "object",
+          "properties": {
+            "plot_source": { "$ref": "common.schema.json#/$defs/SourceRef" },
+            "pattern_interpretation": { "type": "string" }
+          }
+        },
         "notes": { "type": "string" }
       }
+    },
+
+    "sensitivity_analyses": {
+      "type": "array",
+      "description": "Sensitivity analyses to test robustness of findings",
+      "items": { "$ref": "#/$defs/SensitivityAnalysis" },
+      "default": []
     },
 
     "prisma_reporting": { "$ref": "#/$defs/PrismaReporting" },
 
     "amstar2_rating": { "$ref": "#/$defs/Amstar2Assessment" },
+
+    "robis_assessment": {
+      "type": "object",
+      "description": "ROBIS (Risk Of Bias In Systematic reviews) tool assessment",
+      "additionalProperties": false,
+      "properties": {
+        "overall_risk_of_bias": { "type": "string", "enum": ["low", "high", "unclear"] },
+        "phase_1_relevance": {
+          "type": "object",
+          "properties": {
+            "review_question_match": { "type": "boolean" },
+            "concerns": { "type": "string" }
+          }
+        },
+        "phase_2_domains": {
+          "type": "object",
+          "properties": {
+            "study_eligibility_criteria": {
+              "type": "object",
+              "properties": {
+                "risk_of_bias": { "type": "string", "enum": ["low", "high", "unclear"] },
+                "concerns": { "type": "string" }
+              }
+            },
+            "identification_and_selection": {
+              "type": "object",
+              "properties": {
+                "risk_of_bias": { "type": "string", "enum": ["low", "high", "unclear"] },
+                "concerns": { "type": "string" }
+              }
+            },
+            "data_collection_and_study_appraisal": {
+              "type": "object",
+              "properties": {
+                "risk_of_bias": { "type": "string", "enum": ["low", "high", "unclear"] },
+                "concerns": { "type": "string" }
+              }
+            },
+            "synthesis_and_findings": {
+              "type": "object",
+              "properties": {
+                "risk_of_bias": { "type": "string", "enum": ["low", "high", "unclear"] },
+                "concerns": { "type": "string" }
+              }
+            }
+          }
+        },
+        "phase_3_overall_assessment": { "type": "string" }
+      }
+    },
 
     "open_science": { "$ref": "#/$defs/OpenScience" },
 
@@ -296,10 +483,88 @@
             "I2_pct": { "type": "number", "minimum": 0, "maximum": 100 },
             "tau2": { "type": "number", "minimum": 0 },
             "tau": { "type": "number", "minimum": 0 },
-            "H": { "type": "number", "minimum": 0 }
+            "H": { "type": "number", "minimum": 0 },
+            "I2_ci_lower": { "type": "number", "minimum": 0, "maximum": 100 },
+            "I2_ci_upper": { "type": "number", "minimum": 0, "maximum": 100 },
+            "tau2_ci_lower": { "type": "number", "minimum": 0 },
+            "tau2_ci_upper": { "type": "number", "minimum": 0 }
           }
         },
         "subgroup": { "type": "string" },
+        "subgroup_analysis": {
+          "type": "object",
+          "properties": {
+            "subgroups": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "subgroup_name": { "type": "string" },
+                  "k_studies": { "type": "integer", "minimum": 1 },
+                  "pooled_effect": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
+                  "I2_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+                  "tau2": { "type": "number", "minimum": 0 }
+                }
+              }
+            },
+            "test_for_subgroup_differences": {
+              "type": "object",
+              "properties": {
+                "Q_between": { "type": "number", "minimum": 0 },
+                "df": { "type": "integer", "minimum": 1 },
+                "p_value": { "type": "number", "minimum": 0, "maximum": 1 },
+                "I2_between_pct": { "type": "number", "minimum": 0, "maximum": 100 }
+              }
+            }
+          }
+        },
+        "meta_regression": {
+          "type": "object",
+          "properties": {
+            "covariates": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "covariate_name": { "type": "string" },
+                  "coefficient": { "type": "number" },
+                  "se": { "type": "number", "minimum": 0 },
+                  "ci_lower": { "type": "number" },
+                  "ci_upper": { "type": "number" },
+                  "p_value": { "type": "number", "minimum": 0, "maximum": 1 },
+                  "standardized": { "type": "boolean" }
+                }
+              }
+            },
+            "model_fit": {
+              "type": "object",
+              "properties": {
+                "R2": { "type": "number", "minimum": 0, "maximum": 1, "description": "Proportion of heterogeneity explained" },
+                "tau2_residual": { "type": "number", "minimum": 0 },
+                "QM": { "type": "number", "description": "Test statistic for moderators" },
+                "QM_p": { "type": "number", "minimum": 0, "maximum": 1 }
+              }
+            }
+          }
+        },
+        "outlier_detection": {
+          "type": "object",
+          "properties": {
+            "method": { "type": "string", "enum": ["studentized_residuals", "cooks_distance", "dffits", "other"] },
+            "outliers_identified": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "study_label": { "type": "string" },
+                  "statistic_value": { "type": "number" },
+                  "threshold": { "type": "number" },
+                  "influential": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
         "meta_regression_terms": { "type": "array", "items": { "type": "string" }, "default": [] },
         "notes": { "type": "string" },
         "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
@@ -385,22 +650,90 @@
                 "additionalProperties": false,
                 "properties": {
                   "comparison": { "type": "string" },
-                  "p_inconsistency": { "type": "number", "minimum": 0, "maximum": 1 }
+                  "p_inconsistency": { "type": "number", "minimum": 0, "maximum": 1 },
+                  "direct_estimate": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
+                  "indirect_estimate": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
+                  "difference": { "type": "number" }
                 }
               },
               "default": []
             },
-            "design_by_treatment": { "type": "string" }
+            "design_by_treatment": { "type": "string" },
+            "side_splitting": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "comparison": { "type": "string" },
+                  "p_inconsistency": { "type": "number", "minimum": 0, "maximum": 1 }
+                }
+              }
+            }
           }
         },
-        "transitivity_assessment": { "type": "string" },
+        "transitivity_assessment": {
+          "type": "object",
+          "properties": {
+            "assessment": { "type": "string", "enum": ["plausible", "questionable", "implausible", "not_assessed"] },
+            "narrative": { "type": "string" },
+            "effect_modifiers_balanced": { "type": "boolean" },
+            "similarity_table_source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+          }
+        },
         "network_geometry": {
           "type": "object",
           "additionalProperties": false,
           "properties": {
             "nodes": { "type": "integer", "minimum": 0 },
             "edges": { "type": "integer", "minimum": 0 },
-            "two_armed_loops": { "type": "integer", "minimum": 0 }
+            "two_armed_loops": { "type": "integer", "minimum": 0 },
+            "multi_arm_studies": { "type": "integer", "minimum": 0 },
+            "network_plot_source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+          }
+        },
+        "contribution_matrix": {
+          "type": "object",
+          "description": "Contribution of each direct comparison to network estimates",
+          "properties": {
+            "matrix_source": { "$ref": "common.schema.json#/$defs/SourceRef" },
+            "contributions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "direct_comparison": { "type": "string" },
+                  "network_estimate": { "type": "string" },
+                  "contribution_pct": { "type": "number", "minimum": 0, "maximum": 100 }
+                }
+              }
+            }
+          }
+        },
+        "comparison_adjusted_funnel_plot": {
+          "type": "object",
+          "properties": {
+            "plot_source": { "$ref": "common.schema.json#/$defs/SourceRef" },
+            "interpretation": { "type": "string" }
+          }
+        },
+        "league_table": {
+          "type": "object",
+          "properties": {
+            "table_source": { "$ref": "common.schema.json#/$defs/SourceRef" },
+            "format": { "type": "string", "enum": ["upper_triangle", "lower_triangle", "full_matrix"] }
+          }
+        },
+        "cinema_assessment": {
+          "type": "object",
+          "description": "CINeMA (Confidence in Network Meta-Analysis) framework for GRADE in NMA",
+          "properties": {
+            "within_study_bias": { "type": "string", "enum": ["no_concerns", "some_concerns", "major_concerns"] },
+            "reporting_bias": { "type": "string", "enum": ["no_concerns", "some_concerns", "major_concerns"] },
+            "indirectness": { "type": "string", "enum": ["no_concerns", "some_concerns", "major_concerns"] },
+            "imprecision": { "type": "string", "enum": ["no_concerns", "some_concerns", "major_concerns"] },
+            "heterogeneity": { "type": "string", "enum": ["no_concerns", "some_concerns", "major_concerns"] },
+            "incoherence": { "type": "string", "enum": ["no_concerns", "some_concerns", "major_concerns"] },
+            "overall_confidence": { "type": "string", "enum": ["high", "moderate", "low", "very_low"] }
           }
         },
         "notes": { "type": "string" }
@@ -464,6 +797,7 @@
       "properties": {
         "outcome_id": { "type": "string" },
         "certainty": { "type": "string", "enum": ["high", "moderate", "low", "very_low"] },
+        "starting_certainty": { "type": "string", "enum": ["high", "low"], "description": "Starting level for RCTs (high) or observational (low)" },
         "domains": {
           "type": "object",
           "additionalProperties": false,
@@ -476,6 +810,48 @@
             "other": { "type": "string" }
           }
         },
+        "upgrade_factors": {
+          "type": "object",
+          "description": "Factors that may increase certainty for observational studies",
+          "properties": {
+            "large_effect": { "type": "string", "enum": ["none", "large", "very_large"], "description": "RR >2 or <0.5 (large), >5 or <0.2 (very large)" },
+            "dose_response_gradient": { "type": "boolean", "description": "Evidence of dose-response relationship" },
+            "plausible_confounding": { "type": "boolean", "description": "All plausible confounding would reduce effect" }
+          }
+        },
+        "absolute_effects": {
+          "type": "object",
+          "properties": {
+            "baseline_risk": {
+              "type": "object",
+              "properties": {
+                "value": { "type": "number", "minimum": 0, "maximum": 1 },
+                "source": { "type": "string", "description": "Source of baseline risk estimate" },
+                "risk_category": { "type": "string", "enum": ["low", "moderate", "high"] }
+              }
+            },
+            "absolute_effect_per_1000": {
+              "type": "object",
+              "properties": {
+                "control_risk": { "type": "number" },
+                "intervention_risk": { "type": "number" },
+                "absolute_difference": { "type": "number" },
+                "ci_lower": { "type": "number" },
+                "ci_upper": { "type": "number" }
+              }
+            }
+          }
+        },
+        "summary_of_findings": {
+          "type": "object",
+          "properties": {
+            "n_participants": { "type": "integer", "minimum": 0 },
+            "n_studies": { "type": "integer", "minimum": 0 },
+            "relative_effect": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
+            "anticipated_absolute_effects": { "type": "string" },
+            "plain_language_summary": { "type": "string" }
+          }
+        },
         "footnotes": { "type": "string" },
         "summary_of_findings_source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       }
@@ -485,7 +861,20 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "version": { "type": "string", "enum": ["PRISMA 2020", "PRISMA 2020-ScR", "other"], "default": "PRISMA 2020" },
+        "version": {
+          "type": "string",
+          "enum": [
+            "PRISMA 2020",
+            "PRISMA 2020-ScR",
+            "PRISMA-NMA",
+            "PRISMA-IPD",
+            "PRISMA-S",
+            "PRISMA-A",
+            "MOOSE",
+            "other"
+          ],
+          "default": "PRISMA 2020"
+        },
         "claimed": { "type": "boolean", "default": false, "description": "Authors claim PRISMA adherence" },
         "flow_diagram_present": { "type": "boolean", "default": false },
         "checklist_available": { "type": "boolean", "default": false },
@@ -613,6 +1002,87 @@
         "access": { "type": "string", "enum": ["open", "restricted", "upon_request", "embargoed", "unknown"] },
         "license": { "type": "string", "description": "e.g., CC BY 4.0, GPL-3.0" },
         "notes": { "type": "string" }
+      }
+    },
+
+    "SensitivityAnalysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["analysis_type", "outcome_id"],
+      "properties": {
+        "analysis_type": {
+          "type": "string",
+          "enum": [
+            "leave_one_out",
+            "fixed_vs_random",
+            "alternative_effect_measure",
+            "risk_of_bias_restriction",
+            "imputation_method",
+            "outlier_exclusion",
+            "subgroup_exclusion",
+            "publication_year_restriction",
+            "other"
+          ]
+        },
+        "outcome_id": { "type": "string" },
+        "description": { "type": "string" },
+        "leave_one_out": {
+          "type": "object",
+          "properties": {
+            "results": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "excluded_study": { "type": "string" },
+                  "pooled_effect": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
+                  "I2_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+                  "tau2": { "type": "number", "minimum": 0 }
+                }
+              }
+            },
+            "influential_studies": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "Studies whose exclusion substantially changes results"
+            }
+          }
+        },
+        "fixed_vs_random_comparison": {
+          "type": "object",
+          "properties": {
+            "fixed_effect": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
+            "random_effect": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
+            "agreement": { "type": "string", "enum": ["consistent", "minor_difference", "substantial_difference"] }
+          }
+        },
+        "alternative_effect_measure": {
+          "type": "object",
+          "properties": {
+            "original_measure": { "type": "string" },
+            "alternative_measure": { "type": "string" },
+            "alternative_pooled_effect": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
+            "conclusion_changed": { "type": "boolean" }
+          }
+        },
+        "rob_restriction": {
+          "type": "object",
+          "properties": {
+            "inclusion_criteria": { "type": "string", "description": "e.g., 'only low risk of bias studies'" },
+            "k_studies_included": { "type": "integer", "minimum": 0 },
+            "restricted_pooled_effect": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
+            "conclusion_changed": { "type": "boolean" }
+          }
+        },
+        "result": {
+          "type": "object",
+          "properties": {
+            "pooled_effect": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
+            "robustness_assessment": { "type": "string", "enum": ["robust", "moderately_robust", "not_robust", "unclear"] },
+            "interpretation": { "type": "string" }
+          }
+        },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       }
     }
   },
