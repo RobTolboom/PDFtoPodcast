@@ -7,6 +7,7 @@ Zodra er één of meer PDF-bestanden in dit gesprek staan, lees je de meest rece
 EVIDENCE-LOCKED REGELS
 
 - Gebruik alleen tekst uit de geüploade PDF zelf (incl. supplement als die in dezelfde PDF staat).
+- HOOFDTEKST PRIORITEIT: Haal argumenten altijd eerst uit hoofdtekst/Discussion; gebruik abstract alleen voor verificatie of missing info.
 - Geen externe kennis, geen gokken of imputatie.
 - Als informatie ontbreekt: laat het veld weg (vul geen "unknown" in bij tekstuele velden).
 - Veranker elk belangrijk argument/standpunt met `source` (SourceRef): minimaal `page`; context in `anchor` (bijv. alinea/sectietitel).
@@ -16,6 +17,23 @@ EVIDENCE-LOCKED REGELS
 - Identificeer stakeholders: patiënten, anesthesiologen, ziekenhuizen, beleidsmakers, industrie.
 - Argumentstructuur: claims, evidence, warrants, rebuttals zoals gepresenteerd.
 - Inconsistenties/tegenstrijdigheden? Voeg item toe aan `extraction_warnings[]` met korte toelichting en `source`.
+
+DATA SOURCE PRIORITERING
+
+HOOFDTEKST EERST:
+- Gebruik bij voorkeur volledige hoofdtekst en Discussion secties boven abstract
+- Abstract alleen voor verificatie of als hoofdtekst onduidelijk is
+- Prioriteit: Main text > Discussion > Conclusion > Abstract
+- Zoek specifieke argumenten, claims, standpunten in hoofdtekst paragrafen
+- Haal complete argumentatie uit Discussion sectie in plaats van abstract samenvatting
+
+SECTIE-SPECIFIEKE INSTRUCTIES:
+- Arguments: Uit hoofdtekst paragrafen met specifieke claims, niet abstract
+- Evidence citations: Uit Discussion met volledige referenties, niet abstract
+- Standpunten: Uit Conclusion en Discussion secties, niet abstract standpunten
+- Stakeholders: Uit hoofdtekst mentions en Discussion, niet abstract
+- Recommendations: Uit dedicated Recommendations/Conclusion secties, niet abstract
+- Counterarguments: Uit Discussion nuance en limitations, niet abstract
 
 EXPLICIETE VALIDATIEREGELS
 
@@ -37,8 +55,9 @@ EXPLICIETE VALIDATIEREGELS
 WERKWIJZE
 
 1. Metadata: haal titel, journal, jaar/maand/dag (met `published_date_precision`), volume, issue, paginabereik of artikelnummer/eLocationID, DOI, PMID/PMCID, ISSN/eISSN, funding/COI uit titelpagina, kop/voettekst, "How to cite", of referentieblok.
-2. Article type: identificeer uit titel, sectie-opbouw, journal context het type opinion piece.
-3. Main topic: central onderwerp/thema dat besproken wordt.
+2. Segmentatie: detecteer secties (Hoofdtekst/Discussion/Conclusion PRIORITEIT; daarna Abstract) en koppel paginanummers. Begin extractie ALTIJD met volledige hoofdtekst sectie.
+3. Article type: identificeer uit titel, sectie-opbouw, journal context het type opinion piece.
+4. Main topic: central onderwerp/thema dat besproken wordt.
 4. Stance overall: bepaal het hoofdstandpunt van de auteur(s) na analyse van alle argumenten.
 5. Arguments extraction:
    - Claim: specifieke bewering/stelling van de auteur
