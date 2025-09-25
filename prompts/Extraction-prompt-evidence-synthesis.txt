@@ -7,6 +7,7 @@ Zodra er één of meer PDF-bestanden in dit gesprek staan, lees je de meest rece
 EVIDENCE-LOCKED REGELS
 
 - Gebruik alleen tekst/tabellen/figuren uit de geüploade PDF zelf (incl. appendix/supplement als die in dezelfde PDF staat).
+- HOOFDTEKST PRIORITEIT: Haal data altijd eerst uit Methods/Results/Tables; gebruik abstract alleen voor verificatie of missing info.
 - Geen externe kennis, geen gokken of imputatie.
 - Als informatie ontbreekt: laat het veld weg (vul geen "unknown" in bij numerieke/booleaanse velden).
 - Veranker elk belangrijk datapunt met `source` (SourceRef): minimaal `page`; waar passend ook `table_id`/`figure_id`; context in `anchor` (bijv. sectietitel/regel).
@@ -17,6 +18,23 @@ EVIDENCE-LOCKED REGELS
 - Search strategy: databases, zoektermen, filters, datums.
 - Risk of bias: RoB 2.0/ROBINS-I/ROBINS-E per study en overall assessment.
 - Inconsistenties/ambiguïteit? Voeg item toe aan `extraction_warnings[]` met korte toelichting en `source`.
+
+DATA SOURCE PRIORITERING
+
+HOOFDTEKST EERST:
+- Gebruik bij voorkeur volledige Methods, Results, en Discussion secties boven abstract
+- Abstract alleen voor verificatie of als hoofdtekst onduidelijk is
+- Prioriteit: Results secties > Methods > Discussion > Tables/Figures > Abstract
+- Zoek expliciete numerieke waarden, sample sizes, effect sizes in Results tabellen
+- Haal complete metodologie uit Methods sectie in plaats van abstract samenvatting
+
+SECTIE-SPECIFIEKE INSTRUCTIES:
+- Search strategy: Uit Methods "Literature Search" sectie, niet abstract
+- PRISMA flow: Uit dedicated flow diagram en Methods, niet abstract aantallen
+- Study characteristics: Uit results tabellen en appendices, niet abstract
+- Effect sizes: Uit meta-analysis results tabellen met forest plots, niet abstract
+- Risk of bias: Uit dedicated assessment tabellen/figuren, niet abstract
+- Quality of evidence: Uit GRADE tabellen en assessment details, niet abstract
 
 EXPLICIETE VALIDATIEREGELS
 
@@ -41,8 +59,9 @@ EXPLICIETE VALIDATIEREGELS
 WERKWIJZE
 
 1. Metadata: haal titel, journal, jaar/maand/dag (met `published_date_precision`), volume, issue, paginabereik of artikelnummer/eLocationID, DOI, PMID/PMCID, ISSN/eISSN, registratie/protocol (PROSPERO), funding/COI uit titelpagina, kop/voettekst, "How to cite", of referentieblok.
-2. Review type: identificeer uit titel/abstract/methods het type evidence synthesis.
-3. Eligibility: PICO-criteria uit methods sectie, inclusion/exclusion criteria.
+2. Segmentatie: detecteer secties (Methods/Results/Tables/Figures PRIORITEIT; daarna Discussion/Abstract) en koppel paginanummers. Begin extractie ALTIJD met volledige Results sectie.
+3. Review type: identificeer uit titel/methods het type evidence synthesis.
+4. Eligibility: PICO-criteria uit methods sectie, inclusion/exclusion criteria.
 4. Search: databases (PubMed/Embase/Cochrane/etc), search terms, filters, date ranges.
 5. PRISMA flow: extract aantallen uit PRISMA flowchart of methods/results tekst.
 6. Included studies: karakteristieken van geïncludeerde studies indien beschreven.
