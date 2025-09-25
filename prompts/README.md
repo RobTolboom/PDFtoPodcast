@@ -4,16 +4,19 @@
 
 Based on analysis of the 5 bundled JSON schemas, specialized extraction prompts have been created for each study type. The original single prompt was designed only for interventional trials and was incompatible with other schema structures. These optimized prompts provide schema-specific validation rules and are optimized for efficient language model processing.
 
+Additionally, a universal quality assurance prompt (`Extraction-validation.txt`) systematically verifies extracted data against PDF sources for accuracy and completeness.
+
 ## 🔗 Schema-Prompt Integration
 
-These extraction prompts are part of a **two-component system** that works together with the JSON schemas:
+These extraction prompts are part of a **three-component system** that works together with JSON schemas and quality verification:
 
-### Two-Component Framework
+### Three-Component Framework
 
 | Component | Location | Purpose | Use |
 |-----------|----------|---------|-----|
 | **Extraction Prompts** | `prompts/` folder (HERE) | Guide LLMs to extract structured data | Feed to language models with PDFs |
 | **JSON Schemas** | `schemas/` folder | Define structure and validation rules | Validate extracted JSON output |
+| **Quality Verification** | `Extraction-validation.txt` | Verify accuracy and completeness | Cross-check extraction against PDF source |
 
 ### How They Work Together
 
@@ -22,10 +25,15 @@ graph LR
     A[PDF Document] --> B[LLM + Extraction Prompt]
     B --> C[Raw JSON Output]
     C --> D[Schema Validation]
-    D --> E[✅ Validated Structured Data]
+    D --> E[Validated JSON]
+    E --> F[LLM + Validation Prompt]
+    A --> F
+    F --> G[Quality Report]
+    G --> H[✅ Verified Structured Data]
 
-    F[prompts/] --> B
-    G[schemas/] --> D
+    I[extraction prompts/] --> B
+    J[schemas/] --> D
+    K[Extraction-validation.txt] --> F
 ```
 
 ### Critical Integration Points
@@ -49,6 +57,7 @@ PDFtoPodcast/
 │   ├── Extraction-prompt-evidence-synthesis.txt
 │   ├── Extraction-prompt-prediction.txt
 │   ├── Extraction-prompt-editorials.txt
+│   ├── Extraction-validation.txt               # Quality verification prompt
 │   └── README.md                               # This guide
 │
 ├── schemas/                          # ← COMPANION FOLDER
@@ -96,6 +105,13 @@ PDFtoPodcast/
 - **Key Fields**: `article_type`, `stance_overall`, `arguments`
 - **Validation**: Argument structure, stakeholder analysis, rhetorical assessment
 - **Use Case**: Editorials, commentaries, opinion pieces, letters, perspectives
+
+### 6. `Extraction-validation.txt`
+- **Purpose**: Universal quality assurance for all extraction types
+- **Input**: Extracted JSON + PDF content + Schema
+- **Output**: Structured quality report with scores and recommendations
+- **Key Features**: Hallucination detection, completeness scoring, accuracy verification
+- **Use Case**: Quality control for all extracted data regardless of study type
 
 ## Shared Elements
 
@@ -170,9 +186,39 @@ Select the appropriate prompt based on study type identification:
 - **Vancouver citations**: Automated bibliographic string generation with source tracking
 - **Error handling**: Structured `extraction_warnings[]` for ambiguous content
 
+## Quality Assurance Framework
+
+### Extraction-validation.txt Features
+- **Universal compatibility**: Works with all 5 study types and schemas
+- **Systematic verification**: Hallucination detection, completeness scoring, accuracy assessment
+- **Structured output**: JSON format with severity levels and actionable recommendations
+- **Python integration**: Machine-readable quality reports for automated pipelines
+- **Evidence-based scoring**: Completeness, accuracy, and schema compliance metrics
+
+### Quality Metrics
+- **Completeness Score**: (Extracted relevant data / Total available PDF data)
+- **Accuracy Score**: (Correctly extracted values / Total extracted values)
+- **Schema Compliance**: (Valid fields / Total schema-required fields)
+- **Overall Status**: Passed/Warning/Failed based on combined thresholds
+
+### Automated Quality Gates
+```python
+# Example quality thresholds for production use
+QUALITY_THRESHOLDS = {
+    'passed': {'completeness': 0.90, 'accuracy': 0.95, 'compliance': 1.0},
+    'warning': {'completeness': 0.80, 'accuracy': 0.90, 'compliance': 0.95},
+    'failed': 'below_warning_thresholds'
+}
+```
+
 ## Version History
 
-### v2.1 (Current) - September 2025
+### v2.2 (Current) - September 2025
+- **Quality assurance**: Added Extraction-validation.txt for systematic verification
+- **Three-component system**: Extract → Validate → Verify pipeline
+- **Python integration**: Complete quality control examples and batch processing
+
+### v2.1 - September 2025
 - **Markdown cleanup**: Removed formatting for LLM optimization
 - **Token reduction**: 15-25% efficiency improvement
 - **Content preservation**: All functionality maintained
@@ -189,18 +235,20 @@ Select the appropriate prompt based on study type identification:
 
 ## 🚀 Quick Start - Complete Extraction Pipeline
 
-### Essential Two-Step Process
-**Step 1**: Extract with prompt → **Step 2**: Validate with schema
+### Essential Three-Step Process
+**Step 1**: Extract with prompt → **Step 2**: Validate with schema → **Step 3**: Verify with validation prompt
 
 ### Complete Workflow
 ```
 1. Identify study type from PDF title/abstract
-2. Get BOTH components:
-   Prompt: Extraction-prompt-[type].txt           (from prompts/ folder)
+2. Get THREE components:
+   Extraction: Extraction-prompt-[type].txt       (from prompts/ folder)
    Schema: [type]_bundled.json                    (from schemas/ folder)
-3. Extract: Use prompt with PDF input in your LLM
+   Validation: Extraction-validation.txt          (from prompts/ folder)
+3. Extract: Use extraction prompt with PDF input in your LLM
 4. Validate: ALWAYS validate JSON output against bundled schema
-5. ✅ Result: Validated, structured medical literature data
+5. Verify: Use validation prompt with JSON + PDF + Schema for quality check
+6. ✅ Result: Verified, high-quality structured medical literature data
 ```
 
 ### Schema-Prompt Pairs (MUST use together)
@@ -212,40 +260,64 @@ Select the appropriate prompt based on study type identification:
 | **Prediction model** | `Extraction-prompt-prediction.txt` | `prediction_prognosis_bundled.json` | ✅ |
 | **Editorial/Opinion** | `Extraction-prompt-editorials.txt` | `editorials_opinion_bundled.json` | ✅ |
 
-### 💡 Why Both Components Are Required
-- **Prompt alone**: Can extract data, but no guarantee of structure or completeness
+### 💡 Why All Three Components Are Required
+- **Extraction prompt alone**: Can extract data, but no guarantee of structure or completeness
 - **Schema alone**: Can validate structure, but can't extract from PDFs
-- **Together**: Reliable, validated, structured extraction pipeline
+- **Validation prompt alone**: Can verify quality, but needs extracted data first
+- **Together**: Complete pipeline with extraction, validation, and quality assurance
 
 ### 💻 Integration Examples
 
-#### Python Example: Complete Extraction Pipeline
+#### Python Example: Complete 3-Step Extraction Pipeline
 ```python
 import json
 import jsonschema
 
-# 1. Load both prompt and schema
-prompt = open('prompts/Extraction-prompt-interventional.txt').read()
+# 1. Load all three components
+extraction_prompt = open('prompts/Extraction-prompt-interventional.txt').read()
+validation_prompt = open('prompts/Extraction-validation.txt').read()
 schema = json.load(open('schemas/interventional_trial_bundled.json'))
 
-# 2. Extract with LLM (your_llm_function)
+# 2. Extract with LLM
 pdf_text = extract_text_from_pdf('study.pdf')
-llm_input = prompt + "\n\n" + pdf_text
+llm_input = extraction_prompt + "\n\n" + pdf_text
 json_output = your_llm.generate(llm_input)
 
-# 3. Parse and validate
+# 3. Parse and validate schema
 try:
     extracted_data = json.loads(json_output)
     jsonschema.validate(extracted_data, schema)
-    print("✅ Extraction successful and validated!")
-    return extracted_data
+    print("✅ Extraction successful and schema validated!")
 except (json.JSONDecodeError, jsonschema.ValidationError) as e:
-    print(f"❌ Error: {e}")
+    print(f"❌ Schema validation error: {e}")
+    return None
+
+# 4. Quality verification
+verification_input = f"""
+EXTRACTED_JSON: {json.dumps(extracted_data, indent=2)}
+
+PDF_CONTENT: {pdf_text}
+
+SCHEMA: {json.dumps(schema, indent=2)}
+"""
+quality_report = your_llm.generate(validation_prompt + "\n\n" + verification_input)
+quality_data = json.loads(quality_report)
+
+# 5. Quality assessment
+if quality_data['verification_summary']['overall_status'] == 'passed':
+    print("✅ Quality verification passed!")
+    return extracted_data
+elif quality_data['verification_summary']['overall_status'] == 'warning':
+    print("⚠️ Quality verification has warnings - review recommendations")
+    return extracted_data, quality_data['recommendations']
+else:
+    print("❌ Quality verification failed - extraction requires correction")
+    return None, quality_data['issues']
 ```
 
-#### Batch Processing Example
+#### Batch Processing Example with Quality Control
 ```python
-def process_literature_batch(pdf_files, study_type):
+def process_literature_batch(pdf_files, study_type, quality_threshold=0.9):
     # Schema-prompt mapping
     pairs = {
         'interventional': ('Extraction-prompt-interventional.txt',
@@ -256,24 +328,37 @@ def process_literature_batch(pdf_files, study_type):
                      'evidence_synthesis_bundled.json')
     }
 
-    prompt_file, schema_file = pairs[study_type]
-    prompt = open(f'prompts/{prompt_file}').read()
+    extraction_file, schema_file = pairs[study_type]
+    extraction_prompt = open(f'prompts/{extraction_file}').read()
+    validation_prompt = open('prompts/Extraction-validation.txt').read()
     schema = json.load(open(f'schemas/{schema_file}'))
 
     results = []
-    for pdf_file in pdf_files:
-        # Extract and validate each PDF
-        data = extract_and_validate(pdf_file, prompt, schema)
-        results.append(data)
+    quality_reports = []
 
-    return results
+    for pdf_file in pdf_files:
+        # Extract, validate, and verify each PDF
+        data, quality = extract_validate_verify(pdf_file, extraction_prompt,
+                                               schema, validation_prompt)
+
+        # Apply quality gate
+        if quality['verification_summary']['accuracy_score'] >= quality_threshold:
+            results.append(data)
+        else:
+            print(f"Quality gate failed for {pdf_file}: {quality['issues']}")
+
+        quality_reports.append(quality)
+
+    return results, quality_reports
 ```
 
 ### Integration Tips
 - **API efficiency**: Use optimized prompts to reduce token costs
 - **Schema validation**: ALWAYS validate against bundled schemas - this catches 80%+ of extraction errors
-- **Error handling**: Check `extraction_warnings[]` in output for data quality issues
+- **Quality verification**: Use validation prompt to catch hallucinations and missing data
+- **Error handling**: Check both `extraction_warnings[]` and quality report issues
 - **Prompt-schema pairing**: Never mix prompts and schemas from different study types
+- **Quality gates**: Set minimum accuracy/completeness scores for automated pipelines
 - **Fallback**: Handle `truncated: true` cases for large documents
 
 ### 🔗 Advanced Integration
