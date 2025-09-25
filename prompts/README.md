@@ -117,12 +117,61 @@ PDFtoPodcast/
 
 All prompts maintain these common standards:
 - **Evidence-locked rules**: Only extract from PDF content, no external knowledge
+- **Data Source Prioritering**: Main text (Methods/Results/Discussion) prioriteit boven abstract voor completere extractie
 - **SourceRef requirements**: Precise page/table/figure references with anchor context
 - **Vancouver citation**: Consistent bibliographic formatting with source attribution
 - **Token fallback**: Graceful handling of large documents with truncation warnings
 - **Anesthesiology focus**: Domain-specific details when present (ASA, procedures, PONV, etc.)
 - **Schema validation**: Strict adherence to required fields per schema type
 - **Plain text format**: Optimized for LLM processing (markdown formatting removed)
+
+## Data Source Prioritering (v2.3 Update)
+
+### Hoofdtekst Eerst Strategie
+Alle 5 extractie prompts zijn geüpdatet met expliciete instructies om data bij voorkeur uit de hoofdtekst te halen:
+
+#### Prioriteitsrangorde
+1. **Results secties** - Primaire bron voor numerieke data, effect sizes, sample sizes
+2. **Methods secties** - Voor complete metodologie, inclusie/exclusie criteria
+3. **Discussion secties** - Voor context, limitations, clinical implications
+4. **Tables/Figures** - Voor gedetailleerde resultaten en baseline characteristics
+5. **Abstract** - Alleen voor verificatie of als hoofdtekst onduidelijk is
+
+#### Probleem Opgelost
+**Voor**: Extracties focusten vaak te veel op abstract, misten details uit volledige Results tabellen
+**Na**: Systematische prioritering van volledige Methods/Results secties verbetert completeness scores
+
+### Sectie-Specifieke Instructies per Prompt Type
+
+#### Interventional Studies
+- CONSORT flow uit figuren/Methods, niet abstract N-vermeldingen
+- Sample sizes uit Methods "Participants" of Results "Flow diagram"
+- Effect sizes uit results tabellen met CI's en p-waarden
+- Adverse events uit dedicated safety tabellen/Results subsecties
+
+#### Observational Studies
+- Exposure groups uit Methods "Exposure definition" en Results tabellen
+- Confounding adjustment uit statistical methods sectie
+- Follow-up details uit Methods "Data collection" sectie
+- Complete baseline characteristics uit tabellen
+
+#### Evidence Synthesis
+- Search strategy uit Methods "Literature Search" sectie
+- PRISMA flow uit dedicated flow diagram en Methods
+- Study characteristics uit results tabellen en appendices
+- Quality of evidence uit GRADE tabellen en assessment details
+
+#### Prediction Studies
+- Model performance uit Results "Model Performance" tabellen
+- Predictors uit Methods "Variable Selection" en Results coefficient tabellen
+- C-statistics/AUC uit Results performance tabellen met confidence intervals
+- Validation uit Results "External Validation" secties
+
+#### Editorials
+- Arguments uit hoofdtekst paragrafen met specifieke claims
+- Evidence citations uit Discussion met volledige referenties
+- Recommendations uit dedicated Recommendations/Conclusion secties
+- Counterarguments uit Discussion nuance en limitations
 
 ## Key Structural Differences
 
@@ -213,7 +262,13 @@ QUALITY_THRESHOLDS = {
 
 ## Version History
 
-### v2.2 (Current) - September 2025
+### v2.3 (Current) - September 2025
+- **Data Source Prioritering**: Hoofdtekst prioriteit toegevoegd aan alle 5 extractie prompts
+- **Sectie-specifieke instructies**: Methods/Results/Tables prioriteit boven abstract
+- **Completeness verbetering**: Verwachte verbetering van completeness scores door volledige sectie extractie
+- **Evidence-locked enhancement**: Uitgebreide instructies voor systematische hoofdtekst extractie
+
+### v2.2 - September 2025
 - **Quality assurance**: Added Extraction-validation.txt for systematic verification
 - **Three-component system**: Extract → Validate → Verify pipeline
 - **Python integration**: Complete quality control examples and batch processing
@@ -303,9 +358,12 @@ SCHEMA: {json.dumps(schema, indent=2)}
 quality_report = your_llm.generate(validation_prompt + "\n\n" + verification_input)
 quality_data = json.loads(quality_report)
 
-# 5. Quality assessment
+# 5. Quality assessment with improved main text extraction
 if quality_data['verification_summary']['overall_status'] == 'passed':
-    print("✅ Quality verification passed!")
+    print("✅ Quality verification passed with main text priority!")
+    # Higher completeness scores now achievable with main text extraction
+    if quality_data['verification_summary']['completeness_score'] >= 0.95:
+        print("🎯 Excellent completeness achieved through systematic main text extraction")
     return extracted_data
 elif quality_data['verification_summary']['overall_status'] == 'warning':
     print("⚠️ Quality verification has warnings - review recommendations")
@@ -371,6 +429,13 @@ For comprehensive integration patterns including microservice architectures, tok
 - **Missing required fields**: Check PDF contains necessary information sections
 - **Token limits**: Use fallback handling for large documents
 - **Extraction warnings**: Review PDF quality and completeness
+
+### Data Source Issues (v2.3)
+- **Low completeness scores**: Ensure PDF has full Methods/Results sections accessible (not just abstract)
+- **Missing secondary outcomes**: Check if Results tables are properly parsed vs abstract-only extraction
+- **Incomplete baseline data**: Verify baseline characteristics tables are available in main text
+- **Missing effect sizes**: Confirm Results section contains detailed statistical analyses beyond abstract summaries
+- **Incomplete adverse events**: Ensure safety data is extracted from dedicated tables rather than brief abstract mentions
 
 ### Output Quality
 - **SourceRef precision**: Verify page/table/figure references are accurate
