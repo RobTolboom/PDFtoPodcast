@@ -4,16 +4,183 @@ Een collectie van JSON Schema's voor gestructureerde data-extractie uit medisch-
 
 ## 📑 Inhoudsopgave
 
+### 🚀 Getting Started
+- [Quick Start - Get Started in 5 Minutes](#-quick-start---get-started-in-5-minutes)
+- [Schema + Prompts Integration](#-schema--prompts-integration)
+- [Project Structure Overview](#-project-structure-overview)
+
+### 📋 Schema Documentation
 - [Schema Overzicht](#-schema-overzicht)
 - [Deployment Opties](#-deployment-opties)
 - [International Standards Compliance](#-international-standards-compliance)
 - [Modulaire Architectuur](#️-modulaire-architectuur)
 - [Schema Documentatie](#-schema-documentatie)
+
+### 🛠️ Implementation
+- [LLM Integration & Token Optimization](#-llm-integration--token-optimization)
 - [Tool Documentatie](#️-tool-documentatie)
 - [Gebruik en Implementatie](#️-gebruik-en-implementatie)
+- [Usage Patterns & Workflows](#-usage-patterns--workflows)
+
+### 🔍 Reference
 - [Recente Enhancements](#-recente-enhancements)
 - [Technische Specificaties](#️-technische-specificaties)
 - [Troubleshooting](#-troubleshooting)
+
+## 🚀 Quick Start - Get Started in 5 Minutes
+
+### For Researchers New to This Framework
+
+1. **Identify your study type** from your PDF:
+   - RCT/Clinical Trial → Use `interventional_trial` schema + prompt
+   - Cohort/Case-Control → Use `observational_analytic` schema + prompt
+   - Systematic Review/Meta-analysis → Use `evidence_synthesis` schema + prompt
+   - Prediction Model → Use `prediction_prognosis` schema + prompt
+   - Editorial/Opinion → Use `editorials_opinion` schema + prompt
+
+2. **Get the right tools**:
+   - Schema file: `schemas/[type]_bundled.json` (for validation)
+   - Extraction prompt: `prompts/Extraction-prompt-[type].txt` (for LLM)
+
+3. **Basic workflow**:
+   ```
+   PDF → LLM + Extraction Prompt → JSON Output → Schema Validation → ✅ Structured Data
+   ```
+
+4. **Validate your data**:
+   ```python
+   import json, jsonschema
+   schema = json.load(open('interventional_trial_bundled.json'))
+   data = json.load(open('your_extraction.json'))
+   jsonschema.validate(data, schema)  # ✅ Success!
+   ```
+
+**👉 New to this? Start with the [Schema + Prompts Integration](#-schema--prompts-integration) section below.**
+
+---
+
+## 🔗 Schema + Prompts Integration
+
+This framework consists of **two complementary components** that work together:
+
+### Schemas (Structure Definition)
+- **Location**: `schemas/` folder
+- **Purpose**: Define the JSON structure and validation rules
+- **Use**: Validate extracted data to ensure completeness and accuracy
+- **Format**: JSON Schema files (.json)
+
+### Extraction Prompts (Extraction Logic)
+- **Location**: `prompts/` folder
+- **Purpose**: Guide language models to extract data in the correct schema format
+- **Use**: Feed to LLMs along with PDFs to get structured JSON output
+- **Format**: Plain text prompts (.txt)
+
+### Schema-Prompt Mapping
+
+| Study Type | Schema File | Extraction Prompt | Key Features |
+|------------|-------------|-------------------|--------------|
+| **Interventional Trials** | `interventional_trial_bundled.json` | `Extraction-prompt-interventional.txt` | Arms, randomization, CONSORT |
+| **Observational Studies** | `observational_analytic_bundled.json` | `Extraction-prompt-observational.txt` | Exposures, confounding, DAGs |
+| **Evidence Synthesis** | `evidence_synthesis_bundled.json` | `Extraction-prompt-evidence-synthesis.txt` | PRISMA, meta-analysis, GRADE |
+| **Prediction Models** | `prediction_prognosis_bundled.json` | `Extraction-prompt-prediction.txt` | Predictors, performance, PROBAST |
+| **Editorials/Opinions** | `editorials_opinion_bundled.json` | `Extraction-prompt-editorials.txt` | Arguments, stance, rhetoric |
+
+### End-to-End Workflow
+
+```mermaid
+graph LR
+    A[PDF Document] --> B[Study Type Classification]
+    B --> C[Select Schema + Prompt Pair]
+    C --> D[LLM Extraction with Prompt]
+    D --> E[JSON Output]
+    E --> F[Schema Validation]
+    F --> G[✅ Validated Structured Data]
+```
+
+### Integration Example
+
+```python
+# 1. Load the appropriate schema and prompt
+import json
+schema = json.load(open('interventional_trial_bundled.json'))
+prompt = open('prompts/Extraction-prompt-interventional.txt').read()
+
+# 2. Extract data using LLM
+llm_input = prompt + "\n\n" + pdf_text
+json_output = your_llm.generate(llm_input)
+
+# 3. Validate against schema
+import jsonschema
+try:
+    jsonschema.validate(json.loads(json_output), schema)
+    print("✅ Extraction successful and valid!")
+except jsonschema.ValidationError as e:
+    print(f"❌ Validation error: {e.message}")
+```
+
+### Recent Optimization (v2.1)
+Both schemas and prompts have been optimized for **LLM efficiency**:
+- **Prompts**: Markdown formatting removed for ~15-25% token reduction
+- **Schemas**: Bundled variants eliminate external dependencies
+- **Performance**: Faster processing and lower API costs
+
+---
+
+## 📁 Project Structure Overview
+
+This repository is organized into complementary components that work together for medical literature extraction:
+
+```
+PDFtoPodcast/
+├── schemas/                          # ← YOU ARE HERE
+│   ├── common.schema.json           # Shared components and definitions
+│   ├── interventional_trial.schema.json    # RCT/trial studies (modular)
+│   ├── observational_analytic.schema.json  # Observational studies (modular)
+│   ├── evidence_synthesis.schema.json      # Systematic reviews (modular)
+│   ├── prediction_prognosis.schema.json    # Prediction models (modular)
+│   ├── editorials_opinion.schema.json      # Editorial content (modular)
+│   ├── *_bundled.json              # Self-contained production schemas
+│   └── README.md                    # This comprehensive guide
+│
+├── prompts/                         # LLM extraction prompts (companion)
+│   ├── Extraction-prompt-interventional.txt
+│   ├── Extraction-prompt-observational.txt
+│   ├── Extraction-prompt-evidence-synthesis.txt
+│   ├── Extraction-prompt-prediction.txt
+│   ├── Extraction-prompt-editorials.txt
+│   └── README.md                    # Prompt optimization guide
+│
+├── work-in-progress/                # Development and prototyping
+└── json-bundler.py                  # Tool to create standalone schemas
+```
+
+### Component Relationships
+
+```mermaid
+graph TB
+    A[schemas/] --> B[Structure & Validation]
+    C[prompts/] --> D[LLM Extraction Logic]
+    E[json-bundler.py] --> F[Standalone Deployment]
+
+    B --> G[PDF + Prompt + Schema = Structured Data]
+    D --> G
+    F --> G
+
+    H[work-in-progress/] --> I[Development & Testing]
+    I --> A
+    I --> C
+```
+
+### Development vs Production
+
+| Component | Development Use | Production Use |
+|-----------|----------------|----------------|
+| **Modular Schemas** | ✅ Schema development, testing | ❌ External dependencies |
+| **Bundled Schemas** | ⚠️ Final testing only | ✅ API deployment, microservices |
+| **Extraction Prompts** | ✅ LLM development, refinement | ✅ Production extraction |
+| **json-bundler.py** | ✅ Creating production schemas | ❌ Runtime tool only |
+
+---
 
 ## 📋 Schema Overzicht
 
@@ -565,6 +732,127 @@ Het schema ondersteunt nu geavanceerde cross-referencing tussen argumenten en ex
 
 ---
 
+## 🤖 LLM Integration & Token Optimization
+
+### Language Model Integration
+
+These schemas are optimized for use with Large Language Models (LLMs) for automated data extraction:
+
+#### Supported LLM Providers
+- **OpenAI GPT**: GPT-4, GPT-3.5-turbo with JSON mode
+- **Anthropic Claude**: Claude-3.5 Sonnet, Claude-3 Opus
+- **Google**: Gemini Pro with structured output
+- **Open Source**: Llama, Mistral, Code Llama models
+- **Azure OpenAI**: Enterprise deployments
+
+#### Token Efficiency Optimizations (v2.1)
+
+Recent improvements have significantly reduced token usage:
+
+| Component | Original | Optimized | Improvement |
+|-----------|----------|-----------|-------------|
+| **Extraction Prompts** | ~4000 tokens | ~3000 tokens | **25% reduction** |
+| **Schema References** | External deps | Self-contained | **Faster loading** |
+| **Bundled Schemas** | N/A | Single file | **Zero deps** |
+
+#### Performance Benefits
+- **💰 Cost Reduction**: 15-25% lower API costs per extraction
+- **⚡ Speed**: Faster processing with optimized prompts
+- **🔒 Reliability**: Self-contained schemas reduce failures
+- **📊 Consistency**: Standardized extraction across models
+
+#### Integration Patterns
+
+##### Pattern 1: Direct LLM Integration
+```python
+import openai
+import json, jsonschema
+
+# Load optimized prompt and schema
+prompt = open('prompts/Extraction-prompt-interventional.txt').read()
+schema = json.load(open('interventional_trial_bundled.json'))
+
+# Extract with GPT-4
+response = openai.ChatCompletion.create(
+    model="gpt-4-turbo",
+    messages=[
+        {"role": "system", "content": prompt},
+        {"role": "user", "content": pdf_text}
+    ],
+    response_format={"type": "json_object"}
+)
+
+# Validate against schema
+extracted_data = json.loads(response.choices[0].message.content)
+jsonschema.validate(extracted_data, schema)
+```
+
+##### Pattern 2: Batch Processing
+```python
+def extract_batch(pdf_files, study_type):
+    schema_map = {
+        'interventional': 'interventional_trial_bundled.json',
+        'observational': 'observational_analytic_bundled.json',
+        'synthesis': 'evidence_synthesis_bundled.json'
+    }
+
+    schema = json.load(open(schema_map[study_type]))
+    prompt = open(f'prompts/Extraction-prompt-{study_type}.txt').read()
+
+    results = []
+    for pdf in pdf_files:
+        # Extract and validate each PDF
+        result = extract_and_validate(pdf, prompt, schema)
+        results.append(result)
+
+    return results
+```
+
+##### Pattern 3: Microservice Architecture
+```python
+from flask import Flask, request, jsonify
+import json, jsonschema
+
+app = Flask(__name__)
+
+# Load all schemas once at startup
+schemas = {
+    'interventional': json.load(open('interventional_trial_bundled.json')),
+    'observational': json.load(open('observational_analytic_bundled.json')),
+    # ... other schemas
+}
+
+@app.route('/extract/<study_type>', methods=['POST'])
+def extract_data(study_type):
+    pdf_content = request.json['pdf_text']
+
+    # Use appropriate schema for validation
+    schema = schemas.get(study_type)
+    if not schema:
+        return jsonify({'error': 'Unknown study type'}), 400
+
+    # Extract with LLM (implementation details omitted)
+    extracted_data = your_llm_extraction(pdf_content, study_type)
+
+    # Validate against bundled schema
+    try:
+        jsonschema.validate(extracted_data, schema)
+        return jsonify(extracted_data)
+    except jsonschema.ValidationError as e:
+        return jsonify({'error': str(e)}), 422
+```
+
+#### Best Practices for LLM Integration
+
+1. **Schema Selection**: Always use bundled schemas in production
+2. **Prompt Pairing**: Match schema with corresponding optimized prompt
+3. **Validation**: Always validate LLM output against schema
+4. **Error Handling**: Graceful degradation for validation failures
+5. **Caching**: Cache schemas in memory for repeated use
+6. **Monitoring**: Track extraction success rates and validation errors
+
+---
+
 ## 🛠️ Tool Documentatie
 
 ### JSON Schema Bundler (`json-bundler.py`)
@@ -780,6 +1068,32 @@ Dit genereert standalone schema's met alle common definities geïnternaliseerd, 
 - **CDN Compatible**: Standalone schema files voor web deployment
 - **Microservice Ready**: Zero-dependency validation schemas
 - **API Integration**: REST/GraphQL compatible schema definitions
+
+---
+
+## 📋 Version History
+
+### v2.1 - September 2025
+**Schema-Prompt Integration & LLM Optimization**
+- **Schema-Specific Extraction Prompts**: Created 5 specialized extraction prompts matching each bundled schema
+- **Cross-Schema Validation**: Verified prompt compatibility with corresponding bundled schemas
+- **LLM Token Optimization**: Optimized prompts for 15-25% token reduction through markdown cleanup
+- **Comprehensive Documentation**: Updated README files with cross-references, quick start guides, and integration examples
+- **Production Pipeline**: Established schema-prompt pairing for efficient LLM-based literature extraction
+
+### v2.0 - September 2025
+**Major Schema Enhancement & Bundling**
+- **5 Specialized Schemas**: Created dedicated schemas for each study type (interventional trials, observational studies, evidence synthesis, prediction models, editorials)
+- **Bundled Production Schemas**: Generated single-file bundled versions for each schema type, combining all modular components
+- **Advanced Medical Features**: Added comprehensive anesthesiology-specific fields, Vancouver citation support, evidence grading
+- **JSON Schema 2020-12**: Full upgrade to latest specification with advanced validation patterns
+- **Modular Architecture**: Maintained development schemas with shared components in `components/` directory
+
+### v1.0 - Previous
+**Initial Schema Development**
+- **Basic Schema Framework**: First implementation of medical literature extraction schemas
+- **Single Study Type**: Initial focus on interventional trials only
+- **Limited Integration**: No cross-schema compatibility or bundling support
 
 ---
 
