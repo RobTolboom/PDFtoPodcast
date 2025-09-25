@@ -7,6 +7,7 @@ Zodra er één of meer PDF-bestanden in dit gesprek staan, lees je de meest rece
 EVIDENCE-LOCKED REGELS
 
 - Gebruik alleen tekst/tabellen/figuren uit de geüploade PDF zelf (incl. appendix/supplement als die in dezelfde PDF staat).
+- HOOFDTEKST PRIORITEIT: Haal data altijd eerst uit Methods/Results/Tables; gebruik abstract alleen voor verificatie of missing info.
 - Geen externe kennis, geen gokken of imputatie.
 - Als informatie ontbreekt: laat het veld weg (vul geen "unknown" in bij numerieke/booleaanse velden).
 - Veranker elk belangrijk datapunt met `source` (SourceRef): minimaal `page`; waar passend ook `table_id`/`figure_id`; context in `anchor` (bijv. sectietitel/regel).
@@ -17,6 +18,24 @@ EVIDENCE-LOCKED REGELS
 - Leg anesthesie-details vast indien aanwezig: techniek, luchtweg, monitoring, NMB/reversal, analgesie, PONV, pijnscores met meetmoment, opioïdverbruik, PACU/ICU, respiratoire/cardiovasculaire events, mortaliteit, heropname.
 - Populatie/externaliteit: inclusie/exclusie, setting, land(en), operatietype, ASA, BMI, comorbiditeit, pediatrisch/obees/geriatrisch, urgentie.
 - Inconsistenties/ambiguïteit? Voeg item toe aan `extraction_warnings[]` met korte toelichting en `source`.
+
+DATA SOURCE PRIORITERING
+
+HOOFDTEKST EERST:
+- Gebruik bij voorkeur volledige Methods, Results, en Discussion secties boven abstract
+- Abstract alleen voor verificatie of als hoofdtekst onduidelijk is
+- Prioriteit: Results secties > Methods > Discussion > Tables/Figures > Abstract
+- Zoek expliciete numerieke waarden, sample sizes, effect sizes in Results tabellen
+- Haal complete metodologie uit Methods sectie in plaats van abstract samenvatting
+
+SECTIE-SPECIFIEKE INSTRUCTIES:
+- Results: Extract uit "Results" sectie EN results tabellen, niet abstract
+- Demographics: Uit baseline characteristics tabellen, niet abstract
+- Effect sizes: Uit results tabellen met CI's, p-waarden, niet abstract samenvattingen
+- Sample sizes: Uit Methods "Participants" of Results "Flow diagram", niet abstract
+- Adverse events: Uit dedicated safety tabellen/Results subsecties
+- CONSORT flow: Uit participant flow figuur, niet abstract N-vermeldingen
+- Primary endpoints: Uit Methods "Outcomes" sectie, niet abstract doelstellingen
 
 EXPLICIETE VALIDATIEREGELS
 
@@ -40,7 +59,7 @@ EXPLICIETE VALIDATIEREGELS
 WERKWIJZE
 
 1. Metadata: haal titel, journal, jaar/maand/dag (met `published_date_precision`), volume, issue, paginabereik of artikelnummer/eLocationID, DOI, PMID/PMCID, ISSN/eISSN, registratie/protocol, funding/COI uit titelpagina, kop/voettekst, "How to cite", of referentieblok.
-2. Segmentatie: detecteer secties (Abstract/Methods/Results/Tables/Figures/Supplement) en koppel paginanummers.
+2. Segmentatie: detecteer secties (Methods/Results/Tables/Figures PRIORITEIT; daarna Discussion/Abstract) en koppel paginanummers. Begin extractie ALTIJD met volledige Results sectie.
 3. Armen: wijs stabiele `arm_id`'s toe ("A", "B", …) en bewaar zichtbare labels exact in `arms[].label`.
 4. Vul in volgorde: `metadata` → `study_design` → `population` → `interventions` → `outcomes`.
 5. Results:
