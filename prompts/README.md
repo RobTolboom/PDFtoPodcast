@@ -2,7 +2,7 @@
 
 ## Overview
 
-Based on analysis of the 5 bundled JSON schemas, the original extraction prompt has been specialized into 5 schema-specific versions. The original prompt was designed only for interventional trials and was incompatible with the other 4 schema types.
+Based on the 5 bundled JSON schemas, extraction prompts have been created for each type of publication.
 
 ## Created Files
 
