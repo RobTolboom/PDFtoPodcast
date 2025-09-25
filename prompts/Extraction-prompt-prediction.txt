@@ -7,6 +7,7 @@ Zodra er één of meer PDF-bestanden in dit gesprek staan, lees je de meest rece
 EVIDENCE-LOCKED REGELS
 
 - Gebruik alleen tekst/tabellen/figuren uit de geüploade PDF zelf (incl. appendix/supplement als die in dezelfde PDF staat).
+- HOOFDTEKST PRIORITEIT: Haal data altijd eerst uit Methods/Results/Tables; gebruik abstract alleen voor verificatie of missing info.
 - Geen externe kennis, geen gokken of imputatie.
 - Als informatie ontbreekt: laat het veld weg (vul geen "unknown" in bij numerieke/booleaanse velden).
 - Veranker elk belangrijk datapunt met `source` (SourceRef): minimaal `page`; waar passend ook `table_id`/`figure_id`; context in `anchor` (bijv. sectietitel/regel).
@@ -17,6 +18,23 @@ EVIDENCE-LOCKED REGELS
 - Model ontwikkeling vs validatie: onderscheid development/internal validation/external validation datasets.
 - Events per variable (EPV), missing data handling, overfitting assessment.
 - Inconsistenties/ambiguïteit? Voeg item toe aan `extraction_warnings[]` met korte toelichting en `source`.
+
+DATA SOURCE PRIORITERING
+
+HOOFDTEKST EERST:
+- Gebruik bij voorkeur volledige Methods, Results, en Discussion secties boven abstract
+- Abstract alleen voor verificatie of als hoofdtekst onduidelijk is
+- Prioriteit: Results secties > Methods > Discussion > Tables/Figures > Abstract
+- Zoek expliciete numerieke waarden, sample sizes, effect sizes in Results tabellen
+- Haal complete metodologie uit Methods sectie in plaats van abstract samenvatting
+
+SECTIE-SPECIFIEKE INSTRUCTIES:
+- Model performance: Uit Results "Model Performance" tabellen, niet abstract
+- Predictors: Uit Methods "Variable Selection" en Results coefficient tabellen, niet abstract
+- Dataset details: Uit Methods "Study Population" en Results "Baseline", niet abstract
+- C-statistics/AUC: Uit Results performance tabellen met confidence intervals, niet abstract
+- Calibration: Uit Results calibration plots en metrics tabellen, niet abstract
+- Validation: Uit Results "External Validation" secties, niet abstract samenvattingen
 
 EXPLICIETE VALIDATIEREGELS
 
@@ -42,8 +60,9 @@ EXPLICIETE VALIDATIEREGELS
 WERKWIJZE
 
 1. Metadata: haal titel, journal, jaar/maand/dag (met `published_date_precision`), volume, issue, paginabereik of artikelnummer/eLocationID, DOI, PMID/PMCID, ISSN/eISSN, registratie/protocol, funding/COI uit titelpagina, kop/voettekst, "How to cite", of referentieblok.
-2. Study design: identificeer model development vs validation study type.
-3. Population: studiepopulatie, inclusie/exclusie criteria, setting.
+2. Segmentatie: detecteer secties (Methods/Results/Tables/Figures PRIORITEIT; daarna Discussion/Abstract) en koppel paginanummers. Begin extractie ALTIJD met volledige Results sectie.
+3. Study design: identificeer model development vs validation study type.
+4. Population: studiepopulatie, inclusie/exclusie criteria, setting.
 4. Predictors: alle candidate en final predictors met details (coding, transformaties, missingness).
 5. Outcomes: primary outcome definition, measurement timing, event rates.
 6. Datasets:
