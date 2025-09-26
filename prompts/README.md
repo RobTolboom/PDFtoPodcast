@@ -8,12 +8,13 @@ Additionally, a universal quality assurance prompt (`Extraction-validation.txt`)
 
 ## 🔗 Schema-Prompt Integration
 
-These extraction prompts are part of a **three-component system** that works together with JSON schemas and quality verification:
+These extraction prompts are part of a **four-component system** that works together with classification, JSON schemas and quality verification:
 
-### Three-Component Framework
+### Four-Component Framework
 
 | Component | Location | Purpose | Use |
 |-----------|----------|---------|-----|
+| **Classification** | `Classification.txt` | Identify publication type & extract metadata | Pre-process PDF to select appropriate extraction approach |
 | **Extraction Prompts** | `prompts/` folder (HERE) | Guide LLMs to extract structured data | Feed to language models with PDFs |
 | **JSON Schemas** | `schemas/` folder | Define structure and validation rules | Validate extracted JSON output |
 | **Quality Verification** | `Extraction-validation.txt` | Verify accuracy and completeness | Cross-check extraction against PDF source |
@@ -22,18 +23,23 @@ These extraction prompts are part of a **three-component system** that works tog
 
 ```mermaid
 graph LR
-    A[PDF Document] --> B[LLM + Extraction Prompt]
-    B --> C[Raw JSON Output]
-    C --> D[Schema Validation]
-    D --> E[Validated JSON]
-    E --> F[LLM + Validation Prompt]
-    A --> F
-    F --> G[Quality Report]
-    G --> H[✅ Verified Structured Data]
+    A[PDF Document] --> B[LLM + Classification Prompt]
+    B --> C[Publication Type + Metadata]
+    C --> D[Select Prompt/Schema Pair]
+    D --> E[LLM + Specific Extraction Prompt]
+    A --> E
+    E --> F[Raw JSON Output]
+    F --> G[Schema Validation]
+    G --> H[Validated JSON]
+    H --> I[LLM + Validation Prompt]
+    A --> I
+    I --> J[Quality Report]
+    J --> K[✅ Verified Structured Data]
 
-    I[extraction prompts/] --> B
-    J[schemas/] --> D
-    K[Extraction-validation.txt] --> F
+    L[Classification.txt] --> B
+    M[extraction prompts/] --> E
+    N[schemas/] --> G
+    O[Extraction-validation.txt] --> I
 ```
 
 ### Critical Integration Points
@@ -52,6 +58,7 @@ This prompts folder is part of a larger medical literature extraction framework:
 ```
 PDFtoPodcast/
 ├── prompts/                          # ← YOU ARE HERE
+│   ├── Classification.txt                      # Publication type classifier
 │   ├── Extraction-prompt-interventional.txt    # LLM extraction prompts
 │   ├── Extraction-prompt-observational.txt     # (5 specialized prompts)
 │   ├── Extraction-prompt-evidence-synthesis.txt
@@ -73,6 +80,75 @@ PDFtoPodcast/
 - Token optimization metrics and best practices
 - Production deployment guidelines
 - Microservice architecture patterns
+
+## Classification System
+
+### `Classification.txt` - Publication Type Identification
+
+**Purpose**: Pre-processing step that automatically identifies publication type and extracts metadata to enable Python script selection of the appropriate extraction prompt/schema combination.
+
+**Six Publication Categories**:
+1. **`interventional_trial`** - RCTs, cluster-RCTs, crossover trials, before-after studies
+2. **`observational_analytic`** - Cohort studies, case-control studies, cross-sectional analyses
+3. **`evidence_synthesis`** - Systematic reviews, meta-analyses, network meta-analyses
+4. **`prediction_prognosis`** - Prediction models, prognostic studies, ML/AI algorithms
+5. **`editorials_opinion`** - Editorials, commentaries, opinion pieces, letters
+6. **`overig`** - Case reports, case series, narrative reviews, guidelines, technical reports
+
+**Classification Algorithm**:
+1. **Explicit design search**: Look for study design labels in Methods section
+2. **Primary characteristics**: Identify intervention, systematic search, predictors, exposure-outcome relationships
+3. **Domain expertise**: Apply anesthesiology-specific rules (perioperative care → interventional, pain management cohorts → observational)
+4. **Confidence assessment**: Score based on clarity of design indicators (0.95-1.0 for clear labels, 0.4-0.59 for difficult classifications)
+5. **Alternative classification**: List potential alternatives when confidence < 0.9
+
+**Key Features**:
+- **Automated metadata extraction**: Title, authors, journal, DOI, PMID, Vancouver citation with complete bibliographic details
+- **Early publication handling**: Detects and handles online-first articles without volume/issue, adds appropriate warnings
+- **Evidence-locked extraction**: Only uses PDF content including main text, tables, figures; no external knowledge
+- **Confidence scoring**: 0.0-1.0 reliability score for classification decisions with detailed reasoning
+- **Error handling**: Structured warnings for PDF parsing issues, ambiguous designs, missing metadata
+- **Vancouver citations**: Full compliance with Vancouver referencing style including author formatting rules
+- **Python integration**: Clean JSON output enables automated prompt/schema selection
+
+**Metadata Extraction Priority**:
+- **Main text first**: Title page/header > Methods > Results > References > Abstract
+- **Complete information**: Full author lists with affiliations, complete journal information
+- **Source tracking**: Page references and anchor descriptions for all extracted metadata
+
+**Anesthesiology Specialization**:
+- Perioperative care studies → interventional_trial
+- Pain management cohorts → observational_analytic
+- Anesthesia technique comparisons → interventional_trial
+- Outcome prediction models → prediction_prognosis
+- Practice guideline commentaries → editorials_opinion
+- Case series of complications → overig
+
+**Output Format**:
+```json
+{
+  "metadata": {
+    "title": "string (required)",
+    "journal": "string (required)",
+    "authors": [{"given_name": "", "family_name": "", "initials": ""}],
+    "vancouver_citation": "string (required)",
+    "published_date": "YYYY-MM-DD",
+    "volume": "string", "issue": "string", "pages": "string",
+    "doi": "string", "pmid": "string",
+    "source": {"page": "number", "anchor": "location description"}
+  },
+  "publication_type": "interventional_trial|observational_analytic|evidence_synthesis|prediction_prognosis|editorials_opinion|overig",
+  "classification_confidence": 0.95,
+  "classification_reasoning": "Clear RCT design with randomization mentioned in Methods",
+  "alternative_classifications": ["array if confidence < 0.9"],
+  "extraction_warnings": [
+    {
+      "warning": "Early online publication - volume/issue not yet assigned",
+      "source": {"page": 1, "anchor": "Article header"}
+    }
+  ]
+}
+```
 
 ## Created Files
 
@@ -290,20 +366,46 @@ QUALITY_THRESHOLDS = {
 
 ## 🚀 Quick Start - Complete Extraction Pipeline
 
-### Essential Three-Step Process
-**Step 1**: Extract with prompt → **Step 2**: Validate with schema → **Step 3**: Verify with validation prompt
+### Essential Four-Step Process
+**Step 1**: Classify publication type → **Step 2**: Extract with prompt → **Step 3**: Validate with schema → **Step 4**: Verify with validation prompt
 
 ### Complete Workflow
 ```
-1. Identify study type from PDF title/abstract
-2. Get THREE components:
-   Extraction: Extraction-prompt-[type].txt       (from prompts/ folder)
-   Schema: [type]_bundled.json                    (from schemas/ folder)
-   Validation: Extraction-validation.txt          (from prompts/ folder)
-3. Extract: Use extraction prompt with PDF input in your LLM
-4. Validate: ALWAYS validate JSON output against bundled schema
-5. Verify: Use validation prompt with JSON + PDF + Schema for quality check
-6. ✅ Result: Verified, high-quality structured medical literature data
+1. Classify: Use Classification.txt to identify publication type and extract metadata
+   - Input: PDF document
+   - Output: Publication type + metadata + confidence score
+   - Handle: Early publications, PDF parsing issues, ambiguous designs
+
+2. Select: Python script chooses appropriate prompt/schema pair based on classification
+   - Skip extraction if classification type is "overig" (no specialized schema available)
+   - Load corresponding extraction prompt and bundled schema
+   - Load universal validation prompt
+
+3. Get FOUR components:
+   Classification: Classification.txt                    (from prompts/ folder)
+   Extraction: Extraction-prompt-[type].txt            (from prompts/ folder)
+   Schema: [type]_bundled.json                         (from schemas/ folder)
+   Validation: Extraction-validation.txt               (from prompts/ folder)
+
+4. Extract: Use specific extraction prompt with PDF input in your LLM
+   - Apply evidence-locked rules (PDF content only)
+   - Prioritize main text over abstract for completeness
+   - Include source references for all extracted data
+
+5. Validate: ALWAYS validate JSON output against bundled schema
+   - Catch structural errors and missing required fields
+   - Ensure type compatibility and field constraints
+   - 80%+ of extraction errors caught at this stage
+
+6. Verify: Use validation prompt with JSON + PDF + Schema for quality check
+   - Detect hallucinations and inaccuracies
+   - Score completeness and accuracy
+   - Generate structured quality report with recommendations
+
+7. ✅ Result: Verified, high-quality structured medical literature data
+   - Passed quality gates with measurable metrics
+   - Ready for critical appraisal (CASP/RoB 2.0/ROBINS-I/AMSTAR 2)
+   - Suitable for systematic reviews and meta-analyses
 ```
 
 ### Schema-Prompt Pairs (MUST use together)
@@ -315,26 +417,47 @@ QUALITY_THRESHOLDS = {
 | **Prediction model** | `Extraction-prompt-prediction.txt` | `prediction_prognosis_bundled.json` | ✅ |
 | **Editorial/Opinion** | `Extraction-prompt-editorials.txt` | `editorials_opinion_bundled.json` | ✅ |
 
-### 💡 Why All Three Components Are Required
+### 💡 Why All Four Components Are Required
+- **Classification alone**: Can identify type and metadata, but no detailed extraction
 - **Extraction prompt alone**: Can extract data, but no guarantee of structure or completeness
 - **Schema alone**: Can validate structure, but can't extract from PDFs
 - **Validation prompt alone**: Can verify quality, but needs extracted data first
-- **Together**: Complete pipeline with extraction, validation, and quality assurance
+- **Together**: Complete pipeline with classification, extraction, validation, and quality assurance
 
 ### 💻 Integration Examples
 
-#### Python Example: Complete 3-Step Extraction Pipeline
+#### Python Example: Complete 4-Step Extraction Pipeline
 ```python
 import json
 import jsonschema
 
-# 1. Load all three components
-extraction_prompt = open('prompts/Extraction-prompt-interventional.txt').read()
-validation_prompt = open('prompts/Extraction-validation.txt').read()
-schema = json.load(open('schemas/interventional_trial_bundled.json'))
-
-# 2. Extract with LLM
+# 1. Classify publication type
+classification_prompt = open('prompts/Classification.txt').read()
 pdf_text = extract_text_from_pdf('study.pdf')
+classification_input = classification_prompt + "\n\n" + pdf_text
+classification_output = your_llm.generate(classification_input)
+classification_data = json.loads(classification_output)
+
+publication_type = classification_data['publication_type']
+if publication_type == 'overig':
+    print("❌ Publication type 'overig' - no extraction prompt available")
+    return None
+
+# 2. Load appropriate components based on classification
+prompt_mapping = {
+    'interventional_trial': ('Extraction-prompt-interventional.txt', 'interventional_trial_bundled.json'),
+    'observational_analytic': ('Extraction-prompt-observational.txt', 'observational_analytic_bundled.json'),
+    'evidence_synthesis': ('Extraction-prompt-evidence-synthesis.txt', 'evidence_synthesis_bundled.json'),
+    'prediction_prognosis': ('Extraction-prompt-prediction.txt', 'prediction_prognosis_bundled.json'),
+    'editorials_opinion': ('Extraction-prompt-editorials.txt', 'editorials_opinion_bundled.json')
+}
+
+prompt_file, schema_file = prompt_mapping[publication_type]
+extraction_prompt = open(f'prompts/{prompt_file}').read()
+validation_prompt = open('prompts/Extraction-validation.txt').read()
+schema = json.load(open(f'schemas/{schema_file}'))
+
+# 3. Extract with LLM using selected prompt
 llm_input = extraction_prompt + "\n\n" + pdf_text
 json_output = your_llm.generate(llm_input)
 
