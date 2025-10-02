@@ -1,4 +1,64 @@
 # llm.py
+"""
+Multi-provider LLM abstraction layer with schema-enforced JSON generation.
+
+This module provides a unified interface for interacting with different LLM providers
+(OpenAI, Claude) with three generation modes:
+1. Free-form text generation
+2. Generic JSON generation (no schema enforcement)
+3. Schema-based JSON generation (guaranteed schema compliance)
+
+Supported Providers:
+    OpenAI:
+        - Uses native Structured Outputs API for schema enforcement
+        - Guarantees output conforms to JSON schema at generation time
+        - Requires models with structured output support (e.g., gpt-4o)
+        - Response format: {"type": "json_schema", "json_schema": {...}}
+
+    Claude:
+        - Uses prompt-based schema guidance
+        - Validates output post-generation using jsonschema library
+        - Includes full schema in system prompt for LLM guidance
+        - Handles markdown code block extraction
+
+Key Features:
+    - Abstract base class (BaseLLMProvider) for provider implementations
+    - Factory pattern (get_llm_provider) for easy provider instantiation
+    - Automatic retry logic with exponential backoff for rate limits
+    - Comprehensive error handling with custom exceptions
+    - Logging for debugging and monitoring
+
+Usage Examples:
+    >>> # Using factory function with default provider
+    >>> from src.llm import get_llm_provider
+    >>> llm = get_llm_provider("openai")
+    >>> text = llm.generate_text("Explain photosynthesis", system_prompt="You are a teacher")
+    >>>
+    >>> # Schema-based JSON generation
+    >>> from src.schemas_loader import load_schema
+    >>> schema = load_schema("interventional_trial")
+    >>> result = llm.generate_json_with_schema(
+    ...     prompt=pdf_text,
+    ...     schema=schema,
+    ...     system_prompt="Extract trial data"
+    ... )
+    >>>
+    >>> # Using convenience functions
+    >>> from src.llm import generate_text, generate_json
+    >>> text = generate_text("Hello", provider="claude")
+    >>> data = generate_json("Return user data as JSON", provider="openai")
+
+Dependencies:
+    - openai>=1.0 - OpenAI API client
+    - anthropic>=0.25 - Anthropic Claude API client
+    - tenacity>=8.0 - Retry logic with exponential backoff
+    - jsonschema>=4.20 - JSON schema validation (required for Claude)
+
+Note:
+    API keys must be set via environment variables:
+    - OPENAI_API_KEY for OpenAI
+    - ANTHROPIC_API_KEY for Claude
+"""
 
 import json
 import logging
@@ -18,6 +78,18 @@ from .config import LLMProvider, LLMSettings, llm_settings
 
 logger = logging.getLogger(__name__)
 
+# Check jsonschema availability for Claude provider
+try:
+    import jsonschema
+
+    HAVE_JSONSCHEMA = True
+except ImportError:
+    HAVE_JSONSCHEMA = False
+    logger.warning(
+        "jsonschema library not available. Claude schema validation will be disabled. "
+        "Install with: pip install jsonschema"
+    )
+
 
 class LLMError(Exception):
     """Base exception for LLM-related errors"""
@@ -31,22 +103,131 @@ class LLMProviderError(LLMError):
     pass
 
 
+def _extract_json_from_markdown(content: str) -> str:
+    """
+    Extract JSON content from markdown code blocks.
+
+    Handles Claude responses that wrap JSON in markdown code blocks like:
+    ```json
+    {...}
+    ```
+
+    Args:
+        content: Raw response content from LLM
+
+    Returns:
+        Extracted JSON string (unwrapped if it was in code blocks)
+
+    Example:
+        >>> _extract_json_from_markdown('```json\\n{"key": "value"}\\n```')
+        '{"key": "value"}'
+        >>> _extract_json_from_markdown('{"key": "value"}')
+        '{"key": "value"}'
+    """
+    content = content.strip()
+
+    # Check for ```json opening
+    if content.startswith("```json"):
+        # Find closing ```
+        if content.endswith("```"):
+            # Extract content between ```json and ```
+            return content[7:-3].strip()  # len("```json") = 7, len("```") = 3
+        else:
+            # Malformed: has opening but no closing
+            logger.warning("Malformed markdown: found ```json but no closing ```")
+            return content[7:].strip()
+
+    # Check for generic ``` opening
+    elif content.startswith("```"):
+        if content.endswith("```"):
+            return content[3:-3].strip()
+        else:
+            logger.warning("Malformed markdown: found ``` but no closing ```")
+            return content[3:].strip()
+
+    # Not wrapped in code blocks
+    return content
+
+
 class BaseLLMProvider(ABC):
-    """Abstract base class for LLM providers"""
+    """
+    Abstract base class for LLM providers.
+
+    Defines the interface that all LLM providers must implement. Each provider
+    must support three generation modes: text, JSON, and schema-based JSON.
+
+    Subclasses should:
+    1. Call super().__init__(settings) to store settings
+    2. Initialize provider-specific client (openai.OpenAI, anthropic.Anthropic, etc.)
+    3. Implement all three abstract methods with retry logic
+    4. Raise LLMProviderError for provider-specific errors
+
+    Attributes:
+        settings: LLM configuration (API keys, models, timeouts, etc.)
+    """
 
     def __init__(self, settings: LLMSettings):
+        """
+        Initialize provider with settings.
+
+        Args:
+            settings: LLM configuration containing API keys, model names, etc.
+        """
         self.settings = settings
 
     @abstractmethod
     def generate_text(self, prompt: str, system_prompt: Optional[str] = None, **kwargs) -> str:
-        """Generate text response from prompt"""
+        """
+        Generate free-form text response from prompt.
+
+        Args:
+            prompt: User prompt/content to process
+            system_prompt: Optional system prompt with instructions
+            **kwargs: Provider-specific arguments (temperature override, etc.)
+
+        Returns:
+            Generated text response
+
+        Raises:
+            LLMProviderError: If generation fails
+
+        Example:
+            >>> llm = get_llm_provider("openai")
+            >>> text = llm.generate_text(
+            ...     prompt="Explain photosynthesis",
+            ...     system_prompt="You are a biology teacher"
+            ... )
+        """
         pass
 
     @abstractmethod
     def generate_json(
         self, prompt: str, system_prompt: Optional[str] = None, **kwargs
     ) -> Dict[str, Any]:
-        """Generate structured JSON response from prompt"""
+        """
+        Generate structured JSON response (no schema enforcement).
+
+        Uses provider's generic JSON mode. Output structure depends on prompt
+        instructions only - no schema validation is performed.
+
+        Args:
+            prompt: User prompt/content to process
+            system_prompt: Optional system prompt with JSON instructions
+            **kwargs: Provider-specific arguments
+
+        Returns:
+            Dictionary parsed from JSON response
+
+        Raises:
+            LLMProviderError: If generation or JSON parsing fails
+
+        Example:
+            >>> llm = get_llm_provider("openai")
+            >>> data = llm.generate_json(
+            ...     prompt="Extract: name, age, city from text",
+            ...     system_prompt="Return data as JSON"
+            ... )
+        """
         pass
 
     @abstractmethod
@@ -78,14 +259,44 @@ class BaseLLMProvider(ABC):
 
 
 class OpenAIProvider(BaseLLMProvider):
-    """OpenAI API provider implementation"""
+    """
+    OpenAI API provider implementation with native Structured Outputs support.
+
+    This provider uses OpenAI's chat completions API with support for:
+    - Free-form text generation
+    - Generic JSON mode (response_format={"type": "json_object"})
+    - Structured Outputs (response_format={"type": "json_schema"})
+
+    The Structured Outputs feature guarantees that generated JSON conforms
+    to the provided schema at generation time, eliminating the need for
+    post-generation validation.
+
+    Supported models: gpt-4o, gpt-4o-mini, and other models with structured output support
+
+    Attributes:
+        client: OpenAI client instance
+        settings: LLM configuration
+
+    Note:
+        Requires OPENAI_API_KEY environment variable to be set.
+    """
 
     def __init__(self, settings: LLMSettings):
+        """
+        Initialize OpenAI provider.
+
+        Args:
+            settings: LLM configuration containing API key and model settings
+
+        Raises:
+            LLMProviderError: If OPENAI_API_KEY is not set in environment
+        """
         super().__init__(settings)
         if not settings.openai_api_key:
             raise LLMProviderError("OpenAI API key not found in environment variables")
 
         self.client = openai.OpenAI(api_key=settings.openai_api_key, timeout=settings.timeout)
+        logger.info(f"Initialized OpenAI provider with model: {settings.openai_model}")
 
     @retry(
         stop=stop_after_attempt(3),
@@ -108,7 +319,9 @@ class OpenAIProvider(BaseLLMProvider):
                 **kwargs,
             )
 
-            return response.choices[0].message.content.strip()
+            result = response.choices[0].message.content.strip()
+            logger.info("Successfully generated text with OpenAI")
+            return result
 
         except openai.OpenAIError as e:
             logger.error(f"OpenAI API error: {e}")
@@ -139,7 +352,9 @@ class OpenAIProvider(BaseLLMProvider):
             )
 
             content = response.choices[0].message.content.strip()
-            return json.loads(content)
+            result = json.loads(content)
+            logger.info("Successfully generated JSON with OpenAI")
+            return result
 
         except openai.OpenAIError as e:
             logger.error(f"OpenAI API error: {e}")
@@ -208,16 +423,53 @@ class OpenAIProvider(BaseLLMProvider):
 
 
 class ClaudeProvider(BaseLLMProvider):
-    """Anthropic Claude API provider implementation"""
+    """
+    Anthropic Claude API provider implementation with prompt-based schema guidance.
+
+    This provider uses Claude's messages API with:
+    - Free-form text generation
+    - JSON mode via prompt instructions
+    - Schema-based generation via prompt guidance + post-validation
+
+    Unlike OpenAI, Claude doesn't have native structured outputs, so schemas
+    are included in system prompts and validated after generation using the
+    jsonschema library.
+
+    Supported models: claude-3-opus, claude-3-sonnet, claude-3-haiku, etc.
+
+    Attributes:
+        client: Anthropic client instance
+        settings: LLM configuration
+
+    Note:
+        Requires ANTHROPIC_API_KEY environment variable to be set.
+        Requires jsonschema library for schema validation.
+    """
 
     def __init__(self, settings: LLMSettings):
+        """
+        Initialize Claude provider.
+
+        Args:
+            settings: LLM configuration containing API key and model settings
+
+        Raises:
+            LLMProviderError: If ANTHROPIC_API_KEY is not set or jsonschema unavailable
+        """
         super().__init__(settings)
         if not settings.anthropic_api_key:
             raise LLMProviderError("Anthropic API key not found in environment variables")
 
+        if not HAVE_JSONSCHEMA:
+            logger.warning(
+                "jsonschema library not available. Schema validation will be disabled. "
+                "Install with: pip install jsonschema"
+            )
+
         self.client = anthropic.Anthropic(
             api_key=settings.anthropic_api_key, timeout=settings.timeout
         )
+        logger.info(f"Initialized Claude provider with model: {settings.anthropic_model}")
 
     @retry(
         stop=stop_after_attempt(3),
@@ -236,7 +488,9 @@ class ClaudeProvider(BaseLLMProvider):
                 **kwargs,
             )
 
-            return response.content[0].text.strip()
+            result = response.content[0].text.strip()
+            logger.info("Successfully generated text with Claude")
+            return result
 
         except anthropic.AnthropicError as e:
             logger.error(f"Claude API error: {e}")
@@ -267,20 +521,21 @@ class ClaudeProvider(BaseLLMProvider):
 
             content = response.content[0].text.strip()
 
-            # Try to extract JSON if wrapped in markdown code blocks
-            if content.startswith("```json"):
-                content = content[7:-3].strip()
-            elif content.startswith("```"):
-                content = content[3:-3].strip()
+            # Extract JSON from markdown code blocks if present
+            content = _extract_json_from_markdown(content)
 
-            return json.loads(content)
+            result = json.loads(content)
+            logger.info("Successfully generated JSON with Claude")
+            return result
 
         except anthropic.AnthropicError as e:
             logger.error(f"Claude API error: {e}")
             raise LLMProviderError(f"Claude API error: {e}")
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse JSON response: {e}")
-            logger.error(f"Raw response: {content}")
+            # Truncate long responses to avoid logging sensitive data
+            content_preview = content[:200] + "..." if len(content) > 200 else content
+            logger.error(f"Raw response preview: {content_preview}")
             raise LLMProviderError(f"Invalid JSON response: {e}")
 
     @retry(
@@ -323,25 +578,28 @@ class ClaudeProvider(BaseLLMProvider):
 
             content = response.content[0].text.strip()
 
-            # Try to extract JSON if wrapped in markdown code blocks
-            if content.startswith("```json"):
-                content = content[7:-3].strip()
-            elif content.startswith("```"):
-                content = content[3:-3].strip()
+            # Extract JSON from markdown code blocks if present
+            content = _extract_json_from_markdown(content)
 
             result = json.loads(content)
 
             # Validate against schema using jsonschema library
-            try:
-                import jsonschema
-
-                jsonschema.validate(result, schema)
-                logger.info("Successfully generated and validated schema-conforming JSON")
-            except ImportError:
-                logger.warning("jsonschema library not available - skipping validation")
-            except jsonschema.ValidationError as e:
-                logger.error(f"Schema validation failed: {e.message}")
-                raise LLMProviderError(f"Generated JSON does not conform to schema: {e.message}")
+            if HAVE_JSONSCHEMA:
+                try:
+                    jsonschema.validate(result, schema)
+                    logger.info(
+                        "Successfully generated and validated schema-conforming JSON with Claude"
+                    )
+                except jsonschema.ValidationError as e:
+                    logger.error(f"Schema validation failed: {e.message}")
+                    raise LLMProviderError(
+                        f"Generated JSON does not conform to schema: {e.message}"
+                    )
+            else:
+                logger.warning(
+                    "jsonschema library not available - skipping schema validation. "
+                    "Schema guidance was provided to LLM but compliance is not guaranteed."
+                )
 
             return result
 
@@ -350,14 +608,41 @@ class ClaudeProvider(BaseLLMProvider):
             raise LLMProviderError(f"Claude schema-based generation failed: {e}")
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse JSON response: {e}")
-            logger.error(f"Raw response: {content}")
+            # Truncate long responses to avoid logging sensitive data
+            content_preview = content[:200] + "..." if len(content) > 200 else content
+            logger.error(f"Raw response preview: {content_preview}")
             raise LLMProviderError(f"Invalid JSON response: {e}")
 
 
 def get_llm_provider(
     provider: Union[str, LLMProvider], settings: Optional[LLMSettings] = None
 ) -> BaseLLMProvider:
-    """Factory function to get LLM provider instance"""
+    """
+    Factory function to instantiate LLM provider.
+
+    Uses factory pattern to create provider instances based on provider name
+    or enum. Automatically loads settings from global configuration if not provided.
+
+    Args:
+        provider: Provider name ("openai" or "claude") or LLMProvider enum
+        settings: Optional custom LLM settings (uses global llm_settings if None)
+
+    Returns:
+        Provider instance (OpenAIProvider or ClaudeProvider)
+
+    Raises:
+        LLMError: If provider is unsupported
+        LLMProviderError: If provider initialization fails (e.g., missing API key)
+
+    Example:
+        >>> llm = get_llm_provider("openai")
+        >>> text = llm.generate_text("Hello world")
+        >>>
+        >>> # With custom settings
+        >>> from src.config import LLMSettings
+        >>> custom_settings = LLMSettings(temperature=0.5)
+        >>> llm = get_llm_provider("claude", settings=custom_settings)
+    """
     if settings is None:
         settings = llm_settings
 
@@ -384,7 +669,29 @@ def generate_text(
     system_prompt: Optional[str] = None,
     **kwargs,
 ) -> str:
-    """Generate text using specified or default provider"""
+    """
+    Generate text using specified or default provider.
+
+    Convenience function that wraps provider instantiation and generation
+    in a single call. Uses default provider from settings if not specified.
+
+    Args:
+        prompt: User prompt/content to process
+        provider: Provider to use (defaults to llm_settings.default_provider)
+        system_prompt: Optional system prompt with instructions
+        **kwargs: Provider-specific arguments
+
+    Returns:
+        Generated text response
+
+    Raises:
+        LLMError: If provider is invalid
+        LLMProviderError: If generation fails
+
+    Example:
+        >>> text = generate_text("Explain photosynthesis", provider="openai")
+        >>> text = generate_text("Hello", system_prompt="Friendly assistant")
+    """
     if provider is None:
         provider = llm_settings.default_provider
 
@@ -398,9 +705,78 @@ def generate_json(
     system_prompt: Optional[str] = None,
     **kwargs,
 ) -> Dict[str, Any]:
-    """Generate JSON using specified or default provider"""
+    """
+    Generate JSON using specified or default provider.
+
+    Convenience function for generic JSON generation (no schema enforcement).
+    Uses default provider from settings if not specified.
+
+    Args:
+        prompt: User prompt/content to process
+        provider: Provider to use (defaults to llm_settings.default_provider)
+        system_prompt: Optional system prompt with JSON instructions
+        **kwargs: Provider-specific arguments
+
+    Returns:
+        Dictionary parsed from JSON response
+
+    Raises:
+        LLMError: If provider is invalid
+        LLMProviderError: If generation or JSON parsing fails
+
+    Example:
+        >>> data = generate_json("Return user info as JSON", provider="claude")
+        >>> data = generate_json("Extract entities", system_prompt="Medical NER")
+    """
     if provider is None:
         provider = llm_settings.default_provider
 
     llm = get_llm_provider(provider)
     return llm.generate_json(prompt, system_prompt, **kwargs)
+
+
+def generate_json_with_schema(
+    prompt: str,
+    schema: Dict[str, Any],
+    provider: Union[str, LLMProvider] = None,
+    system_prompt: Optional[str] = None,
+    schema_name: Optional[str] = None,
+    **kwargs,
+) -> Dict[str, Any]:
+    """
+    Generate schema-conforming JSON using specified or default provider.
+
+    Convenience function for schema-based JSON generation with guaranteed
+    (OpenAI) or validated (Claude) schema compliance. Uses default provider
+    from settings if not specified.
+
+    Args:
+        prompt: User prompt/content to process
+        schema: JSON schema dictionary (Draft 2020-12 format)
+        provider: Provider to use (defaults to llm_settings.default_provider)
+        system_prompt: Optional system prompt with extraction instructions
+        schema_name: Optional name for schema (used by OpenAI)
+        **kwargs: Provider-specific arguments
+
+    Returns:
+        Dictionary conforming to provided schema
+
+    Raises:
+        LLMError: If provider is invalid
+        LLMProviderError: If generation fails or schema validation fails
+
+    Example:
+        >>> from src.schemas_loader import load_schema
+        >>> schema = load_schema("interventional_trial")
+        >>> data = generate_json_with_schema(
+        ...     prompt=pdf_text,
+        ...     schema=schema,
+        ...     provider="openai",
+        ...     system_prompt="Extract trial data"
+        ... )
+    """
+    if provider is None:
+        provider = llm_settings.default_provider
+
+    llm = get_llm_provider(provider)
+    return llm.generate_json_with_schema(prompt, schema, system_prompt, schema_name, **kwargs)
