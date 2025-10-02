@@ -33,6 +33,9 @@ SCHEMA_MAPPING = {
     "evidence_synthesis": "evidence_synthesis_bundled.json",
     "prediction_prognosis": "prediction_prognosis_bundled.json",
     "editorials_opinion": "editorials_opinion_bundled.json",
+    # Pipeline schemas (classification and validation outputs)
+    "classification": "classification.schema.json",
+    "validation": "validation.schema.json",
 }
 
 
@@ -56,7 +59,8 @@ def load_schema(publication_type: str) -> Dict[str, Any]:
 
     Args:
         publication_type: One of: interventional_trial, observational_analytic,
-                         evidence_synthesis, prediction_prognosis, editorials_opinion
+                         evidence_synthesis, prediction_prognosis, editorials_opinion,
+                         classification, validation
 
     Returns:
         Dictionary containing the JSON schema (Draft 2020-12 format)
