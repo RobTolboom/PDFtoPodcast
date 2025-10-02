@@ -1,12 +1,27 @@
 # run_pipeline.py
 """
-Four-step PDF extraction pipeline with schema-based validation.
+Four-step PDF extraction pipeline with direct PDF upload and schema-based validation.
 
 Pipeline Steps:
-    1. Classification - Identify publication type and extract metadata
-    2. Extraction - Schema-based structured data extraction
-    3. Validation - Dual validation (schema + LLM semantic)
-    4. Correction - Fix issues identified during validation
+    1. Classification - Identify publication type and extract metadata via PDF upload
+    2. Extraction - Schema-based structured data extraction via PDF upload
+    3. Validation - Dual validation (schema + LLM semantic via PDF upload)
+    4. Correction - Fix issues identified during validation via PDF upload
+
+PDF Upload Strategy:
+    All LLM steps use direct PDF upload (no text extraction) to preserve:
+    - Tables and figures (critical for medical research data)
+    - Images and charts (visual data representation)
+    - Complex formatting and layout information
+    - Complete document structure and context
+
+    Cost: ~1,500-3,000 tokens per page (3-6x more than text extraction)
+    Benefit: Complete data fidelity - no loss of tables, images, or formatting
+
+    Both OpenAI (GPT-4o vision) and Claude (document API) support PDF upload:
+    - 100 page limit, 32 MB file size limit
+    - Base64-encoded PDFs sent directly to LLM
+    - Vision models analyze both text and visual content
 
 Validation Strategy:
     The pipeline uses a two-tier validation approach:
@@ -20,7 +35,7 @@ Validation Strategy:
 
     Step 3b: LLM Semantic Validation (Slow & Expensive) [CONDITIONAL]
         - Only runs if schema quality score >= 50% (configurable)
-        - Verifies content accuracy against source PDF
+        - Verifies content accuracy against source PDF via PDF upload
         - Checks medical/domain plausibility
         - Identifies subtle semantic errors
         - Catches ~20% of errors (content issues)
@@ -49,7 +64,6 @@ from rich.table import Table
 # Import LLM and prompt functionality
 try:
     from src.llm import LLMError, get_llm_provider
-    from src.pdf_io import PDFError, extract_text_from_pdf
     from src.prompts import (
         PromptLoadError,
         load_classification_prompt,
@@ -145,7 +159,8 @@ class PipelineFileManager:
 
 def run_dual_validation(
     extraction_result: Dict[str, Any],
-    pdf_text: str,
+    pdf_path: Path,
+    max_pages: Optional[int],
     publication_type: str,
     llm: "BaseLLMProvider",
     console: Console,
@@ -159,7 +174,8 @@ def run_dual_validation(
 
     Args:
         extraction_result: The extracted JSON data to validate
-        pdf_text: Original PDF text for LLM semantic validation
+        pdf_path: Path to original PDF file for LLM semantic validation
+        max_pages: Maximum number of pages to process from PDF
         publication_type: Type of publication (for schema loading)
         llm: LLM provider instance
         console: Rich console for output
@@ -192,21 +208,26 @@ def run_dual_validation(
         # Step 2: LLM-based semantic validation (conditional on schema quality)
         # Only run expensive LLM validation if extraction has decent structure
         if schema_validation["quality_score"] >= SCHEMA_QUALITY_THRESHOLD:
-            console.print("[dim]LLM semantic validation...[/dim]")
+            console.print("[dim]LLM semantic validation with PDF upload...[/dim]")
             validation_prompt = load_validation_prompt()
+            validation_schema = load_schema("validation")
 
-            # Prepare validation input (extracted JSON + PDF content + schema validation)
-            validation_input = f"""
+            # Prepare validation context (extracted JSON + schema validation results)
+            validation_context = f"""
 EXTRACTED_JSON: {json.dumps(extraction_result, indent=2)}
 
 SCHEMA_VALIDATION_RESULTS: {json.dumps(schema_validation, indent=2)}
 
-PDF_CONTENT: {pdf_text}
+Verify the extracted data against the original PDF document. Check for hallucinations, missing data, accuracy errors, and completeness.
 """
 
-            # Run LLM validation
-            llm_validation = llm.generate_json(
-                prompt=validation_input, system_prompt=validation_prompt
+            # Run LLM validation with PDF upload for direct comparison
+            llm_validation = llm.generate_json_with_pdf(
+                pdf_path=pdf_path,
+                schema=validation_schema,
+                system_prompt=validation_prompt + "\n\n" + validation_context,
+                max_pages=max_pages,
+                schema_name="validation_report",
             )
 
             # Combine schema and LLM validation results
@@ -246,25 +267,38 @@ PDF_CONTENT: {pdf_text}
         return validation_result
 
     except SchemaLoadError as e:
-        console.print(f"[yellow]⚠️  Schema validation skipped: {e}[/yellow]")
-        # Fall back to LLM-only validation
-        try:
-            validation_prompt = load_validation_prompt()
-            validation_input = f"""
-EXTRACTED_JSON: {json.dumps(extraction_result, indent=2)}
-
-PDF_CONTENT: {pdf_text}
-"""
-            validation_result = llm.generate_json(
-                prompt=validation_input, system_prompt=validation_prompt
-            )
-            return validation_result
-        except (PromptLoadError, LLMError) as e2:
-            return {
-                "verification_summary": {"overall_status": "failed", "schema_compliance": 0.0},
-                "quality_assessment": f"Validation error: {e2}",
-                "recommendations": ["Fix validation system"],
-            }
+        console.print(f"[yellow]⚠️  Schema loading error: {e}[/yellow]")
+        # Cannot proceed with validation without schemas
+        console.print("[yellow]Skipping validation due to schema error[/yellow]")
+        validation_result = {
+            "verification_summary": {
+                "overall_status": "failed",
+                "completeness_score": 0.0,
+                "accuracy_score": 0.0,
+                "schema_compliance_score": 0.0,
+                "total_issues": 1,
+                "critical_issues": 1,
+            },
+            "issues": [
+                {
+                    "issue_id": "I001",
+                    "type": "schema_violation",
+                    "severity": "critical",
+                    "category": "other",
+                    "description": f"Schema loading error: {e}",
+                    "recommendation": "Fix schema loading issue",
+                }
+            ],
+            "field_validation": {
+                "required_fields_complete": False,
+                "schema_compliance": False,
+                "source_references_valid": False,
+                "data_types_correct": False,
+            },
+            "completeness_analysis": {},
+            "recommendations": ["Fix schema loading system"],
+        }
+        return validation_result
 
     except (PromptLoadError, LLMError, ValidationError) as e:
         console.print(f"[red]❌ Validatie fout: {e}[/red]")
@@ -273,9 +307,27 @@ PDF_CONTENT: {pdf_text}
                 "overall_status": "failed",
                 "completeness_score": 0.0,
                 "accuracy_score": 0.0,
-                "schema_compliance": 0.0,
+                "schema_compliance_score": 0.0,
+                "total_issues": 1,
+                "critical_issues": 1,
             },
-            "quality_assessment": f"Validation error: {e}",
+            "issues": [
+                {
+                    "issue_id": "I001",
+                    "type": "schema_violation",
+                    "severity": "critical",
+                    "category": "other",
+                    "description": f"Validation error: {e}",
+                    "recommendation": "Fix validation system",
+                }
+            ],
+            "field_validation": {
+                "required_fields_complete": False,
+                "schema_compliance": False,
+                "source_references_valid": False,
+                "data_types_correct": False,
+            },
+            "completeness_analysis": {},
             "recommendations": ["Fix validation system"],
         }
 
@@ -310,23 +362,24 @@ def run_four_step_pipeline(
         }
     else:
         try:
-            # Extract text from PDF
-            console.print("[dim]Extracting text from PDF...[/dim]")
-            pdf_text = extract_text_from_pdf(pdf_path, max_pages)
-
-            # Load classification prompt
+            # Load classification prompt and schema
             classification_prompt = load_classification_prompt()
+            classification_schema = load_schema("classification")
 
             # Get LLM provider
             llm = get_llm_provider(llm_provider)
 
-            # Run classification
-            console.print("[dim]Running classification with LLM...[/dim]")
-            classification_result = llm.generate_json(
-                prompt=pdf_text, system_prompt=classification_prompt
+            # Run classification with direct PDF upload
+            console.print("[dim]Uploading PDF for classification...[/dim]")
+            classification_result = llm.generate_json_with_pdf(
+                pdf_path=pdf_path,
+                schema=classification_schema,
+                system_prompt=classification_prompt,
+                max_pages=max_pages,
+                schema_name="classification",
             )
 
-        except (PDFError, PromptLoadError, LLMError) as e:
+        except (PromptLoadError, LLMError, SchemaLoadError) as e:
             console.print(f"[red]❌ Classificatie fout: {e}[/red]")
             console.print("[yellow]Gebruik mock data voor demonstratie[/yellow]")
             classification_result = {
@@ -388,14 +441,17 @@ def run_four_step_pipeline(
                     for warning in compatibility["warnings"][:3]:
                         console.print(f"[dim]  • {warning}[/dim]")
 
-                console.print(f"[dim]Running schema-based {publication_type} extraction...")
+                console.print(
+                    f"[dim]Running schema-based {publication_type} extraction with PDF upload..."
+                )
                 console.print(f"[dim]Schema: ~{compatibility['estimated_tokens']} tokens[/dim]")
 
-                # Run schema-based extraction
-                extraction_result = llm.generate_json_with_schema(
-                    prompt=pdf_text,
+                # Run schema-based extraction with direct PDF upload
+                extraction_result = llm.generate_json_with_pdf(
+                    pdf_path=pdf_path,
                     schema=extraction_schema,
                     system_prompt=extraction_prompt,
+                    max_pages=max_pages,
                     schema_name=f"{publication_type}_extraction",
                 )
 
@@ -403,12 +459,15 @@ def run_four_step_pipeline(
 
         except SchemaLoadError as e:
             console.print(f"[red]❌ Schema loading fout: {e}[/red]")
-            console.print("[yellow]Fallback naar generic JSON mode[/yellow]")
+            console.print("[yellow]Cannot proceed without schema - skipping extraction[/yellow]")
             try:
-                extraction_prompt = load_extraction_prompt(publication_type)
-                extraction_result = llm.generate_json(
-                    prompt=pdf_text, system_prompt=extraction_prompt
-                )
+                # Without schema, we can't use PDF upload effectively
+                # This should rarely happen in production
+                extraction_result = {
+                    "schema_version": "v2.0",
+                    "metadata": classification_result["metadata"],
+                    "error": f"Schema loading error: {e}",
+                }
             except (PromptLoadError, LLMError) as e2:
                 extraction_result = {
                     "schema_version": "v2.0",
@@ -449,7 +508,8 @@ def run_four_step_pipeline(
         publication_type = classification_result.get("publication_type")
         validation_result = run_dual_validation(
             extraction_result=extraction_result,
-            pdf_text=pdf_text,
+            pdf_path=pdf_path,
+            max_pages=max_pages,
             publication_type=publication_type,
             llm=llm,
             console=console,
@@ -473,22 +533,27 @@ def run_four_step_pipeline(
             }
         else:
             try:
-                # Load correction prompt
+                # Load correction prompt and extraction schema
                 correction_prompt = load_correction_prompt()
+                extraction_schema = load_schema(publication_type)
 
-                # Prepare correction input with original extraction, validation feedback, and PDF
-                correction_input = f"""
+                # Prepare correction context with original extraction and validation feedback
+                correction_context = f"""
 ORIGINAL_EXTRACTION: {json.dumps(extraction_result, indent=2)}
 
 VALIDATION_REPORT: {json.dumps(validation_result, indent=2)}
 
-PDF_CONTENT: {pdf_text}
+Systematically address all identified issues and produce corrected, complete, schema-compliant JSON extraction.
 """
 
-                # Run correction
-                console.print("[dim]Running correction with LLM...[/dim]")
-                corrected_extraction = llm.generate_json(
-                    prompt=correction_input, system_prompt=correction_prompt
+                # Run correction with PDF upload for direct reference
+                console.print("[dim]Running correction with PDF upload...[/dim]")
+                corrected_extraction = llm.generate_json_with_pdf(
+                    pdf_path=pdf_path,
+                    schema=extraction_schema,
+                    system_prompt=correction_prompt + "\n\n" + correction_context,
+                    max_pages=max_pages,
+                    schema_name=f"{publication_type}_extraction_corrected",
                 )
 
                 # Ensure correction metadata
@@ -530,7 +595,8 @@ PDF_CONTENT: {pdf_text}
             # Re-run dual validation on corrected extraction
             final_validation = run_dual_validation(
                 extraction_result=corrected_extraction,
-                pdf_text=pdf_text,
+                pdf_path=pdf_path,
+                max_pages=max_pages,
                 publication_type=publication_type,
                 llm=llm,
                 console=console,

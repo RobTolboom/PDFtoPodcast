@@ -24,6 +24,10 @@ Environment Variables:
     LLM_TEMPERATURE: Temperature for generation (default: 0.0 for deterministic)
     LLM_TIMEOUT: Request timeout in seconds (default: 120)
 
+    # PDF Processing Limits (API Constraints)
+    MAX_PDF_PAGES: Maximum pages to process from PDF (default: 100, API limit)
+    MAX_PDF_SIZE_MB: Maximum PDF file size in MB (default: 32, API limit)
+
 Example .env file:
     OPENAI_API_KEY=sk-...
     OPENAI_MODEL=gpt-4o
@@ -78,6 +82,8 @@ class LLMSettings:
         anthropic_max_tokens: Max output tokens for Claude (default: 4096)
         temperature: Sampling temperature, 0.0 = deterministic (default: 0.0)
         timeout: Request timeout in seconds (default: 120 for long extractions)
+        max_pdf_pages: Maximum pages to process from PDF (default: 100, API limit)
+        max_pdf_size_mb: Maximum PDF file size in MB (default: 32, API limit)
     """
 
     # Default provider
@@ -96,6 +102,10 @@ class LLMSettings:
     # General settings
     temperature: float = float(os.getenv("LLM_TEMPERATURE", "0.0"))  # 0.0 = deterministic
     timeout: int = int(os.getenv("LLM_TIMEOUT", "120"))  # 2 minutes for long extractions
+
+    # PDF processing limits (API constraints for direct PDF upload)
+    max_pdf_pages: int = int(os.getenv("MAX_PDF_PAGES", "100"))  # 100 page limit (OpenAI + Claude)
+    max_pdf_size_mb: int = int(os.getenv("MAX_PDF_SIZE_MB", "32"))  # 32 MB limit (OpenAI + Claude)
 
 
 @dataclass(frozen=True)

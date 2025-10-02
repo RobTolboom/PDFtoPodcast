@@ -60,9 +60,11 @@ Note:
     - ANTHROPIC_API_KEY for Claude
 """
 
+import base64
 import json
 import logging
 from abc import ABC, abstractmethod
+from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
 import anthropic
@@ -257,6 +259,61 @@ class BaseLLMProvider(ABC):
         """
         pass
 
+    @abstractmethod
+    def generate_json_with_pdf(
+        self,
+        pdf_path: Union["Path", str],
+        schema: Dict[str, Any],
+        system_prompt: Optional[str] = None,
+        max_pages: Optional[int] = None,
+        schema_name: Optional[str] = None,
+        **kwargs,
+    ) -> Dict[str, Any]:
+        """
+        Generate structured JSON from PDF file using vision capabilities.
+
+        Uploads PDF to LLM with vision support to extract structured data including
+        tables, images, charts, and text. This method preserves document structure
+        that would be lost with text-only extraction.
+
+        Both OpenAI and Claude convert PDF pages to images internally and analyze
+        both textual and visual content. This is critical for medical research papers
+        where tables, figures, and charts contain essential data.
+
+        Args:
+            pdf_path: Path to PDF file (str or Path object)
+            schema: JSON schema dictionary defining expected output structure
+            system_prompt: Optional system prompt with extraction instructions
+            max_pages: Optional limit on pages to process (max 100 per API limits)
+            schema_name: Optional name for schema (used by some providers)
+            **kwargs: Additional provider-specific arguments
+
+        Returns:
+            Dictionary conforming to the provided schema, extracted from PDF
+
+        Raises:
+            LLMProviderError: If PDF upload fails, file too large, or extraction fails
+            LLMProviderError: If PDF exceeds API limits (100 pages, 32 MB)
+
+        Note:
+            Cost: ~1,500-3,000 tokens per page (3-6x more than text extraction)
+            Worth it for complete data including tables and figures.
+
+        Example:
+            >>> from pathlib import Path
+            >>> from src.schemas_loader import load_schema
+            >>> schema = load_schema("interventional_trial")
+            >>> llm = get_llm_provider("openai")
+            >>> data = llm.generate_json_with_pdf(
+            ...     pdf_path=Path("paper.pdf"),
+            ...     schema=schema,
+            ...     system_prompt="Extract clinical trial data",
+            ...     max_pages=20
+            ... )
+            >>> # data includes tables, figures, complete extraction
+        """
+        pass
+
 
 class OpenAIProvider(BaseLLMProvider):
     """
@@ -417,6 +474,107 @@ class OpenAIProvider(BaseLLMProvider):
             schema_size = len(json.dumps(schema))
             logger.error(f"Schema size: {schema_size} bytes (~{schema_size//4} tokens)")
             raise LLMProviderError(f"OpenAI schema-based generation failed: {e}")
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse JSON response: {e}")
+            raise LLMProviderError(f"Invalid JSON response: {e}")
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=10),
+        retry=retry_if_exception_type((openai.RateLimitError, openai.APITimeoutError)),
+    )
+    def generate_json_with_pdf(
+        self,
+        pdf_path: Union[Path, str],
+        schema: Dict[str, Any],
+        system_prompt: Optional[str] = None,
+        max_pages: Optional[int] = None,
+        schema_name: Optional[str] = None,
+        **kwargs,
+    ) -> Dict[str, Any]:
+        """
+        Generate structured JSON from PDF using OpenAI Vision API with Structured Outputs.
+
+        Uses GPT-4o/GPT-4o-mini vision capabilities to analyze PDF including tables,
+        images, and charts. PDF is sent as base64-encoded file for direct processing.
+        """
+        try:
+            # Normalize to Path object
+            pdf_path = Path(pdf_path)
+
+            if not pdf_path.exists():
+                raise LLMProviderError(f"PDF file not found: {pdf_path}")
+
+            # Check file size (32 MB limit)
+            file_size_mb = pdf_path.stat().st_size / (1024 * 1024)
+            if file_size_mb > 32:
+                raise LLMProviderError(f"PDF file too large: {file_size_mb:.1f} MB (max 32 MB)")
+
+            # Read and encode PDF as base64
+            with open(pdf_path, "rb") as pdf_file:
+                pdf_data = base64.b64encode(pdf_file.read()).decode("utf-8")
+
+            logger.info(f"Uploading PDF to OpenAI: {pdf_path.name} ({file_size_mb:.1f} MB)")
+
+            # Prepare schema name
+            if schema_name is None:
+                schema_name = schema.get("title", "extraction_schema").replace(" ", "_")
+
+            # Build message with PDF attachment
+            messages = []
+            if system_prompt:
+                messages.append({"role": "system", "content": system_prompt})
+
+            # Create user message with PDF
+            user_content = [
+                {
+                    "type": "input_pdf",
+                    "input_pdf": {"data": pdf_data, "format": "pdf"},
+                }
+            ]
+
+            # Add page limit instruction if specified
+            if max_pages:
+                user_content.append(
+                    {
+                        "type": "text",
+                        "text": f"Process only the first {max_pages} pages of this PDF.",
+                    }
+                )
+
+            messages.append({"role": "user", "content": user_content})
+
+            # Use OpenAI's structured outputs with strict schema validation
+            response = self.client.chat.completions.create(
+                model=self.settings.openai_model,
+                messages=messages,
+                max_tokens=self.settings.openai_max_tokens,
+                temperature=self.settings.temperature,
+                response_format={
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": schema_name,
+                        "schema": schema,
+                        "strict": True,
+                    },
+                },
+                **kwargs,
+            )
+
+            content = response.choices[0].message.content.strip()
+            result = json.loads(content)
+
+            logger.info(
+                f"Successfully extracted schema-conforming JSON from PDF using {schema_name}"
+            )
+            return result
+
+        except FileNotFoundError as e:
+            logger.error(f"PDF file not found: {pdf_path}")
+            raise LLMProviderError(f"PDF file not found: {e}")
+        except openai.OpenAIError as e:
+            logger.error(f"OpenAI API error with PDF upload: {e}")
+            raise LLMProviderError(f"OpenAI PDF processing failed: {e}")
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse JSON response: {e}")
             raise LLMProviderError(f"Invalid JSON response: {e}")
@@ -606,6 +764,125 @@ class ClaudeProvider(BaseLLMProvider):
         except anthropic.AnthropicError as e:
             logger.error(f"Claude API error with schema-based generation: {e}")
             raise LLMProviderError(f"Claude schema-based generation failed: {e}")
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse JSON response: {e}")
+            # Truncate long responses to avoid logging sensitive data
+            content_preview = content[:200] + "..." if len(content) > 200 else content
+            logger.error(f"Raw response preview: {content_preview}")
+            raise LLMProviderError(f"Invalid JSON response: {e}")
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=10),
+        retry=retry_if_exception_type((anthropic.RateLimitError, anthropic.APITimeoutError)),
+    )
+    def generate_json_with_pdf(
+        self,
+        pdf_path: Union[Path, str],
+        schema: Dict[str, Any],
+        system_prompt: Optional[str] = None,
+        max_pages: Optional[int] = None,
+        schema_name: Optional[str] = None,
+        **kwargs,
+    ) -> Dict[str, Any]:
+        """
+        Generate structured JSON from PDF using Claude API with vision capabilities.
+
+        Uses Claude's PDF processing to analyze documents including tables, images,
+        and charts. PDF is base64-encoded and sent directly in the message.
+        """
+        try:
+            # Normalize to Path object
+            pdf_path = Path(pdf_path)
+
+            if not pdf_path.exists():
+                raise LLMProviderError(f"PDF file not found: {pdf_path}")
+
+            # Check file size (32 MB limit)
+            file_size_mb = pdf_path.stat().st_size / (1024 * 1024)
+            if file_size_mb > 32:
+                raise LLMProviderError(f"PDF file too large: {file_size_mb:.1f} MB (max 32 MB)")
+
+            # Read and encode PDF as base64
+            with open(pdf_path, "rb") as pdf_file:
+                pdf_data = base64.b64encode(pdf_file.read()).decode("utf-8")
+
+            logger.info(f"Uploading PDF to Claude: {pdf_path.name} ({file_size_mb:.1f} MB)")
+
+            # Include schema information in system prompt
+            schema_instruction = (
+                f"\n\nYou must return a JSON object that conforms to this JSON schema:\n"
+                f"{json.dumps(schema, indent=2)}\n\n"
+                f"CRITICAL: Follow the schema exactly. Include all required fields. "
+                f"Return ONLY valid JSON, no markdown or explanations."
+            )
+            full_system_prompt = (system_prompt or "") + schema_instruction
+
+            # Add page limit instruction if specified
+            if max_pages:
+                full_system_prompt += f"\n\nProcess only the first {max_pages} pages of the PDF."
+
+            # Create message with PDF document
+            response = self.client.messages.create(
+                model=self.settings.anthropic_model,
+                max_tokens=self.settings.anthropic_max_tokens,
+                temperature=self.settings.temperature,
+                system=full_system_prompt,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "document",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": "application/pdf",
+                                    "data": pdf_data,
+                                },
+                            },
+                            {
+                                "type": "text",
+                                "text": "Extract structured data from this PDF document according to the schema.",
+                            },
+                        ],
+                    }
+                ],
+                **kwargs,
+            )
+
+            content = response.content[0].text.strip()
+
+            # Extract JSON from markdown code blocks if present
+            content = _extract_json_from_markdown(content)
+
+            result = json.loads(content)
+
+            # Validate against schema using jsonschema library
+            if HAVE_JSONSCHEMA:
+                try:
+                    jsonschema.validate(result, schema)
+                    logger.info(
+                        "Successfully extracted and validated schema-conforming JSON from PDF with Claude"
+                    )
+                except jsonschema.ValidationError as e:
+                    logger.error(f"Schema validation failed: {e.message}")
+                    raise LLMProviderError(
+                        f"Generated JSON does not conform to schema: {e.message}"
+                    )
+            else:
+                logger.warning(
+                    "jsonschema library not available - skipping schema validation. "
+                    "Schema guidance was provided to LLM but compliance is not guaranteed."
+                )
+
+            return result
+
+        except FileNotFoundError as e:
+            logger.error(f"PDF file not found: {pdf_path}")
+            raise LLMProviderError(f"PDF file not found: {e}")
+        except anthropic.AnthropicError as e:
+            logger.error(f"Claude API error with PDF upload: {e}")
+            raise LLMProviderError(f"Claude PDF processing failed: {e}")
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse JSON response: {e}")
             # Truncate long responses to avoid logging sensitive data

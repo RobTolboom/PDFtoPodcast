@@ -1,0 +1,152 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Validation Report Schema",
+  "description": "Schema for extraction validation and quality assessment output",
+  "type": "object",
+  "required": ["verification_summary", "issues", "field_validation", "completeness_analysis", "recommendations"],
+  "properties": {
+    "verification_summary": {
+      "type": "object",
+      "required": ["overall_status", "completeness_score", "accuracy_score", "schema_compliance_score", "total_issues", "critical_issues"],
+      "properties": {
+        "overall_status": {
+          "type": "string",
+          "enum": ["passed", "failed", "warning"]
+        },
+        "completeness_score": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "accuracy_score": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "schema_compliance_score": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "total_issues": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "critical_issues": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["issue_id", "type", "severity", "category", "description"],
+        "properties": {
+          "issue_id": {
+            "type": "string",
+            "pattern": "^I\\d{3,}$"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["hallucination", "missing_data", "accuracy_error", "schema_violation", "source_error"]
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["critical", "moderate", "minor"]
+          },
+          "category": {
+            "type": "string",
+            "enum": ["metadata", "study_design", "population", "outcomes", "results", "tables", "figures", "other"]
+          },
+          "field_path": {
+            "type": "string"
+          },
+          "extracted_value": {
+            "description": "The value found in the extracted JSON (can be any type)"
+          },
+          "expected_value": {
+            "description": "The correct value from PDF or null if missing (can be any type)"
+          },
+          "description": {
+            "type": "string"
+          },
+          "pdf_reference": {
+            "type": "string"
+          },
+          "recommendation": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "field_validation": {
+      "type": "object",
+      "required": ["required_fields_complete", "schema_compliance", "source_references_valid", "data_types_correct"],
+      "properties": {
+        "required_fields_complete": {
+          "type": "boolean"
+        },
+        "schema_compliance": {
+          "type": "boolean"
+        },
+        "source_references_valid": {
+          "type": "boolean"
+        },
+        "data_types_correct": {
+          "type": "boolean"
+        }
+      }
+    },
+    "completeness_analysis": {
+      "type": "object",
+      "properties": {
+        "tables_captured": {
+          "type": "string"
+        },
+        "figures_captured": {
+          "type": "string"
+        },
+        "outcomes_captured": {
+          "type": "string"
+        },
+        "missing_sections": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "recommendations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "verification_metadata": {
+      "type": "object",
+      "properties": {
+        "pdf_pages_reviewed": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "extraction_schema_type": {
+          "type": "string",
+          "enum": ["interventional_trial", "observational_analytic", "evidence_synthesis", "prediction_prognosis", "editorials_opinion", "overig"]
+        },
+        "verification_timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "verification_warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

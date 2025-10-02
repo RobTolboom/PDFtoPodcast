@@ -5,9 +5,6 @@ pydantic>=2.7			# validatie en JSON-schema's
 python-dotenv>=1.0		# .env bestanden laden
 jsonschema>=4.20		# JSON schema validatie
 
-# --- PDF handling ---
-pymupdf>=1.24			# robuuste PDF-tekstextractie (fitz)
-
 # --- Reliability ---
 tenacity>=8.2			# retry/backoff bij API errors
 
