@@ -1,7 +1,9 @@
 # --- Core ---
 openai>=1.51.0			# officiële OpenAI client (Responses API, JSON schema etc.)
-pydantic>=2.7			# validatie en JSON-schema’s
+anthropic>=0.25.0		# Anthropic Claude API client
+pydantic>=2.7			# validatie en JSON-schema's
 python-dotenv>=1.0		# .env bestanden laden
+jsonschema>=4.20		# JSON schema validatie
 
 # --- PDF handling ---
 pymupdf>=1.24			# robuuste PDF-tekstextractie (fitz)
