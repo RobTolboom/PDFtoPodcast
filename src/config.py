@@ -101,11 +101,11 @@ class LLMSettings:
 
     # General settings
     temperature: float = float(os.getenv("LLM_TEMPERATURE", "0.0"))  # 0.0 = deterministic
-    timeout: int = int(os.getenv("LLM_TIMEOUT", "120"))  # 2 minutes for long extractions
+    timeout: int = int(os.getenv("LLM_TIMEOUT", "600"))  # 10 minutes for long extractions
 
     # PDF processing limits (API constraints for direct PDF upload)
     max_pdf_pages: int = int(os.getenv("MAX_PDF_PAGES", "100"))  # 100 page limit (OpenAI + Claude)
-    max_pdf_size_mb: int = int(os.getenv("MAX_PDF_SIZE_MB", "32"))  # 32 MB limit (OpenAI + Claude)
+    max_pdf_size_mb: int = int(os.getenv("MAX_PDF_SIZE_MB", "10"))  # 32 MB limit (OpenAI + Claude)
 
 
 @dataclass(frozen=True)
