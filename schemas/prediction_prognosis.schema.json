@@ -235,7 +235,8 @@
                 "concerns": {
                   "type": "string"
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "predictors": {
               "type": [
@@ -262,7 +263,8 @@
                 "concerns": {
                   "type": "string"
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "outcome": {
               "type": [
@@ -289,7 +291,8 @@
                 "concerns": {
                   "type": "string"
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "analysis": {
               "type": [
@@ -308,7 +311,8 @@
                 "concerns": {
                   "type": "string"
                 }
-              }
+              },
+              "additionalProperties": false
             }
           },
           "additionalProperties": false,
@@ -322,7 +326,8 @@
         "notes": {
           "type": "string"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "sample_size_considerations": {
       "type": [
@@ -396,7 +401,8 @@
           "type": "number",
           "description": "Estimated optimism in performance from bootstrap/CV"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "protocol_deviations": {
       "type": [
@@ -603,7 +609,8 @@
               "fairness_threshold": {
                 "type": "number"
               }
-            }
+            },
+            "additionalProperties": false
           },
           "performance_disparity": {
             "type": [
@@ -621,7 +628,8 @@
               "clinically_meaningful": {
                 "type": "boolean"
               }
-            }
+            },
+            "additionalProperties": false
           },
           "bias_mitigation": {
             "type": [
@@ -647,7 +655,8 @@
               "effectiveness": {
                 "type": "string"
               }
-            }
+            },
+            "additionalProperties": false
           },
           "source": {
             "$ref": "common.schema.json#/$defs/SourceRef"
@@ -763,7 +772,8 @@
             "detected"
           ]
         }
-      }
+      },
+      "additionalProperties": false
     },
     "model_deployment": {
       "type": [
@@ -961,7 +971,8 @@
             "version_history"
           ]
         }
-      }
+      },
+      "additionalProperties": false
     },
     "extraction_warnings": {
       "type": [
@@ -1792,7 +1803,8 @@
                 "visualized"
               ]
             }
-          }
+          },
+          "additionalProperties": false
         },
         "hyperparameters": {
           "type": [
@@ -2151,7 +2163,8 @@
                         "type": "string"
                       }
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 },
                 "continuous": {
                   "type": [
@@ -2165,7 +2178,8 @@
                     "p_value": {
                       "type": "number"
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               },
               "additionalProperties": false,
@@ -2238,7 +2252,8 @@
                 ]
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "model_comparison": {
           "type": [
@@ -2376,7 +2391,8 @@
                 "bic"
               ]
             }
-          }
+          },
+          "additionalProperties": false
         },
         "threshold_metrics": {
           "type": [

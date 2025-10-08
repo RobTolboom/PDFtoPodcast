@@ -357,7 +357,8 @@
               "type": "string",
               "format": "date"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "editorial_process": {
           "type": [
@@ -378,7 +379,8 @@
               "type": "integer",
               "minimum": 0
             }
-          }
+          },
+          "additionalProperties": false
         }
       },
       "required": [
@@ -953,7 +955,8 @@
                 ]
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "social_media_integration": {
           "type": [
@@ -1009,7 +1012,8 @@
                         "type": "integer",
                         "minimum": 0
                       }
-                    }
+                    },
+                    "additionalProperties": false
                   }
                 },
                 "additionalProperties": false,
@@ -1028,7 +1032,8 @@
               },
               "description": "Relevant hashtags for social media promotion"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "version_control": {
           "type": [
@@ -1132,7 +1137,8 @@
                 ]
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "peer_commentary": {
           "type": [
@@ -1241,7 +1247,8 @@
                 ]
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "accessibility": {
           "type": [
@@ -1335,7 +1342,8 @@
                 "url"
               ]
             }
-          }
+          },
+          "additionalProperties": false
         },
         "real_time_updates": {
           "type": [
@@ -1361,7 +1369,8 @@
               "type": "string",
               "format": "date-time"
             }
-          }
+          },
+          "additionalProperties": false
         }
       },
       "required": [
@@ -1421,7 +1430,8 @@
             "previous_editorial_experience": {
               "type": "boolean"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "source_credibility": {
           "type": [
@@ -1475,7 +1485,8 @@
               ],
               "description": "Independence of cited sources from potential conflicts"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "fact_checking": {
           "type": [
@@ -1582,7 +1593,8 @@
                 ]
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "transparency": {
           "type": [
@@ -1629,7 +1641,8 @@
                 "unclear"
               ]
             }
-          }
+          },
+          "additionalProperties": false
         },
         "readability": {
           "type": [
@@ -1677,7 +1690,8 @@
                 ]
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "overall_quality_score": {
           "type": [
@@ -1717,7 +1731,8 @@
               ],
               "description": "Confidence in the reliability of this assessment"
             }
-          }
+          },
+          "additionalProperties": false
         }
       },
       "required": [
@@ -1802,7 +1817,8 @@
                 ]
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "altmetrics": {
           "type": [
@@ -1866,7 +1882,8 @@
                       "minimum": 0,
                       "maximum": 1
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
               },
               "additionalProperties": false,
@@ -1964,7 +1981,8 @@
                 "unique_users"
               ]
             }
-          }
+          },
+          "additionalProperties": false
         },
         "policy_impact": {
           "type": [
@@ -2077,7 +2095,8 @@
                 ]
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "expert_reception": {
           "type": [
@@ -2193,7 +2212,8 @@
                 ]
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "longitudinal_impact": {
           "type": [
@@ -2261,7 +2281,8 @@
               ],
               "description": "Assessment of long-term influence sustainability"
             }
-          }
+          },
+          "additionalProperties": false
         }
       },
       "required": [
@@ -2624,7 +2645,8 @@
                 "conversational"
               ]
             }
-          }
+          },
+          "additionalProperties": false
         }
       },
       "required": [
@@ -2665,7 +2687,8 @@
               ],
               "description": "Diversity of sources and viewpoints presented"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "confirmation_bias": {
           "type": [
@@ -2688,7 +2711,8 @@
               },
               "description": "Contradictory evidence that is dismissed without adequate justification"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "framing_bias": {
           "type": [
@@ -2717,7 +2741,8 @@
               ],
               "description": "How information is contextualized"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "authority_bias": {
           "type": [
@@ -2736,7 +2761,8 @@
               "type": "boolean",
               "description": "Arguments based on author's position rather than evidence"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "statistical_bias": {
           "type": [
@@ -2759,7 +2785,8 @@
               "type": "boolean",
               "description": "Inappropriate generalizations from small samples"
             }
-          }
+          },
+          "additionalProperties": false
         }
       },
       "required": [
@@ -2892,7 +2919,8 @@
                 "unsupported"
               ]
             }
-          }
+          },
+          "additionalProperties": false
         },
         "counterargument_consideration": {
           "type": [
@@ -2915,7 +2943,8 @@
                 "none"
               ]
             }
-          }
+          },
+          "additionalProperties": false
         }
       },
       "required": [

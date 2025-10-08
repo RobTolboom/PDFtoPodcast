@@ -364,7 +364,8 @@
             ]
           }
         }
-      }
+      },
+      "additionalProperties": false
     },
     "time_varying_confounding": {
       "type": [
@@ -414,7 +415,8 @@
                 "upper_percentile": {
                   "type": "number"
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "denominator_model": {
               "type": [
@@ -489,7 +491,8 @@
         "sequential_exchangeability_assumption": {
           "type": "string"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "extraction_quality": {
       "type": [
@@ -632,7 +635,8 @@
         "notes": {
           "type": "string"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "strobe_reporting": {
       "type": [
@@ -663,7 +667,8 @@
           "minimum": 0,
           "maximum": 100
         }
-      }
+      },
+      "additionalProperties": false
     },
     "protocol_deviations": {
       "type": [
@@ -827,7 +832,8 @@
                 "as_treated"
               ]
             }
-          }
+          },
+          "additionalProperties": false
         },
         "new_user_design": {
           "type": [
@@ -996,7 +1002,8 @@
             "seasonality_adjustment": {
               "type": "boolean"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "case_crossover_details": {
           "type": [
@@ -1022,7 +1029,8 @@
             "bidirectional": {
               "type": "boolean"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "rdd_details": {
           "type": [
@@ -1078,7 +1086,8 @@
             "covariate_balance_at_cutoff": {
               "type": "boolean"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "did_details": {
           "type": [
@@ -1141,7 +1150,8 @@
             "triple_difference": {
               "type": "boolean"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "design_notes": {
           "type": [
@@ -1852,7 +1862,8 @@
             "interpretation": {
               "type": "string"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "negative_controls": {
           "type": [
@@ -1940,7 +1951,8 @@
                 ]
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "quantitative_bias_analysis": {
           "type": [
@@ -1997,7 +2009,8 @@
                 ]
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "rule_out_approach": {
           "type": [
@@ -2012,7 +2025,8 @@
             "robust_to": {
               "type": "string"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "notes": {
           "type": [
@@ -2259,7 +2273,8 @@
                     "upper": {
                       "type": "number"
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 },
                 "effective_sample_size": {
                   "type": [
@@ -2649,7 +2664,8 @@
                 "no_interaction"
               ]
             }
-          }
+          },
+          "additionalProperties": false
         },
         "causal_vs_statistical": {
           "type": [
@@ -2795,7 +2811,8 @@
                 "plausible"
               ]
             }
-          }
+          },
+          "additionalProperties": false
         },
         "estimation_method": {
           "type": [
@@ -2828,7 +2845,8 @@
             "interpretation": {
               "type": "string"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "mendelian_randomization": {
           "type": [
@@ -2871,7 +2889,8 @@
                 "q_statistic_p"
               ]
             }
-          }
+          },
+          "additionalProperties": false
         },
         "sensitivity_analyses": {
           "type": [

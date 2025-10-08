@@ -1149,7 +1149,8 @@
                 "concerns": {
                   "type": "string"
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "identification_and_selection": {
               "type": [
@@ -1168,7 +1169,8 @@
                 "concerns": {
                   "type": "string"
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "data_collection_and_study_appraisal": {
               "type": [
@@ -1187,7 +1189,8 @@
                 "concerns": {
                   "type": "string"
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "synthesis_and_findings": {
               "type": [
@@ -1206,7 +1209,8 @@
                 "concerns": {
                   "type": "string"
                 }
-              }
+              },
+              "additionalProperties": false
             }
           },
           "additionalProperties": false,
@@ -1586,7 +1590,8 @@
                 "p_value"
               ]
             }
-          }
+          },
+          "additionalProperties": false
         },
         "meta_regression": {
           "type": [
@@ -1700,7 +1705,8 @@
                 "tau2_residual"
               ]
             }
-          }
+          },
+          "additionalProperties": false
         },
         "outlier_detection": {
           "type": [
@@ -1756,7 +1762,8 @@
                 ]
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "meta_regression_terms": {
           "type": [
@@ -2060,7 +2067,8 @@
             "similarity_table_source": {
               "$ref": "#/$defs/SourceRef"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "network_geometry": {
           "type": [
@@ -2134,7 +2142,8 @@
                 ]
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "comparison_adjusted_funnel_plot": {
           "type": [
@@ -2148,7 +2157,8 @@
             "interpretation": {
               "type": "string"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "league_table": {
           "type": [
@@ -2167,7 +2177,8 @@
                 "full_matrix"
               ]
             }
-          }
+          },
+          "additionalProperties": false
         },
         "cinema_assessment": {
           "type": [
@@ -2233,7 +2244,8 @@
                 "very_low"
               ]
             }
-          }
+          },
+          "additionalProperties": false
         },
         "notes": {
           "type": [
@@ -2482,7 +2494,8 @@
               "type": "boolean",
               "description": "All plausible confounding would reduce effect"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "absolute_effects": {
           "type": [
@@ -2570,7 +2583,8 @@
                 "intervention_risk"
               ]
             }
-          }
+          },
+          "additionalProperties": false
         },
         "summary_of_findings": {
           "type": [
@@ -2595,7 +2609,8 @@
             "plain_language_summary": {
               "type": "string"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "footnotes": {
           "type": [
@@ -3101,7 +3116,8 @@
               },
               "description": "Studies whose exclusion substantially changes results"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "fixed_vs_random_comparison": {
           "type": [
@@ -3123,7 +3139,8 @@
                 "substantial_difference"
               ]
             }
-          }
+          },
+          "additionalProperties": false
         },
         "alternative_effect_measure": {
           "type": [
@@ -3143,7 +3160,8 @@
             "conclusion_changed": {
               "type": "boolean"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "rob_restriction": {
           "type": [
@@ -3165,7 +3183,8 @@
             "conclusion_changed": {
               "type": "boolean"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "result": {
           "type": [
@@ -3188,7 +3207,8 @@
             "interpretation": {
               "type": "string"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "source": {
           "$ref": "#/$defs/SourceRef"

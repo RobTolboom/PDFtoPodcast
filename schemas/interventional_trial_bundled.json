@@ -341,7 +341,8 @@
             ]
           }
         }
-      }
+      },
+      "additionalProperties": false
     },
     "sensitivity_analyses": {
       "type": [
@@ -596,7 +597,8 @@
             "random": {
               "type": "boolean"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "allocation_concealment": {
           "type": [
@@ -660,7 +662,8 @@
               "type": "integer",
               "minimum": 0
             }
-          }
+          },
+          "additionalProperties": false
         },
         "analysis_population": {
           "type": [
@@ -915,7 +918,8 @@
                 ]
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "response_adaptive_randomisation": {
           "type": [
@@ -966,7 +970,8 @@
             "borrowing_across_comparisons": {
               "type": "boolean"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "master_protocol_details": {
           "type": [
@@ -1028,7 +1033,8 @@
                 ]
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "mams_details": {
           "type": [
@@ -1053,7 +1059,8 @@
             "arm_dropping_criteria": {
               "type": "string"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "sample_size_calculation": {
           "type": [
@@ -1351,7 +1358,8 @@
               "type": "boolean",
               "description": "Whether dropout differs significantly between arms"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "missing_data": {
           "type": [
@@ -2780,7 +2788,8 @@
             "differential_by_arm": {
               "type": "boolean"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "minimally_important_difference": {
           "type": [
@@ -2800,7 +2809,8 @@
             "source": {
               "type": "string"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "scoring": {
           "type": [
@@ -2843,7 +2853,8 @@
                 "type": "string"
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "pro_ctcae": {
           "type": [
@@ -2902,7 +2913,8 @@
                   "p75": {
                     "type": "number"
                   }
-                }
+                },
+                "additionalProperties": false
               }
             },
             "additionalProperties": false,
@@ -3029,7 +3041,8 @@
               "minimum": 0,
               "maximum": 1
             }
-          }
+          },
+          "additionalProperties": false
         },
         "component_specific_effects": {
           "type": [
@@ -3515,7 +3528,8 @@
               "maximum": 1,
               "description": "P-value from Little's MCAR test"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "imputation_method": {
           "type": [
