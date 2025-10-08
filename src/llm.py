@@ -7,17 +7,16 @@
 Multi-provider LLM abstraction layer with schema-enforced JSON generation.
 
 This module provides a unified interface for interacting with different LLM providers
-(OpenAI, Claude) with three generation modes:
+(OpenAI, Claude) with two generation modes:
 1. Free-form text generation
-2. Generic JSON generation (no schema enforcement)
-3. Schema-based JSON generation (guaranteed schema compliance)
+2. Schema-based JSON generation (strict schema compliance)
 
 Supported Providers:
     OpenAI:
-        - Uses native Structured Outputs API for schema enforcement
+        - Uses Responses API with Structured Outputs (strict mode)
         - Guarantees output conforms to JSON schema at generation time
-        - Requires models with structured output support (e.g., gpt-4o)
-        - Response format: {"type": "json_schema", "json_schema": {...}}
+        - Requires models with structured output support (e.g., gpt-4o, gpt-5)
+        - All schemas must be OpenAI Strict Mode compliant
 
     Claude:
         - Uses prompt-based schema guidance
@@ -207,36 +206,6 @@ class BaseLLMProvider(ABC):
         pass
 
     @abstractmethod
-    def generate_json(
-        self, prompt: str, system_prompt: Optional[str] = None, **kwargs
-    ) -> Dict[str, Any]:
-        """
-        Generate structured JSON response (no schema enforcement).
-
-        Uses provider's generic JSON mode. Output structure depends on prompt
-        instructions only - no schema validation is performed.
-
-        Args:
-            prompt: User prompt/content to process
-            system_prompt: Optional system prompt with JSON instructions
-            **kwargs: Provider-specific arguments
-
-        Returns:
-            Dictionary parsed from JSON response
-
-        Raises:
-            LLMProviderError: If generation or JSON parsing fails
-
-        Example:
-            >>> llm = get_llm_provider("openai")
-            >>> data = llm.generate_json(
-            ...     prompt="Extract: name, age, city from text",
-            ...     system_prompt="Return data as JSON"
-            ... )
-        """
-        pass
-
-    @abstractmethod
     def generate_json_with_schema(
         self,
         prompt: str,
@@ -323,10 +292,9 @@ class OpenAIProvider(BaseLLMProvider):
     """
     OpenAI API provider implementation with native Structured Outputs support.
 
-    This provider uses OpenAI's chat completions API with support for:
+    This provider uses OpenAI's Responses API with support for:
     - Free-form text generation
-    - Generic JSON mode (response_format={"type": "json_object"})
-    - Structured Outputs (response_format={"type": "json_schema"})
+    - Structured Outputs with JSON Schema (strict mode)
 
     The Structured Outputs feature guarantees that generated JSON conforms
     to the provided schema at generation time, eliminating the need for
@@ -384,39 +352,6 @@ class OpenAIProvider(BaseLLMProvider):
         except openai.OpenAIError as e:
             logger.error(f"OpenAI API error: {e}")
             raise LLMProviderError(f"OpenAI API error: {e}")
-
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=4, max=10),
-        retry=retry_if_exception_type((openai.RateLimitError, openai.APITimeoutError)),
-    )
-    def generate_json(
-        self, prompt: str, system_prompt: Optional[str] = None, **kwargs
-    ) -> Dict[str, Any]:
-        """Generate structured JSON using OpenAI Responses API (generic JSON mode)"""
-        try:
-            response = self.client.responses.create(
-                model=self.settings.openai_model,
-                input=prompt,
-                instructions=system_prompt,
-                max_output_tokens=self.settings.openai_max_tokens,
-                # temperature not supported for reasoning models (GPT-5, o-series)
-                text={"format": {"type": "json_object"}},
-                **kwargs,
-            )
-
-            # Use SDK convenience property and parse JSON
-            content = response.output_text.strip()
-            result = json.loads(content)
-            logger.info("Successfully generated JSON with OpenAI Responses API")
-            return result
-
-        except openai.OpenAIError as e:
-            logger.error(f"OpenAI API error: {e}")
-            raise LLMProviderError(f"OpenAI API error: {e}")
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse JSON response: {e}")
-            raise LLMProviderError(f"Invalid JSON response: {e}")
 
     @retry(
         stop=stop_after_attempt(3),
@@ -730,48 +665,6 @@ class ClaudeProvider(BaseLLMProvider):
         wait=wait_exponential(multiplier=1, min=4, max=10),
         retry=retry_if_exception_type((anthropic.RateLimitError, anthropic.APITimeoutError)),
     )
-    def generate_json(
-        self, prompt: str, system_prompt: Optional[str] = None, **kwargs
-    ) -> Dict[str, Any]:
-        """Generate structured JSON using Claude API (generic JSON mode)"""
-        try:
-            # Add JSON instruction to system prompt
-            json_instruction = "\n\nIMPORTANT: Return ONLY a valid JSON object, no additional text or explanations."
-            full_system_prompt = (system_prompt or "") + json_instruction
-
-            response = self.client.messages.create(
-                model=self.settings.anthropic_model,
-                max_tokens=self.settings.anthropic_max_tokens,
-                temperature=self.settings.temperature,
-                system=full_system_prompt,
-                messages=[{"role": "user", "content": prompt}],
-                **kwargs,
-            )
-
-            content = response.content[0].text.strip()
-
-            # Extract JSON from markdown code blocks if present
-            content = _extract_json_from_markdown(content)
-
-            result = json.loads(content)
-            logger.info("Successfully generated JSON with Claude")
-            return result
-
-        except anthropic.AnthropicError as e:
-            logger.error(f"Claude API error: {e}")
-            raise LLMProviderError(f"Claude API error: {e}")
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse JSON response: {e}")
-            # Truncate long responses to avoid logging sensitive data
-            content_preview = content[:200] + "..." if len(content) > 200 else content
-            logger.error(f"Raw response preview: {content_preview}")
-            raise LLMProviderError(f"Invalid JSON response: {e}")
-
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=4, max=10),
-        retry=retry_if_exception_type((anthropic.RateLimitError, anthropic.APITimeoutError)),
-    )
     def generate_json_with_schema(
         self,
         prompt: str,
@@ -1045,42 +938,6 @@ def generate_text(
 
     llm = get_llm_provider(provider)
     return llm.generate_text(prompt, system_prompt, **kwargs)
-
-
-def generate_json(
-    prompt: str,
-    provider: Union[str, LLMProvider] = None,
-    system_prompt: Optional[str] = None,
-    **kwargs,
-) -> Dict[str, Any]:
-    """
-    Generate JSON using specified or default provider.
-
-    Convenience function for generic JSON generation (no schema enforcement).
-    Uses default provider from settings if not specified.
-
-    Args:
-        prompt: User prompt/content to process
-        provider: Provider to use (defaults to llm_settings.default_provider)
-        system_prompt: Optional system prompt with JSON instructions
-        **kwargs: Provider-specific arguments
-
-    Returns:
-        Dictionary parsed from JSON response
-
-    Raises:
-        LLMError: If provider is invalid
-        LLMProviderError: If generation or JSON parsing fails
-
-    Example:
-        >>> data = generate_json("Return user info as JSON", provider="claude")
-        >>> data = generate_json("Extract entities", system_prompt="Medical NER")
-    """
-    if provider is None:
-        provider = llm_settings.default_provider
-
-    llm = get_llm_provider(provider)
-    return llm.generate_json(prompt, system_prompt, **kwargs)
 
 
 def generate_json_with_schema(
