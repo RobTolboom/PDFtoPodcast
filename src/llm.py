@@ -382,11 +382,36 @@ class OpenAIProvider(BaseLLMProvider):
 
         # Parse JSON
         content = content.strip()
+
+        # Check if JSON appears complete
+        if content and not (content.endswith("}") or content.endswith("]")):
+            logger.warning(
+                f"JSON response may be truncated - does not end with }} or ]. "
+                f"Last 50 chars: {content[-50:]}"
+            )
+
         try:
             return json.loads(content)
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse JSON response: {e}")
-            raise LLMProviderError(f"Invalid JSON response: {e}")
+            logger.error(f"Full content length: {len(content)} characters")
+            logger.error(f"First 200 chars: {content[:200]}")
+            logger.error(f"Last 200 chars: {content[-200:]}")
+
+            # Extract context around error position if available
+            if hasattr(e, "pos") and e.pos:
+                error_pos = e.pos
+                context_start = max(0, error_pos - 50)
+                context_end = min(len(content), error_pos + 50)
+                context = content[context_start:context_end]
+                logger.error(
+                    f"Context around error position {error_pos} "
+                    f"(chars {context_start}-{context_end}): {context}"
+                )
+
+            raise LLMProviderError(
+                f"Invalid JSON response at position {e.pos if hasattr(e, 'pos') else 'unknown'}: {e}"
+            )
 
     @retry(
         stop=stop_after_attempt(3),
