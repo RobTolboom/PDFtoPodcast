@@ -94,6 +94,11 @@ console = Console()
 # If schema validation quality < threshold, skip LLM validation and go directly to correction
 SCHEMA_QUALITY_THRESHOLD = 0.5  # 50% - extraction must have basic structure
 
+# 🔍 TESTING BREAKPOINT CONFIGURATION
+# Set to the step where you want to pause for inspection:
+# Options: "classification", "extraction", "validation", "correction", None (run full pipeline)
+BREAKPOINT_AFTER_STEP = None  # Change this to move breakpoint
+
 
 def doi_to_safe_filename(doi: str) -> str:
     """Convert DOI to filesystem-safe string"""
@@ -116,6 +121,37 @@ def get_file_identifier(classification_result: dict, pdf_path: Path) -> str:
         # Fallback: PDF naam + timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         return f"{pdf_path.stem}_{timestamp}"
+
+
+def get_next_step(current_step: str) -> str:
+    """Get the name of the next pipeline step."""
+    steps = ["classification", "extraction", "validation", "correction"]
+    try:
+        idx = steps.index(current_step)
+        return steps[idx + 1] if idx + 1 < len(steps) else "None"
+    except ValueError:
+        return "None"
+
+
+def check_breakpoint(
+    step_name: str, results: Dict[str, Any], file_manager: "PipelineFileManager"
+) -> bool:
+    """
+    Check if pipeline should stop at this step for testing.
+
+    Returns True if breakpoint triggered (stop pipeline), False otherwise.
+    """
+    if BREAKPOINT_AFTER_STEP == step_name:
+        console.print(
+            f"\n[bold yellow]⏸️  BREAKPOINT: Stopped after '{step_name}' step[/bold yellow]"
+        )
+        console.print("[dim]Pipeline paused for step-by-step testing.[/dim]")
+        console.print(f"[dim]Results saved to: tmp/{file_manager.identifier}-*[/dim]")
+        console.print(
+            f"\n[dim]💡 To continue: Set BREAKPOINT_AFTER_STEP = '{get_next_step(step_name)}' or None[/dim]"
+        )
+        return True
+    return False
 
 
 class PipelineFileManager:
@@ -401,6 +437,10 @@ def run_four_step_pipeline(
     console.print(f"[green]✅ Classificatie opgeslagen: {classification_file}[/green]")
     results["classification"] = classification_result
 
+    # Check for breakpoint after classification
+    if check_breakpoint("classification", results, file_manager):
+        return results
+
     if classification_result["publication_type"] == "overig":
         console.print(
             "[yellow]⚠️ Publicatietype 'overig' - geen gespecialiseerde extractie beschikbaar[/yellow]"
@@ -489,6 +529,10 @@ def run_four_step_pipeline(
     console.print(f"[green]✅ Extractie opgeslagen: {extraction_file}[/green]")
     results["extraction"] = extraction_result
 
+    # Check for breakpoint after extraction
+    if check_breakpoint("extraction", results, file_manager):
+        return results
+
     console.print("[bold cyan]🔍 Stap 3: Validatie (Schema + LLM)[/bold cyan]")
 
     if not HAVE_LLM_SUPPORT:
@@ -518,6 +562,10 @@ def run_four_step_pipeline(
     validation_file = file_manager.save_json(validation_result, "validation")
     console.print(f"[green]✅ Validatie opgeslagen: {validation_file}[/green]")
     results["validation"] = validation_result
+
+    # Check for breakpoint after validation
+    if check_breakpoint("validation", results, file_manager):
+        return results
 
     # Conditional step 4: Correction if validation indicates issues
     validation_status = validation_result.get("verification_summary", {}).get("overall_status")
@@ -607,6 +655,10 @@ Systematically address all identified issues and produce corrected, complete, sc
 
         results["extraction_corrected"] = corrected_extraction
         results["validation_corrected"] = final_validation
+
+        # Check for breakpoint after correction
+        if check_breakpoint("correction", results, file_manager):
+            return results
 
     return results
 
