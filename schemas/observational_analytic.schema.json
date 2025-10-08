@@ -1494,8 +1494,7 @@
           ]
         },
         "follow_up_duration_iso8601": {
-          "$ref": "common.schema.json#/$defs/ISO8601Duration",
-          "description": "ISO 8601 duration (typical for cohort)"
+          "$ref": "common.schema.json#/$defs/ISO8601Duration"
         },
         "loss_to_follow_up_pct": {
           "type": [

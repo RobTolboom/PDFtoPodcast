@@ -373,8 +373,7 @@
           "description": "Whether this author is the corresponding author"
         },
         "email": {
-          "$ref": "#/$defs/EmailAddress",
-          "description": "Contact email address (typically for corresponding authors)"
+          "$ref": "#/$defs/EmailAddress"
         }
       }
     },
@@ -3718,8 +3717,7 @@
           "description": "When parsing was performed"
         },
         "language_detected": {
-          "$ref": "#/$defs/LanguageCode",
-          "description": "Detected language of the document"
+          "$ref": "#/$defs/LanguageCode"
         },
         "ocr_engine": {
           "type": [
