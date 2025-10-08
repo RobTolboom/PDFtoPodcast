@@ -40,55 +40,22 @@ VERIFICATION METHODOLOGY:
 - Check data types align with schema specifications
 - Validate relational consistency (e.g., group_id references, outcome_id links)
 
-OUTPUT REQUIREMENTS:
+OUTPUT SCHEMA:
 
-Provide a structured JSON verification report with the following exact schema:
+The output format is enforced via JSON Schema validation with strict mode.
+All fields must be correctly populated according to validation.schema.json.
 
-{
-  "verification_summary": {
-    "overall_status": "passed|failed|warning",
-    "completeness_score": [0.0-1.0],
-    "accuracy_score": [0.0-1.0],
-    "schema_compliance_score": [0.0-1.0],
-    "total_issues": [integer],
-    "critical_issues": [integer]
-  },
-  "issues": [
-    {
-      "issue_id": "[sequential ID: I001, I002, etc.]",
-      "type": "hallucination|missing_data|accuracy_error|schema_violation|source_error",
-      "severity": "critical|moderate|minor",
-      "category": "metadata|study_design|population|outcomes|results|tables|figures|other",
-      "field_path": "[JSON path to specific field, e.g., 'outcomes[2].mean']",
-      "extracted_value": "[value from JSON]",
-      "expected_value": "[correct value from PDF or 'null' if missing]",
-      "description": "[clear description of the issue]",
-      "pdf_reference": "[page X, table/figure/section reference]",
-      "recommendation": "[specific actionable correction]"
-    }
-  ],
-  "field_validation": {
-    "required_fields_complete": [true|false],
-    "schema_compliance": [true|false],
-    "source_references_valid": [true|false],
-    "data_types_correct": [true|false]
-  },
-  "completeness_analysis": {
-    "tables_captured": "[X of Y tables processed]",
-    "figures_captured": "[X of Y figures processed]",
-    "outcomes_captured": "[X of Y potential outcomes identified]",
-    "missing_sections": ["list of uncaptured but relevant PDF sections"]
-  },
-  "recommendations": [
-    "[specific actionable recommendations for improving extraction quality]"
-  ],
-  "verification_metadata": {
-    "pdf_pages_reviewed": [integer],
-    "extraction_schema_type": "[schema type: interventional|observational|synthesis|prediction|editorials]",
-    "verification_timestamp": "[ISO timestamp]",
-    "verification_warnings": ["any limitations in verification process"]
-  }
-}
+REQUIRED TOP-LEVEL FIELDS:
+- verification_summary (with overall_status, completeness_score, accuracy_score, schema_compliance_score, total_issues, critical_issues)
+- issues (array of identified problems - can be empty array if no issues found)
+- field_validation (boolean checks: required_fields_complete, schema_compliance, source_references_valid, data_types_correct)
+- completeness_analysis (coverage metrics: tables_captured, figures_captured, outcomes_captured, missing_sections)
+- recommendations (array of actionable improvements - can be empty if extraction is perfect)
+
+OPTIONAL FIELD:
+- verification_metadata (pdf_pages_reviewed, extraction_schema_type, verification_timestamp, verification_warnings)
+
+Focus on accurate quality assessment based on PDF verification.
 
 SCORING METHODOLOGY:
 

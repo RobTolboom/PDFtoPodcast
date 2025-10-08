@@ -5,3 +5,7 @@ lint.ignore = ["E501"]          # lange regels mag black oplossen
 
 [tool.black]
 line-length = 100
+
+[project]
+license = { file = "LICENSE" }
+classifiers = ["License :: Other/Proprietary License"]
