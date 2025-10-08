@@ -2,36 +2,31 @@
 """
 JSON Schema Bundler for Medical Literature Extraction Schemas
 
-This script creates standalone, self-contained versions of extraction schemas that
-reference external common definitions. It transforms modular schema architectures
-into monolithic ones while preserving all functionality.
+This script creates standalone, self-contained versions of JSON schemas that reference
+external common definitions. It transforms modular schema architectures into monolithic
+ones while preserving all functionality.
 
 Purpose:
-    Converts extraction schemas with external $ref dependencies into bundled schemas
-    where all referenced definitions are embedded locally. This is useful for:
+    Converts schemas with external $ref dependencies into bundled schemas where all
+    referenced definitions are embedded locally. This is useful for:
     - Production deployments where external file dependencies aren't desired
     - Schema distribution requiring self-contained files
-    - OpenAI API structured outputs requiring standalone schemas
     - Validation libraries that don't support external $ref resolution
+    - API documentation tools needing standalone schemas
 
 Example Usage:
-    # Bundle all extraction schemas in current directory
+    # Bundle all schemas in current directory
     python json-bundler.py
 
     # Bundle schemas in specific directory
     python json-bundler.py --directory /path/to/schemas
 
 Input Requirements:
-    - common.schema.json: Contains shared $defs referenced by extraction schemas
-    - *_trial.schema.json, *_analytic.schema.json, etc.: Extraction schemas with
-      external references to common.schema.json
-
-Excluded from bundling:
-    - classification.schema.json: Self-contained pipeline schema (no external refs)
-    - validation.schema.json: Self-contained pipeline schema (no external refs)
+    - common.schema.json: Contains shared $defs referenced by other schemas
+    - *.schema.json: Schema files containing external references to common.schema.json
 
 Output:
-    - *_bundled.json: Self-contained extraction schemas with embedded common definitions
+    - *_bundled.json: Self-contained schemas with embedded common definitions
 
 Algorithm Overview:
     1. Discover all *.schema.json files (excluding common.schema.json)
@@ -72,9 +67,7 @@ def get_common_id(common_schema: Dict[str, Any]) -> str:
     return common_schema.get("$id", "common.schema.json")
 
 
-def find_common_refs(
-    node: Any, common_ref_rx: re.Pattern, include_internal: bool = False
-) -> Iterator[str]:
+def find_common_refs(node: Any, common_ref_rx: re.Pattern) -> Iterator[str]:
     """
     Recursively find all definition names from common schema that are referenced.
 
@@ -83,13 +76,9 @@ def find_common_refs(
     references like "common.schema.json#/$defs/DefinitionName" and extracts
     the definition name.
 
-    When include_internal=True, it also matches internal references like "#/$defs/Author"
-    which are used within the common.schema.json file itself.
-
     Args:
         node: JSON schema node (dict, list, or primitive) to search for references
         common_ref_rx: Compiled regex pattern to match external common schema references
-        include_internal: If True, also match internal #/$defs/ references
 
     Yields:
         str: Definition names from common schema that are referenced (e.g., "SourceRef", "Metadata")
@@ -101,26 +90,17 @@ def find_common_refs(
         >>> list(find_common_refs(schema, pattern))
         ['SourceRef']
     """
-    # Pattern to match internal references: #/$defs/DefinitionName
-    internal_ref_rx = re.compile(r"^#/\$defs/([^/]+)$")
-
     if isinstance(node, dict):
         for k, v in node.items():
             if k == "$ref" and isinstance(v, str):
-                # Try external reference pattern first
                 m = common_ref_rx.match(v)
                 if m:
                     yield m.group(1)  # Extract definition name from regex group
-                # Also check internal reference pattern if requested
-                elif include_internal:
-                    m = internal_ref_rx.match(v)
-                    if m:
-                        yield m.group(1)
             else:
-                yield from find_common_refs(v, common_ref_rx, include_internal)
+                yield from find_common_refs(v, common_ref_rx)
     elif isinstance(node, list):
         for item in node:
-            yield from find_common_refs(item, common_ref_rx, include_internal)
+            yield from find_common_refs(item, common_ref_rx)
 
 
 def rewrite_refs_to_local(node: Any, common_ref_rx: re.Pattern) -> Any:
@@ -173,10 +153,6 @@ def bundle_schema(
     dependencies from the common schema. It performs the complete bundling process:
     finding dependencies, embedding definitions, and rewriting references.
 
-    The function uses transitive closure to recursively copy all nested dependencies.
-    For example, if the schema references "Metadata" which in turn references "Author",
-    both "Metadata" and "Author" will be copied from the common schema.
-
     Args:
         schema: The source schema dictionary to bundle
         common_schema: The common schema containing shared definitions
@@ -199,42 +175,21 @@ def bundle_schema(
     # Create a deep copy to avoid modifying the original
     bundled = deepcopy(schema)
 
+    # Collect all needed definitions from common schema
+    needed = set(find_common_refs(bundled, common_ref_rx))
+
     # Create or merge with existing local $defs section
     bundled.setdefault("$defs", {})
     defs = bundled["$defs"]
 
-    # Collect all needed definitions using transitive closure
-    # Start with direct references in the schema
-    to_process = set(find_common_refs(bundled, common_ref_rx))
-    processed = set()
-
-    # Keep processing until no new definitions are found
-    while to_process:
-        name = to_process.pop()
-
-        # Skip if already processed
-        if name in processed:
-            continue
-
-        # Mark as processed
-        processed.add(name)
-
-        # Skip if definition already exists locally
+    # Embed each needed definition from common schema
+    for name in sorted(needed):
         if name in defs:
-            continue
-
-        # Validate definition exists in common schema
+            continue  # Skip if definition already exists locally
         if name not in common_schema.get("$defs", {}):
             raise KeyError(f"Definition '{name}' not found in common schema")
-
-        # Copy the definition from common schema
-        definition = deepcopy(common_schema["$defs"][name])
-        defs[name] = definition
-
-        # Find nested references within this definition and add them to process queue
-        # Use include_internal=True to also find #/$defs/ references within the definition
-        nested_refs = set(find_common_refs(definition, common_ref_rx, include_internal=True))
-        to_process.update(nested_refs - processed)
+        # Deep copy the definition to avoid reference issues
+        defs[name] = deepcopy(common_schema["$defs"][name])
 
     # Rewrite all external references to local references
     bundled = rewrite_refs_to_local(bundled, common_ref_rx)
@@ -244,16 +199,11 @@ def bundle_schema(
 
 def discover_schema_files(directory: str = ".") -> List[Path]:
     """
-    Discover extraction schema files that need bundling.
+    Discover all schema files in a directory except common.schema.json.
 
     Scans the specified directory for JSON schema files following the naming
-    convention *.schema.json and excludes schemas that don't need bundling:
-    - common.schema.json: Contains shared definitions (source, not target)
-    - classification.schema.json: Self-contained pipeline schema
-    - validation.schema.json: Self-contained pipeline schema
-
-    Only extraction schemas with external references to common.schema.json
-    are included for bundling.
+    convention *.schema.json and excludes the common.schema.json file since
+    it contains shared definitions rather than being a target for bundling.
 
     Args:
         directory: Path to directory containing schema files (default: current directory)
@@ -269,16 +219,9 @@ def discover_schema_files(directory: str = ".") -> List[Path]:
     schema_dir = Path(directory)
     schema_files = []
 
-    # Schemas to skip: common definitions + self-contained pipeline schemas
-    skip_schemas = {
-        "common.schema.json",  # Shared definitions (not a bundling target)
-        "classification.schema.json",  # Self-contained, no external refs
-        "validation.schema.json",  # Self-contained, no external refs
-    }
-
     # Find all schema files using glob pattern
     for file_path in schema_dir.glob("*.schema.json"):
-        if file_path.name not in skip_schemas:
+        if file_path.name != "common.schema.json":  # Exclude common schema
             schema_files.append(file_path)
 
     return sorted(schema_files)  # Sort for consistent processing order

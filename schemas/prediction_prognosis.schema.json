@@ -5,32 +5,15 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "data_leakage_assessment",
-    "datasets",
-    "decision_curves",
-    "document",
-    "extraction_warnings",
-    "fairness_assessment",
-    "figures_summary",
-    "generator",
-    "language",
+    "schema_version",
     "metadata",
-    "model_deployment",
-    "models",
-    "outcomes",
-    "performance",
+    "study_design",
     "population",
     "predictors",
-    "probast",
-    "protocol_deviations",
-    "risk_of_bias",
-    "sample_size_considerations",
-    "schema_version",
-    "study_design",
-    "study_id",
-    "tables_parsed",
-    "tripod_reporting",
-    "truncated"
+    "outcomes",
+    "datasets",
+    "models",
+    "performance"
   ],
   "properties": {
     "schema_version": {
@@ -38,1166 +21,375 @@
       "pattern": "^v\\d+\\.\\d+(\\.\\d+)?$",
       "description": "Semantic-like version tag, e.g. v1.0 of v1.2.3"
     },
+
     "document": {
-      "type": [
-        "object",
-        "null"
-      ],
+      "type": "object",
       "additionalProperties": false,
-      "required": [
-        "filename",
-        "page_count"
-      ],
+      "required": ["filename", "page_count"],
       "properties": {
-        "filename": {
-          "type": "string"
-        },
-        "content_type": {
-          "type": "string",
-          "enum": [
-            "application/pdf"
-          ]
-        },
-        "size_bytes": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "page_count": {
-          "type": "integer",
-          "minimum": 1
-        }
+        "filename": { "type": "string" },
+        "content_type": { "type": "string", "enum": ["application/pdf"], "default": "application/pdf" },
+        "size_bytes": { "type": "integer", "minimum": 0 },
+        "page_count": { "type": "integer", "minimum": 1 }
       }
     },
+
     "study_id": {
-      "type": [
-        "string",
-        "null"
-      ],
+      "type": "string",
       "pattern": "^[A-Za-z0-9._-]+$",
       "description": "Internal opaque ID for this article"
     },
+
     "generator": {
-      "type": [
-        "object",
-        "null"
-      ],
+      "type": "object",
       "additionalProperties": false,
-      "required": [
-        "name",
-        "model",
-        "timestamp"
-      ],
+      "required": ["name", "model", "timestamp"],
       "properties": {
-        "name": {
-          "type": "string"
-        },
-        "model": {
-          "type": "string"
-        },
-        "temperature": {
-          "type": "number"
-        },
-        "timestamp": {
-          "type": "string",
-          "format": "date-time"
-        }
+        "name": { "type": "string" },
+        "model": { "type": "string" },
+        "temperature": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" }
       }
     },
-    "language": {
-      "$ref": "common.schema.json#/$defs/LanguageCode"
-    },
-    "metadata": {
-      "$ref": "common.schema.json#/$defs/Metadata"
-    },
-    "study_design": {
-      "$ref": "#/$defs/StudyDesign"
-    },
-    "population": {
-      "$ref": "#/$defs/Population"
-    },
+
+    "language": { "$ref": "common.schema.json#/$defs/LanguageCode" },
+    "metadata": { "$ref": "common.schema.json#/$defs/Metadata" },
+
+    "study_design": { "$ref": "#/$defs/StudyDesign" },
+    "population": { "$ref": "#/$defs/Population" },
+
     "predictors": {
       "type": "array",
-      "items": {
-        "$ref": "#/$defs/Predictor"
-      },
+      "items": { "$ref": "#/$defs/Predictor" },
       "minItems": 1
     },
+
     "outcomes": {
       "type": "array",
-      "items": {
-        "$ref": "#/$defs/Outcome"
-      },
+      "items": { "$ref": "#/$defs/Outcome" },
       "minItems": 1
     },
+
     "datasets": {
       "type": "array",
-      "items": {
-        "$ref": "#/$defs/Dataset"
-      },
+      "items": { "$ref": "#/$defs/Dataset" },
       "minItems": 1
     },
+
     "models": {
       "type": "array",
-      "items": {
-        "$ref": "#/$defs/ModelSpec"
-      },
+      "items": { "$ref": "#/$defs/ModelSpec" },
       "minItems": 1
     },
+
     "performance": {
       "type": "array",
-      "items": {
-        "$ref": "#/$defs/PerformanceResult"
-      }
+      "items": { "$ref": "#/$defs/PerformanceResult" },
+      "default": []
     },
+
     "decision_curves": {
-      "type": [
-        "array",
-        "null"
-      ],
-      "items": {
-        "$ref": "#/$defs/DecisionCurve"
-      }
+      "type": "array",
+      "items": { "$ref": "#/$defs/DecisionCurve" },
+      "default": []
     },
+
     "tables_parsed": {
-      "type": [
-        "array",
-        "null"
-      ],
-      "items": {
-        "$ref": "common.schema.json#/$defs/ParsedTable"
-      }
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/ParsedTable" },
+      "default": []
     },
     "figures_summary": {
-      "type": [
-        "array",
-        "null"
-      ],
-      "items": {
-        "$ref": "common.schema.json#/$defs/FigureSummary"
-      }
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/FigureSummary" },
+      "default": []
     },
-    "risk_of_bias": {
-      "$ref": "common.schema.json#/$defs/RiskOfBias"
-    },
+
+    "risk_of_bias": { "$ref": "common.schema.json#/$defs/RiskOfBias" },
+
     "probast": {
-      "type": [
-        "object",
-        "null"
-      ],
+      "type": "object",
       "description": "PROBAST (Prediction model Risk Of Bias ASsessment Tool) assessment",
       "properties": {
-        "overall_risk": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "enum": [
-            "low",
-            "high",
-            "unclear"
-          ]
-        },
-        "overall_applicability": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "enum": [
-            "low",
-            "high",
-            "unclear"
-          ]
-        },
+        "overall_risk": { "type": "string", "enum": ["low", "high", "unclear"] },
+        "overall_applicability": { "type": "string", "enum": ["low", "high", "unclear"] },
         "domains": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
             "participants": {
-              "type": [
-                "object",
-                "null"
-              ],
+              "type": "object",
               "properties": {
-                "risk_of_bias": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "enum": [
-                    "low",
-                    "high",
-                    "unclear"
-                  ]
-                },
-                "applicability": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "enum": [
-                    "low",
-                    "high",
-                    "unclear"
-                  ]
-                },
-                "concerns": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                }
-              },
-              "additionalProperties": false,
-              "required": [
-                "risk_of_bias",
-                "applicability",
-                "concerns"
-              ]
+                "risk_of_bias": { "type": "string", "enum": ["low", "high", "unclear"] },
+                "applicability": { "type": "string", "enum": ["low", "high", "unclear"] },
+                "concerns": { "type": "string" }
+              }
             },
             "predictors": {
-              "type": [
-                "object",
-                "null"
-              ],
+              "type": "object",
               "properties": {
-                "risk_of_bias": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "enum": [
-                    "low",
-                    "high",
-                    "unclear"
-                  ]
-                },
-                "applicability": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "enum": [
-                    "low",
-                    "high",
-                    "unclear"
-                  ]
-                },
-                "concerns": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                }
-              },
-              "additionalProperties": false,
-              "required": [
-                "risk_of_bias",
-                "applicability",
-                "concerns"
-              ]
+                "risk_of_bias": { "type": "string", "enum": ["low", "high", "unclear"] },
+                "applicability": { "type": "string", "enum": ["low", "high", "unclear"] },
+                "concerns": { "type": "string" }
+              }
             },
             "outcome": {
-              "type": [
-                "object",
-                "null"
-              ],
+              "type": "object",
               "properties": {
-                "risk_of_bias": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "enum": [
-                    "low",
-                    "high",
-                    "unclear"
-                  ]
-                },
-                "applicability": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "enum": [
-                    "low",
-                    "high",
-                    "unclear"
-                  ]
-                },
-                "concerns": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                }
-              },
-              "additionalProperties": false,
-              "required": [
-                "risk_of_bias",
-                "applicability",
-                "concerns"
-              ]
+                "risk_of_bias": { "type": "string", "enum": ["low", "high", "unclear"] },
+                "applicability": { "type": "string", "enum": ["low", "high", "unclear"] },
+                "concerns": { "type": "string" }
+              }
             },
             "analysis": {
-              "type": [
-                "object",
-                "null"
-              ],
+              "type": "object",
               "properties": {
-                "risk_of_bias": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "enum": [
-                    "low",
-                    "high",
-                    "unclear"
-                  ]
-                },
-                "concerns": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                }
-              },
-              "additionalProperties": false,
-              "required": [
-                "risk_of_bias",
-                "concerns"
-              ]
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "analysis",
-            "outcome",
-            "participants",
-            "predictors"
-          ]
-        },
-        "notes": {
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "overall_risk",
-        "overall_applicability",
-        "domains",
-        "notes"
-      ]
-    },
-    "sample_size_considerations": {
-      "type": [
-        "object",
-        "null"
-      ],
-      "description": "Sample size, EPV, and overfitting assessment",
-      "properties": {
-        "events_per_variable": {
-          "type": [
-            "object",
-            "null"
-          ],
-          "properties": {
-            "epv": {
-              "type": [
-                "number",
-                "null"
-              ],
-              "description": "Events per candidate predictor variable"
-            },
-            "n_events": {
-              "type": [
-                "integer",
-                "null"
-              ],
-              "minimum": 0
-            },
-            "n_candidate_predictors": {
-              "type": [
-                "integer",
-                "null"
-              ],
-              "minimum": 1
-            },
-            "adequate": {
-              "type": [
-                "boolean",
-                "null"
-              ],
-              "description": "Whether EPV meets recommended threshold (e.g., ≥10-20)"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "adequate",
-            "epv",
-            "n_candidate_predictors",
-            "n_events"
-          ]
-        },
-        "sample_size_justification": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "a_priori_calculation": {
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "overfitting_risk": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "enum": [
-            "low",
-            "moderate",
-            "high",
-            "unclear"
-          ]
-        },
-        "shrinkage_factor": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Uniform shrinkage factor if reported"
-        },
-        "optimism": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "description": "Estimated optimism in performance from bootstrap/CV"
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "events_per_variable",
-        "sample_size_justification",
-        "a_priori_calculation",
-        "overfitting_risk",
-        "shrinkage_factor",
-        "optimism"
-      ]
-    },
-    "protocol_deviations": {
-      "type": [
-        "string",
-        "null"
-      ]
-    },
-    "tripod_reporting": {
-      "type": [
-        "object",
-        "null"
-      ],
-      "additionalProperties": false,
-      "properties": {
-        "version": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "enum": [
-            "TRIPOD 2015",
-            "TRIPOD-AI 2024",
-            "TRIPOD-Cluster",
-            "CLAIM",
-            "MI-CLAIM",
-            "STARD-AI",
-            "other"
-          ]
-        },
-        "claimed": {
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "checklist_available": {
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "items": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "item_id",
-              "location",
-              "notes",
-              "reported",
-              "source"
-            ],
-            "properties": {
-              "item_id": {
-                "type": "string"
-              },
-              "reported": {
-                "type": "string",
-                "enum": [
-                  "yes",
-                  "partially",
-                  "no",
-                  "unclear"
-                ]
-              },
-              "location": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "source": {
-                "$ref": "common.schema.json#/$defs/SourceRef"
-              },
-              "notes": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "risk_of_bias": { "type": "string", "enum": ["low", "high", "unclear"] },
+                "concerns": { "type": "string" }
               }
             }
           }
-        }
-      },
-      "required": [
-        "version",
-        "claimed",
-        "checklist_available",
-        "items"
-      ]
+        },
+        "notes": { "type": "string" }
+      }
     },
+
+    "sample_size_considerations": {
+      "type": "object",
+      "description": "Sample size, EPV, and overfitting assessment",
+      "properties": {
+        "events_per_variable": {
+          "type": "object",
+          "properties": {
+            "epv": { "type": "number", "description": "Events per candidate predictor variable" },
+            "n_events": { "type": "integer", "minimum": 0 },
+            "n_candidate_predictors": { "type": "integer", "minimum": 1 },
+            "adequate": { "type": "boolean", "description": "Whether EPV meets recommended threshold (e.g., ≥10-20)" }
+          }
+        },
+        "sample_size_justification": { "type": "string" },
+        "a_priori_calculation": { "type": "boolean" },
+        "overfitting_risk": { "type": "string", "enum": ["low", "moderate", "high", "unclear"] },
+        "shrinkage_factor": { "type": "number", "minimum": 0, "maximum": 1, "description": "Uniform shrinkage factor if reported" },
+        "optimism": { "type": "number", "description": "Estimated optimism in performance from bootstrap/CV" }
+      }
+    },
+
+    "protocol_deviations": { "type": "string" },
+
+    "tripod_reporting": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "string",
+          "enum": ["TRIPOD 2015", "TRIPOD-AI 2024", "TRIPOD-Cluster", "CLAIM", "MI-CLAIM", "STARD-AI", "other"],
+          "default": "TRIPOD 2015"
+        },
+        "claimed": { "type": "boolean", "default": false },
+        "checklist_available": { "type": "boolean", "default": false },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["item_id", "reported"],
+            "properties": {
+              "item_id": { "type": "string" },
+              "reported": { "type": "string", "enum": ["yes","partially","no","unclear"] },
+              "location": { "type": "string" },
+              "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
+              "notes": { "type": "string" }
+            }
+          },
+          "default": []
+        }
+      }
+    },
+
     "fairness_assessment": {
-      "type": [
-        "array",
-        "null"
-      ],
+      "type": "array",
       "description": "Fairness, equity, and subgroup performance assessment",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": [
-          "algorithmic_fairness",
-          "auc_roc",
-          "bias_mitigation",
-          "calibration_intercept",
-          "calibration_slope",
-          "dataset_id",
-          "events",
-          "level",
-          "model_id",
-          "n",
-          "notes",
-          "o_e_ratio",
-          "performance_disparity",
-          "source",
-          "subgroup_var"
-        ],
+        "required": ["model_id", "dataset_id", "subgroup_var", "level"],
         "properties": {
-          "model_id": {
-            "type": "string"
+          "model_id": { "type": "string" },
+          "dataset_id": { "type": "string" },
+          "subgroup_var": { "type": "string", "description": "e.g., age, sex, race/ethnicity, socioeconomic status" },
+          "level": { "type": "string" },
+          "n": { "type": "integer", "minimum": 0 },
+          "events": { "type": "integer", "minimum": 0 },
+          "auc_roc": {
+            "oneOf": [
+              { "type": "number", "minimum": 0, "maximum": 1 },
+              { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+            ]
           },
-          "dataset_id": {
-            "type": "string"
+          "calibration_slope": {
+            "oneOf": [
+              { "type": "number" },
+              { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+            ]
           },
-          "subgroup_var": {
-            "type": "string",
-            "description": "e.g., age, sex, race/ethnicity, socioeconomic status"
+          "calibration_intercept": {
+            "oneOf": [
+              { "type": "number" },
+              { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+            ]
           },
-          "level": {
-            "type": "string"
+          "o_e_ratio": {
+            "oneOf": [
+              { "type": "number" },
+              { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+            ]
           },
-          "n": {
-            "type": [
-              "integer",
-              "null"
-            ],
-            "minimum": 0
-          },
-          "events": {
-            "type": [
-              "integer",
-              "null"
-            ],
-            "minimum": 0
-          },
-          "auc_roc": {},
-          "calibration_slope": {},
-          "calibration_intercept": {},
-          "o_e_ratio": {},
           "algorithmic_fairness": {
-            "type": [
-              "object",
-              "null"
-            ],
+            "type": "object",
             "description": "Algorithmic fairness metrics",
             "properties": {
-              "demographic_parity": {
-                "type": [
-                  "number",
-                  "null"
-                ],
-                "description": "Difference in positive prediction rates"
-              },
-              "equal_opportunity": {
-                "type": [
-                  "number",
-                  "null"
-                ],
-                "description": "Difference in TPR"
-              },
-              "equalized_odds": {
-                "type": [
-                  "number",
-                  "null"
-                ],
-                "description": "Max difference in TPR or FPR"
-              },
-              "predictive_parity": {
-                "type": [
-                  "number",
-                  "null"
-                ],
-                "description": "Difference in PPV"
-              },
-              "fairness_satisfied": {
-                "type": [
-                  "boolean",
-                  "null"
-                ]
-              },
-              "fairness_threshold": {
-                "type": [
-                  "number",
-                  "null"
-                ]
-              }
-            },
-            "additionalProperties": false,
-            "required": [
-              "demographic_parity",
-              "equal_opportunity",
-              "equalized_odds",
-              "predictive_parity",
-              "fairness_satisfied",
-              "fairness_threshold"
-            ]
+              "demographic_parity": { "type": "number", "description": "Difference in positive prediction rates" },
+              "equal_opportunity": { "type": "number", "description": "Difference in TPR" },
+              "equalized_odds": { "type": "number", "description": "Max difference in TPR or FPR" },
+              "predictive_parity": { "type": "number", "description": "Difference in PPV" },
+              "fairness_satisfied": { "type": "boolean" },
+              "fairness_threshold": { "type": "number" }
+            }
           },
           "performance_disparity": {
-            "type": [
-              "object",
-              "null"
-            ],
+            "type": "object",
             "properties": {
-              "disparity_ratio": {
-                "type": [
-                  "number",
-                  "null"
-                ],
-                "description": "Performance ratio vs reference group"
-              },
-              "reference_group": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "clinically_meaningful": {
-                "type": [
-                  "boolean",
-                  "null"
-                ]
-              }
-            },
-            "additionalProperties": false,
-            "required": [
-              "disparity_ratio",
-              "reference_group",
-              "clinically_meaningful"
-            ]
+              "disparity_ratio": { "type": "number", "description": "Performance ratio vs reference group" },
+              "reference_group": { "type": "string" },
+              "clinically_meaningful": { "type": "boolean" }
+            }
           },
           "bias_mitigation": {
-            "type": [
-              "object",
-              "null"
-            ],
+            "type": "object",
             "properties": {
-              "applied": {
-                "type": [
-                  "boolean",
-                  "null"
-                ]
-              },
-              "method": {
-                "type": [
-                  "string",
-                  "null"
-                ],
-                "enum": [
-                  "pre_processing",
-                  "in_processing",
-                  "post_processing",
-                  "none"
-                ]
-              },
-              "technique": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "effectiveness": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              }
-            },
-            "additionalProperties": false,
-            "required": [
-              "applied",
-              "method",
-              "technique",
-              "effectiveness"
-            ]
+              "applied": { "type": "boolean" },
+              "method": { "type": "string", "enum": ["pre_processing", "in_processing", "post_processing", "none"] },
+              "technique": { "type": "string" },
+              "effectiveness": { "type": "string" }
+            }
           },
-          "source": {
-            "$ref": "common.schema.json#/$defs/SourceRef"
-          },
-          "notes": {
-            "type": [
-              "string",
-              "null"
-            ]
+          "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
+          "notes": { "type": "string" }
+        }
+      },
+      "default": []
+    },
+
+    "data_leakage_assessment": {
+      "type": "object",
+      "description": "Assessment of potential data leakage",
+      "properties": {
+        "assessed": { "type": "boolean" },
+        "temporal_leakage": {
+          "type": "object",
+          "properties": {
+            "detected": { "type": "boolean" },
+            "description": { "type": "string" }
+          }
+        },
+        "feature_leakage": {
+          "type": "object",
+          "properties": {
+            "detected": { "type": "boolean" },
+            "leaking_features": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "label_leakage": {
+          "type": "object",
+          "properties": {
+            "detected": { "type": "boolean" },
+            "description": { "type": "string" }
+          }
+        },
+        "train_test_contamination": {
+          "type": "object",
+          "properties": {
+            "detected": { "type": "boolean" },
+            "description": { "type": "string" }
           }
         }
       }
     },
-    "data_leakage_assessment": {
-      "type": [
-        "object",
-        "null"
-      ],
-      "description": "Assessment of potential data leakage",
-      "properties": {
-        "assessed": {
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "temporal_leakage": {
-          "type": [
-            "object",
-            "null"
-          ],
-          "properties": {
-            "detected": {
-              "type": [
-                "boolean",
-                "null"
-              ]
-            },
-            "description": {
-              "type": [
-                "string",
-                "null"
-              ]
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "description",
-            "detected"
-          ]
-        },
-        "feature_leakage": {
-          "type": [
-            "object",
-            "null"
-          ],
-          "properties": {
-            "detected": {
-              "type": [
-                "boolean",
-                "null"
-              ]
-            },
-            "leaking_features": {
-              "type": [
-                "array",
-                "null"
-              ],
-              "items": {
-                "type": "string"
-              }
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "detected",
-            "leaking_features"
-          ]
-        },
-        "label_leakage": {
-          "type": [
-            "object",
-            "null"
-          ],
-          "properties": {
-            "detected": {
-              "type": [
-                "boolean",
-                "null"
-              ]
-            },
-            "description": {
-              "type": [
-                "string",
-                "null"
-              ]
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "description",
-            "detected"
-          ]
-        },
-        "train_test_contamination": {
-          "type": [
-            "object",
-            "null"
-          ],
-          "properties": {
-            "detected": {
-              "type": [
-                "boolean",
-                "null"
-              ]
-            },
-            "description": {
-              "type": [
-                "string",
-                "null"
-              ]
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "description",
-            "detected"
-          ]
-        }
-      },
-      "additionalProperties": false,
-      "required": [
-        "assessed",
-        "temporal_leakage",
-        "feature_leakage",
-        "label_leakage",
-        "train_test_contamination"
-      ]
-    },
+
     "model_deployment": {
-      "type": [
-        "object",
-        "null"
-      ],
+      "type": "object",
       "description": "Model deployment and maintenance information",
       "properties": {
-        "deployed": {
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "deployment_date": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "format": "date"
-        },
-        "deployment_setting": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "model_format": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "enum": [
-            "PMML",
-            "ONNX",
-            "pickle",
-            "joblib",
-            "savedmodel",
-            "API",
-            "other"
-          ]
-        },
-        "software_requirements": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
+        "deployed": { "type": "boolean" },
+        "deployment_date": { "type": "string", "format": "date" },
+        "deployment_setting": { "type": "string" },
+        "model_format": { "type": "string", "enum": ["PMML", "ONNX", "pickle", "joblib", "savedmodel", "API", "other"] },
+        "software_requirements": { "type": "string" },
         "computational_requirements": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
-            "inference_time_ms": {
-              "type": [
-                "number",
-                "null"
-              ]
-            },
-            "memory_mb": {
-              "type": [
-                "number",
-                "null"
-              ]
-            },
-            "gpu_required": {
-              "type": [
-                "boolean",
-                "null"
-              ]
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "gpu_required",
-            "inference_time_ms",
-            "memory_mb"
-          ]
+            "inference_time_ms": { "type": "number" },
+            "memory_mb": { "type": "number" },
+            "gpu_required": { "type": "boolean" }
+          }
         },
         "integration": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
-            "ehr_integrated": {
-              "type": [
-                "boolean",
-                "null"
-              ]
-            },
-            "ehr_system": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "api_available": {
-              "type": [
-                "boolean",
-                "null"
-              ]
-            },
-            "api_url": {
-              "type": [
-                "string",
-                "null"
-              ],
-              "format": "uri"
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "api_available",
-            "api_url",
-            "ehr_integrated",
-            "ehr_system"
-          ]
+            "ehr_integrated": { "type": "boolean" },
+            "ehr_system": { "type": "string" },
+            "api_available": { "type": "boolean" },
+            "api_url": { "type": "string", "format": "uri" }
+          }
         },
         "monitoring_plan": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
-            "performance_monitoring": {
-              "type": [
-                "boolean",
-                "null"
-              ]
-            },
-            "monitoring_frequency": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "performance_threshold": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "update_triggers": {
-              "type": [
-                "array",
-                "null"
-              ],
-              "items": {
-                "type": "string"
-              }
-            },
-            "ab_testing": {
-              "type": [
-                "boolean",
-                "null"
-              ]
-            }
-          },
-          "additionalProperties": false,
-          "required": [
-            "ab_testing",
-            "monitoring_frequency",
-            "performance_monitoring",
-            "performance_threshold",
-            "update_triggers"
-          ]
+            "performance_monitoring": { "type": "boolean" },
+            "monitoring_frequency": { "type": "string" },
+            "performance_threshold": { "type": "string" },
+            "update_triggers": { "type": "array", "items": { "type": "string" } },
+            "ab_testing": { "type": "boolean" }
+          }
         },
         "version_control": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
-            "current_version": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
+            "current_version": { "type": "string" },
             "version_history": {
-              "type": [
-                "array",
-                "null"
-              ],
+              "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
-                  "version": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  },
-                  "date": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
-                    "format": "date"
-                  },
-                  "changes": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  }
-                },
-                "additionalProperties": false,
-                "required": [
-                  "changes",
-                  "date",
-                  "version"
-                ]
+                  "version": { "type": "string" },
+                  "date": { "type": "string", "format": "date" },
+                  "changes": { "type": "string" }
+                }
               }
             }
-          },
-          "additionalProperties": false,
-          "required": [
-            "current_version",
-            "version_history"
-          ]
+          }
         }
-      },
-      "additionalProperties": false,
-      "required": [
-        "deployed",
-        "deployment_date",
-        "deployment_setting",
-        "model_format",
-        "software_requirements",
-        "computational_requirements",
-        "integration",
-        "monitoring_plan",
-        "version_control"
-      ]
-    },
-    "extraction_warnings": {
-      "type": [
-        "array",
-        "null"
-      ],
-      "items": {
-        "$ref": "common.schema.json#/$defs/ExtractionWarning"
       }
     },
-    "truncated": {
-      "$ref": "common.schema.json#/$defs/TruncationInfo"
-    }
+
+    "extraction_warnings": {
+      "type": "array",
+      "items": { "$ref": "common.schema.json#/$defs/ExtractionWarning" },
+      "default": []
+    },
+
+    "truncated": { "$ref": "common.schema.json#/$defs/TruncationInfo" }
   },
+
   "$defs": {
     "StudyDesign": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "centres",
-        "countries",
-        "design_notes",
-        "design_type",
-        "label",
-        "purpose",
-        "setting",
-        "source",
-        "time_window_iso8601"
-      ],
+      "required": ["label"],
       "properties": {
-        "label": {
-          "type": "string",
-          "enum": [
-            "Prediction/Prognosis"
-          ]
-        },
+        "label": { "type": "string", "enum": ["Prediction/Prognosis"] },
         "purpose": {
-          "type": [
-            "array",
-            "null"
-          ],
+          "type": "array",
           "description": "Aligned with TRIPOD",
           "items": {
             "type": "string",
@@ -1210,280 +402,110 @@
               "impact",
               "comparison"
             ]
-          }
+          },
+          "default": []
         },
-        "design_type": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "enum": [
-            "prospective",
-            "retrospective",
-            "mixed",
-            "unclear"
-          ]
-        },
-        "centres": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 1
-        },
+        "design_type": { "type": "string", "enum": ["prospective", "retrospective", "mixed", "unclear"] },
+        "centres": { "type": "integer", "minimum": 1 },
         "countries": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "$ref": "common.schema.json#/$defs/CountryCode"
-          }
+          "type": "array",
+          "items": { "$ref": "common.schema.json#/$defs/CountryCode" },
+          "default": []
         },
-        "setting": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "time_window_iso8601": {
-          "$ref": "common.schema.json#/$defs/ISO8601Duration"
-        },
-        "source": {
-          "$ref": "common.schema.json#/$defs/SourceRef"
-        },
-        "design_notes": {
-          "type": [
-            "string",
-            "null"
-          ]
-        }
+        "setting": { "type": "string" },
+        "time_window_iso8601": { "$ref": "common.schema.json#/$defs/ISO8601Duration" },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
+        "design_notes": { "type": "string" }
       }
     },
+
     "Population": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "n_total": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 0
-        },
-        "events": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 0,
-          "description": "Number of outcome events in derivation cohort (if applicable)"
-        },
-        "age_mean": {},
-        "age_sd": {},
-        "sex_female_pct": {},
-        "inclusion_criteria": {
-          "type": [
-            "string",
-            "null"
+        "n_total": { "type": "integer", "minimum": 0 },
+        "events": { "type": "integer", "minimum": 0, "description": "Number of outcome events in derivation cohort (if applicable)" },
+        "age_mean": {
+          "oneOf": [
+            { "type": "number" },
+            { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
           ]
         },
-        "exclusion_criteria": {
-          "type": [
-            "string",
-            "null"
+        "age_sd": {
+          "oneOf": [
+            { "type": "number", "minimum": 0 },
+            { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
           ]
         },
-        "follow_up_duration_iso8601": {
-          "$ref": "common.schema.json#/$defs/ISO8601Duration"
-        },
-        "outcome_incidence_pct": {},
-        "missing_data_overview": {
-          "type": [
-            "string",
-            "null"
+        "sex_female_pct": {
+          "oneOf": [
+            { "type": "number", "minimum": 0, "maximum": 100 },
+            { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
           ]
         },
-        "source": {
-          "$ref": "common.schema.json#/$defs/SourceRef"
-        }
-      },
-      "required": [
-        "age_mean",
-        "age_sd",
-        "events",
-        "exclusion_criteria",
-        "follow_up_duration_iso8601",
-        "inclusion_criteria",
-        "missing_data_overview",
-        "n_total",
-        "outcome_incidence_pct",
-        "sex_female_pct",
-        "source"
-      ]
+        "inclusion_criteria": { "type": "string" },
+        "exclusion_criteria": { "type": "string" },
+        "follow_up_duration_iso8601": { "$ref": "common.schema.json#/$defs/ISO8601Duration" },
+        "outcome_incidence_pct": {
+          "oneOf": [
+            { "type": "number", "minimum": 0, "maximum": 100 },
+            { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+          ]
+        },
+        "missing_data_overview": { "type": "string" },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+      }
     },
+
     "Predictor": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "coding",
-        "definition",
-        "imputation",
-        "measurement_time",
-        "missing_fraction_pct",
-        "name",
-        "predictor_id",
-        "source",
-        "transformations",
-        "type",
-        "unit"
-      ],
+      "required": ["predictor_id", "name", "type"],
       "properties": {
-        "predictor_id": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "definition": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
+        "predictor_id": { "type": "string" },
+        "name": { "type": "string" },
+        "definition": { "type": "string" },
         "type": {
           "type": "string",
-          "enum": [
-            "numeric",
-            "categorical",
-            "binary",
-            "ordinal",
-            "text",
-            "image",
-            "composite",
-            "other"
+          "enum": ["numeric", "categorical", "binary", "ordinal", "text", "image", "composite", "other"]
+        },
+        "unit": { "type": "string" },
+        "measurement_time": { "type": "string", "enum": ["baseline", "followup", "unknown"], "default": "baseline" },
+        "coding": { "type": "string", "description": "e.g., one-hot, ordinal scores, splines, standardization" },
+        "transformations": { "type": "string", "description": "e.g., log, Box-Cox, restricted cubic spline" },
+        "missing_fraction_pct": {
+          "oneOf": [
+            { "type": "number", "minimum": 0, "maximum": 100 },
+            { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
           ]
         },
-        "unit": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "measurement_time": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "enum": [
-            "baseline",
-            "followup",
-            "unknown"
-          ]
-        },
-        "coding": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "e.g., one-hot, ordinal scores, splines, standardization"
-        },
-        "transformations": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "e.g., log, Box-Cox, restricted cubic spline"
-        },
-        "missing_fraction_pct": {},
-        "imputation": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "e.g., MICE, mean, indicator method"
-        },
-        "source": {
-          "$ref": "common.schema.json#/$defs/SourceRef"
-        }
+        "imputation": { "type": "string", "description": "e.g., MICE, mean, indicator method" },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       }
     },
+
     "Outcome": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "definition",
-        "measurement_method",
-        "name",
-        "outcome_id",
-        "source",
-        "time_horizon",
-        "time_horizon_iso8601",
-        "type"
-      ],
+      "required": ["outcome_id", "name", "type"],
       "properties": {
-        "outcome_id": {
-          "type": "string"
-        },
-        "name": {
-          "type": "string"
-        },
-        "definition": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "type": {
-          "type": "string",
-          "enum": [
-            "binary",
-            "time_to_event",
-            "continuous",
-            "ordinal"
-          ]
-        },
-        "time_horizon": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "e.g., 30-day mortality, 1-year risk"
-        },
-        "time_horizon_iso8601": {
-          "$ref": "common.schema.json#/$defs/ISO8601Duration"
-        },
-        "measurement_method": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "source": {
-          "$ref": "common.schema.json#/$defs/SourceRef"
-        }
+        "outcome_id": { "type": "string" },
+        "name": { "type": "string" },
+        "definition": { "type": "string" },
+        "type": { "type": "string", "enum": ["binary", "time_to_event", "continuous", "ordinal"] },
+        "time_horizon": { "type": "string", "description": "e.g., 30-day mortality, 1-year risk" },
+        "time_horizon_iso8601": { "$ref": "common.schema.json#/$defs/ISO8601Duration" },
+        "measurement_method": { "type": "string" },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       }
     },
+
     "Dataset": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "case_mix_notes",
-        "centres",
-        "countries",
-        "dataset_id",
-        "end_date",
-        "events",
-        "label",
-        "n",
-        "role",
-        "source",
-        "start_date"
-      ],
+      "required": ["dataset_id", "role"],
       "properties": {
-        "dataset_id": {
-          "type": "string"
-        },
+        "dataset_id": { "type": "string" },
         "role": {
           "type": "string",
           "enum": [
@@ -1495,107 +517,31 @@
             "update"
           ]
         },
-        "label": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "centres": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 0
-        },
+        "label": { "type": "string" },
+        "centres": { "type": "integer", "minimum": 0 },
         "countries": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "$ref": "common.schema.json#/$defs/CountryCode"
-          }
+          "type": "array",
+          "items": { "$ref": "common.schema.json#/$defs/CountryCode" },
+          "default": []
         },
-        "start_date": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "format": "date"
-        },
-        "end_date": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "format": "date"
-        },
-        "n": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 0
-        },
-        "events": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 0
-        },
-        "case_mix_notes": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "source": {
-          "$ref": "common.schema.json#/$defs/SourceRef"
-        }
+        "start_date": { "type": "string", "format": "date" },
+        "end_date": { "type": "string", "format": "date" },
+        "n": { "type": "integer", "minimum": 0 },
+        "events": { "type": "integer", "minimum": 0 },
+        "case_mix_notes": { "type": "string" },
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       }
     },
+
     "ModelSpec": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "algorithm",
-        "baseline_hazard",
-        "calibration_method",
-        "coefficients",
-        "explainability",
-        "feature_selection",
-        "hyperparameters",
-        "intercept",
-        "internal_validation_method",
-        "label",
-        "link_function",
-        "missing_data_strategy",
-        "model_id",
-        "notes",
-        "outcome_id",
-        "predictors_used",
-        "presentation",
-        "regularization",
-        "source",
-        "training_dataset_id",
-        "variable_importance",
-        "web_calculator_url"
-      ],
+      "required": ["model_id", "label", "algorithm", "outcome_id", "training_dataset_id"],
       "properties": {
-        "model_id": {
-          "type": "string"
-        },
-        "label": {
-          "type": "string"
-        },
-        "outcome_id": {
-          "type": "string"
-        },
-        "training_dataset_id": {
-          "type": "string"
-        },
+        "model_id": { "type": "string" },
+        "label": { "type": "string" },
+        "outcome_id": { "type": "string" },
+        "training_dataset_id": { "type": "string" },
         "algorithm": {
           "type": "string",
           "enum": [
@@ -1616,966 +562,508 @@
             "other"
           ]
         },
-        "link_function": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "e.g., logit, cloglog, identity"
-        },
-        "regularization": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "enum": [
-            "none",
-            "lasso",
-            "ridge",
-            "elastic_net",
-            "other"
-          ]
-        },
-        "feature_selection": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "e.g., AIC/BIC, stepwise, clinical pre-specification"
-        },
-        "predictors_used": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "type": "string"
-          }
-        },
+        "link_function": { "type": "string", "description": "e.g., logit, cloglog, identity" },
+        "regularization": { "type": "string", "enum": ["none", "lasso", "ridge", "elastic_net", "other"], "default": "none" },
+        "feature_selection": { "type": "string", "description": "e.g., AIC/BIC, stepwise, clinical pre-specification" },
+        "predictors_used": { "type": "array", "items": { "type": "string" }, "default": [] },
+
         "coefficients": {
-          "type": [
-            "array",
-            "null"
-          ],
+          "type": "array",
           "description": "For regression-type models; beta coefficients per predictor",
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": [
-              "beta",
-              "predictor",
-              "se"
-            ],
+            "required": ["predictor", "beta"],
             "properties": {
-              "predictor": {
-                "type": "string"
+              "predictor": { "type": "string" },
+              "beta": {
+                "oneOf": [
+                  { "type": "number" },
+                  { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                ]
               },
-              "beta": {},
-              "se": {}
+              "se": {
+                "oneOf": [
+                  { "type": "number", "minimum": 0 },
+                  { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                ]
+              }
             }
-          }
+          },
+          "default": []
         },
         "intercept": {
+          "oneOf": [
+            { "type": "number" },
+            { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+          ],
           "description": "Regression intercept; for Cox, log-baseline hazard not used"
         },
         "baseline_hazard": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "description": "If Cox/Fine-Gray: description or function of baseline hazard/cumulative baseline hazard"
         },
+
         "variable_importance": {
-          "type": [
-            "array",
-            "null"
-          ],
+          "type": "array",
           "description": "For ML models; scale and definition per paper",
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": [
-              "predictor",
-              "importance"
-            ],
+            "required": ["predictor", "importance"],
             "properties": {
-              "predictor": {
-                "type": "string"
-              },
-              "importance": {}
+              "predictor": { "type": "string" },
+              "importance": {
+                "oneOf": [
+                  { "type": "number" },
+                  { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                ]
+              }
             }
-          }
+          },
+          "default": []
         },
+
         "explainability": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "description": "Model explainability and interpretability methods",
           "properties": {
             "shap_values": {
-              "type": [
-                "object",
-                "null"
-              ],
+              "type": "object",
               "properties": {
-                "computed": {
-                  "type": [
-                    "boolean",
-                    "null"
-                  ]
-                },
+                "computed": { "type": "boolean" },
                 "global_importance": {
-                  "type": [
-                    "array",
-                    "null"
-                  ],
+                  "type": "array",
                   "items": {
                     "type": "object",
                     "properties": {
-                      "predictor": {
-                        "type": [
-                          "string",
-                          "null"
-                        ]
-                      },
-                      "mean_abs_shap": {
-                        "type": [
-                          "number",
-                          "null"
-                        ]
-                      }
-                    },
-                    "additionalProperties": false,
-                    "required": [
-                      "mean_abs_shap",
-                      "predictor"
-                    ]
+                      "predictor": { "type": "string" },
+                      "mean_abs_shap": { "type": "number" }
+                    }
                   }
                 },
-                "summary_plot_source": {
-                  "$ref": "common.schema.json#/$defs/SourceRef"
-                }
-              },
-              "additionalProperties": false,
-              "required": [
-                "computed",
-                "global_importance",
-                "summary_plot_source"
-              ]
+                "summary_plot_source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+              }
             },
             "lime": {
-              "type": [
-                "object",
-                "null"
-              ],
+              "type": "object",
               "properties": {
-                "used": {
-                  "type": [
-                    "boolean",
-                    "null"
-                  ]
-                },
-                "n_explanations": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ]
-                },
-                "explanation_source": {
-                  "$ref": "common.schema.json#/$defs/SourceRef"
-                }
-              },
-              "additionalProperties": false,
-              "required": [
-                "explanation_source",
-                "n_explanations",
-                "used"
-              ]
+                "used": { "type": "boolean" },
+                "n_explanations": { "type": "integer" },
+                "explanation_source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+              }
             },
             "partial_dependence": {
-              "type": [
-                "object",
-                "null"
-              ],
+              "type": "object",
               "properties": {
-                "plots_provided": {
-                  "type": [
-                    "boolean",
-                    "null"
-                  ]
-                },
-                "predictors_analyzed": {
-                  "type": [
-                    "array",
-                    "null"
-                  ],
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                "plot_source": {
-                  "$ref": "common.schema.json#/$defs/SourceRef"
-                }
-              },
-              "additionalProperties": false,
-              "required": [
-                "plot_source",
-                "plots_provided",
-                "predictors_analyzed"
-              ]
+                "plots_provided": { "type": "boolean" },
+                "predictors_analyzed": { "type": "array", "items": { "type": "string" } },
+                "plot_source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+              }
             },
             "ice_plots": {
-              "type": [
-                "object",
-                "null"
-              ],
+              "type": "object",
               "properties": {
-                "provided": {
-                  "type": [
-                    "boolean",
-                    "null"
-                  ]
-                },
-                "plot_source": {
-                  "$ref": "common.schema.json#/$defs/SourceRef"
-                }
-              },
-              "additionalProperties": false,
-              "required": [
-                "plot_source",
-                "provided"
-              ]
+                "provided": { "type": "boolean" },
+                "plot_source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+              }
             },
             "feature_interactions": {
-              "type": [
-                "array",
-                "null"
-              ],
+              "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
-                  "predictors": {
-                    "type": [
-                      "array",
-                      "null"
-                    ],
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "interaction_strength": {
-                    "type": [
-                      "number",
-                      "null"
-                    ]
-                  },
-                  "h_statistic": {
-                    "type": [
-                      "number",
-                      "null"
-                    ]
-                  }
-                },
-                "additionalProperties": false,
-                "required": [
-                  "h_statistic",
-                  "interaction_strength",
-                  "predictors"
-                ]
+                  "predictors": { "type": "array", "items": { "type": "string" } },
+                  "interaction_strength": { "type": "number" },
+                  "h_statistic": { "type": "number" }
+                }
               }
             },
             "attention_weights": {
-              "type": [
-                "object",
-                "null"
-              ],
+              "type": "object",
               "description": "For attention-based models (transformers, etc.)",
               "properties": {
-                "visualized": {
-                  "type": [
-                    "boolean",
-                    "null"
-                  ]
-                },
-                "visualization_source": {
-                  "$ref": "common.schema.json#/$defs/SourceRef"
-                }
-              },
-              "additionalProperties": false,
-              "required": [
-                "visualization_source",
-                "visualized"
-              ]
+                "visualized": { "type": "boolean" },
+                "visualization_source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+              }
             }
-          },
-          "additionalProperties": false,
-          "required": [
-            "shap_values",
-            "lime",
-            "partial_dependence",
-            "ice_plots",
-            "feature_interactions",
-            "attention_weights"
-          ]
+          }
         },
+
         "hyperparameters": {
-          "type": [
-            "array",
-            "null"
-          ],
+          "type": "array",
           "description": "Key hyperparameters as name/value pairs for portability",
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": [
-              "name",
-              "value"
-            ],
+            "required": ["name", "value"],
             "properties": {
-              "name": {
-                "type": "string"
+              "name": { "type": "string" },
+              "value": { "type": "string" }
+            }
+          },
+          "default": []
+        },
+
+        "internal_validation_method": {
+          "type": "string",
+          "enum": ["none", "split_sample", "kfold_cv", "bootstrap", "repeated_cv", "other"],
+          "default": "none"
+        },
+        "missing_data_strategy": { "type": "string", "description": "Training-time handling of missing values" },
+        "calibration_method": { "type": "string", "description": "e.g., Platt scaling, isotonic, recalibration slope" },
+
+        "presentation": {
+          "type": "string",
+          "description": "e.g., nomogram, score chart, web/mobile calculator"
+        },
+        "web_calculator_url": { "type": "string", "format": "uri" },
+
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
+        "notes": { "type": "string" }
+      }
+    },
+
+    "PerformanceResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["model_id", "dataset_id", "outcome_id"],
+      "properties": {
+        "model_id": { "type": "string" },
+        "dataset_id": { "type": "string" },
+        "outcome_id": { "type": "string" },
+
+        "time_horizon_iso8601": { "$ref": "common.schema.json#/$defs/ISO8601Duration" },
+
+        "discrimination": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "auc_roc": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "point": {
+                  "oneOf": [
+                    { "type": "number", "minimum": 0, "maximum": 1 },
+                    { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                  ]
+                },
+                "ci": { "$ref": "common.schema.json#/$defs/EffectCI" }
+              }
+            },
+            "c_statistic": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "point": {
+                  "oneOf": [
+                    { "type": "number", "minimum": 0, "maximum": 1 },
+                    { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                  ]
+                },
+                "ci": { "$ref": "common.schema.json#/$defs/EffectCI" }
               },
-              "value": {
-                "type": "string"
+              "description": "Harrell's C voor time-to-event, indien gerapporteerd"
+            },
+            "pr_auc": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "point": {
+                  "oneOf": [
+                    { "type": "number", "minimum": 0, "maximum": 1 },
+                    { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                  ]
+                },
+                "ci": { "$ref": "common.schema.json#/$defs/EffectCI" }
               }
             }
           }
         },
-        "internal_validation_method": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "enum": [
-            "none",
-            "split_sample",
-            "kfold_cv",
-            "bootstrap",
-            "repeated_cv",
-            "other"
-          ]
-        },
-        "missing_data_strategy": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Training-time handling of missing values"
-        },
-        "calibration_method": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "e.g., Platt scaling, isotonic, recalibration slope"
-        },
-        "presentation": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "e.g., nomogram, score chart, web/mobile calculator"
-        },
-        "web_calculator_url": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "format": "uri"
-        },
-        "source": {
-          "$ref": "common.schema.json#/$defs/SourceRef"
-        },
-        "notes": {
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      }
-    },
-    "PerformanceResult": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "calibration",
-        "clinical_utility",
-        "dataset_id",
-        "discrimination",
-        "model_comparison",
-        "model_id",
-        "notes",
-        "outcome_id",
-        "recalibration",
-        "source",
-        "threshold_metrics",
-        "time_horizon_iso8601"
-      ],
-      "properties": {
-        "model_id": {
-          "type": "string"
-        },
-        "dataset_id": {
-          "type": "string"
-        },
-        "outcome_id": {
-          "type": "string"
-        },
-        "time_horizon_iso8601": {
-          "$ref": "common.schema.json#/$defs/ISO8601Duration"
-        },
-        "discrimination": {
-          "type": [
-            "object",
-            "null"
-          ],
-          "additionalProperties": false,
-          "properties": {
-            "auc_roc": {
-              "type": [
-                "object",
-                "null"
-              ],
-              "additionalProperties": false,
-              "properties": {
-                "point": {},
-                "ci": {
-                  "$ref": "common.schema.json#/$defs/EffectCI"
-                }
-              },
-              "required": [
-                "ci",
-                "point"
-              ]
-            },
-            "c_statistic": {
-              "type": [
-                "object",
-                "null"
-              ],
-              "additionalProperties": false,
-              "properties": {
-                "point": {},
-                "ci": {
-                  "$ref": "common.schema.json#/$defs/EffectCI"
-                }
-              },
-              "description": "Harrell's C voor time-to-event, indien gerapporteerd",
-              "required": [
-                "ci",
-                "point"
-              ]
-            },
-            "pr_auc": {
-              "type": [
-                "object",
-                "null"
-              ],
-              "additionalProperties": false,
-              "properties": {
-                "point": {},
-                "ci": {
-                  "$ref": "common.schema.json#/$defs/EffectCI"
-                }
-              },
-              "required": [
-                "ci",
-                "point"
-              ]
-            }
-          },
-          "required": [
-            "auc_roc",
-            "c_statistic",
-            "pr_auc"
-          ]
-        },
+
         "calibration": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "additionalProperties": false,
           "properties": {
             "calibration_in_the_large": {
+              "oneOf": [
+                { "type": "number" },
+                { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+              ],
               "description": "Difference between mean predicted and observed risk"
             },
-            "intercept": {},
-            "slope": {},
-            "calibration_level": {
-              "type": [
-                "string",
-                "null"
-              ],
-              "enum": [
-                "weak",
-                "moderate",
-                "strong"
-              ],
-              "description": "Weak=intercept, moderate=slope+intercept, strong=flexible"
+            "intercept": {
+              "oneOf": [
+                { "type": "number" },
+                { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+              ]
             },
+            "slope": {
+              "oneOf": [
+                { "type": "number" },
+                { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+              ]
+            },
+            "calibration_level": { "type": "string", "enum": ["weak", "moderate", "strong"], "description": "Weak=intercept, moderate=slope+intercept, strong=flexible" },
             "o_e_ratio": {
+              "oneOf": [
+                { "type": "number" },
+                { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+              ],
               "description": "Observed/Expected"
             },
-            "brier": {},
-            "scaled_brier": {},
-            "hl_test_p": {},
+            "brier": {
+              "oneOf": [
+                { "type": "number", "minimum": 0 },
+                { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+              ]
+            },
+            "scaled_brier": {
+              "oneOf": [
+                { "type": "number", "minimum": 0, "maximum": 1 },
+                { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+              ]
+            },
+            "hl_test_p": {
+              "oneOf": [
+                { "type": "number", "minimum": 0, "maximum": 1 },
+                { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+              ]
+            },
             "ici": {
+              "oneOf": [
+                { "type": "number", "minimum": 0 },
+                { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+              ],
               "description": "Integrated Calibration Index"
             },
-            "spiegelhalter_z": {},
-            "spiegelhalter_p": {},
-            "calibration_plot_source": {
-              "$ref": "common.schema.json#/$defs/SourceRef"
-            }
-          },
-          "required": [
-            "calibration_in_the_large",
-            "intercept",
-            "slope",
-            "calibration_level",
-            "o_e_ratio",
-            "brier",
-            "scaled_brier",
-            "hl_test_p",
-            "ici",
-            "spiegelhalter_z",
-            "spiegelhalter_p",
-            "calibration_plot_source"
-          ]
+            "spiegelhalter_z": {
+              "oneOf": [
+                { "type": "number" },
+                { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+              ]
+            },
+            "spiegelhalter_p": {
+              "oneOf": [
+                { "type": "number", "minimum": 0, "maximum": 1 },
+                { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+              ]
+            },
+            "calibration_plot_source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+          }
         },
+
         "clinical_utility": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "description": "Clinical utility and reclassification metrics",
           "properties": {
             "nri": {
-              "type": [
-                "object",
-                "null"
-              ],
+              "type": "object",
               "description": "Net Reclassification Improvement",
               "properties": {
                 "categorical": {
-                  "type": [
-                    "object",
-                    "null"
-                  ],
+                  "type": "object",
                   "properties": {
-                    "nri": {
-                      "type": [
-                        "number",
-                        "null"
-                      ]
-                    },
-                    "nri_events": {
-                      "type": [
-                        "number",
-                        "null"
-                      ]
-                    },
-                    "nri_non_events": {
-                      "type": [
-                        "number",
-                        "null"
-                      ]
-                    },
-                    "categories": {
-                      "type": [
-                        "array",
-                        "null"
-                      ],
-                      "items": {
-                        "type": "string"
-                      }
-                    }
-                  },
-                  "additionalProperties": false,
-                  "required": [
-                    "nri",
-                    "nri_events",
-                    "nri_non_events",
-                    "categories"
-                  ]
+                    "nri": { "type": "number" },
+                    "nri_events": { "type": "number" },
+                    "nri_non_events": { "type": "number" },
+                    "categories": { "type": "array", "items": { "type": "string" } }
+                  }
                 },
                 "continuous": {
-                  "type": [
-                    "object",
-                    "null"
-                  ],
+                  "type": "object",
                   "properties": {
-                    "nri": {
-                      "type": [
-                        "number",
-                        "null"
-                      ]
-                    },
-                    "p_value": {
-                      "type": [
-                        "number",
-                        "null"
-                      ]
-                    }
-                  },
-                  "additionalProperties": false,
-                  "required": [
-                    "nri",
-                    "p_value"
-                  ]
+                    "nri": { "type": "number" },
+                    "p_value": { "type": "number" }
+                  }
                 }
-              },
-              "additionalProperties": false,
-              "required": [
-                "categorical",
-                "continuous"
-              ]
+              }
             },
             "idi": {
-              "type": [
-                "object",
-                "null"
-              ],
+              "type": "object",
               "description": "Integrated Discrimination Improvement",
               "properties": {
-                "idi": {
-                  "type": [
-                    "number",
-                    "null"
-                  ]
-                },
-                "p_value": {
-                  "type": [
-                    "number",
-                    "null"
-                  ]
-                },
-                "is_events": {
-                  "type": [
-                    "number",
-                    "null"
-                  ],
-                  "description": "Integrated sensitivity for events"
-                },
-                "is_non_events": {
-                  "type": [
-                    "number",
-                    "null"
-                  ],
-                  "description": "Integrated specificity for non-events"
-                }
-              },
-              "additionalProperties": false,
-              "required": [
-                "idi",
-                "is_events",
-                "is_non_events",
-                "p_value"
-              ]
+                "idi": { "type": "number" },
+                "p_value": { "type": "number" },
+                "is_events": { "type": "number", "description": "Integrated sensitivity for events" },
+                "is_non_events": { "type": "number", "description": "Integrated specificity for non-events" }
+              }
             },
             "relative_utility": {
-              "type": [
-                "array",
-                "null"
-              ],
+              "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
-                  "threshold": {
-                    "type": [
-                      "number",
-                      "null"
-                    ]
-                  },
-                  "relative_utility": {
-                    "type": [
-                      "number",
-                      "null"
-                    ]
-                  }
-                },
-                "additionalProperties": false,
-                "required": [
-                  "relative_utility",
-                  "threshold"
-                ]
+                  "threshold": { "type": "number" },
+                  "relative_utility": { "type": "number" }
+                }
               }
             }
-          },
-          "additionalProperties": false,
-          "required": [
-            "nri",
-            "idi",
-            "relative_utility"
-          ]
+          }
         },
+
         "model_comparison": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "description": "Comparison with other models",
           "properties": {
-            "comparator_models": {
-              "type": [
-                "array",
-                "null"
-              ],
-              "items": {
-                "type": "string"
-              }
-            },
+            "comparator_models": { "type": "array", "items": { "type": "string" } },
             "delong_test": {
-              "type": [
-                "object",
-                "null"
-              ],
+              "type": "object",
               "properties": {
-                "performed": {
-                  "type": [
-                    "boolean",
-                    "null"
-                  ]
-                },
+                "performed": { "type": "boolean" },
                 "comparisons": {
-                  "type": [
-                    "array",
-                    "null"
-                  ],
+                  "type": "array",
                   "items": {
                     "type": "object",
                     "properties": {
-                      "model_a": {
-                        "type": [
-                          "string",
-                          "null"
-                        ]
-                      },
-                      "model_b": {
-                        "type": [
-                          "string",
-                          "null"
-                        ]
-                      },
-                      "auc_difference": {
-                        "type": [
-                          "number",
-                          "null"
-                        ]
-                      },
-                      "p_value": {
-                        "type": [
-                          "number",
-                          "null"
-                        ]
-                      }
-                    },
-                    "additionalProperties": false,
-                    "required": [
-                      "auc_difference",
-                      "model_a",
-                      "model_b",
-                      "p_value"
-                    ]
+                      "model_a": { "type": "string" },
+                      "model_b": { "type": "string" },
+                      "auc_difference": { "type": "number" },
+                      "p_value": { "type": "number" }
+                    }
                   }
                 }
-              },
-              "additionalProperties": false,
-              "required": [
-                "comparisons",
-                "performed"
-              ]
+              }
             },
             "likelihood_ratio_test": {
-              "type": [
-                "object",
-                "null"
-              ],
+              "type": "object",
               "properties": {
-                "performed": {
-                  "type": [
-                    "boolean",
-                    "null"
-                  ]
-                },
-                "chi_square": {
-                  "type": [
-                    "number",
-                    "null"
-                  ]
-                },
-                "df": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ]
-                },
-                "p_value": {
-                  "type": [
-                    "number",
-                    "null"
-                  ]
-                }
-              },
-              "additionalProperties": false,
-              "required": [
-                "chi_square",
-                "df",
-                "p_value",
-                "performed"
-              ]
+                "performed": { "type": "boolean" },
+                "chi_square": { "type": "number" },
+                "df": { "type": "integer" },
+                "p_value": { "type": "number" }
+              }
             },
             "aic_bic": {
-              "type": [
-                "object",
-                "null"
-              ],
+              "type": "object",
               "properties": {
-                "aic": {
-                  "type": [
-                    "number",
-                    "null"
-                  ]
-                },
-                "bic": {
-                  "type": [
-                    "number",
-                    "null"
-                  ]
-                },
-                "best_model": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                }
-              },
-              "additionalProperties": false,
-              "required": [
-                "aic",
-                "best_model",
-                "bic"
-              ]
+                "aic": { "type": "number" },
+                "bic": { "type": "number" },
+                "best_model": { "type": "string" }
+              }
             }
-          },
-          "additionalProperties": false,
-          "required": [
-            "comparator_models",
-            "delong_test",
-            "likelihood_ratio_test",
-            "aic_bic"
-          ]
+          }
         },
+
         "threshold_metrics": {
-          "type": [
-            "array",
-            "null"
-          ],
+          "type": "array",
           "description": "Metrics bij specifieke beslisdrempels",
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": [
-              "accuracy",
-              "f1",
-              "npv",
-              "ppv",
-              "sensitivity",
-              "specificity",
-              "threshold",
-              "youden_j"
-            ],
+            "required": ["threshold"],
             "properties": {
-              "threshold": {},
-              "sensitivity": {},
-              "specificity": {},
-              "ppv": {},
-              "npv": {},
-              "accuracy": {},
-              "f1": {},
-              "youden_j": {}
-            }
-          }
-        },
-        "recalibration": {
-          "type": [
-            "object",
-            "null"
-          ],
-          "additionalProperties": false,
-          "properties": {
-            "intercept_adjustment": {},
-            "slope_adjustment": {},
-            "method": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "notes": {
-              "type": [
-                "string",
-                "null"
-              ]
+              "threshold": {
+                "oneOf": [
+                  { "type": "number" },
+                  { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                ]
+              },
+              "sensitivity": {
+                "oneOf": [
+                  { "type": "number", "minimum": 0, "maximum": 1 },
+                  { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                ]
+              },
+              "specificity": {
+                "oneOf": [
+                  { "type": "number", "minimum": 0, "maximum": 1 },
+                  { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                ]
+              },
+              "ppv": {
+                "oneOf": [
+                  { "type": "number", "minimum": 0, "maximum": 1 },
+                  { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                ]
+              },
+              "npv": {
+                "oneOf": [
+                  { "type": "number", "minimum": 0, "maximum": 1 },
+                  { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                ]
+              },
+              "accuracy": {
+                "oneOf": [
+                  { "type": "number", "minimum": 0, "maximum": 1 },
+                  { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                ]
+              },
+              "f1": {
+                "oneOf": [
+                  { "type": "number", "minimum": 0, "maximum": 1 },
+                  { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                ]
+              },
+              "youden_j": {
+                "oneOf": [
+                  { "type": "number" },
+                  { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                ]
+              }
             }
           },
-          "required": [
-            "intercept_adjustment",
-            "slope_adjustment",
-            "method",
-            "notes"
-          ]
+          "default": []
         },
-        "source": {
-          "$ref": "common.schema.json#/$defs/SourceRef"
+
+        "recalibration": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "intercept_adjustment": {
+              "oneOf": [
+                { "type": "number" },
+                { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+              ]
+            },
+            "slope_adjustment": {
+              "oneOf": [
+                { "type": "number" },
+                { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+              ]
+            },
+            "method": { "type": "string" },
+            "notes": { "type": "string" }
+          }
         },
-        "notes": {
-          "type": [
-            "string",
-            "null"
-          ]
-        }
+
+        "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
+        "notes": { "type": "string" }
       }
     },
+
     "DecisionCurve": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "dataset_id",
-        "figure_source",
-        "model_id",
-        "points"
-      ],
+      "required": ["model_id", "dataset_id"],
       "properties": {
-        "model_id": {
-          "type": "string"
-        },
-        "dataset_id": {
-          "type": "string"
-        },
+        "model_id": { "type": "string" },
+        "dataset_id": { "type": "string" },
         "points": {
-          "type": [
-            "array",
-            "null"
-          ],
+          "type": "array",
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": [
-              "threshold",
-              "net_benefit"
-            ],
+            "required": ["threshold", "net_benefit"],
             "properties": {
-              "threshold": {},
-              "net_benefit": {}
+              "threshold": {
+                "oneOf": [
+                  { "type": "number", "minimum": 0, "maximum": 1 },
+                  { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                ]
+              },
+              "net_benefit": {
+                "oneOf": [
+                  { "type": "number" },
+                  { "$ref": "common.schema.json#/$defs/ValueWithRaw" }
+                ]
+              }
             }
-          }
+          },
+          "default": []
         },
-        "figure_source": {
-          "$ref": "common.schema.json#/$defs/SourceRef"
-        }
+        "figure_source": { "$ref": "common.schema.json#/$defs/SourceRef" }
       }
     }
   }

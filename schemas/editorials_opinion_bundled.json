@@ -5,34 +5,11 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "arguments",
-    "article_type",
-    "conflict_of_interest",
-    "digital_features",
-    "document",
-    "editorial_context",
-    "extraction_warnings",
-    "figures_summary",
-    "generator",
-    "impact_metrics",
-    "invited",
-    "key_points",
-    "language",
-    "limitations_or_bias",
-    "metadata",
-    "notable_quotes",
-    "peer_review_status",
-    "quality_assessment",
-    "recommendations",
-    "response_chain",
     "schema_version",
+    "metadata",
+    "article_type",
     "stance_overall",
-    "study_id",
-    "tables_parsed",
-    "target_article",
-    "thesis_statement",
-    "topic_keywords",
-    "truncated"
+    "arguments"
   ],
   "properties": {
     "schema_version": {
@@ -41,10 +18,7 @@
       "description": "Semantic-like version tag, e.g. v1.0 or v1.2.3"
     },
     "document": {
-      "type": [
-        "object",
-        "null"
-      ],
+      "type": "object",
       "additionalProperties": false,
       "required": [
         "filename",
@@ -58,7 +32,8 @@
           "type": "string",
           "enum": [
             "application/pdf"
-          ]
+          ],
+          "default": "application/pdf"
         },
         "size_bytes": {
           "type": "integer",
@@ -71,18 +46,12 @@
       }
     },
     "study_id": {
-      "type": [
-        "string",
-        "null"
-      ],
+      "type": "string",
       "pattern": "^[A-Za-z0-9._-]+$",
       "description": "Internal opaque ID for this article"
     },
     "generator": {
-      "type": [
-        "object",
-        "null"
-      ],
+      "type": "object",
       "additionalProperties": false,
       "required": [
         "name",
@@ -127,21 +96,17 @@
       ]
     },
     "peer_review_status": {
-      "type": [
-        "string",
-        "null"
-      ],
+      "type": "string",
       "enum": [
         "peer_reviewed",
         "not_peer_reviewed",
         "unknown"
-      ]
+      ],
+      "default": "unknown"
     },
     "invited": {
-      "type": [
-        "boolean",
-        "null"
-      ]
+      "type": "boolean",
+      "default": false
     },
     "editorial_context": {
       "$ref": "#/$defs/EditorialContext"
@@ -150,13 +115,11 @@
       "$ref": "#/$defs/TargetArticle"
     },
     "topic_keywords": {
-      "type": [
-        "array",
-        "null"
-      ],
+      "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "default": []
     },
     "stance_overall": {
       "type": "string",
@@ -169,20 +132,15 @@
       ]
     },
     "thesis_statement": {
-      "type": [
-        "string",
-        "null"
-      ],
+      "type": "string",
       "description": "One-sentence summary of the main thesis/position"
     },
     "key_points": {
-      "type": [
-        "array",
-        "null"
-      ],
+      "type": "array",
       "items": {
         "type": "string"
-      }
+      },
+      "default": []
     },
     "arguments": {
       "type": "array",
@@ -192,27 +150,20 @@
       "minItems": 1
     },
     "recommendations": {
-      "type": [
-        "array",
-        "null"
-      ],
+      "type": "array",
       "description": "Practice/policy/research recommendations, if any.",
       "items": {
         "$ref": "#/$defs/Recommendation"
-      }
+      },
+      "default": []
     },
     "notable_quotes": {
-      "type": [
-        "array",
-        "null"
-      ],
+      "type": "array",
       "description": "Salient quotes from the piece.",
       "items": {
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "context",
-          "source",
           "text"
         ],
         "properties": {
@@ -220,22 +171,17 @@
             "type": "string"
           },
           "context": {
-            "type": [
-              "string",
-              "null"
-            ]
+            "type": "string"
           },
           "source": {
             "$ref": "#/$defs/SourceRef"
           }
         }
-      }
+      },
+      "default": []
     },
     "limitations_or_bias": {
-      "type": [
-        "string",
-        "null"
-      ],
+      "type": "string",
       "description": "Any stated limitations or potential biases acknowledged by the authors"
     },
     "conflict_of_interest": {
@@ -254,31 +200,25 @@
       "$ref": "#/$defs/DigitalFeatures"
     },
     "tables_parsed": {
-      "type": [
-        "array",
-        "null"
-      ],
+      "type": "array",
       "items": {
         "$ref": "#/$defs/ParsedTable"
-      }
+      },
+      "default": []
     },
     "figures_summary": {
-      "type": [
-        "array",
-        "null"
-      ],
+      "type": "array",
       "items": {
         "$ref": "#/$defs/FigureSummary"
-      }
+      },
+      "default": []
     },
     "extraction_warnings": {
-      "type": [
-        "array",
-        "null"
-      ],
+      "type": "array",
       "items": {
         "$ref": "#/$defs/ExtractionWarning"
-      }
+      },
+      "default": []
     },
     "truncated": {
       "$ref": "#/$defs/TruncationInfo"
@@ -291,31 +231,19 @@
       "description": "Editorial context and board information",
       "properties": {
         "editorial_board_member": {
-          "type": [
-            "boolean",
-            "null"
-          ],
+          "type": "boolean",
           "description": "Whether author is a member of the journal's editorial board"
         },
         "guest_editor": {
-          "type": [
-            "boolean",
-            "null"
-          ],
+          "type": "boolean",
           "description": "Whether author served as guest editor for this issue"
         },
         "solicited": {
-          "type": [
-            "boolean",
-            "null"
-          ],
+          "type": "boolean",
           "description": "Whether the editorial was specifically solicited by the journal"
         },
         "editorial_type": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "enum": [
             "accompanying",
             "standalone",
@@ -326,97 +254,45 @@
           "description": "Type of editorial in relation to other content"
         },
         "publication_timeline": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
             "submitted": {
-              "type": [
-                "string",
-                "null"
-              ],
+              "type": "string",
               "format": "date"
             },
             "accepted": {
-              "type": [
-                "string",
-                "null"
-              ],
+              "type": "string",
               "format": "date"
             },
             "published_online": {
-              "type": [
-                "string",
-                "null"
-              ],
+              "type": "string",
               "format": "date"
             },
             "published_print": {
-              "type": [
-                "string",
-                "null"
-              ],
+              "type": "string",
               "format": "date"
             }
-          },
-          "additionalProperties": false,
-          "required": [
-            "submitted",
-            "accepted",
-            "published_online",
-            "published_print"
-          ]
+          }
         },
         "editorial_process": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
             "peer_reviewed": {
-              "type": [
-                "boolean",
-                "null"
-              ]
+              "type": "boolean"
             },
             "editor_reviewed": {
-              "type": [
-                "boolean",
-                "null"
-              ]
+              "type": "boolean"
             },
             "fast_tracked": {
-              "type": [
-                "boolean",
-                "null"
-              ]
+              "type": "boolean"
             },
             "revision_count": {
-              "type": [
-                "integer",
-                "null"
-              ],
+              "type": "integer",
               "minimum": 0
             }
-          },
-          "additionalProperties": false,
-          "required": [
-            "peer_reviewed",
-            "editor_reviewed",
-            "fast_tracked",
-            "revision_count"
-          ]
+          }
         }
-      },
-      "required": [
-        "editorial_board_member",
-        "editorial_process",
-        "editorial_type",
-        "guest_editor",
-        "publication_timeline",
-        "solicited"
-      ]
+      }
     },
     "ConflictOfInterest": {
       "type": "object",
@@ -424,32 +300,20 @@
       "description": "Comprehensive conflict of interest declaration for editorial content",
       "properties": {
         "declared": {
-          "type": [
-            "boolean",
-            "null"
-          ],
+          "type": "boolean",
           "description": "Whether conflicts of interest were formally declared"
         },
         "statement": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "description": "Full conflict of interest statement as published"
         },
         "financial_interests": {
-          "type": [
-            "array",
-            "null"
-          ],
+          "type": "array",
           "items": {
             "type": "object",
             "properties": {
               "type": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": "string",
                 "enum": [
                   "consultant",
                   "speaker",
@@ -463,17 +327,11 @@
                 ]
               },
               "entity": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": "string",
                 "description": "Company or organization name"
               },
               "amount_range": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": "string",
                 "enum": [
                   "<$1000",
                   "$1000-$5000",
@@ -484,17 +342,11 @@
                 ]
               },
               "timeframe": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": "string",
                 "description": "Time period of the relationship"
               },
               "relevance": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": "string",
                 "enum": [
                   "directly_relevant",
                   "potentially_relevant",
@@ -502,65 +354,33 @@
                 ],
                 "description": "Relevance to the editorial topic"
               }
-            },
-            "additionalProperties": false,
-            "required": [
-              "amount_range",
-              "entity",
-              "relevance",
-              "timeframe",
-              "type"
-            ]
+            }
           }
         },
         "institutional_affiliations": {
-          "type": [
-            "array",
-            "null"
-          ],
+          "type": "array",
           "items": {
             "type": "object",
             "properties": {
               "institution": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "string"
               },
               "role": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "string"
               },
               "potential_bias": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "string"
               }
-            },
-            "additionalProperties": false,
-            "required": [
-              "institution",
-              "potential_bias",
-              "role"
-            ]
+            }
           }
         },
         "personal_relationships": {
-          "type": [
-            "array",
-            "null"
-          ],
+          "type": "array",
           "items": {
             "type": "object",
             "properties": {
               "relationship_type": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": "string",
                 "enum": [
                   "family",
                   "close_friend",
@@ -570,17 +390,11 @@
                 ]
               },
               "person_role": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": "string",
                 "description": "Role of the person in relation to editorial topic"
               },
               "impact_assessment": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": "string",
                 "enum": [
                   "high",
                   "moderate",
@@ -588,43 +402,25 @@
                   "none"
                 ]
               }
-            },
-            "additionalProperties": false,
-            "required": [
-              "impact_assessment",
-              "person_role",
-              "relationship_type"
-            ]
+            }
           }
         },
         "intellectual_interests": {
-          "type": [
-            "array",
-            "null"
-          ],
+          "type": "array",
           "items": {
             "type": "object",
             "properties": {
               "theory_or_position": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "string"
               },
               "publications": {
-                "type": [
-                  "array",
-                  "null"
-                ],
+                "type": "array",
                 "items": {
                   "type": "string"
                 }
               },
               "strength_of_position": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": "string",
                 "enum": [
                   "strong_advocate",
                   "moderate_support",
@@ -632,24 +428,10 @@
                   "skeptical"
                 ]
               }
-            },
-            "additionalProperties": false,
-            "required": [
-              "publications",
-              "strength_of_position",
-              "theory_or_position"
-            ]
+            }
           }
         }
-      },
-      "required": [
-        "declared",
-        "financial_interests",
-        "institutional_affiliations",
-        "intellectual_interests",
-        "personal_relationships",
-        "statement"
-      ]
+      }
     },
     "ResponseChain": {
       "type": "object",
@@ -657,59 +439,35 @@
       "description": "Editorial response and counter-response tracking",
       "properties": {
         "is_response": {
-          "type": [
-            "boolean",
-            "null"
-          ],
+          "type": "boolean",
           "description": "Whether this editorial is a response to another piece"
         },
         "responds_to": {
-          "type": [
-            "array",
-            "null"
-          ],
+          "type": "array",
           "items": {
             "type": "object",
             "properties": {
               "title": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "string"
               },
               "authors": {
-                "type": [
-                  "array",
-                  "null"
-                ],
+                "type": "array",
                 "items": {
                   "type": "string"
                 }
               },
               "doi": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "string"
               },
               "pmid": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "string"
               },
               "publication_date": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": "string",
                 "format": "date"
               },
               "response_type": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": "string",
                 "enum": [
                   "direct_response",
                   "counter_argument",
@@ -718,65 +476,35 @@
                   "rebuttal"
                 ]
               }
-            },
-            "additionalProperties": false,
-            "required": [
-              "authors",
-              "doi",
-              "pmid",
-              "publication_date",
-              "response_type",
-              "title"
-            ]
+            }
           }
         },
         "has_responses": {
-          "type": [
-            "array",
-            "null"
-          ],
+          "type": "array",
           "items": {
             "type": "object",
             "properties": {
               "title": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "string"
               },
               "authors": {
-                "type": [
-                  "array",
-                  "null"
-                ],
+                "type": "array",
                 "items": {
                   "type": "string"
                 }
               },
               "doi": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "string"
               },
               "pmid": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "string"
               },
               "publication_date": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": "string",
                 "format": "date"
               },
               "response_type": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": "string",
                 "enum": [
                   "support",
                   "criticism",
@@ -786,10 +514,7 @@
                 ]
               },
               "tone": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": "string",
                 "enum": [
                   "supportive",
                   "critical",
@@ -798,42 +523,19 @@
                   "constructive"
                 ]
               }
-            },
-            "additionalProperties": false,
-            "required": [
-              "authors",
-              "doi",
-              "pmid",
-              "publication_date",
-              "response_type",
-              "title",
-              "tone"
-            ]
+            }
           }
         },
         "thread_position": {
-          "type": [
-            "integer",
-            "null"
-          ],
+          "type": "integer",
           "minimum": 1,
           "description": "Position in the response thread (1=original, 2=first response, etc.)"
         },
         "thread_id": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "description": "Identifier linking all pieces in the same discussion thread"
         }
-      },
-      "required": [
-        "has_responses",
-        "is_response",
-        "responds_to",
-        "thread_id",
-        "thread_position"
-      ]
+      }
     },
     "DigitalFeatures": {
       "type": "object",
@@ -841,75 +543,40 @@
       "description": "Modern digital publishing features and interactive elements",
       "properties": {
         "multimedia_content": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
             "embedded_videos": {
-              "type": [
-                "array",
-                "null"
-              ],
+              "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
                   "url": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "format": "uri"
                   },
                   "title": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "type": "string"
                   },
                   "duration": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "pattern": "^PT\\d+M\\d+S$"
                   },
                   "description": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "type": "string"
                   },
                   "transcript_available": {
-                    "type": [
-                      "boolean",
-                      "null"
-                    ]
+                    "type": "boolean"
                   }
-                },
-                "additionalProperties": false,
-                "required": [
-                  "description",
-                  "duration",
-                  "title",
-                  "transcript_available",
-                  "url"
-                ]
+                }
               }
             },
             "interactive_graphics": {
-              "type": [
-                "array",
-                "null"
-              ],
+              "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
                   "type": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "enum": [
                       "interactive_chart",
                       "data_visualization",
@@ -919,40 +586,22 @@
                     ]
                   },
                   "url": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "format": "uri"
                   },
                   "description": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "type": "string"
                   }
-                },
-                "additionalProperties": false,
-                "required": [
-                  "description",
-                  "type",
-                  "url"
-                ]
+                }
               }
             },
             "audio_content": {
-              "type": [
-                "array",
-                "null"
-              ],
+              "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
                   "type": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "enum": [
                       "podcast_episode",
                       "audio_summary",
@@ -961,62 +610,31 @@
                     ]
                   },
                   "url": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "format": "uri"
                   },
                   "duration": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "type": "string"
                   },
                   "transcript_url": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "format": "uri"
                   }
-                },
-                "additionalProperties": false,
-                "required": [
-                  "duration",
-                  "transcript_url",
-                  "type",
-                  "url"
-                ]
+                }
               }
             }
-          },
-          "additionalProperties": false,
-          "required": [
-            "embedded_videos",
-            "interactive_graphics",
-            "audio_content"
-          ]
+          }
         },
         "social_media_integration": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
             "thread_summaries": {
-              "type": [
-                "array",
-                "null"
-              ],
+              "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
                   "platform": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "enum": [
                       "twitter",
                       "linkedin",
@@ -1025,124 +643,64 @@
                     ]
                   },
                   "thread_url": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "format": "uri"
                   },
                   "author_handle": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "type": "string"
                   },
                   "engagement_metrics": {
-                    "type": [
-                      "object",
-                      "null"
-                    ],
+                    "type": "object",
                     "properties": {
                       "likes": {
-                        "type": [
-                          "integer",
-                          "null"
-                        ],
+                        "type": "integer",
                         "minimum": 0
                       },
                       "shares": {
-                        "type": [
-                          "integer",
-                          "null"
-                        ],
+                        "type": "integer",
                         "minimum": 0
                       },
                       "comments": {
-                        "type": [
-                          "integer",
-                          "null"
-                        ],
+                        "type": "integer",
                         "minimum": 0
                       }
-                    },
-                    "additionalProperties": false,
-                    "required": [
-                      "likes",
-                      "shares",
-                      "comments"
-                    ]
+                    }
                   }
-                },
-                "additionalProperties": false,
-                "required": [
-                  "author_handle",
-                  "engagement_metrics",
-                  "platform",
-                  "thread_url"
-                ]
+                }
               }
             },
             "hashtags": {
-              "type": [
-                "array",
-                "null"
-              ],
+              "type": "array",
               "items": {
                 "type": "string"
               },
               "description": "Relevant hashtags for social media promotion"
             }
-          },
-          "additionalProperties": false,
-          "required": [
-            "thread_summaries",
-            "hashtags"
-          ]
+          }
         },
         "version_control": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
             "is_living_document": {
-              "type": [
-                "boolean",
-                "null"
-              ]
+              "type": "boolean"
             },
             "version_history": {
-              "type": [
-                "array",
-                "null"
-              ],
+              "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
                   "version": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "type": "string"
                   },
                   "date": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "format": "date-time"
                   },
                   "changes": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "type": "string"
                   },
                   "change_type": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "enum": [
                       "minor_edit",
                       "content_update",
@@ -1150,29 +708,16 @@
                       "major_revision"
                     ]
                   }
-                },
-                "additionalProperties": false,
-                "required": [
-                  "change_type",
-                  "changes",
-                  "date",
-                  "version"
-                ]
+                }
               }
             },
             "preprint_versions": {
-              "type": [
-                "array",
-                "null"
-              ],
+              "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
                   "platform": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "enum": [
                       "medRxiv",
                       "bioRxiv",
@@ -1182,92 +727,46 @@
                     ]
                   },
                   "preprint_doi": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "type": "string"
                   },
                   "posted_date": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "format": "date"
                   },
                   "version": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "type": "string"
                   }
-                },
-                "additionalProperties": false,
-                "required": [
-                  "platform",
-                  "posted_date",
-                  "preprint_doi",
-                  "version"
-                ]
+                }
               }
             }
-          },
-          "additionalProperties": false,
-          "required": [
-            "is_living_document",
-            "version_history",
-            "preprint_versions"
-          ]
+          }
         },
         "peer_commentary": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
             "open_peer_review": {
-              "type": [
-                "boolean",
-                "null"
-              ]
+              "type": "boolean"
             },
             "public_comments": {
-              "type": [
-                "array",
-                "null"
-              ],
+              "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
                   "commenter_name": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "type": "string"
                   },
                   "commenter_credentials": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "type": "string"
                   },
                   "comment_text": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "type": "string"
                   },
                   "comment_date": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "format": "date-time"
                   },
                   "moderation_status": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "enum": [
                       "approved",
                       "pending",
@@ -1275,42 +774,22 @@
                       "flagged"
                     ]
                   }
-                },
-                "additionalProperties": false,
-                "required": [
-                  "comment_date",
-                  "comment_text",
-                  "commenter_credentials",
-                  "commenter_name",
-                  "moderation_status"
-                ]
+                }
               }
             },
             "expert_annotations": {
-              "type": [
-                "array",
-                "null"
-              ],
+              "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
                   "annotator": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "type": "string"
                   },
                   "section": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "type": "string"
                   },
                   "annotation_type": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "enum": [
                       "clarification",
                       "disagreement",
@@ -1319,64 +798,30 @@
                     ]
                   },
                   "annotation_text": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "type": "string"
                   }
-                },
-                "additionalProperties": false,
-                "required": [
-                  "annotation_text",
-                  "annotation_type",
-                  "annotator",
-                  "section"
-                ]
+                }
               }
             }
-          },
-          "additionalProperties": false,
-          "required": [
-            "open_peer_review",
-            "public_comments",
-            "expert_annotations"
-          ]
+          }
         },
         "accessibility": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
             "screen_reader_compatible": {
-              "type": [
-                "boolean",
-                "null"
-              ]
+              "type": "boolean"
             },
             "alt_text_provided": {
-              "type": [
-                "boolean",
-                "null"
-              ]
+              "type": "boolean"
             },
             "high_contrast_available": {
-              "type": [
-                "boolean",
-                "null"
-              ]
+              "type": "boolean"
             },
             "font_size_adjustable": {
-              "type": [
-                "boolean",
-                "null"
-              ]
+              "type": "boolean"
             },
             "translations": {
-              "type": [
-                "array",
-                "null"
-              ],
+              "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
@@ -1384,10 +829,7 @@
                     "$ref": "#/$defs/LanguageCode"
                   },
                   "translation_type": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "enum": [
                       "human",
                       "machine",
@@ -1395,128 +837,58 @@
                     ]
                   },
                   "quality_score": {
-                    "type": [
-                      "number",
-                      "null"
-                    ],
+                    "type": "number",
                     "minimum": 0,
                     "maximum": 1
                   },
                   "url": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "format": "uri"
                   }
-                },
-                "additionalProperties": false,
-                "required": [
-                  "language",
-                  "quality_score",
-                  "translation_type",
-                  "url"
-                ]
+                }
               }
             },
             "plain_language_version": {
-              "type": [
-                "object",
-                "null"
-              ],
+              "type": "object",
               "properties": {
                 "available": {
-                  "type": [
-                    "boolean",
-                    "null"
-                  ]
+                  "type": "boolean"
                 },
                 "url": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
+                  "type": "string",
                   "format": "uri"
                 },
                 "reading_level": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
+                  "type": "string"
                 }
-              },
-              "additionalProperties": false,
-              "required": [
-                "available",
-                "reading_level",
-                "url"
-              ]
+              }
             }
-          },
-          "additionalProperties": false,
-          "required": [
-            "screen_reader_compatible",
-            "alt_text_provided",
-            "high_contrast_available",
-            "font_size_adjustable",
-            "translations",
-            "plain_language_version"
-          ]
+          }
         },
         "real_time_updates": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
             "update_notifications": {
-              "type": [
-                "boolean",
-                "null"
-              ]
+              "type": "boolean"
             },
             "rss_feed": {
-              "type": [
-                "string",
-                "null"
-              ],
+              "type": "string",
               "format": "uri"
             },
             "webhook_endpoints": {
-              "type": [
-                "array",
-                "null"
-              ],
+              "type": "array",
               "items": {
                 "type": "string",
                 "format": "uri"
               }
             },
             "last_updated": {
-              "type": [
-                "string",
-                "null"
-              ],
+              "type": "string",
               "format": "date-time"
             }
-          },
-          "additionalProperties": false,
-          "required": [
-            "update_notifications",
-            "rss_feed",
-            "webhook_endpoints",
-            "last_updated"
-          ]
+          }
         }
-      },
-      "required": [
-        "accessibility",
-        "multimedia_content",
-        "peer_commentary",
-        "real_time_updates",
-        "social_media_integration",
-        "version_control"
-      ]
+      }
     },
     "QualityAssessment": {
       "type": "object",
@@ -1524,16 +896,10 @@
       "description": "Comprehensive quality and credibility assessment for editorial content",
       "properties": {
         "author_expertise": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
             "domain_expertise": {
-              "type": [
-                "string",
-                "null"
-              ],
+              "type": "string",
               "enum": [
                 "recognized_expert",
                 "established_researcher",
@@ -1544,31 +910,19 @@
               "description": "Assessment of author expertise in the editorial topic area"
             },
             "h_index": {
-              "type": [
-                "integer",
-                "null"
-              ],
+              "type": "integer",
               "minimum": 0
             },
             "years_experience": {
-              "type": [
-                "integer",
-                "null"
-              ],
+              "type": "integer",
               "minimum": 0
             },
             "relevant_publications": {
-              "type": [
-                "integer",
-                "null"
-              ],
+              "type": "integer",
               "minimum": 0
             },
             "institutional_affiliation_quality": {
-              "type": [
-                "string",
-                "null"
-              ],
+              "type": "string",
               "enum": [
                 "tier_1",
                 "tier_2",
@@ -1579,33 +933,15 @@
               "description": "Quality tier of author's institutional affiliation"
             },
             "previous_editorial_experience": {
-              "type": [
-                "boolean",
-                "null"
-              ]
+              "type": "boolean"
             }
-          },
-          "additionalProperties": false,
-          "required": [
-            "domain_expertise",
-            "h_index",
-            "years_experience",
-            "relevant_publications",
-            "institutional_affiliation_quality",
-            "previous_editorial_experience"
-          ]
+          }
         },
         "source_credibility": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
             "source_types": {
-              "type": [
-                "array",
-                "null"
-              ],
+              "type": "array",
               "items": {
                 "type": "string",
                 "enum": [
@@ -1623,37 +959,25 @@
               }
             },
             "citation_quality_score": {
-              "type": [
-                "number",
-                "null"
-              ],
+              "type": "number",
               "minimum": 0,
               "maximum": 10,
               "description": "Overall quality assessment of cited sources"
             },
             "primary_source_ratio": {
-              "type": [
-                "number",
-                "null"
-              ],
+              "type": "number",
               "minimum": 0,
               "maximum": 1,
               "description": "Proportion of citations that are primary sources"
             },
             "recent_source_ratio": {
-              "type": [
-                "number",
-                "null"
-              ],
+              "type": "number",
               "minimum": 0,
               "maximum": 1,
               "description": "Proportion of citations from last 5 years"
             },
             "source_independence": {
-              "type": [
-                "string",
-                "null"
-              ],
+              "type": "string",
               "enum": [
                 "independent",
                 "some_conflicts",
@@ -1662,36 +986,19 @@
               ],
               "description": "Independence of cited sources from potential conflicts"
             }
-          },
-          "additionalProperties": false,
-          "required": [
-            "source_types",
-            "citation_quality_score",
-            "primary_source_ratio",
-            "recent_source_ratio",
-            "source_independence"
-          ]
+          }
         },
         "fact_checking": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
             "factual_claims_verified": {
-              "type": [
-                "number",
-                "null"
-              ],
+              "type": "number",
               "minimum": 0,
               "maximum": 1,
               "description": "Proportion of factual claims that have been verified"
             },
             "verification_method": {
-              "type": [
-                "string",
-                "null"
-              ],
+              "type": "string",
               "enum": [
                 "automated",
                 "manual",
@@ -1701,65 +1008,37 @@
               ]
             },
             "disputed_claims": {
-              "type": [
-                "array",
-                "null"
-              ],
+              "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
                   "claim": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "type": "string"
                   },
                   "dispute_source": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "type": "string"
                   },
                   "dispute_reasoning": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "type": "string"
                   },
                   "resolution_status": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "enum": [
                       "resolved",
                       "ongoing",
                       "unresolved"
                     ]
                   }
-                },
-                "additionalProperties": false,
-                "required": [
-                  "claim",
-                  "dispute_reasoning",
-                  "dispute_source",
-                  "resolution_status"
-                ]
+                }
               }
             },
             "corrections_issued": {
-              "type": [
-                "array",
-                "null"
-              ],
+              "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
                   "correction_type": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "enum": [
                       "factual_error",
                       "interpretation_error",
@@ -1768,53 +1047,25 @@
                     ]
                   },
                   "correction_date": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "format": "date"
                   },
                   "correction_text": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "type": "string"
                   }
-                },
-                "additionalProperties": false,
-                "required": [
-                  "correction_date",
-                  "correction_text",
-                  "correction_type"
-                ]
+                }
               }
             }
-          },
-          "additionalProperties": false,
-          "required": [
-            "factual_claims_verified",
-            "verification_method",
-            "disputed_claims",
-            "corrections_issued"
-          ]
+          }
         },
         "transparency": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
             "methodology_disclosed": {
-              "type": [
-                "boolean",
-                "null"
-              ]
+              "type": "boolean"
             },
             "data_availability": {
-              "type": [
-                "string",
-                "null"
-              ],
+              "type": "string",
               "enum": [
                 "fully_available",
                 "partially_available",
@@ -1824,22 +1075,13 @@
               "description": "Availability of underlying data"
             },
             "funding_disclosed": {
-              "type": [
-                "boolean",
-                "null"
-              ]
+              "type": "boolean"
             },
             "conflicts_disclosed": {
-              "type": [
-                "boolean",
-                "null"
-              ]
+              "type": "boolean"
             },
             "peer_review_process": {
-              "type": [
-                "string",
-                "null"
-              ],
+              "type": "string",
               "enum": [
                 "open_peer_review",
                 "single_blind",
@@ -1849,10 +1091,7 @@
               ]
             },
             "editorial_independence": {
-              "type": [
-                "string",
-                "null"
-              ],
+              "type": "string",
               "enum": [
                 "fully_independent",
                 "mostly_independent",
@@ -1861,43 +1100,22 @@
                 "unclear"
               ]
             }
-          },
-          "additionalProperties": false,
-          "required": [
-            "methodology_disclosed",
-            "data_availability",
-            "funding_disclosed",
-            "conflicts_disclosed",
-            "peer_review_process",
-            "editorial_independence"
-          ]
+          }
         },
         "readability": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
             "flesch_reading_ease": {
-              "type": [
-                "number",
-                "null"
-              ],
+              "type": "number",
               "minimum": 0,
               "maximum": 100
             },
             "flesch_kincaid_grade": {
-              "type": [
-                "number",
-                "null"
-              ],
+              "type": "number",
               "minimum": 0
             },
             "target_audience_appropriateness": {
-              "type": [
-                "string",
-                "null"
-              ],
+              "type": "string",
               "enum": [
                 "general_public",
                 "healthcare_professionals",
@@ -1907,10 +1125,7 @@
               ]
             },
             "technical_jargon_level": {
-              "type": [
-                "string",
-                "null"
-              ],
+              "type": "string",
               "enum": [
                 "minimal",
                 "moderate",
@@ -1919,10 +1134,7 @@
               ]
             },
             "accessibility_features": {
-              "type": [
-                "array",
-                "null"
-              ],
+              "type": "array",
               "items": {
                 "type": "string",
                 "enum": [
@@ -1933,43 +1145,23 @@
                 ]
               }
             }
-          },
-          "additionalProperties": false,
-          "required": [
-            "flesch_reading_ease",
-            "flesch_kincaid_grade",
-            "target_audience_appropriateness",
-            "technical_jargon_level",
-            "accessibility_features"
-          ]
+          }
         },
         "overall_quality_score": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
             "composite_score": {
-              "type": [
-                "number",
-                "null"
-              ],
+              "type": "number",
               "minimum": 0,
               "maximum": 100,
               "description": "Overall quality score (0-100)"
             },
             "scoring_methodology": {
-              "type": [
-                "string",
-                "null"
-              ],
+              "type": "string",
               "description": "Method used to calculate composite score"
             },
             "quality_tier": {
-              "type": [
-                "string",
-                "null"
-              ],
+              "type": "string",
               "enum": [
                 "exceptional",
                 "high",
@@ -1980,10 +1172,7 @@
               "description": "Categorical quality assessment"
             },
             "reliability_confidence": {
-              "type": [
-                "string",
-                "null"
-              ],
+              "type": "string",
               "enum": [
                 "very_high",
                 "high",
@@ -1993,24 +1182,9 @@
               ],
               "description": "Confidence in the reliability of this assessment"
             }
-          },
-          "additionalProperties": false,
-          "required": [
-            "composite_score",
-            "scoring_methodology",
-            "quality_tier",
-            "reliability_confidence"
-          ]
+          }
         }
-      },
-      "required": [
-        "author_expertise",
-        "fact_checking",
-        "overall_quality_score",
-        "readability",
-        "source_credibility",
-        "transparency"
-      ]
+      }
     },
     "ImpactMetrics": {
       "type": "object",
@@ -2018,71 +1192,41 @@
       "description": "Editorial impact and influence tracking across multiple dimensions",
       "properties": {
         "citation_metrics": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
             "citation_count": {
-              "type": [
-                "integer",
-                "null"
-              ],
+              "type": "integer",
               "minimum": 0
             },
             "h_index_contribution": {
-              "type": [
-                "number",
-                "null"
-              ],
+              "type": "number",
               "minimum": 0
             },
             "field_weighted_citation_impact": {
-              "type": [
-                "number",
-                "null"
-              ],
+              "type": "number",
               "minimum": 0
             },
             "relative_citation_ratio": {
-              "type": [
-                "number",
-                "null"
-              ],
+              "type": "number",
               "minimum": 0
             },
             "citing_papers": {
-              "type": [
-                "array",
-                "null"
-              ],
+              "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
                   "doi": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "type": "string"
                   },
                   "title": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "type": "string"
                   },
                   "publication_date": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "format": "date"
                   },
                   "citation_context": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "enum": [
                       "supportive",
                       "critical",
@@ -2090,253 +1234,122 @@
                       "methodological"
                     ]
                   }
-                },
-                "additionalProperties": false,
-                "required": [
-                  "citation_context",
-                  "doi",
-                  "publication_date",
-                  "title"
-                ]
+                }
               }
             }
-          },
-          "additionalProperties": false,
-          "required": [
-            "citation_count",
-            "h_index_contribution",
-            "field_weighted_citation_impact",
-            "relative_citation_ratio",
-            "citing_papers"
-          ]
+          }
         },
         "altmetrics": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
             "altmetric_score": {
-              "type": [
-                "number",
-                "null"
-              ],
+              "type": "number",
               "minimum": 0
             },
             "social_media": {
-              "type": [
-                "object",
-                "null"
-              ],
+              "type": "object",
               "properties": {
                 "twitter_mentions": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ],
+                  "type": "integer",
                   "minimum": 0
                 },
                 "facebook_shares": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ],
+                  "type": "integer",
                   "minimum": 0
                 },
                 "linkedin_shares": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ],
+                  "type": "integer",
                   "minimum": 0
                 },
                 "reddit_mentions": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ],
+                  "type": "integer",
                   "minimum": 0
                 },
                 "sentiment_analysis": {
-                  "type": [
-                    "object",
-                    "null"
-                  ],
+                  "type": "object",
                   "properties": {
                     "positive": {
-                      "type": [
-                        "number",
-                        "null"
-                      ],
+                      "type": "number",
                       "minimum": 0,
                       "maximum": 1
                     },
                     "negative": {
-                      "type": [
-                        "number",
-                        "null"
-                      ],
+                      "type": "number",
                       "minimum": 0,
                       "maximum": 1
                     },
                     "neutral": {
-                      "type": [
-                        "number",
-                        "null"
-                      ],
+                      "type": "number",
                       "minimum": 0,
                       "maximum": 1
                     }
-                  },
-                  "additionalProperties": false,
-                  "required": [
-                    "positive",
-                    "negative",
-                    "neutral"
-                  ]
+                  }
                 }
-              },
-              "additionalProperties": false,
-              "required": [
-                "facebook_shares",
-                "linkedin_shares",
-                "reddit_mentions",
-                "sentiment_analysis",
-                "twitter_mentions"
-              ]
+              }
             },
             "news_mentions": {
-              "type": [
-                "object",
-                "null"
-              ],
+              "type": "object",
               "properties": {
                 "mainstream_media": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ],
+                  "type": "integer",
                   "minimum": 0
                 },
                 "science_blogs": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ],
+                  "type": "integer",
                   "minimum": 0
                 },
                 "policy_documents": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ],
+                  "type": "integer",
                   "minimum": 0
                 }
-              },
-              "additionalProperties": false,
-              "required": [
-                "mainstream_media",
-                "policy_documents",
-                "science_blogs"
-              ]
+              }
             },
             "downloads": {
-              "type": [
-                "object",
-                "null"
-              ],
+              "type": "object",
               "properties": {
                 "total_downloads": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ],
+                  "type": "integer",
                   "minimum": 0
                 },
                 "unique_users": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ],
+                  "type": "integer",
                   "minimum": 0
                 },
                 "geographic_distribution": {
-                  "type": [
-                    "array",
-                    "null"
-                  ],
+                  "type": "array",
                   "items": {
                     "type": "object",
                     "properties": {
                       "country": {
-                        "type": [
-                          "string",
-                          "null"
-                        ]
+                        "type": "string"
                       },
                       "download_count": {
-                        "type": [
-                          "integer",
-                          "null"
-                        ],
+                        "type": "integer",
                         "minimum": 0
                       }
-                    },
-                    "additionalProperties": false,
-                    "required": [
-                      "country",
-                      "download_count"
-                    ]
+                    }
                   }
                 }
-              },
-              "additionalProperties": false,
-              "required": [
-                "geographic_distribution",
-                "total_downloads",
-                "unique_users"
-              ]
+              }
             }
-          },
-          "additionalProperties": false,
-          "required": [
-            "altmetric_score",
-            "social_media",
-            "news_mentions",
-            "downloads"
-          ]
+          }
         },
         "policy_impact": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
             "policy_citations": {
-              "type": [
-                "array",
-                "null"
-              ],
+              "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
                   "policy_document": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "type": "string"
                   },
                   "issuing_organization": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "type": "string"
                   },
                   "policy_type": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "enum": [
                       "guideline",
                       "regulation",
@@ -2346,17 +1359,11 @@
                     ]
                   },
                   "citation_date": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "format": "date"
                   },
                   "influence_level": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "enum": [
                       "major_influence",
                       "moderate_influence",
@@ -2364,48 +1371,25 @@
                       "background_citation"
                     ]
                   }
-                },
-                "additionalProperties": false,
-                "required": [
-                  "citation_date",
-                  "influence_level",
-                  "issuing_organization",
-                  "policy_document",
-                  "policy_type"
-                ]
+                }
               }
             },
             "healthcare_practice_changes": {
-              "type": [
-                "array",
-                "null"
-              ],
+              "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
                   "practice_area": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "type": "string"
                   },
                   "change_description": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "type": "string"
                   },
                   "evidence_of_change": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "type": "string"
                   },
                   "scale_of_impact": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "enum": [
                       "international",
                       "national",
@@ -2413,54 +1397,27 @@
                       "institutional"
                     ]
                   }
-                },
-                "additionalProperties": false,
-                "required": [
-                  "change_description",
-                  "evidence_of_change",
-                  "practice_area",
-                  "scale_of_impact"
-                ]
+                }
               }
             }
-          },
-          "additionalProperties": false,
-          "required": [
-            "policy_citations",
-            "healthcare_practice_changes"
-          ]
+          }
         },
         "expert_reception": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
             "expert_responses": {
-              "type": [
-                "array",
-                "null"
-              ],
+              "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
                   "expert_name": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "type": "string"
                   },
                   "expertise_area": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "type": "string"
                   },
                   "response_type": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "enum": [
                       "endorsement",
                       "criticism",
@@ -2470,10 +1427,7 @@
                     ]
                   },
                   "response_venue": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "enum": [
                       "peer_reviewed_response",
                       "blog_post",
@@ -2483,43 +1437,23 @@
                     ]
                   },
                   "influence_score": {
-                    "type": [
-                      "number",
-                      "null"
-                    ],
+                    "type": "number",
                     "minimum": 0,
                     "maximum": 10
                   }
-                },
-                "additionalProperties": false,
-                "required": [
-                  "expert_name",
-                  "expertise_area",
-                  "influence_score",
-                  "response_type",
-                  "response_venue"
-                ]
+                }
               }
             },
             "professional_society_reactions": {
-              "type": [
-                "array",
-                "null"
-              ],
+              "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
                   "society_name": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "type": "string"
                   },
                   "reaction_type": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "enum": [
                       "formal_endorsement",
                       "position_statement",
@@ -2528,54 +1462,27 @@
                     ]
                   },
                   "statement_text": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
+                    "type": "string"
                   },
                   "statement_date": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "format": "date"
                   }
-                },
-                "additionalProperties": false,
-                "required": [
-                  "reaction_type",
-                  "society_name",
-                  "statement_date",
-                  "statement_text"
-                ]
+                }
               }
             }
-          },
-          "additionalProperties": false,
-          "required": [
-            "expert_responses",
-            "professional_society_reactions"
-          ]
+          }
         },
         "longitudinal_impact": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
             "impact_timeline": {
-              "type": [
-                "array",
-                "null"
-              ],
+              "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
                   "time_period": {
-                    "type": [
-                      "string",
-                      "null"
-                    ],
+                    "type": "string",
                     "enum": [
                       "1_month",
                       "3_months",
@@ -2586,41 +1493,22 @@
                     ]
                   },
                   "citation_count": {
-                    "type": [
-                      "integer",
-                      "null"
-                    ],
+                    "type": "integer",
                     "minimum": 0
                   },
                   "altmetric_score": {
-                    "type": [
-                      "number",
-                      "null"
-                    ],
+                    "type": "number",
                     "minimum": 0
                   },
                   "policy_mentions": {
-                    "type": [
-                      "integer",
-                      "null"
-                    ],
+                    "type": "integer",
                     "minimum": 0
                   }
-                },
-                "additionalProperties": false,
-                "required": [
-                  "altmetric_score",
-                  "citation_count",
-                  "policy_mentions",
-                  "time_period"
-                ]
+                }
               }
             },
             "sustained_influence": {
-              "type": [
-                "string",
-                "null"
-              ],
+              "type": "string",
               "enum": [
                 "lasting_impact",
                 "moderate_longevity",
@@ -2629,109 +1517,60 @@
               ],
               "description": "Assessment of long-term influence sustainability"
             }
-          },
-          "additionalProperties": false,
-          "required": [
-            "impact_timeline",
-            "sustained_influence"
-          ]
+          }
         }
-      },
-      "required": [
-        "altmetrics",
-        "citation_metrics",
-        "expert_reception",
-        "longitudinal_impact",
-        "policy_impact"
-      ]
+      }
     },
     "CitedRef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "citation_text": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "string"
         },
         "pmid": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "pattern": "^\\d{1,8}$"
         },
         "doi": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "pattern": "^10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+$",
           "description": "DOI; pattern accepts upper- and lowercase letters"
         },
         "url": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "format": "uri"
         },
         "source": {
           "$ref": "#/$defs/SourceRef"
         }
-      },
-      "required": [
-        "citation_text",
-        "doi",
-        "pmid",
-        "source",
-        "url"
-      ]
+      }
     },
     "TargetArticle": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "title": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "string"
         },
         "pmid": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "pattern": "^\\d{1,8}$"
         },
         "doi": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "pattern": "^10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+$",
           "description": "DOI; pattern accepts upper- and lowercase letters"
         },
         "citation_text": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "string"
         },
         "url": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "format": "uri"
         },
         "type": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "enum": [
             "primary_study",
             "review",
@@ -2743,16 +1582,7 @@
         "source": {
           "$ref": "#/$defs/SourceRef"
         }
-      },
-      "required": [
-        "citation_text",
-        "doi",
-        "pmid",
-        "source",
-        "title",
-        "type",
-        "url"
-      ]
+      }
     },
     "LinkedEvidence": {
       "type": "object",
@@ -2765,33 +1595,15 @@
           "$ref": "#/$defs/Passage"
         },
         "notes": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "string"
         }
-      },
-      "required": [
-        "external_id",
-        "notes",
-        "passage"
-      ]
+      }
     },
     "Argument": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "bias_indicators",
-        "cited_refs",
         "claim_id",
-        "counterarguments",
-        "evidence_links",
-        "evidence_type",
-        "logical_structure",
-        "rhetorical_analysis",
-        "source",
-        "stance",
-        "support_strength",
         "text"
       ],
       "properties": {
@@ -2802,22 +1614,17 @@
           "type": "string"
         },
         "stance": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "enum": [
             "pro",
             "con",
             "neutral",
             "unclear"
-          ]
+          ],
+          "default": "neutral"
         },
         "evidence_type": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "enum": [
             "primary_study",
             "systematic_review",
@@ -2827,41 +1634,33 @@
             "data_analysis",
             "none",
             "other"
-          ]
+          ],
+          "default": "other"
         },
         "cited_refs": {
-          "type": [
-            "array",
-            "null"
-          ],
+          "type": "array",
           "items": {
             "$ref": "#/$defs/CitedRef"
-          }
+          },
+          "default": []
         },
         "evidence_links": {
-          "type": [
-            "array",
-            "null"
-          ],
+          "type": "array",
           "items": {
             "$ref": "#/$defs/LinkedEvidence"
-          }
+          },
+          "default": []
         },
         "support_strength": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "description": "Free-text assessment as stated by authors (e.g., strong, limited, speculative)"
         },
         "counterarguments": {
-          "type": [
-            "array",
-            "null"
-          ],
+          "type": "array",
           "items": {
             "type": "string"
-          }
+          },
+          "default": []
         },
         "rhetorical_analysis": {
           "$ref": "#/$defs/RhetoricalAnalysis"
@@ -2883,10 +1682,7 @@
       "description": "Analysis of rhetorical devices and persuasive techniques",
       "properties": {
         "rhetorical_devices": {
-          "type": [
-            "array",
-            "null"
-          ],
+          "type": "array",
           "items": {
             "type": "string",
             "enum": [
@@ -2908,30 +1704,18 @@
           }
         },
         "persuasive_techniques": {
-          "type": [
-            "array",
-            "null"
-          ],
+          "type": "array",
           "items": {
             "type": "object",
             "properties": {
               "technique": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "string"
               },
               "description": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "string"
               },
               "effectiveness_assessment": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": "string",
                 "enum": [
                   "highly_effective",
                   "moderately_effective",
@@ -2940,32 +1724,16 @@
                 ]
               },
               "target_audience": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "string"
               }
-            },
-            "additionalProperties": false,
-            "required": [
-              "description",
-              "effectiveness_assessment",
-              "target_audience",
-              "technique"
-            ]
+            }
           }
         },
         "tone_analysis": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
             "overall_tone": {
-              "type": [
-                "string",
-                "null"
-              ],
+              "type": "string",
               "enum": [
                 "authoritative",
                 "persuasive",
@@ -2977,10 +1745,7 @@
               ]
             },
             "emotional_appeal": {
-              "type": [
-                "string",
-                "null"
-              ],
+              "type": "string",
               "enum": [
                 "high",
                 "moderate",
@@ -2989,10 +1754,7 @@
               ]
             },
             "formality_level": {
-              "type": [
-                "string",
-                "null"
-              ],
+              "type": "string",
               "enum": [
                 "very_formal",
                 "formal",
@@ -3001,20 +1763,9 @@
                 "conversational"
               ]
             }
-          },
-          "additionalProperties": false,
-          "required": [
-            "overall_tone",
-            "emotional_appeal",
-            "formality_level"
-          ]
+          }
         }
-      },
-      "required": [
-        "persuasive_techniques",
-        "rhetorical_devices",
-        "tone_analysis"
-      ]
+      }
     },
     "BiasIndicators": {
       "type": "object",
@@ -3022,33 +1773,21 @@
       "description": "Systematic analysis of potential biases in editorial content",
       "properties": {
         "selection_bias": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
             "cherry_picking": {
-              "type": [
-                "boolean",
-                "null"
-              ],
+              "type": "boolean",
               "description": "Evidence of selective citation or data presentation"
             },
             "omitted_evidence": {
-              "type": [
-                "array",
-                "null"
-              ],
+              "type": "array",
               "items": {
                 "type": "string"
               },
               "description": "Key evidence or perspectives that are notably absent"
             },
             "source_diversity": {
-              "type": [
-                "string",
-                "null"
-              ],
+              "type": "string",
               "enum": [
                 "diverse",
                 "limited",
@@ -3057,80 +1796,44 @@
               ],
               "description": "Diversity of sources and viewpoints presented"
             }
-          },
-          "additionalProperties": false,
-          "required": [
-            "cherry_picking",
-            "omitted_evidence",
-            "source_diversity"
-          ]
+          }
         },
         "confirmation_bias": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
             "predetermined_conclusion": {
-              "type": [
-                "boolean",
-                "null"
-              ],
+              "type": "boolean",
               "description": "Evidence that conclusion was predetermined"
             },
             "selective_interpretation": {
-              "type": [
-                "boolean",
-                "null"
-              ],
+              "type": "boolean",
               "description": "Evidence of interpreting ambiguous data to support position"
             },
             "dismissal_of_contradictory_evidence": {
-              "type": [
-                "array",
-                "null"
-              ],
+              "type": "array",
               "items": {
                 "type": "string"
               },
               "description": "Contradictory evidence that is dismissed without adequate justification"
             }
-          },
-          "additionalProperties": false,
-          "required": [
-            "predetermined_conclusion",
-            "selective_interpretation",
-            "dismissal_of_contradictory_evidence"
-          ]
+          }
         },
         "framing_bias": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
             "loaded_language": {
-              "type": [
-                "array",
-                "null"
-              ],
+              "type": "array",
               "items": {
                 "type": "string"
               },
               "description": "Emotionally charged or biased language used"
             },
             "false_dichotomy": {
-              "type": [
-                "boolean",
-                "null"
-              ],
+              "type": "boolean",
               "description": "Presentation of complex issues as binary choices"
             },
             "contextualization": {
-              "type": [
-                "string",
-                "null"
-              ],
+              "type": "string",
               "enum": [
                 "balanced",
                 "one_sided",
@@ -3139,90 +1842,45 @@
               ],
               "description": "How information is contextualized"
             }
-          },
-          "additionalProperties": false,
-          "required": [
-            "loaded_language",
-            "false_dichotomy",
-            "contextualization"
-          ]
+          }
         },
         "authority_bias": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
             "inappropriate_appeals_to_authority": {
-              "type": [
-                "array",
-                "null"
-              ],
+              "type": "array",
               "items": {
                 "type": "string"
               },
               "description": "Appeals to authority outside their expertise"
             },
             "argument_from_position": {
-              "type": [
-                "boolean",
-                "null"
-              ],
+              "type": "boolean",
               "description": "Arguments based on author's position rather than evidence"
             }
-          },
-          "additionalProperties": false,
-          "required": [
-            "inappropriate_appeals_to_authority",
-            "argument_from_position"
-          ]
+          }
         },
         "statistical_bias": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
             "misrepresentation_of_data": {
-              "type": [
-                "array",
-                "null"
-              ],
+              "type": "array",
               "items": {
                 "type": "string"
               },
               "description": "Ways in which data is misrepresented"
             },
             "correlation_causation_confusion": {
-              "type": [
-                "boolean",
-                "null"
-              ],
+              "type": "boolean",
               "description": "Inappropriate inference of causation from correlation"
             },
             "sample_size_issues": {
-              "type": [
-                "boolean",
-                "null"
-              ],
+              "type": "boolean",
               "description": "Inappropriate generalizations from small samples"
             }
-          },
-          "additionalProperties": false,
-          "required": [
-            "misrepresentation_of_data",
-            "correlation_causation_confusion",
-            "sample_size_issues"
-          ]
+          }
         }
-      },
-      "required": [
-        "authority_bias",
-        "confirmation_bias",
-        "framing_bias",
-        "selection_bias",
-        "statistical_bias"
-      ]
+      }
     },
     "LogicalStructure": {
       "type": "object",
@@ -3230,10 +1888,7 @@
       "description": "Analysis of logical reasoning and argument structure",
       "properties": {
         "argument_type": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "enum": [
             "deductive",
             "inductive",
@@ -3245,18 +1900,12 @@
           "description": "Primary type of logical reasoning used"
         },
         "logical_fallacies": {
-          "type": [
-            "array",
-            "null"
-          ],
+          "type": "array",
           "items": {
             "type": "object",
             "properties": {
               "fallacy_type": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": "string",
                 "enum": [
                   "ad_hominem",
                   "straw_man",
@@ -3274,16 +1923,10 @@
                 ]
               },
               "description": {
-                "type": [
-                  "string",
-                  "null"
-                ]
+                "type": "string"
               },
               "severity": {
-                "type": [
-                  "string",
-                  "null"
-                ],
+                "type": "string",
                 "enum": [
                   "critical",
                   "major",
@@ -3294,27 +1937,14 @@
               "location": {
                 "$ref": "#/$defs/SourceRef"
               }
-            },
-            "additionalProperties": false,
-            "required": [
-              "description",
-              "fallacy_type",
-              "location",
-              "severity"
-            ]
+            }
           }
         },
         "argument_strength": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
             "premise_validity": {
-              "type": [
-                "string",
-                "null"
-              ],
+              "type": "string",
               "enum": [
                 "strong",
                 "moderate",
@@ -3323,10 +1953,7 @@
               ]
             },
             "logical_coherence": {
-              "type": [
-                "string",
-                "null"
-              ],
+              "type": "string",
               "enum": [
                 "coherent",
                 "mostly_coherent",
@@ -3335,10 +1962,7 @@
               ]
             },
             "evidence_quality": {
-              "type": [
-                "string",
-                "null"
-              ],
+              "type": "string",
               "enum": [
                 "high_quality",
                 "moderate_quality",
@@ -3347,10 +1971,7 @@
               ]
             },
             "conclusion_support": {
-              "type": [
-                "string",
-                "null"
-              ],
+              "type": "string",
               "enum": [
                 "strongly_supported",
                 "moderately_supported",
@@ -3358,38 +1979,19 @@
                 "unsupported"
               ]
             }
-          },
-          "additionalProperties": false,
-          "required": [
-            "premise_validity",
-            "logical_coherence",
-            "evidence_quality",
-            "conclusion_support"
-          ]
+          }
         },
         "counterargument_consideration": {
-          "type": [
-            "object",
-            "null"
-          ],
+          "type": "object",
           "properties": {
             "acknowledges_counterarguments": {
-              "type": [
-                "boolean",
-                "null"
-              ]
+              "type": "boolean"
             },
             "addresses_counterarguments": {
-              "type": [
-                "boolean",
-                "null"
-              ]
+              "type": "boolean"
             },
             "strength_of_rebuttal": {
-              "type": [
-                "string",
-                "null"
-              ],
+              "type": "string",
               "enum": [
                 "convincing",
                 "partial",
@@ -3397,31 +1999,16 @@
                 "none"
               ]
             }
-          },
-          "additionalProperties": false,
-          "required": [
-            "acknowledges_counterarguments",
-            "addresses_counterarguments",
-            "strength_of_rebuttal"
-          ]
+          }
         }
-      },
-      "required": [
-        "argument_strength",
-        "argument_type",
-        "counterargument_consideration",
-        "logical_fallacies"
-      ]
+      }
     },
     "Recommendation": {
       "type": "object",
       "additionalProperties": false,
       "required": [
         "area",
-        "source",
-        "statement",
-        "target_audience",
-        "urgency"
+        "statement"
       ],
       "properties": {
         "area": {
@@ -3438,664 +2025,16 @@
           "type": "string"
         },
         "urgency": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "enum": [
             "low",
             "moderate",
             "high"
-          ]
+          ],
+          "default": "moderate"
         },
         "target_audience": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "source": {
-          "$ref": "#/$defs/SourceRef"
-        }
-      }
-    },
-    "Passage": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "anchor",
-        "bbox",
-        "extraction_method",
-        "ocr_confidence",
-        "page",
-        "text"
-      ],
-      "properties": {
-        "text": {
-          "type": "string",
-          "description": "Extracted text content"
-        },
-        "page": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 1,
-          "description": "Page number where text was found"
-        },
-        "bbox": {
-          "$ref": "#/$defs/BoundingBox"
-        },
-        "anchor": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Human-readable location reference"
-        },
-        "ocr_confidence": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "minimum": 0,
-          "maximum": 1,
-          "description": "OCR confidence score for this text passage"
-        },
-        "extraction_method": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "enum": [
-            "ocr",
-            "text_layer",
-            "manual"
-          ],
-          "description": "Method used to extract this text"
-        }
-      }
-    },
-    "BoundingBox": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "coordinate_system",
-        "height",
-        "width",
-        "x",
-        "y"
-      ],
-      "properties": {
-        "x": {
-          "type": "number",
-          "minimum": 0,
-          "description": "Left coordinate (points from PDF origin)"
-        },
-        "y": {
-          "type": "number",
-          "minimum": 0,
-          "description": "Bottom coordinate (points from PDF origin)"
-        },
-        "width": {
-          "type": "number",
-          "minimum": 0,
-          "description": "Width in points"
-        },
-        "height": {
-          "type": "number",
-          "minimum": 0,
-          "description": "Height in points"
-        },
-        "coordinate_system": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "enum": [
-            "pdf_points",
-            "screen_pixels"
-          ],
-          "description": "Coordinate system used for measurements"
-        }
-      }
-    },
-    "ExtractionWarning": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "code",
-        "message",
-        "source"
-      ],
-      "properties": {
-        "code": {
-          "type": "string",
-          "enum": [
-            "TABLE_PARSE_FAIL",
-            "AMBIGUOUS_UNIT",
-            "CI_PARSE_FAIL",
-            "MISSING_ARM_ID",
-            "MISSING_GROUP_ID",
-            "OTHER"
-          ]
-        },
-        "message": {
           "type": "string"
-        },
-        "source": {
-          "$ref": "#/$defs/SourceRef"
-        }
-      }
-    },
-    "TruncationInfo": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "value": {
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "reason": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "enum": [
-            "token_limit",
-            "page_limit",
-            "timeout",
-            "other"
-          ]
-        }
-      },
-      "required": [
-        "reason",
-        "value"
-      ]
-    },
-    "Metadata": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "article_number",
-        "authors",
-        "conflict_of_interest",
-        "content_hash_sha256",
-        "doi",
-        "eissn",
-        "elocation_id",
-        "epub_ahead_of_print_date",
-        "external_ids",
-        "funding",
-        "issn",
-        "issue",
-        "journal",
-        "journal_abbrev",
-        "page_end",
-        "page_start",
-        "pages",
-        "parsing_context",
-        "pmcid",
-        "pmid",
-        "protocol_ref",
-        "published_date",
-        "published_date_precision",
-        "registration",
-        "source",
-        "supplements",
-        "title",
-        "vancouver_citation",
-        "vancouver_source",
-        "volume"
-      ],
-      "properties": {
-        "title": {
-          "type": "string"
-        },
-        "journal": {
-          "type": "string"
-        },
-        "journal_abbrev": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "published_date": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "format": "date"
-        },
-        "published_date_precision": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "enum": [
-            "year",
-            "month",
-            "day"
-          ]
-        },
-        "volume": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "issue": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "pages": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "page_start": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "page_end": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "article_number": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "elocation_id": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "issn": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "pattern": "^\\d{4}-\\d{3}[\\dxX]$",
-          "description": "International Standard Serial Number (print version)"
-        },
-        "eissn": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "pattern": "^\\d{4}-\\d{3}[\\dxX]$",
-          "description": "Electronic International Standard Serial Number"
-        },
-        "authors": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "$ref": "#/$defs/Author"
-          }
-        },
-        "pmid": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "pattern": "^\\d{1,8}$"
-        },
-        "pmcid": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "pattern": "^PMC\\d+$"
-        },
-        "doi": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "pattern": "^10\\.\\d{4,}(\\.\\d+)?/[-._;()/:A-Za-z0-9\\[\\]]+$",
-          "description": "DOI with comprehensive character support including brackets and extended punctuation",
-          "examples": [
-            "10.1056/NEJMoa2001017",
-            "10.1002/(SICI)1097-0142(19960101)77:1<1::AID-CNCR1>3.0.CO;2-Z"
-          ]
-        },
-        "registration": {
-          "$ref": "#/$defs/Registration"
-        },
-        "protocol_ref": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "funding": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "conflict_of_interest": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "epub_ahead_of_print_date": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "vancouver_citation": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "vancouver_source": {
-          "$ref": "#/$defs/SourceRef"
-        },
-        "source": {
-          "$ref": "#/$defs/SourceRef"
-        },
-        "external_ids": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "$ref": "#/$defs/ExternalId"
-          }
-        },
-        "supplements": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "$ref": "#/$defs/SupplementFile"
-          }
-        },
-        "parsing_context": {
-          "$ref": "#/$defs/ParsingContext"
-        },
-        "content_hash_sha256": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "pattern": "^[a-fA-F0-9]{64}$",
-          "description": "SHA-256 hash van bronbestand of platte tekst (64-char hex)"
-        }
-      }
-    },
-    "ParsingContext": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "ai_processing",
-        "language_detected",
-        "ocr_engine",
-        "ocr_quality_score",
-        "page_count",
-        "parser_name",
-        "parser_version",
-        "parsing_timestamp",
-        "parsing_warnings",
-        "pdf_producer",
-        "sections_detected"
-      ],
-      "properties": {
-        "parser_name": {
-          "type": "string",
-          "description": "Name of the parsing tool/library used"
-        },
-        "parser_version": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Version of the parsing tool"
-        },
-        "parsing_timestamp": {
-          "type": "string",
-          "format": "date-time",
-          "description": "When parsing was performed"
-        },
-        "language_detected": {
-          "$ref": "#/$defs/LanguageCode"
-        },
-        "ocr_engine": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "OCR engine used (if applicable)"
-        },
-        "ocr_quality_score": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Overall OCR quality assessment"
-        },
-        "pdf_producer": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Software that generated the PDF"
-        },
-        "page_count": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 1,
-          "description": "Total pages in document"
-        },
-        "sections_detected": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "type": "string"
-          },
-          "description": "Document sections automatically detected"
-        },
-        "parsing_warnings": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "type": "string"
-          },
-          "description": "Warnings encountered during parsing"
-        },
-        "ai_processing": {
-          "$ref": "#/$defs/AIProcessingMetadata"
-        }
-      }
-    },
-    "FigureSummary": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "caption",
-        "figure_id",
-        "key_values",
-        "page",
-        "source"
-      ],
-      "properties": {
-        "figure_id": {
-          "type": "string"
-        },
-        "caption": {
-          "type": "string"
-        },
-        "key_values": {
-          "type": [
-            "object",
-            "null"
-          ],
-          "additionalProperties": {
-            "type": "number"
-          }
-        },
-        "page": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 1
-        },
-        "source": {
-          "$ref": "#/$defs/SourceRef"
-        }
-      }
-    },
-    "LanguageCode": {
-      "type": "string",
-      "pattern": "^[a-z]{2,3}(-[A-Z]{2})?(-[a-z]{2,8})*$",
-      "description": "BCP 47 language tag supporting language, region, and variants (e.g., 'en-US', 'zh-Hans-CN', 'ar-EG')",
-      "examples": [
-        "en",
-        "en-US",
-        "en-GB",
-        "nl",
-        "nl-NL",
-        "nl-BE",
-        "de-DE",
-        "fr-FR",
-        "es-ES",
-        "zh-Hans",
-        "zh-Hant",
-        "ar-EG",
-        "he-IL"
-      ]
-    },
-    "SourceRef": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Reference to a specific location within a document",
-      "properties": {
-        "anchor": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Free-text pointer like 'Table 2', 'Fig 1', or sentence quote"
-        },
-        "page": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 1,
-          "description": "Page number within the document"
-        },
-        "figure_id": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Identifier of a specific figure"
-        },
-        "table_id": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Identifier of a specific table"
-        }
-      },
-      "required": [
-        "anchor",
-        "figure_id",
-        "page",
-        "table_id"
-      ]
-    },
-    "ParsedTable": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "page",
-        "rows",
-        "source",
-        "table_id",
-        "title",
-        "type"
-      ],
-      "properties": {
-        "table_id": {
-          "type": "string"
-        },
-        "title": {
-          "type": "string"
-        },
-        "page": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 1
-        },
-        "type": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "enum": [
-            "baseline",
-            "outcomes",
-            "harms",
-            "methods",
-            "other"
-          ]
-        },
-        "rows": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "cells"
-            ],
-            "properties": {
-              "cells": {
-                "type": "array",
-                "minItems": 1,
-                "items": {
-                  "type": "string"
-                }
-              }
-            }
-          }
         },
         "source": {
           "$ref": "#/$defs/SourceRef"
@@ -4106,10 +2045,8 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "id",
         "source",
-        "url",
-        "version"
+        "id"
       ],
       "properties": {
         "source": {
@@ -4151,713 +2088,479 @@
           ]
         },
         "url": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "format": "uri",
           "description": "Optional direct URL to the external resource"
         },
         "version": {
-          "type": [
-            "string",
-            "null"
-          ],
+          "type": "string",
           "description": "Version number for preprints or versioned documents"
         }
-      }
-    },
-    "Author": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Author information for academic publications",
-      "required": [
-        "affiliations",
-        "corresponding",
-        "email",
-        "given_names",
-        "initials",
-        "last_name",
-        "orcid"
-      ],
-      "properties": {
-        "last_name": {
-          "type": "string",
-          "description": "Author's family name"
-        },
-        "initials": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Author's first/middle name initials"
-        },
-        "given_names": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Author's full first and middle names"
-        },
-        "orcid": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "pattern": "^(https://orcid\\.org/)?0000-00(0[2-9]|[1-9]\\d)-\\d{4}-\\d{3}[\\dX]$",
-          "description": "ORCID identifier with checksum validation (optionally with URL prefix)",
-          "examples": [
-            "0000-0002-1825-0097",
-            "https://orcid.org/0000-0002-1825-0097"
-          ]
-        },
-        "affiliations": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "type": "string"
-          },
-          "description": "Author's institutional affiliations"
-        },
-        "corresponding": {
-          "type": [
-            "boolean",
-            "null"
-          ],
-          "description": "Whether this author is the corresponding author"
-        },
-        "email": {
-          "$ref": "#/$defs/EmailAddress"
-        }
-      }
-    },
-    "Registration": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Clinical trial or study registration information",
-      "properties": {
-        "registry": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "enum": [
-            "ClinicalTrials.gov",
-            "ISRCTN",
-            "EudraCT",
-            "EU-CTR",
-            "CTIS",
-            "ChiCTR",
-            "ANZCTR",
-            "UMIN-CTR",
-            "JPRN",
-            "PACTR",
-            "IRCT",
-            "DRKS",
-            "TCTR",
-            "SLCTR",
-            "RPCEC",
-            "REBEC",
-            "Other"
-          ],
-          "description": "Clinical trial registry (includes major international and regional registries)"
-        },
-        "identifier": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Registration identifier within the registry",
-          "examples": [
-            "NCT04123456",
-            "ISRCTN12345678",
-            "2020-001234-56",
-            "UMIN000012345"
-          ]
-        },
-        "url": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "format": "uri",
-          "description": "Direct URL to the registration record"
-        }
       },
-      "required": [
-        "identifier",
-        "registry",
-        "url"
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "source": {
+                "const": "arXiv"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "id": {
+                "pattern": "^(\\d{4}\\.\\d{4,5}|[a-z-]+/\\d{7})$",
+                "description": "arXiv identifier (new: YYMM.NNNN or old: subject-class/YYMMnnn)"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "source": {
+                "const": "ISBN"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "id": {
+                "pattern": "^(?:978|979)[0-9]{10}$|^[0-9]{9}[0-9X]$",
+                "description": "ISBN-10 or ISBN-13 format"
+              }
+            }
+          }
+        }
       ]
     },
-    "SupplementFile": {
+    "ExtractionWarning": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "checksum",
-        "content_type",
-        "doi",
-        "file_size",
-        "filename",
-        "label",
-        "url"
+        "code",
+        "message"
       ],
       "properties": {
-        "label": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "TABLE_PARSE_FAIL",
+            "AMBIGUOUS_UNIT",
+            "CI_PARSE_FAIL",
+            "MISSING_ARM_ID",
+            "MISSING_GROUP_ID",
+            "OTHER"
+          ]
+        },
+        "message": {
           "type": "string"
         },
-        "filename": {
-          "type": [
-            "string",
-            "null"
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        }
+      }
+    },
+    "FigureSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "figure_id",
+        "caption"
+      ],
+      "properties": {
+        "figure_id": {
+          "type": "string"
+        },
+        "caption": {
+          "type": "string"
+        },
+        "key_values": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          },
+          "default": {}
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        }
+      }
+    },
+    "LanguageCode": {
+      "type": "string",
+      "pattern": "^[a-z]{2,3}(-[A-Z]{2})?(-[a-z]{2,8})*$",
+      "description": "BCP 47 language tag supporting language, region, and variants (e.g., 'en-US', 'zh-Hans-CN', 'ar-EG')",
+      "examples": [
+        "en",
+        "en-US",
+        "en-GB",
+        "nl",
+        "nl-NL",
+        "nl-BE",
+        "de-DE",
+        "fr-FR",
+        "es-ES",
+        "zh-Hans",
+        "zh-Hant",
+        "ar-EG",
+        "he-IL"
+      ]
+    },
+    "Metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "title",
+        "journal"
+      ],
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "journal": {
+          "type": "string"
+        },
+        "journal_abbrev": {
+          "type": "string"
+        },
+        "published_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "published_date_precision": {
+          "type": "string",
+          "enum": [
+            "year",
+            "month",
+            "day"
           ]
         },
-        "url": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "format": "uri"
+        "volume": {
+          "type": "string"
+        },
+        "issue": {
+          "type": "string"
+        },
+        "pages": {
+          "type": "string"
+        },
+        "page_start": {
+          "type": "string"
+        },
+        "page_end": {
+          "type": "string"
+        },
+        "article_number": {
+          "type": "string"
+        },
+        "elocation_id": {
+          "type": "string"
+        },
+        "issn": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{3}[\\dxX]$",
+          "description": "International Standard Serial Number (print version)"
+        },
+        "eissn": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{3}[\\dxX]$",
+          "description": "Electronic International Standard Serial Number"
+        },
+        "authors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Author"
+          },
+          "default": []
+        },
+        "pmid": {
+          "type": "string",
+          "pattern": "^\\d{1,8}$"
+        },
+        "pmcid": {
+          "type": "string",
+          "pattern": "^PMC\\d+$"
         },
         "doi": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "pattern": "^10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+$"
-        },
-        "content_type": {
-          "type": [
-            "string",
-            "null"
+          "type": "string",
+          "pattern": "^10\\.\\d{4,}(\\.\\d+)?/[-._;()/:A-Za-z0-9\\[\\]]+$",
+          "description": "DOI with comprehensive character support including brackets and extended punctuation",
+          "examples": [
+            "10.1056/NEJMoa2001017",
+            "10.1002/(SICI)1097-0142(19960101)77:1<1::AID-CNCR1>3.0.CO;2-Z"
           ]
         },
-        "file_size": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 0,
-          "description": "File size in bytes"
+        "registration": {
+          "$ref": "#/$defs/Registration"
         },
-        "checksum": {
-          "$ref": "#/$defs/DataIntegrity"
-        }
-      }
-    },
-    "EmailAddress": {
-      "type": "string",
-      "format": "email",
-      "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
-      "description": "Valid email address for correspondence",
-      "examples": [
-        "researcher@university.edu",
-        "corresponding.author@hospital.org"
-      ]
-    },
-    "AIProcessingMetadata": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Metadata for AI/ML processing and bias detection",
-      "properties": {
-        "model_info": {
-          "type": [
-            "object",
-            "null"
-          ],
-          "required": [
-            "name",
-            "version"
-          ],
-          "properties": {
-            "name": {
-              "type": "string",
-              "description": "Model name or identifier"
-            },
-            "version": {
-              "type": "string",
-              "description": "Model version"
-            },
-            "architecture": {
-              "type": "string",
-              "enum": [
-                "transformer",
-                "cnn",
-                "rnn",
-                "lstm",
-                "gru",
-                "bert",
-                "gpt",
-                "ensemble",
-                "classical_ml",
-                "other"
-              ],
-              "description": "Model architecture type"
-            },
-            "training_data_size": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "training_date": {
-              "type": "string",
-              "format": "date"
-            },
-            "fine_tuned": {
-              "type": "boolean",
-              "description": "Whether model was fine-tuned for specific domain"
-            },
-            "domain_specific": {
-              "type": "boolean",
-              "description": "Whether model is domain-specific (e.g., medical)"
-            }
-          },
-          "additionalProperties": false
+        "protocol_ref": {
+          "type": "string"
         },
-        "performance_metrics": {
-          "type": [
-            "object",
-            "null"
-          ],
-          "properties": {
-            "accuracy": {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 1
-            },
-            "precision": {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 1
-            },
-            "recall": {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 1
-            },
-            "f1_score": {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 1
-            },
-            "auc_roc": {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 1
-            },
-            "confidence_interval": {
-              "$ref": "#/$defs/EffectCI"
-            },
-            "validation_method": {
-              "type": "string",
-              "enum": [
-                "cross_validation",
-                "holdout",
-                "temporal_split",
-                "external_validation",
-                "other"
-              ]
-            },
-            "test_set_size": {
-              "type": "integer",
-              "minimum": 0
-            }
-          },
-          "additionalProperties": false
+        "funding": {
+          "type": "string"
         },
-        "bias_assessment": {
-          "type": [
-            "object",
-            "null"
-          ],
-          "description": "Assessment of potential biases in AI model",
-          "properties": {
-            "demographic_bias": {
-              "type": "object",
-              "properties": {
-                "assessed": {
-                  "type": [
-                    "boolean",
-                    "null"
-                  ]
-                },
-                "bias_detected": {
-                  "type": [
-                    "boolean",
-                    "null"
-                  ]
-                },
-                "affected_groups": {
-                  "type": [
-                    "array",
-                    "null"
-                  ],
-                  "items": {
-                    "type": "string"
-                  },
-                  "description": "Demographic groups showing bias"
-                },
-                "mitigation_applied": {
-                  "type": [
-                    "boolean",
-                    "null"
-                  ]
-                },
-                "fairness_metrics": {
-                  "type": [
-                    "object",
-                    "null"
-                  ],
-                  "properties": {
-                    "demographic_parity": {
-                      "type": "number"
-                    },
-                    "equalized_odds": {
-                      "type": "number"
-                    },
-                    "calibration": {
-                      "type": "number"
-                    }
-                  },
-                  "additionalProperties": false
-                }
-              },
-              "additionalProperties": false,
-              "required": [
-                "affected_groups",
-                "assessed",
-                "bias_detected",
-                "fairness_metrics",
-                "mitigation_applied"
-              ]
-            },
-            "selection_bias": {
-              "type": "object",
-              "properties": {
-                "training_data_representativeness": {
-                  "type": [
-                    "string",
-                    "null"
-                  ],
-                  "enum": [
-                    "high",
-                    "moderate",
-                    "low",
-                    "unknown"
-                  ]
-                },
-                "sampling_method": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "geographic_bias": {
-                  "type": [
-                    "boolean",
-                    "null"
-                  ]
-                },
-                "temporal_bias": {
-                  "type": [
-                    "boolean",
-                    "null"
-                  ]
-                }
-              },
-              "additionalProperties": false,
-              "required": [
-                "geographic_bias",
-                "sampling_method",
-                "temporal_bias",
-                "training_data_representativeness"
-              ]
-            },
-            "confirmation_bias": {
-              "type": "object",
-              "properties": {
-                "label_quality_assessment": {
-                  "type": [
-                    "boolean",
-                    "null"
-                  ]
-                },
-                "inter_annotator_agreement": {
-                  "type": [
-                    "number",
-                    "null"
-                  ],
-                  "minimum": 0,
-                  "maximum": 1
-                },
-                "annotation_guidelines": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                }
-              },
-              "additionalProperties": false,
-              "required": [
-                "annotation_guidelines",
-                "inter_annotator_agreement",
-                "label_quality_assessment"
-              ]
-            }
-          },
-          "additionalProperties": false
+        "conflict_of_interest": {
+          "type": "string"
         },
-        "explainability": {
-          "type": [
-            "object",
-            "null"
-          ],
-          "properties": {
-            "method": {
-              "type": "string",
-              "enum": [
-                "lime",
-                "shap",
-                "attention_weights",
-                "gradient_attribution",
-                "integrated_gradients",
-                "permutation_importance",
-                "other"
-              ],
-              "description": "Explainability method used"
-            },
-            "feature_importance": {
-              "type": "array",
-              "items": {
-                "type": "object",
-                "properties": {
-                  "feature": {
-                    "type": [
-                      "string",
-                      "null"
-                    ]
-                  },
-                  "importance_score": {
-                    "type": [
-                      "number",
-                      "null"
-                    ]
-                  },
-                  "rank": {
-                    "type": [
-                      "integer",
-                      "null"
-                    ],
-                    "minimum": 1
-                  }
-                },
-                "additionalProperties": false,
-                "required": [
-                  "feature",
-                  "importance_score",
-                  "rank"
-                ]
-              }
-            },
-            "global_explanations": {
-              "type": "boolean"
-            },
-            "local_explanations": {
-              "type": "boolean"
-            },
-            "counterfactual_examples": {
-              "type": "boolean"
-            }
-          },
-          "additionalProperties": false
+        "epub_ahead_of_print_date": {
+          "type": "string"
         },
-        "uncertainty_quantification": {
-          "type": [
-            "object",
-            "null"
-          ],
-          "properties": {
-            "method": {
-              "type": "string",
-              "enum": [
-                "bayesian",
-                "ensemble",
-                "monte_carlo_dropout",
-                "conformal_prediction",
-                "none"
-              ],
-              "description": "Uncertainty quantification method"
-            },
-            "epistemic_uncertainty": {
-              "type": "number",
-              "description": "Model uncertainty"
-            },
-            "aleatoric_uncertainty": {
-              "type": "number",
-              "description": "Data uncertainty"
-            },
-            "prediction_intervals": {
-              "type": "boolean"
-            },
-            "out_of_distribution_detection": {
-              "type": "boolean"
-            }
-          },
-          "additionalProperties": false
+        "vancouver_citation": {
+          "type": "string"
         },
-        "ethical_considerations": {
-          "type": [
-            "object",
-            "null"
-          ],
-          "properties": {
-            "informed_consent": {
-              "type": "boolean",
-              "description": "Whether data subjects provided informed consent for AI processing"
-            },
-            "data_minimization": {
-              "type": "boolean",
-              "description": "Whether data minimization principle was applied"
-            },
-            "right_to_explanation": {
-              "type": "boolean",
-              "description": "Whether explanations are provided to affected individuals"
-            },
-            "human_oversight": {
-              "type": "string",
-              "enum": [
-                "human_in_the_loop",
-                "human_on_the_loop",
-                "human_out_of_the_loop"
-              ],
-              "description": "Level of human oversight in AI decisions"
-            },
-            "impact_assessment": {
-              "type": "boolean",
-              "description": "Whether algorithmic impact assessment was conducted"
-            }
+        "vancouver_source": {
+          "$ref": "#/$defs/SourceRef"
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        },
+        "external_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ExternalId"
           },
-          "additionalProperties": false
+          "default": []
+        },
+        "supplements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SupplementFile"
+          },
+          "default": []
+        },
+        "parsing_context": {
+          "$ref": "#/$defs/ParsingContext"
+        },
+        "content_hash_sha256": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "description": "SHA-256 hash van bronbestand of platte tekst (64-char hex)"
         }
       },
-      "required": [
-        "bias_assessment",
-        "ethical_considerations",
-        "explainability",
-        "model_info",
-        "performance_metrics",
-        "uncertainty_quantification"
+      "dependentSchemas": {
+        "published_date_precision": {
+          "required": [
+            "published_date"
+          ],
+          "properties": {
+            "published_date_precision": {
+              "description": "Precision can only be specified if published_date is present"
+            }
+          }
+        },
+        "page_end": {
+          "required": [
+            "page_start"
+          ],
+          "properties": {
+            "page_end": {
+              "description": "End page requires start page to be specified"
+            }
+          }
+        },
+        "vancouver_source": {
+          "required": [
+            "vancouver_citation"
+          ],
+          "properties": {
+            "vancouver_source": {
+              "description": "Vancouver source reference requires vancouver_citation to be present"
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "published_date_precision": {
+                "const": "day"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "published_date": {
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                "description": "Day precision requires full date format YYYY-MM-DD"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "published_date_precision": {
+                "const": "month"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "published_date": {
+                "pattern": "^\\d{4}-\\d{2}(-\\d{2})?$",
+                "description": "Month precision allows YYYY-MM or YYYY-MM-DD format"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "published_date_precision": {
+                "const": "year"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "published_date": {
+                "pattern": "^\\d{4}(-\\d{2}(-\\d{2})?)?$",
+                "description": "Year precision allows YYYY, YYYY-MM, or YYYY-MM-DD format"
+              }
+            }
+          }
+        }
       ]
     },
-    "DataIntegrity": {
+    "ParsedTable": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Data integrity verification with multiple hash algorithms",
       "required": [
-        "algorithm",
-        "multiple_hashes",
-        "salt",
-        "value",
-        "verification_timestamp",
-        "verified_by"
+        "table_id",
+        "title"
       ],
       "properties": {
-        "algorithm": {
+        "table_id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "type": {
           "type": "string",
           "enum": [
-            "SHA-256",
-            "SHA-512",
-            "SHA-3-256",
-            "SHA-3-512",
-            "BLAKE2b",
-            "SHA-1",
-            "MD5",
-            "CRC32"
-          ],
-          "description": "Cryptographic hash algorithm used"
+            "baseline",
+            "outcomes",
+            "harms",
+            "methods",
+            "other"
+          ]
         },
-        "value": {
-          "type": "string",
-          "description": "Hex-encoded hash value"
-        },
-        "salt": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Optional salt value for enhanced security"
-        },
-        "verification_timestamp": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "format": "date-time",
-          "description": "When the hash was computed or verified"
-        },
-        "verified_by": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "System or person who verified the hash"
-        },
-        "multiple_hashes": {
-          "type": [
-            "array",
-            "null"
-          ],
+        "rows": {
+          "type": "array",
           "items": {
             "type": "object",
+            "additionalProperties": false,
             "required": [
-              "algorithm",
-              "value"
+              "cells"
             ],
             "properties": {
-              "algorithm": {
-                "type": "string"
-              },
-              "value": {
-                "type": "string"
+              "cells": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string"
+                }
               }
-            },
-            "additionalProperties": false
+            }
           },
-          "description": "Additional hash values using different algorithms for enhanced verification"
+          "default": []
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
         }
       }
     },
-    "EffectCI": {
+    "Passage": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Confidence interval for effect estimates",
       "required": [
-        "level",
-        "lower",
-        "upper"
+        "text"
       ],
       "properties": {
-        "level": {
-          "type": [
-            "number",
-            "null"
-          ],
+        "text": {
+          "type": "string",
+          "description": "Extracted text content"
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Page number where text was found"
+        },
+        "bbox": {
+          "$ref": "#/$defs/BoundingBox"
+        },
+        "anchor": {
+          "type": "string",
+          "description": "Human-readable location reference"
+        },
+        "ocr_confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "OCR confidence score for this text passage"
+        },
+        "extraction_method": {
+          "type": "string",
           "enum": [
-            80,
-            90,
-            95,
-            99
+            "ocr",
+            "text_layer",
+            "manual"
           ],
-          "description": "Confidence level as percentage"
+          "description": "Method used to extract this text"
+        }
+      }
+    },
+    "SourceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Reference to a specific location within a document",
+      "properties": {
+        "anchor": {
+          "type": "string",
+          "description": "Free-text pointer like 'Table 2', 'Fig 1', or sentence quote"
         },
-        "lower": {
-          "type": "number",
-          "description": "Lower bound of confidence interval"
+        "page": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Page number within the document"
         },
-        "upper": {
-          "type": "number",
-          "description": "Upper bound of confidence interval"
+        "figure_id": {
+          "type": "string",
+          "description": "Identifier of a specific figure"
+        },
+        "table_id": {
+          "type": "string",
+          "description": "Identifier of a specific table"
+        }
+      }
+    },
+    "TruncationInfo": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "type": "boolean",
+          "default": false
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "token_limit",
+            "page_limit",
+            "timeout",
+            "other"
+          ]
         }
       }
     }

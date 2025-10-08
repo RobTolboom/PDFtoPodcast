@@ -3,11 +3,11 @@
   "title": "Classification Schema",
   "description": "Schema for publication type classification and metadata extraction",
   "type": "object",
-  "required": ["metadata", "publication_type", "classification_confidence", "classification_reasoning", "alternative_classifications", "extraction_warnings"],
+  "required": ["metadata", "publication_type", "classification_confidence"],
   "properties": {
     "metadata": {
       "type": "object",
-      "required": ["title", "journal", "journal_abbrev", "published_date", "volume", "issue", "pages", "doi", "pmid", "authors", "vancouver_citation", "source"],
+      "required": ["title", "journal", "vancouver_citation"],
       "properties": {
         "title": {
           "type": "string",
@@ -18,54 +18,53 @@
           "description": "Full journal name"
         },
         "journal_abbrev": {
-          "type": ["string", "null"],
+          "type": "string",
           "description": "Abbreviated journal name"
         },
         "published_date": {
-          "type": ["string", "null"],
+          "type": "string",
           "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
           "description": "Publication date in YYYY-MM-DD format"
         },
         "volume": {
-          "type": ["string", "null"],
+          "type": "string",
           "description": "Volume number"
         },
         "issue": {
-          "type": ["string", "null"],
+          "type": "string",
           "description": "Issue number"
         },
         "pages": {
-          "type": ["string", "null"],
+          "type": "string",
           "description": "Page range (e.g., 123-145)"
         },
         "doi": {
-          "type": ["string", "null"],
+          "type": "string",
           "description": "Digital Object Identifier"
         },
         "pmid": {
-          "type": ["string", "null"],
+          "type": "string",
           "description": "PubMed ID"
         },
         "authors": {
-          "type": ["array", "null"],
+          "type": "array",
           "items": {
             "type": "object",
-            "required": ["given_name", "family_name", "initials", "orcid"],
+            "required": ["family_name"],
             "properties": {
               "given_name": {
-                "type": ["string", "null"]
+                "type": "string"
               },
               "family_name": {
                 "type": "string"
               },
               "initials": {
-                "type": ["string", "null"]
+                "type": "string"
               },
               "orcid": {
-                "type": ["string", "null"]
+                "type": "string"
               }
-            },
-            "additionalProperties": false
+            }
           }
         },
         "vancouver_citation": {
@@ -73,21 +72,19 @@
           "description": "Full Vancouver-style citation"
         },
         "source": {
-          "type": ["object", "null"],
-          "required": ["page", "anchor"],
+          "type": "object",
+          "required": ["page"],
           "properties": {
             "page": {
               "type": "number"
             },
             "anchor": {
-              "type": ["string", "null"],
+              "type": "string",
               "description": "Location description in PDF"
             }
-          },
-          "additionalProperties": false
+          }
         }
-      },
-      "additionalProperties": false
+      }
     },
     "publication_type": {
       "type": "string",
@@ -108,11 +105,11 @@
       "description": "Confidence score for the classification"
     },
     "classification_reasoning": {
-      "type": ["string", "null"],
+      "type": "string",
       "description": "Explanation of classification decision and key indicators"
     },
     "alternative_classifications": {
-      "type": ["array", "null"],
+      "type": "array",
       "items": {
         "type": "string",
         "enum": [
@@ -127,32 +124,28 @@
       "description": "Other possible classification types if confidence < 0.9"
     },
     "extraction_warnings": {
-      "type": ["array", "null"],
+      "type": "array",
       "items": {
         "type": "object",
-        "required": ["warning", "source"],
+        "required": ["warning"],
         "properties": {
           "warning": {
             "type": "string",
             "description": "Description of uncertainty or ambiguity"
           },
           "source": {
-            "type": ["object", "null"],
-            "required": ["page", "anchor"],
+            "type": "object",
             "properties": {
               "page": {
-                "type": ["number", "null"]
+                "type": "number"
               },
               "anchor": {
-                "type": ["string", "null"]
+                "type": "string"
               }
-            },
-            "additionalProperties": false
+            }
           }
-        },
-        "additionalProperties": false
+        }
       }
     }
-  },
-  "additionalProperties": false
+  }
 }

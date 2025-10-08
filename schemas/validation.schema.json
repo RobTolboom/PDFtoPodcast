@@ -3,7 +3,7 @@
   "title": "Validation Report Schema",
   "description": "Schema for extraction validation and quality assessment output",
   "type": "object",
-  "required": ["verification_summary", "issues", "field_validation", "completeness_analysis", "recommendations", "verification_metadata"],
+  "required": ["verification_summary", "issues", "field_validation", "completeness_analysis", "recommendations"],
   "properties": {
     "verification_summary": {
       "type": "object",
@@ -36,14 +36,13 @@
           "type": "integer",
           "minimum": 0
         }
-      },
-      "additionalProperties": false
+      }
     },
     "issues": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["issue_id", "type", "severity", "category", "description", "field_path", "extracted_value", "expected_value", "pdf_reference", "recommendation"],
+        "required": ["issue_id", "type", "severity", "category", "description"],
         "properties": {
           "issue_id": {
             "type": "string",
@@ -62,27 +61,24 @@
             "enum": ["metadata", "study_design", "population", "outcomes", "results", "tables", "figures", "other"]
           },
           "field_path": {
-            "type": ["string", "null"]
+            "type": "string"
           },
           "extracted_value": {
-            "type": ["string", "number", "boolean", "null"],
             "description": "The value found in the extracted JSON (can be any type)"
           },
           "expected_value": {
-            "type": ["string", "number", "boolean", "null"],
             "description": "The correct value from PDF or null if missing (can be any type)"
           },
           "description": {
             "type": "string"
           },
           "pdf_reference": {
-            "type": ["string", "null"]
+            "type": "string"
           },
           "recommendation": {
-            "type": ["string", "null"]
+            "type": "string"
           }
-        },
-        "additionalProperties": false
+        }
       }
     },
     "field_validation": {
@@ -101,21 +97,19 @@
         "data_types_correct": {
           "type": "boolean"
         }
-      },
-      "additionalProperties": false
+      }
     },
     "completeness_analysis": {
       "type": "object",
-      "required": ["tables_captured", "figures_captured", "outcomes_captured", "missing_sections"],
       "properties": {
         "tables_captured": {
-          "type": ["string", "null"]
+          "type": "string"
         },
         "figures_captured": {
-          "type": ["string", "null"]
+          "type": "string"
         },
         "outcomes_captured": {
-          "type": ["string", "null"]
+          "type": "string"
         },
         "missing_sections": {
           "type": "array",
@@ -123,8 +117,7 @@
             "type": "string"
           }
         }
-      },
-      "additionalProperties": false
+      }
     },
     "recommendations": {
       "type": "array",
@@ -133,30 +126,27 @@
       }
     },
     "verification_metadata": {
-      "type": ["object", "null"],
-      "required": ["pdf_pages_reviewed", "extraction_schema_type", "verification_timestamp", "verification_warnings"],
+      "type": "object",
       "properties": {
         "pdf_pages_reviewed": {
-          "type": ["integer", "null"],
+          "type": "integer",
           "minimum": 1
         },
         "extraction_schema_type": {
-          "type": ["string", "null"],
-          "enum": ["interventional_trial", "observational_analytic", "evidence_synthesis", "prediction_prognosis", "editorials_opinion", "overig", null]
+          "type": "string",
+          "enum": ["interventional_trial", "observational_analytic", "evidence_synthesis", "prediction_prognosis", "editorials_opinion", "overig"]
         },
         "verification_timestamp": {
-          "type": ["string", "null"],
+          "type": "string",
           "format": "date-time"
         },
         "verification_warnings": {
-          "type": ["array", "null"],
+          "type": "array",
           "items": {
             "type": "string"
           }
         }
-      },
-      "additionalProperties": false
+      }
     }
-  },
-  "additionalProperties": false
+  }
 }
