@@ -1,3 +1,7 @@
+# Copyright (c) 2025 Tolboom Medical
+# Licensed under Prosperity Public License 3.0.0
+# Commercial use requires separate license - see LICENSE and COMMERCIAL_LICENSE.md
+
 # run_pipeline.py
 """
 Four-step PDF extraction pipeline with direct PDF upload and schema-based validation.
@@ -97,7 +101,7 @@ SCHEMA_QUALITY_THRESHOLD = 0.5  # 50% - extraction must have basic structure
 # 🔍 TESTING BREAKPOINT CONFIGURATION
 # Set to the step where you want to pause for inspection:
 # Options: "classification", "extraction", "validation", "correction", None (run full pipeline)
-BREAKPOINT_AFTER_STEP = None  # Change this to move breakpoint
+BREAKPOINT_AFTER_STEP = "classification"  # Change this to move breakpoint
 
 
 def doi_to_safe_filename(doi: str) -> str:

@@ -1,5 +1,8 @@
 # 📄 PDFtoPodcast: Medical Literature Extraction Pipeline
 
+[![License: PPL 3.0.0](https://img.shields.io/badge/License-PPL%203.0.0-blue.svg)](LICENSE)
+[![Commercial License Available](https://img.shields.io/badge/Commercial-License%20Available-green.svg)](COMMERCIAL_LICENSE.md)
+
 **Intelligent medical literature data extraction pipeline using LLM vision capabilities for complete data fidelity.**
 
 This pipeline extracts structured data from medical research PDFs with a focus on **preserving tables, figures, and complex formatting** that are critical for clinical trials and medical research papers.
@@ -414,15 +417,20 @@ Contributions welcome! Please:
 
 ## 📝 License
 
-MIT License - see LICENSE file for details.
+This project uses a **dual-license model**:
 
----
+### Free Use (Prosperity Public License 3.0.0)
+- ✅ **Academic research** - Free forever
+- ✅ **Non-commercial use** - Free forever
+- ✅ **Commercial trial** - Free for 30 days (company-wide)
+- 📄 See [LICENSE](LICENSE) for full terms
 
-## 🙏 Acknowledgments
-
-- OpenAI for GPT-4o vision API
-- Anthropic for Claude document API
-- UMCG for medical literature expertise
+### Commercial Use
+- 💼 After 30-day trial, commercial use requires a paid license
+- 📊 Flexible pricing: Subscription or Pay-per-PDF
+- 🏢 Self-hosted on your infrastructure
+- 📄 See [COMMERCIAL_LICENSE.md](COMMERCIAL_LICENSE.md) for terms
+- 📧 For commercial licensing inquiries: Open a GitHub issue or discussion
 
 ---
 

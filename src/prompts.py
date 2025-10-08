@@ -1,3 +1,7 @@
+# Copyright (c) 2025 Tolboom Medical
+# Licensed under Prosperity Public License 3.0.0
+# Commercial use requires separate license - see LICENSE and COMMERCIAL_LICENSE.md
+
 # prompts.py
 """
 Prompt loading utilities for the PDFtoPodcast extraction pipeline.

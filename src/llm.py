@@ -1,3 +1,7 @@
+# Copyright (c) 2025 Tolboom Medical
+# Licensed under Prosperity Public License 3.0.0
+# Commercial use requires separate license - see LICENSE and COMMERCIAL_LICENSE.md
+
 # llm.py
 """
 Multi-provider LLM abstraction layer with schema-enforced JSON generation.
@@ -361,23 +365,20 @@ class OpenAIProvider(BaseLLMProvider):
         retry=retry_if_exception_type((openai.RateLimitError, openai.APITimeoutError)),
     )
     def generate_text(self, prompt: str, system_prompt: Optional[str] = None, **kwargs) -> str:
-        """Generate text using OpenAI API"""
+        """Generate text using OpenAI Responses API"""
         try:
-            messages = []
-            if system_prompt:
-                messages.append({"role": "system", "content": system_prompt})
-            messages.append({"role": "user", "content": prompt})
-
-            response = self.client.chat.completions.create(
+            response = self.client.responses.create(
                 model=self.settings.openai_model,
-                messages=messages,
-                max_tokens=self.settings.openai_max_tokens,
-                temperature=self.settings.temperature,
+                input=prompt,
+                instructions=system_prompt,
+                max_output_tokens=self.settings.openai_max_tokens,
+                # temperature not supported for reasoning models (GPT-5, o-series)
                 **kwargs,
             )
 
-            result = response.choices[0].message.content.strip()
-            logger.info("Successfully generated text with OpenAI")
+            # Use SDK convenience property for aggregated text output
+            result = response.output_text.strip()
+            logger.info("Successfully generated text with OpenAI Responses API")
             return result
 
         except openai.OpenAIError as e:
@@ -392,25 +393,22 @@ class OpenAIProvider(BaseLLMProvider):
     def generate_json(
         self, prompt: str, system_prompt: Optional[str] = None, **kwargs
     ) -> Dict[str, Any]:
-        """Generate structured JSON using OpenAI API (generic JSON mode)"""
+        """Generate structured JSON using OpenAI Responses API (generic JSON mode)"""
         try:
-            messages = []
-            if system_prompt:
-                messages.append({"role": "system", "content": system_prompt})
-            messages.append({"role": "user", "content": prompt})
-
-            response = self.client.chat.completions.create(
+            response = self.client.responses.create(
                 model=self.settings.openai_model,
-                messages=messages,
-                max_tokens=self.settings.openai_max_tokens,
-                temperature=self.settings.temperature,
-                response_format={"type": "json_object"},
+                input=prompt,
+                instructions=system_prompt,
+                max_output_tokens=self.settings.openai_max_tokens,
+                # temperature not supported for reasoning models (GPT-5, o-series)
+                text={"format": {"type": "json_object"}},
                 **kwargs,
             )
 
-            content = response.choices[0].message.content.strip()
+            # Use SDK convenience property and parse JSON
+            content = response.output_text.strip()
             result = json.loads(content)
-            logger.info("Successfully generated JSON with OpenAI")
+            logger.info("Successfully generated JSON with OpenAI Responses API")
             return result
 
         except openai.OpenAIError as e:
@@ -434,35 +432,73 @@ class OpenAIProvider(BaseLLMProvider):
         **kwargs,
     ) -> Dict[str, Any]:
         """
-        Generate structured JSON using OpenAI's Structured Outputs feature.
+        Generate structured JSON using OpenAI Responses API with Structured Outputs.
 
         This uses OpenAI's native schema validation which guarantees the output
         conforms to the provided JSON schema.
         """
         try:
-            messages = []
-            if system_prompt:
-                messages.append({"role": "system", "content": system_prompt})
-            messages.append({"role": "user", "content": prompt})
-
             # Prepare schema name
             if schema_name is None:
                 schema_name = schema.get("title", "extraction_schema").replace(" ", "_")
 
-            # Use OpenAI's structured outputs with strict schema validation
-            response = self.client.chat.completions.create(
+            # Use OpenAI Responses API with structured outputs
+            response = self.client.responses.create(
                 model=self.settings.openai_model,
-                messages=messages,
-                max_tokens=self.settings.openai_max_tokens,
-                temperature=self.settings.temperature,
-                response_format={
-                    "type": "json_schema",
-                    "json_schema": {"name": schema_name, "schema": schema, "strict": True},
+                input=prompt,
+                instructions=system_prompt,
+                max_output_tokens=self.settings.openai_max_tokens,
+                # temperature not supported for reasoning models (GPT-5, o-series)
+                text={
+                    "format": {
+                        "type": "json_schema",
+                        "name": schema_name,
+                        "schema": schema,
+                        "strict": True,
+                    }
                 },
                 **kwargs,
             )
 
-            content = response.choices[0].message.content.strip()
+            # Use SDK convenience property and parse JSON
+            logger.info(
+                f"Response status: {response.status if hasattr(response, 'status') else 'N/A'}"
+            )
+            logger.info(f"Response output type: {type(response.output)}")
+            logger.info(
+                f"Response output length: {len(response.output) if hasattr(response, 'output') else 'N/A'}"
+            )
+
+            content = response.output_text if hasattr(response, "output_text") else None
+            logger.info(f"Output text available: {content is not None}")
+            logger.info(f"Output text length: {len(content) if content else 0}")
+            logger.info(f"Output text preview: {content[:200] if content else 'EMPTY'}")
+
+            if not content:
+                # Fallback: try to extract from output array
+                logger.warning("output_text is empty, trying to extract from output array")
+                if response.output and len(response.output) > 0:
+                    first_output = response.output[0]
+                    logger.info(
+                        f"First output item type: {first_output.get('type') if isinstance(first_output, dict) else type(first_output)}"
+                    )
+                    if (
+                        isinstance(first_output, dict)
+                        and first_output.get("type") == "message"
+                        and "content" in first_output
+                    ):
+                        for content_item in first_output["content"]:
+                            if content_item.get("type") == "output_text":
+                                content = content_item.get("text", "")
+                                logger.info(
+                                    f"Extracted text from output array: {len(content)} chars"
+                                )
+                                break
+
+            if not content:
+                raise LLMProviderError("No text output received from model")
+
+            content = content.strip()
             result = json.loads(content)
 
             logger.info(f"Successfully generated schema-conforming JSON using {schema_name}")
@@ -493,7 +529,7 @@ class OpenAIProvider(BaseLLMProvider):
         **kwargs,
     ) -> Dict[str, Any]:
         """
-        Generate structured JSON from PDF using OpenAI Vision API with Structured Outputs.
+        Generate structured JSON from PDF using OpenAI Responses API with Structured Outputs.
 
         Uses GPT-4o/GPT-4o-mini vision capabilities to analyze PDF including tables,
         images, and charts. PDF is sent as base64-encoded file for direct processing.
@@ -520,48 +556,83 @@ class OpenAIProvider(BaseLLMProvider):
             if schema_name is None:
                 schema_name = schema.get("title", "extraction_schema").replace(" ", "_")
 
-            # Build message with PDF attachment
-            messages = []
-            if system_prompt:
-                messages.append({"role": "system", "content": system_prompt})
-
-            # Create user message with PDF
-            user_content = [
+            # Build input with PDF content (Responses API format)
+            content_items = [
                 {
-                    "type": "input_pdf",
-                    "input_pdf": {"data": pdf_data, "format": "pdf"},
+                    "type": "input_file",
+                    "filename": pdf_path.name,
+                    "file_data": f"data:application/pdf;base64,{pdf_data}",
                 }
             ]
 
             # Add page limit instruction if specified
             if max_pages:
-                user_content.append(
+                content_items.append(
                     {
-                        "type": "text",
+                        "type": "input_text",
                         "text": f"Process only the first {max_pages} pages of this PDF.",
                     }
                 )
 
-            messages.append({"role": "user", "content": user_content})
+            input_content = [{"role": "user", "content": content_items}]
 
-            # Use OpenAI's structured outputs with strict schema validation
-            response = self.client.chat.completions.create(
+            # Use OpenAI Responses API with structured outputs
+            response = self.client.responses.create(
                 model=self.settings.openai_model,
-                messages=messages,
-                max_tokens=self.settings.openai_max_tokens,
-                temperature=self.settings.temperature,
-                response_format={
-                    "type": "json_schema",
-                    "json_schema": {
+                input=input_content,
+                instructions=system_prompt,
+                max_output_tokens=self.settings.openai_max_tokens,
+                # temperature not supported for reasoning models (GPT-5, o-series)
+                text={
+                    "format": {
+                        "type": "json_schema",
                         "name": schema_name,
                         "schema": schema,
                         "strict": True,
-                    },
+                    }
                 },
                 **kwargs,
             )
 
-            content = response.choices[0].message.content.strip()
+            # Use SDK convenience property and parse JSON
+            logger.info(
+                f"Response status: {response.status if hasattr(response, 'status') else 'N/A'}"
+            )
+            logger.info(f"Response output type: {type(response.output)}")
+            logger.info(
+                f"Response output length: {len(response.output) if hasattr(response, 'output') else 'N/A'}"
+            )
+
+            content = response.output_text if hasattr(response, "output_text") else None
+            logger.info(f"Output text available: {content is not None}")
+            logger.info(f"Output text length: {len(content) if content else 0}")
+            logger.info(f"Output text preview: {content[:200] if content else 'EMPTY'}")
+
+            if not content:
+                # Fallback: try to extract from output array
+                logger.warning("output_text is empty, trying to extract from output array")
+                if response.output and len(response.output) > 0:
+                    first_output = response.output[0]
+                    logger.info(
+                        f"First output item type: {first_output.get('type') if isinstance(first_output, dict) else type(first_output)}"
+                    )
+                    if (
+                        isinstance(first_output, dict)
+                        and first_output.get("type") == "message"
+                        and "content" in first_output
+                    ):
+                        for content_item in first_output["content"]:
+                            if content_item.get("type") == "output_text":
+                                content = content_item.get("text", "")
+                                logger.info(
+                                    f"Extracted text from output array: {len(content)} chars"
+                                )
+                                break
+
+            if not content:
+                raise LLMProviderError("No text output received from model")
+
+            content = content.strip()
             result = json.loads(content)
 
             logger.info(
