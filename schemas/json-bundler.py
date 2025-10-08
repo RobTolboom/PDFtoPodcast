@@ -72,7 +72,9 @@ def get_common_id(common_schema: Dict[str, Any]) -> str:
     return common_schema.get("$id", "common.schema.json")
 
 
-def find_common_refs(node: Any, common_ref_rx: re.Pattern) -> Iterator[str]:
+def find_common_refs(
+    node: Any, common_ref_rx: re.Pattern, include_internal: bool = False
+) -> Iterator[str]:
     """
     Recursively find all definition names from common schema that are referenced.
 
@@ -81,9 +83,13 @@ def find_common_refs(node: Any, common_ref_rx: re.Pattern) -> Iterator[str]:
     references like "common.schema.json#/$defs/DefinitionName" and extracts
     the definition name.
 
+    When include_internal=True, it also matches internal references like "#/$defs/Author"
+    which are used within the common.schema.json file itself.
+
     Args:
         node: JSON schema node (dict, list, or primitive) to search for references
         common_ref_rx: Compiled regex pattern to match external common schema references
+        include_internal: If True, also match internal #/$defs/ references
 
     Yields:
         str: Definition names from common schema that are referenced (e.g., "SourceRef", "Metadata")
@@ -95,17 +101,26 @@ def find_common_refs(node: Any, common_ref_rx: re.Pattern) -> Iterator[str]:
         >>> list(find_common_refs(schema, pattern))
         ['SourceRef']
     """
+    # Pattern to match internal references: #/$defs/DefinitionName
+    internal_ref_rx = re.compile(r"^#/\$defs/([^/]+)$")
+
     if isinstance(node, dict):
         for k, v in node.items():
             if k == "$ref" and isinstance(v, str):
+                # Try external reference pattern first
                 m = common_ref_rx.match(v)
                 if m:
                     yield m.group(1)  # Extract definition name from regex group
+                # Also check internal reference pattern if requested
+                elif include_internal:
+                    m = internal_ref_rx.match(v)
+                    if m:
+                        yield m.group(1)
             else:
-                yield from find_common_refs(v, common_ref_rx)
+                yield from find_common_refs(v, common_ref_rx, include_internal)
     elif isinstance(node, list):
         for item in node:
-            yield from find_common_refs(item, common_ref_rx)
+            yield from find_common_refs(item, common_ref_rx, include_internal)
 
 
 def rewrite_refs_to_local(node: Any, common_ref_rx: re.Pattern) -> Any:
@@ -158,6 +173,10 @@ def bundle_schema(
     dependencies from the common schema. It performs the complete bundling process:
     finding dependencies, embedding definitions, and rewriting references.
 
+    The function uses transitive closure to recursively copy all nested dependencies.
+    For example, if the schema references "Metadata" which in turn references "Author",
+    both "Metadata" and "Author" will be copied from the common schema.
+
     Args:
         schema: The source schema dictionary to bundle
         common_schema: The common schema containing shared definitions
@@ -180,21 +199,42 @@ def bundle_schema(
     # Create a deep copy to avoid modifying the original
     bundled = deepcopy(schema)
 
-    # Collect all needed definitions from common schema
-    needed = set(find_common_refs(bundled, common_ref_rx))
-
     # Create or merge with existing local $defs section
     bundled.setdefault("$defs", {})
     defs = bundled["$defs"]
 
-    # Embed each needed definition from common schema
-    for name in sorted(needed):
+    # Collect all needed definitions using transitive closure
+    # Start with direct references in the schema
+    to_process = set(find_common_refs(bundled, common_ref_rx))
+    processed = set()
+
+    # Keep processing until no new definitions are found
+    while to_process:
+        name = to_process.pop()
+
+        # Skip if already processed
+        if name in processed:
+            continue
+
+        # Mark as processed
+        processed.add(name)
+
+        # Skip if definition already exists locally
         if name in defs:
-            continue  # Skip if definition already exists locally
+            continue
+
+        # Validate definition exists in common schema
         if name not in common_schema.get("$defs", {}):
             raise KeyError(f"Definition '{name}' not found in common schema")
-        # Deep copy the definition to avoid reference issues
-        defs[name] = deepcopy(common_schema["$defs"][name])
+
+        # Copy the definition from common schema
+        definition = deepcopy(common_schema["$defs"][name])
+        defs[name] = definition
+
+        # Find nested references within this definition and add them to process queue
+        # Use include_internal=True to also find #/$defs/ references within the definition
+        nested_refs = set(find_common_refs(definition, common_ref_rx, include_internal=True))
+        to_process.update(nested_refs - processed)
 
     # Rewrite all external references to local references
     bundled = rewrite_refs_to_local(bundled, common_ref_rx)
