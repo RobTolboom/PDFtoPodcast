@@ -623,6 +623,8 @@ class OpenAIProvider(BaseLLMProvider):
                 schema_name = schema.get("title", "extraction_schema").replace(" ", "_")
 
             # Use OpenAI Responses API with structured outputs
+            # strict=False allows flexible schema guidance while maintaining prompt control
+            # Validation happens post-generation via dual-validation strategy
             response = self.client.responses.create(
                 model=self.settings.openai_model,
                 input=prompt,
@@ -634,7 +636,7 @@ class OpenAIProvider(BaseLLMProvider):
                         "type": "json_schema",
                         "name": schema_name,
                         "schema": schema,
-                        "strict": True,
+                        "strict": False,
                     }
                 },
                 **kwargs,
@@ -715,6 +717,8 @@ class OpenAIProvider(BaseLLMProvider):
             input_content = [{"role": "user", "content": content_items}]
 
             # Use OpenAI Responses API with structured outputs
+            # strict=False allows flexible schema guidance while maintaining prompt control
+            # Validation happens post-generation via dual-validation strategy
             response = self.client.responses.create(
                 model=self.settings.openai_model,
                 input=input_content,
@@ -726,7 +730,7 @@ class OpenAIProvider(BaseLLMProvider):
                         "type": "json_schema",
                         "name": schema_name,
                         "schema": schema,
-                        "strict": True,
+                        "strict": False,
                     }
                 },
                 **kwargs,
