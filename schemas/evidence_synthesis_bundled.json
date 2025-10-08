@@ -5,14 +5,34 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "schema_version",
-    "metadata",
-    "review_type",
+    "amstar2_rating",
+    "certainty_of_evidence",
+    "data_collection",
+    "document",
     "eligibility",
-    "search",
-    "prisma_flow",
+    "extraction_warnings",
+    "figures_summary",
+    "generator",
+    "included_studies",
+    "language",
+    "living_review",
+    "metadata",
+    "open_science",
     "outcomes",
-    "syntheses"
+    "prisma_flow",
+    "prisma_reporting",
+    "protocol",
+    "publication_bias",
+    "review_type",
+    "risk_of_bias_summary",
+    "robis_assessment",
+    "schema_version",
+    "search",
+    "sensitivity_analyses",
+    "study_id",
+    "syntheses",
+    "tables_parsed",
+    "truncated"
   ],
   "properties": {
     "schema_version": {
@@ -21,7 +41,10 @@
       "description": "Semantic-like version tag, e.g. v1.0 of v1.2.3"
     },
     "document": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "additionalProperties": false,
       "required": [
         "filename",
@@ -49,12 +72,18 @@
       }
     },
     "study_id": {
-      "type": "string",
+      "type": [
+        "string",
+        "null"
+      ],
       "pattern": "^[A-Za-z0-9._-]+$",
       "description": "Internal opaque ID for this article (the review itself)"
     },
     "generator": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "additionalProperties": false,
       "required": [
         "name",
@@ -95,7 +124,10 @@
       ]
     },
     "protocol": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "additionalProperties": false,
       "properties": {
         "prospero_id": {
@@ -117,7 +149,10 @@
       }
     },
     "living_review": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "description": "Information for living systematic reviews that are continually updated",
       "additionalProperties": false,
       "properties": {
@@ -137,7 +172,10 @@
           "type": "object",
           "properties": {
             "frequency": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "enum": [
                 "monthly",
                 "quarterly",
@@ -148,38 +186,73 @@
               ]
             },
             "next_planned_update": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "format": "date"
             },
             "surveillance_method": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "description": "How new evidence is monitored (e.g., automated alerts, manual searches)"
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "frequency",
+            "next_planned_update",
+            "surveillance_method"
+          ]
         },
         "trigger_criteria": {
           "type": "object",
           "description": "Criteria that trigger an update of the review",
           "properties": {
             "new_studies_threshold": {
-              "type": "integer",
+              "type": [
+                "integer",
+                "null"
+              ],
               "minimum": 1,
               "description": "Number of new studies needed to trigger update"
             },
             "change_in_conclusion": {
-              "type": "boolean",
+              "type": [
+                "boolean",
+                "null"
+              ],
               "description": "Update if new evidence changes conclusion"
             },
             "substantial_new_evidence": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             },
             "methodological_advances": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             },
             "stakeholder_request": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "change_in_conclusion",
+            "methodological_advances",
+            "new_studies_threshold",
+            "stakeholder_request",
+            "substantial_new_evidence"
+          ]
         },
         "version_history": {
           "type": "array",
@@ -187,31 +260,62 @@
             "type": "object",
             "properties": {
               "version": {
-                "type": "string"
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
               "date": {
-                "type": "string",
+                "type": [
+                  "string",
+                  "null"
+                ],
                 "format": "date"
               },
               "new_studies_added": {
-                "type": "integer",
+                "type": [
+                  "integer",
+                  "null"
+                ],
                 "minimum": 0
               },
               "studies_excluded": {
-                "type": "integer",
+                "type": [
+                  "integer",
+                  "null"
+                ],
                 "minimum": 0
               },
               "major_changes": {
-                "type": "string"
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
               "conclusion_changed": {
-                "type": "boolean"
+                "type": [
+                  "boolean",
+                  "null"
+                ]
               },
               "doi": {
-                "type": "string",
+                "type": [
+                  "string",
+                  "null"
+                ],
                 "pattern": "^10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+$"
               }
-            }
+            },
+            "additionalProperties": false,
+            "required": [
+              "conclusion_changed",
+              "date",
+              "doi",
+              "major_changes",
+              "new_studies_added",
+              "studies_excluded",
+              "version"
+            ]
           },
           "default": []
         },
@@ -219,39 +323,73 @@
           "type": "object",
           "properties": {
             "new_studies": {
-              "type": "integer",
+              "type": [
+                "integer",
+                "null"
+              ],
               "minimum": 0
             },
             "removed_studies": {
-              "type": "integer",
+              "type": [
+                "integer",
+                "null"
+              ],
               "minimum": 0
             },
             "updated_analyses": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "string"
               }
             },
             "narrative_summary": {
-              "type": "string"
+              "type": [
+                "string",
+                "null"
+              ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "narrative_summary",
+            "new_studies",
+            "removed_studies",
+            "updated_analyses"
+          ]
         },
         "discontinuation": {
           "type": "object",
           "properties": {
             "discontinued": {
-              "type": "boolean",
+              "type": [
+                "boolean",
+                "null"
+              ],
               "default": false
             },
             "discontinuation_date": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "format": "date"
             },
             "reason": {
-              "type": "string"
+              "type": [
+                "string",
+                "null"
+              ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "discontinuation_date",
+            "discontinued",
+            "reason"
+          ]
         }
       }
     },
@@ -259,11 +397,16 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "population",
-        "intervention_or_exposure",
         "comparators",
+        "exclusion_criteria",
+        "intervention_or_exposure",
+        "language_restrictions",
         "outcomes",
-        "study_designs"
+        "population",
+        "setting",
+        "source",
+        "study_designs",
+        "timeframe"
       ],
       "properties": {
         "population": {
@@ -283,17 +426,29 @@
           "description": "Eligible primary study designs (e.g., RCTs, cohorts)"
         },
         "setting": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "language_restrictions": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "timeframe": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Publication date limits, if any"
         },
         "exclusion_criteria": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "source": {
           "$ref": "#/$defs/SourceRef"
@@ -305,7 +460,13 @@
       "additionalProperties": false,
       "required": [
         "databases",
-        "last_search_date"
+        "date_from",
+        "date_to",
+        "deduplication_approach",
+        "last_search_date",
+        "other_sources",
+        "search_strings",
+        "source"
       ],
       "properties": {
         "databases": {
@@ -316,7 +477,10 @@
           "minItems": 1
         },
         "other_sources": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "description": "Trial registries, grey literature, handsearching, reference lists",
           "items": {
             "type": "string"
@@ -324,28 +488,47 @@
           "default": []
         },
         "search_strings": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "description": "Optional per-database search strategies",
           "items": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
               "database": {
-                "type": "string"
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
               "query": {
-                "type": "string"
+                "type": [
+                  "string",
+                  "null"
+                ]
               }
-            }
+            },
+            "required": [
+              "database",
+              "query"
+            ]
           },
           "default": []
         },
         "date_from": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "date"
         },
         "date_to": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "date"
         },
         "last_search_date": {
@@ -353,7 +536,10 @@
           "format": "date"
         },
         "deduplication_approach": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "source": {
           "$ref": "#/$defs/SourceRef"
@@ -364,7 +550,14 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "full_text_assessed",
+        "full_text_excluded",
+        "prisma_figure",
+        "reasons_excluded",
+        "records_after_duplicates",
+        "records_excluded",
         "records_identified",
+        "records_screened",
         "studies_included"
       ],
       "properties": {
@@ -373,23 +566,38 @@
           "minimum": 0
         },
         "records_after_duplicates": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 0
         },
         "records_screened": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 0
         },
         "records_excluded": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 0
         },
         "full_text_assessed": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 0
         },
         "full_text_excluded": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 0
         },
         "studies_included": {
@@ -397,7 +605,10 @@
           "minimum": 0
         },
         "reasons_excluded": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "string"
           },
@@ -409,7 +620,10 @@
       }
     },
     "data_collection": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "additionalProperties": false,
       "properties": {
         "risk_of_bias_tool": {
@@ -459,12 +673,21 @@
       }
     },
     "included_studies": {
-      "type": "array",
+      "type": [
+        "array",
+        "null"
+      ],
       "description": "Minimal per-study references used in the synthesis.",
       "items": {
         "type": "object",
         "additionalProperties": false,
         "required": [
+          "design",
+          "doi",
+          "n",
+          "notes",
+          "pmid",
+          "source",
           "study_label"
         ],
         "properties": {
@@ -473,22 +696,37 @@
             "description": "Short label or citation key (e.g., 'Smith 2020')"
           },
           "design": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "n": {
-            "type": "integer",
+            "type": [
+              "integer",
+              "null"
+            ],
             "minimum": 0
           },
           "doi": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "pattern": "^10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+$"
           },
           "pmid": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "pattern": "^\\d{1,8}$"
           },
           "notes": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "source": {
             "$ref": "#/$defs/SourceRef"
@@ -512,7 +750,10 @@
       "default": []
     },
     "risk_of_bias_summary": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "additionalProperties": false,
       "properties": {
         "tool": {
@@ -535,8 +776,10 @@
           "items": {
             "type": "object",
             "required": [
+              "rob_assessment",
+              "source",
               "study_label",
-              "rob_assessment"
+              "weight_in_meta_analysis"
             ],
             "properties": {
               "study_label": {
@@ -546,14 +789,18 @@
                 "$ref": "#/$defs/RiskOfBias"
               },
               "weight_in_meta_analysis": {
-                "type": "number",
+                "type": [
+                  "number",
+                  "null"
+                ],
                 "minimum": 0,
                 "maximum": 100
               },
               "source": {
                 "$ref": "#/$defs/SourceRef"
               }
-            }
+            },
+            "additionalProperties": false
           },
           "default": []
         },
@@ -561,26 +808,44 @@
           "type": "object",
           "properties": {
             "low_risk_pct": {
-              "type": "number",
+              "type": [
+                "number",
+                "null"
+              ],
               "minimum": 0,
               "maximum": 100
             },
             "some_concerns_pct": {
-              "type": "number",
+              "type": [
+                "number",
+                "null"
+              ],
               "minimum": 0,
               "maximum": 100
             },
             "high_risk_pct": {
-              "type": "number",
+              "type": [
+                "number",
+                "null"
+              ],
               "minimum": 0,
               "maximum": 100
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "high_risk_pct",
+            "low_risk_pct",
+            "some_concerns_pct"
+          ]
         }
       }
     },
     "certainty_of_evidence": {
-      "type": "array",
+      "type": [
+        "array",
+        "null"
+      ],
       "description": "GRADE per outcome (if reported).",
       "items": {
         "$ref": "#/$defs/GradeAssessment"
@@ -588,7 +853,10 @@
       "default": []
     },
     "publication_bias": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "additionalProperties": false,
       "properties": {
         "funnel_plot_source": {
@@ -614,7 +882,10 @@
               "$ref": "#/$defs/SourceRef"
             },
             "evidential_value": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "enum": [
                 "present",
                 "absent",
@@ -623,51 +894,90 @@
               ]
             },
             "test_for_right_skew_p": {
-              "type": "number",
+              "type": [
+                "number",
+                "null"
+              ],
               "minimum": 0,
               "maximum": 1
             },
             "test_for_flatness_p": {
-              "type": "number",
+              "type": [
+                "number",
+                "null"
+              ],
               "minimum": 0,
               "maximum": 1
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "evidential_value",
+            "p_curve_plot_source",
+            "test_for_flatness_p",
+            "test_for_right_skew_p"
+          ]
         },
         "pet_peese": {
           "type": "object",
           "properties": {
             "pet_estimate": {
-              "type": "number"
+              "type": [
+                "number",
+                "null"
+              ]
             },
             "pet_p_value": {
-              "type": "number",
+              "type": [
+                "number",
+                "null"
+              ],
               "minimum": 0,
               "maximum": 1
             },
             "peese_estimate": {
-              "type": "number"
+              "type": [
+                "number",
+                "null"
+              ]
             },
             "peese_p_value": {
-              "type": "number",
+              "type": [
+                "number",
+                "null"
+              ],
               "minimum": 0,
               "maximum": 1
             },
             "recommended_estimate": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "enum": [
                 "pet",
                 "peese",
                 "neither"
               ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "peese_estimate",
+            "peese_p_value",
+            "pet_estimate",
+            "pet_p_value",
+            "recommended_estimate"
+          ]
         },
         "selection_models": {
           "type": "object",
           "properties": {
             "model_type": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "enum": [
                 "copas",
                 "3psm",
@@ -679,34 +989,66 @@
               "$ref": "#/$defs/ContrastEffect"
             },
             "tau2_adjusted": {
-              "type": "number",
+              "type": [
+                "number",
+                "null"
+              ],
               "minimum": 0
             },
             "notes": {
-              "type": "string"
+              "type": [
+                "string",
+                "null"
+              ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "adjusted_estimate",
+            "model_type",
+            "notes",
+            "tau2_adjusted"
+          ]
         },
         "excess_significance_test": {
           "type": "object",
           "properties": {
             "observed_significant": {
-              "type": "integer",
+              "type": [
+                "integer",
+                "null"
+              ],
               "minimum": 0
             },
             "expected_significant": {
-              "type": "number",
+              "type": [
+                "number",
+                "null"
+              ],
               "minimum": 0
             },
             "p_value": {
-              "type": "number",
+              "type": [
+                "number",
+                "null"
+              ],
               "minimum": 0,
               "maximum": 1
             },
             "evidence_of_bias": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "evidence_of_bias",
+            "expected_significant",
+            "observed_significant",
+            "p_value"
+          ]
         },
         "contour_enhanced_funnel": {
           "type": "object",
@@ -715,9 +1057,17 @@
               "$ref": "#/$defs/SourceRef"
             },
             "pattern_interpretation": {
-              "type": "string"
+              "type": [
+                "string",
+                "null"
+              ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "pattern_interpretation",
+            "plot_source"
+          ]
         },
         "notes": {
           "type": "string"
@@ -725,7 +1075,10 @@
       }
     },
     "sensitivity_analyses": {
-      "type": "array",
+      "type": [
+        "array",
+        "null"
+      ],
       "description": "Sensitivity analyses to test robustness of findings",
       "items": {
         "$ref": "#/$defs/SensitivityAnalysis"
@@ -739,7 +1092,10 @@
       "$ref": "#/$defs/Amstar2Assessment"
     },
     "robis_assessment": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "description": "ROBIS (Risk Of Bias In Systematic reviews) tool assessment",
       "additionalProperties": false,
       "properties": {
@@ -755,18 +1111,32 @@
           "type": "object",
           "properties": {
             "review_question_match": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             },
             "concerns": {
-              "type": "string"
+              "type": [
+                "string",
+                "null"
+              ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "concerns",
+            "review_question_match"
+          ]
         },
         "phase_2_domains": {
           "type": "object",
           "properties": {
             "study_eligibility_criteria": {
-              "type": "object",
+              "type": [
+                "object",
+                "null"
+              ],
               "properties": {
                 "risk_of_bias": {
                   "type": "string",
@@ -782,7 +1152,10 @@
               }
             },
             "identification_and_selection": {
-              "type": "object",
+              "type": [
+                "object",
+                "null"
+              ],
               "properties": {
                 "risk_of_bias": {
                   "type": "string",
@@ -798,7 +1171,10 @@
               }
             },
             "data_collection_and_study_appraisal": {
-              "type": "object",
+              "type": [
+                "object",
+                "null"
+              ],
               "properties": {
                 "risk_of_bias": {
                   "type": "string",
@@ -814,7 +1190,10 @@
               }
             },
             "synthesis_and_findings": {
-              "type": "object",
+              "type": [
+                "object",
+                "null"
+              ],
               "properties": {
                 "risk_of_bias": {
                   "type": "string",
@@ -829,7 +1208,14 @@
                 }
               }
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "data_collection_and_study_appraisal",
+            "identification_and_selection",
+            "study_eligibility_criteria",
+            "synthesis_and_findings"
+          ]
         },
         "phase_3_overall_assessment": {
           "type": "string"
@@ -840,21 +1226,30 @@
       "$ref": "#/$defs/OpenScience"
     },
     "tables_parsed": {
-      "type": "array",
+      "type": [
+        "array",
+        "null"
+      ],
       "items": {
         "$ref": "#/$defs/ParsedTable"
       },
       "default": []
     },
     "figures_summary": {
-      "type": "array",
+      "type": [
+        "array",
+        "null"
+      ],
       "items": {
         "$ref": "#/$defs/FigureSummary"
       },
       "default": []
     },
     "extraction_warnings": {
-      "type": "array",
+      "type": [
+        "array",
+        "null"
+      ],
       "items": {
         "$ref": "#/$defs/ExtractionWarning"
       },
@@ -869,9 +1264,19 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "outcome_id",
+        "definition",
+        "direction_of_benefit",
+        "measurement_method",
         "name",
-        "type"
+        "outcome_id",
+        "preferred_effect_measure",
+        "scale_max",
+        "scale_min",
+        "source",
+        "timepoint",
+        "timepoint_iso8601",
+        "type",
+        "unit"
       ],
       "properties": {
         "outcome_id": {
@@ -881,7 +1286,10 @@
           "type": "string"
         },
         "definition": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "type": {
           "type": "string",
@@ -894,7 +1302,10 @@
           ]
         },
         "direction_of_benefit": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "higher_better",
             "lower_better",
@@ -902,7 +1313,10 @@
           ]
         },
         "preferred_effect_measure": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "RR",
             "IRR",
@@ -916,22 +1330,37 @@
           ]
         },
         "unit": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "timepoint": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "timepoint_iso8601": {
           "$ref": "#/$defs/ISO8601Duration"
         },
         "measurement_method": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "scale_min": {
-          "type": "number"
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "scale_max": {
-          "type": "number"
+          "type": [
+            "number",
+            "null"
+          ]
         },
         "source": {
           "$ref": "#/$defs/SourceRef"
@@ -942,15 +1371,33 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "effect"
+        "effect",
+        "heterogeneity",
+        "k_studies",
+        "meta_regression",
+        "meta_regression_terms",
+        "method",
+        "model",
+        "notes",
+        "outlier_detection",
+        "prediction_interval",
+        "source",
+        "subgroup",
+        "subgroup_analysis"
       ],
       "properties": {
         "k_studies": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 1
         },
         "model": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "fixed",
             "random",
@@ -959,14 +1406,20 @@
           ]
         },
         "method": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Estimator or approach (e.g., DL, REML, ML, Bayesian MCMC)"
         },
         "effect": {
           "$ref": "#/$defs/ContrastEffect"
         },
         "prediction_interval": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "additionalProperties": false,
           "properties": {
             "lower": {
@@ -978,7 +1431,10 @@
           }
         },
         "heterogeneity": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "additionalProperties": false,
           "properties": {
             "Q": {
@@ -1030,10 +1486,16 @@
           }
         },
         "subgroup": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "subgroup_analysis": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "subgroups": {
               "type": "array",
@@ -1041,54 +1503,96 @@
                 "type": "object",
                 "properties": {
                   "subgroup_name": {
-                    "type": "string"
+                    "type": [
+                      "string",
+                      "null"
+                    ]
                   },
                   "k_studies": {
-                    "type": "integer",
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
                     "minimum": 1
                   },
                   "pooled_effect": {
                     "$ref": "#/$defs/ContrastEffect"
                   },
                   "I2_pct": {
-                    "type": "number",
+                    "type": [
+                      "number",
+                      "null"
+                    ],
                     "minimum": 0,
                     "maximum": 100
                   },
                   "tau2": {
-                    "type": "number",
+                    "type": [
+                      "number",
+                      "null"
+                    ],
                     "minimum": 0
                   }
-                }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "I2_pct",
+                  "k_studies",
+                  "pooled_effect",
+                  "subgroup_name",
+                  "tau2"
+                ]
               }
             },
             "test_for_subgroup_differences": {
               "type": "object",
               "properties": {
                 "Q_between": {
-                  "type": "number",
+                  "type": [
+                    "number",
+                    "null"
+                  ],
                   "minimum": 0
                 },
                 "df": {
-                  "type": "integer",
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
                   "minimum": 1
                 },
                 "p_value": {
-                  "type": "number",
+                  "type": [
+                    "number",
+                    "null"
+                  ],
                   "minimum": 0,
                   "maximum": 1
                 },
                 "I2_between_pct": {
-                  "type": "number",
+                  "type": [
+                    "number",
+                    "null"
+                  ],
                   "minimum": 0,
                   "maximum": 100
                 }
-              }
+              },
+              "additionalProperties": false,
+              "required": [
+                "I2_between_pct",
+                "Q_between",
+                "df",
+                "p_value"
+              ]
             }
           }
         },
         "meta_regression": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "covariates": {
               "type": "array",
@@ -1096,60 +1600,113 @@
                 "type": "object",
                 "properties": {
                   "covariate_name": {
-                    "type": "string"
+                    "type": [
+                      "string",
+                      "null"
+                    ]
                   },
                   "coefficient": {
-                    "type": "number"
+                    "type": [
+                      "number",
+                      "null"
+                    ]
                   },
                   "se": {
-                    "type": "number",
+                    "type": [
+                      "number",
+                      "null"
+                    ],
                     "minimum": 0
                   },
                   "ci_lower": {
-                    "type": "number"
+                    "type": [
+                      "number",
+                      "null"
+                    ]
                   },
                   "ci_upper": {
-                    "type": "number"
+                    "type": [
+                      "number",
+                      "null"
+                    ]
                   },
                   "p_value": {
-                    "type": "number",
+                    "type": [
+                      "number",
+                      "null"
+                    ],
                     "minimum": 0,
                     "maximum": 1
                   },
                   "standardized": {
-                    "type": "boolean"
+                    "type": [
+                      "boolean",
+                      "null"
+                    ]
                   }
-                }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "ci_lower",
+                  "ci_upper",
+                  "coefficient",
+                  "covariate_name",
+                  "p_value",
+                  "se",
+                  "standardized"
+                ]
               }
             },
             "model_fit": {
               "type": "object",
               "properties": {
                 "R2": {
-                  "type": "number",
+                  "type": [
+                    "number",
+                    "null"
+                  ],
                   "minimum": 0,
                   "maximum": 1,
                   "description": "Proportion of heterogeneity explained"
                 },
                 "tau2_residual": {
-                  "type": "number",
+                  "type": [
+                    "number",
+                    "null"
+                  ],
                   "minimum": 0
                 },
                 "QM": {
-                  "type": "number",
+                  "type": [
+                    "number",
+                    "null"
+                  ],
                   "description": "Test statistic for moderators"
                 },
                 "QM_p": {
-                  "type": "number",
+                  "type": [
+                    "number",
+                    "null"
+                  ],
                   "minimum": 0,
                   "maximum": 1
                 }
-              }
+              },
+              "additionalProperties": false,
+              "required": [
+                "QM",
+                "QM_p",
+                "R2",
+                "tau2_residual"
+              ]
             }
           }
         },
         "outlier_detection": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "method": {
               "type": "string",
@@ -1166,31 +1723,56 @@
                 "type": "object",
                 "properties": {
                   "study_label": {
-                    "type": "string"
+                    "type": [
+                      "string",
+                      "null"
+                    ]
                   },
                   "statistic_value": {
-                    "type": "number"
+                    "type": [
+                      "number",
+                      "null"
+                    ]
                   },
                   "threshold": {
-                    "type": "number"
+                    "type": [
+                      "number",
+                      "null"
+                    ]
                   },
                   "influential": {
-                    "type": "boolean"
+                    "type": [
+                      "boolean",
+                      "null"
+                    ]
                   }
-                }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "influential",
+                  "statistic_value",
+                  "study_label",
+                  "threshold"
+                ]
               }
             }
           }
         },
         "meta_regression_terms": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "string"
           },
           "default": []
         },
         "notes": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "source": {
           "$ref": "#/$defs/SourceRef"
@@ -1203,6 +1785,7 @@
       "required": [
         "comparison_label",
         "outcome_id",
+        "per_study_effects",
         "pooled"
       ],
       "properties": {
@@ -1214,14 +1797,19 @@
           "type": "string"
         },
         "per_study_effects": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "description": "Optional: study-level effect sizes contributing to the pool",
           "items": {
             "type": "object",
             "additionalProperties": false,
             "required": [
+              "effect",
+              "source",
               "study_label",
-              "effect"
+              "weight_pct"
             ],
             "properties": {
               "study_label": {
@@ -1231,7 +1819,10 @@
                 "$ref": "#/$defs/ContrastEffect"
               },
               "weight_pct": {
-                "type": "number",
+                "type": [
+                  "number",
+                  "null"
+                ],
                 "minimum": 0,
                 "maximum": 100
               },
@@ -1251,11 +1842,21 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "outcome_id",
-        "treatments",
-        "reference_treatment",
+        "cinema_assessment",
+        "comparison_adjusted_funnel_plot",
+        "consistency_assumed",
+        "contribution_matrix",
+        "inconsistency",
+        "league_table",
         "model",
-        "pooled_effects"
+        "network_geometry",
+        "notes",
+        "outcome_id",
+        "pooled_effects",
+        "ranking",
+        "reference_treatment",
+        "transitivity_assessment",
+        "treatments"
       ],
       "properties": {
         "outcome_id": {
@@ -1280,7 +1881,10 @@
           ]
         },
         "consistency_assumed": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "default": true
         },
         "pooled_effects": {
@@ -1290,9 +1894,10 @@
             "type": "object",
             "additionalProperties": false,
             "required": [
+              "effect",
+              "source",
               "treatment_a",
-              "treatment_b",
-              "effect"
+              "treatment_b"
             ],
             "properties": {
               "treatment_a": {
@@ -1311,7 +1916,10 @@
           }
         },
         "ranking": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "description": "Optional ranking metrics per treatment (e.g., SUCRA).",
           "items": {
             "type": "object",
@@ -1342,7 +1950,10 @@
           "default": []
         },
         "inconsistency": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "additionalProperties": false,
           "properties": {
             "global_test_p": {
@@ -1357,10 +1968,16 @@
                 "additionalProperties": false,
                 "properties": {
                   "comparison": {
-                    "type": "string"
+                    "type": [
+                      "string",
+                      "null"
+                    ]
                   },
                   "p_inconsistency": {
-                    "type": "number",
+                    "type": [
+                      "number",
+                      "null"
+                    ],
                     "minimum": 0,
                     "maximum": 1
                   },
@@ -1371,9 +1988,19 @@
                     "$ref": "#/$defs/ContrastEffect"
                   },
                   "difference": {
-                    "type": "number"
+                    "type": [
+                      "number",
+                      "null"
+                    ]
                   }
-                }
+                },
+                "required": [
+                  "comparison",
+                  "difference",
+                  "direct_estimate",
+                  "indirect_estimate",
+                  "p_inconsistency"
+                ]
               },
               "default": []
             },
@@ -1386,20 +2013,34 @@
                 "type": "object",
                 "properties": {
                   "comparison": {
-                    "type": "string"
+                    "type": [
+                      "string",
+                      "null"
+                    ]
                   },
                   "p_inconsistency": {
-                    "type": "number",
+                    "type": [
+                      "number",
+                      "null"
+                    ],
                     "minimum": 0,
                     "maximum": 1
                   }
-                }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "comparison",
+                  "p_inconsistency"
+                ]
               }
             }
           }
         },
         "transitivity_assessment": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "assessment": {
               "type": "string",
@@ -1422,7 +2063,10 @@
           }
         },
         "network_geometry": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "additionalProperties": false,
           "properties": {
             "nodes": {
@@ -1447,7 +2091,10 @@
           }
         },
         "contribution_matrix": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Contribution of each direct comparison to network estimates",
           "properties": {
             "matrix_source": {
@@ -1459,23 +2106,41 @@
                 "type": "object",
                 "properties": {
                   "direct_comparison": {
-                    "type": "string"
+                    "type": [
+                      "string",
+                      "null"
+                    ]
                   },
                   "network_estimate": {
-                    "type": "string"
+                    "type": [
+                      "string",
+                      "null"
+                    ]
                   },
                   "contribution_pct": {
-                    "type": "number",
+                    "type": [
+                      "number",
+                      "null"
+                    ],
                     "minimum": 0,
                     "maximum": 100
                   }
-                }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "contribution_pct",
+                  "direct_comparison",
+                  "network_estimate"
+                ]
               }
             }
           }
         },
         "comparison_adjusted_funnel_plot": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "plot_source": {
               "$ref": "#/$defs/SourceRef"
@@ -1486,7 +2151,10 @@
           }
         },
         "league_table": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "table_source": {
               "$ref": "#/$defs/SourceRef"
@@ -1502,7 +2170,10 @@
           }
         },
         "cinema_assessment": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "CINeMA (Confidence in Network Meta-Analysis) framework for GRADE in NMA",
           "properties": {
             "within_study_bias": {
@@ -1565,7 +2236,10 @@
           }
         },
         "notes": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
@@ -1573,8 +2247,11 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "covariates",
+        "effect_modifier_analysis",
+        "model",
         "outcome_id",
-        "model"
+        "pooled"
       ],
       "properties": {
         "outcome_id": {
@@ -1588,14 +2265,20 @@
           ]
         },
         "covariates": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "string"
           },
           "default": []
         },
         "effect_modifier_analysis": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "pooled": {
           "$ref": "#/$defs/PooledEffect"
@@ -1606,6 +2289,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "fig_or_table",
         "outcome_id",
         "summary_text"
       ],
@@ -1625,8 +2309,13 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "ipd_meta",
+        "narrative",
+        "network_meta",
+        "outcome_id",
+        "pairwise_meta",
         "type",
-        "outcome_id"
+        "umbrella_summary"
       ],
       "properties": {
         "type": {
@@ -1655,7 +2344,10 @@
           "$ref": "#/$defs/NarrativeSynthesis"
         },
         "umbrella_summary": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "additionalProperties": false,
           "properties": {
             "evidence_map": {
@@ -1675,8 +2367,15 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "absolute_effects",
+        "certainty",
+        "domains",
+        "footnotes",
         "outcome_id",
-        "certainty"
+        "starting_certainty",
+        "summary_of_findings",
+        "summary_of_findings_source",
+        "upgrade_factors"
       ],
       "properties": {
         "outcome_id": {
@@ -1692,7 +2391,10 @@
           ]
         },
         "starting_certainty": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "high",
             "low"
@@ -1700,7 +2402,10 @@
           "description": "Starting level for RCTs (high) or observational (low)"
         },
         "domains": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "additionalProperties": false,
           "properties": {
             "risk_of_bias": {
@@ -1754,7 +2459,10 @@
           }
         },
         "upgrade_factors": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Factors that may increase certainty for observational studies",
           "properties": {
             "large_effect": {
@@ -1777,54 +2485,98 @@
           }
         },
         "absolute_effects": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "baseline_risk": {
               "type": "object",
               "properties": {
                 "value": {
-                  "type": "number",
+                  "type": [
+                    "number",
+                    "null"
+                  ],
                   "minimum": 0,
                   "maximum": 1
                 },
                 "source": {
-                  "type": "string",
+                  "type": [
+                    "string",
+                    "null"
+                  ],
                   "description": "Source of baseline risk estimate"
                 },
                 "risk_category": {
-                  "type": "string",
+                  "type": [
+                    "string",
+                    "null"
+                  ],
                   "enum": [
                     "low",
                     "moderate",
                     "high"
                   ]
                 }
-              }
+              },
+              "additionalProperties": false,
+              "required": [
+                "risk_category",
+                "source",
+                "value"
+              ]
             },
             "absolute_effect_per_1000": {
               "type": "object",
               "properties": {
                 "control_risk": {
-                  "type": "number"
+                  "type": [
+                    "number",
+                    "null"
+                  ]
                 },
                 "intervention_risk": {
-                  "type": "number"
+                  "type": [
+                    "number",
+                    "null"
+                  ]
                 },
                 "absolute_difference": {
-                  "type": "number"
+                  "type": [
+                    "number",
+                    "null"
+                  ]
                 },
                 "ci_lower": {
-                  "type": "number"
+                  "type": [
+                    "number",
+                    "null"
+                  ]
                 },
                 "ci_upper": {
-                  "type": "number"
+                  "type": [
+                    "number",
+                    "null"
+                  ]
                 }
-              }
+              },
+              "additionalProperties": false,
+              "required": [
+                "absolute_difference",
+                "ci_lower",
+                "ci_upper",
+                "control_risk",
+                "intervention_risk"
+              ]
             }
           }
         },
         "summary_of_findings": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "n_participants": {
               "type": "integer",
@@ -1846,7 +2598,10 @@
           }
         },
         "footnotes": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "summary_of_findings_source": {
           "$ref": "#/$defs/SourceRef"
@@ -1858,7 +2613,10 @@
       "additionalProperties": false,
       "properties": {
         "version": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "PRISMA 2020",
             "PRISMA 2020-ScR",
@@ -1872,20 +2630,32 @@
           "default": "PRISMA 2020"
         },
         "claimed": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "default": false,
           "description": "Authors claim PRISMA adherence"
         },
         "flow_diagram_present": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "default": false
         },
         "checklist_available": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "default": false
         },
         "items": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "description": "Item-by-item PRISMA reporting status.",
           "items": {
             "$ref": "#/$defs/PrismaItem"
@@ -1893,7 +2663,10 @@
           "default": []
         },
         "adherence_summary": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "additionalProperties": false,
           "properties": {
             "items_reported_count": {
@@ -1915,27 +2688,51 @@
           "$ref": "#/$defs/SourceRef"
         },
         "notes": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         }
-      }
+      },
+      "required": [
+        "adherence_summary",
+        "checklist_available",
+        "checklist_source",
+        "claimed",
+        "flow_diagram_present",
+        "items",
+        "notes",
+        "version"
+      ]
     },
     "PrismaItem": {
       "type": "object",
       "additionalProperties": false,
       "required": [
         "item_id",
-        "reported"
+        "location",
+        "name",
+        "notes",
+        "reported",
+        "section",
+        "source"
       ],
       "properties": {
         "item_id": {
           "$ref": "#/$defs/PrismaItemId"
         },
         "name": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Short title of the PRISMA item (optional)"
         },
         "section": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Section of manuscript where item should appear"
         },
         "reported": {
@@ -1948,14 +2745,20 @@
           ]
         },
         "location": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Page/figure/appendix location"
         },
         "source": {
           "$ref": "#/$defs/SourceRef"
         },
         "notes": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
@@ -2012,7 +2815,10 @@
       "additionalProperties": false,
       "properties": {
         "overall": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "high",
             "moderate",
@@ -2021,10 +2827,16 @@
           ]
         },
         "rationale": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "items": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "description": "AMSTAR 2 item-level ratings (1–16). Mark critical domains with critical=true.",
           "items": {
             "$ref": "#/$defs/Amstar2Item"
@@ -2032,7 +2844,10 @@
           "default": []
         },
         "critical_domains": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "description": "List of item_ids marked critical in this assessment (subset of 1–16).",
           "items": {
             "type": "string",
@@ -2043,13 +2858,22 @@
         "source": {
           "$ref": "#/$defs/SourceRef"
         }
-      }
+      },
+      "required": [
+        "critical_domains",
+        "items",
+        "overall",
+        "rationale",
+        "source"
+      ]
     },
     "Amstar2Item": {
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "critical",
         "item_id",
+        "notes",
         "rating"
       ],
       "properties": {
@@ -2069,11 +2893,17 @@
           ]
         },
         "critical": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "default": false
         },
         "notes": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
@@ -2087,18 +2917,28 @@
         "code_availability": {
           "$ref": "#/$defs/Availability"
         }
-      }
+      },
+      "required": [
+        "code_availability",
+        "data_availability"
+      ]
     },
     "Availability": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "statement": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Verbatim of summarized availability statement"
         },
         "links": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "$ref": "#/$defs/AvailabilityLink"
           },
@@ -2107,28 +2947,47 @@
         "source": {
           "$ref": "#/$defs/SourceRef"
         }
-      }
+      },
+      "required": [
+        "links",
+        "source",
+        "statement"
+      ]
     },
     "AvailabilityLink": {
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "access",
+        "doi",
+        "label",
+        "license",
+        "notes",
         "url"
       ],
       "properties": {
         "label": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "url": {
           "type": "string",
           "format": "uri"
         },
         "doi": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+$"
         },
         "access": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "open",
             "restricted",
@@ -2138,11 +2997,17 @@
           ]
         },
         "license": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "e.g., CC BY 4.0, GPL-3.0"
         },
         "notes": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
@@ -2150,8 +3015,15 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "alternative_effect_measure",
         "analysis_type",
-        "outcome_id"
+        "description",
+        "fixed_vs_random_comparison",
+        "leave_one_out",
+        "outcome_id",
+        "result",
+        "rob_restriction",
+        "source"
       ],
       "properties": {
         "analysis_type": {
@@ -2172,10 +3044,16 @@
           "type": "string"
         },
         "description": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "leave_one_out": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "results": {
               "type": "array",
@@ -2183,21 +3061,37 @@
                 "type": "object",
                 "properties": {
                   "excluded_study": {
-                    "type": "string"
+                    "type": [
+                      "string",
+                      "null"
+                    ]
                   },
                   "pooled_effect": {
                     "$ref": "#/$defs/ContrastEffect"
                   },
                   "I2_pct": {
-                    "type": "number",
+                    "type": [
+                      "number",
+                      "null"
+                    ],
                     "minimum": 0,
                     "maximum": 100
                   },
                   "tau2": {
-                    "type": "number",
+                    "type": [
+                      "number",
+                      "null"
+                    ],
                     "minimum": 0
                   }
-                }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "I2_pct",
+                  "excluded_study",
+                  "pooled_effect",
+                  "tau2"
+                ]
               }
             },
             "influential_studies": {
@@ -2210,7 +3104,10 @@
           }
         },
         "fixed_vs_random_comparison": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "fixed_effect": {
               "$ref": "#/$defs/ContrastEffect"
@@ -2229,7 +3126,10 @@
           }
         },
         "alternative_effect_measure": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "original_measure": {
               "type": "string"
@@ -2246,7 +3146,10 @@
           }
         },
         "rob_restriction": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "inclusion_criteria": {
               "type": "string",
@@ -2265,7 +3168,10 @@
           }
         },
         "result": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "pooled_effect": {
               "$ref": "#/$defs/ContrastEffect"
@@ -2294,8 +3200,14 @@
       "additionalProperties": false,
       "description": "Statistical effect estimate with confidence interval",
       "required": [
-        "type",
-        "point"
+        "bayes_factor",
+        "ci",
+        "credible_interval",
+        "favors",
+        "p_value",
+        "point",
+        "posterior_probability",
+        "type"
       ],
       "properties": {
         "type": {
@@ -2324,24 +3236,36 @@
           "$ref": "#/$defs/BayesianInterval"
         },
         "p_value": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0,
           "maximum": 1,
           "description": "Statistical significance p-value"
         },
         "bayes_factor": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0,
           "description": "Bayesian evidence ratio (BF10 or BF01)"
         },
         "posterior_probability": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0,
           "maximum": 1,
           "description": "Posterior probability of effect direction"
         },
         "favors": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "treatment_or_exposure",
             "control_or_reference",
@@ -2358,7 +3282,8 @@
       "additionalProperties": false,
       "required": [
         "code",
-        "message"
+        "message",
+        "source"
       ],
       "properties": {
         "code": {
@@ -2384,8 +3309,11 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "caption",
         "figure_id",
-        "caption"
+        "key_values",
+        "page",
+        "source"
       ],
       "properties": {
         "figure_id": {
@@ -2395,14 +3323,20 @@
           "type": "string"
         },
         "key_values": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "additionalProperties": {
             "type": "number"
           },
           "default": {}
         },
         "page": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 1
         },
         "source": {
@@ -2449,8 +3383,36 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "article_number",
+        "authors",
+        "conflict_of_interest",
+        "content_hash_sha256",
+        "doi",
+        "eissn",
+        "elocation_id",
+        "epub_ahead_of_print_date",
+        "external_ids",
+        "funding",
+        "issn",
+        "issue",
+        "journal",
+        "journal_abbrev",
+        "page_end",
+        "page_start",
+        "pages",
+        "parsing_context",
+        "pmcid",
+        "pmid",
+        "protocol_ref",
+        "published_date",
+        "published_date_precision",
+        "registration",
+        "source",
+        "supplements",
         "title",
-        "journal"
+        "vancouver_citation",
+        "vancouver_source",
+        "volume"
       ],
       "properties": {
         "title": {
@@ -2460,14 +3422,23 @@
           "type": "string"
         },
         "journal_abbrev": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "published_date": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "date"
         },
         "published_date_precision": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "year",
             "month",
@@ -2475,53 +3446,92 @@
           ]
         },
         "volume": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "issue": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "pages": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "page_start": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "page_end": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "article_number": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "elocation_id": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "issn": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^\\d{4}-\\d{3}[\\dxX]$",
           "description": "International Standard Serial Number (print version)"
         },
         "eissn": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^\\d{4}-\\d{3}[\\dxX]$",
           "description": "Electronic International Standard Serial Number"
         },
         "authors": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "$ref": "#/$defs/Author"
           },
           "default": []
         },
         "pmid": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^\\d{1,8}$"
         },
         "pmcid": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^PMC\\d+$"
         },
         "doi": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^10\\.\\d{4,}(\\.\\d+)?/[-._;()/:A-Za-z0-9\\[\\]]+$",
           "description": "DOI with comprehensive character support including brackets and extended punctuation",
           "examples": [
@@ -2533,19 +3543,34 @@
           "$ref": "#/$defs/Registration"
         },
         "protocol_ref": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "funding": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "conflict_of_interest": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "epub_ahead_of_print_date": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "vancouver_citation": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "vancouver_source": {
           "$ref": "#/$defs/SourceRef"
@@ -2554,14 +3579,20 @@
           "$ref": "#/$defs/SourceRef"
         },
         "external_ids": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "$ref": "#/$defs/ExternalId"
           },
           "default": []
         },
         "supplements": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "$ref": "#/$defs/SupplementFile"
           },
@@ -2571,103 +3602,25 @@
           "$ref": "#/$defs/ParsingContext"
         },
         "content_hash_sha256": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^[a-fA-F0-9]{64}$",
           "description": "SHA-256 hash van bronbestand of platte tekst (64-char hex)"
         }
-      },
-      "dependentSchemas": {
-        "published_date_precision": {
-          "required": [
-            "published_date"
-          ],
-          "properties": {
-            "published_date_precision": {
-              "description": "Precision can only be specified if published_date is present"
-            }
-          }
-        },
-        "page_end": {
-          "required": [
-            "page_start"
-          ],
-          "properties": {
-            "page_end": {
-              "description": "End page requires start page to be specified"
-            }
-          }
-        },
-        "vancouver_source": {
-          "required": [
-            "vancouver_citation"
-          ],
-          "properties": {
-            "vancouver_source": {
-              "description": "Vancouver source reference requires vancouver_citation to be present"
-            }
-          }
-        }
-      },
-      "allOf": [
-        {
-          "if": {
-            "properties": {
-              "published_date_precision": {
-                "const": "day"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "published_date": {
-                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-                "description": "Day precision requires full date format YYYY-MM-DD"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "published_date_precision": {
-                "const": "month"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "published_date": {
-                "pattern": "^\\d{4}-\\d{2}(-\\d{2})?$",
-                "description": "Month precision allows YYYY-MM or YYYY-MM-DD format"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "published_date_precision": {
-                "const": "year"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "published_date": {
-                "pattern": "^\\d{4}(-\\d{2}(-\\d{2})?)?$",
-                "description": "Year precision allows YYYY, YYYY-MM, or YYYY-MM-DD format"
-              }
-            }
-          }
-        }
-      ]
+      }
     },
     "ParsedTable": {
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "page",
+        "rows",
+        "source",
         "table_id",
-        "title"
+        "title",
+        "type"
       ],
       "properties": {
         "table_id": {
@@ -2677,11 +3630,17 @@
           "type": "string"
         },
         "page": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 1
         },
         "type": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "baseline",
             "outcomes",
@@ -2691,7 +3650,10 @@
           ]
         },
         "rows": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "object",
             "additionalProperties": false,
@@ -2721,7 +3683,10 @@
       "description": "Clinical trial or study registration information",
       "properties": {
         "registry": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "ClinicalTrials.gov",
             "ISRCTN",
@@ -2744,7 +3709,10 @@
           "description": "Clinical trial registry (includes major international and regional registries)"
         },
         "identifier": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Registration identifier within the registry",
           "examples": [
             "NCT04123456",
@@ -2754,97 +3722,18 @@
           ]
         },
         "url": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "uri",
           "description": "Direct URL to the registration record"
         }
       },
-      "allOf": [
-        {
-          "if": {
-            "properties": {
-              "registry": {
-                "const": "ClinicalTrials.gov"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "identifier": {
-                "pattern": "^NCT\\d{8}$",
-                "description": "ClinicalTrials.gov identifier format: NCT followed by 8 digits"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "registry": {
-                "const": "ISRCTN"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "identifier": {
-                "pattern": "^ISRCTN\\d{8}$",
-                "description": "ISRCTN identifier format: ISRCTN followed by 8 digits"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "registry": {
-                "const": "EudraCT"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "identifier": {
-                "pattern": "^\\d{4}-\\d{6}-\\d{2}$",
-                "description": "EudraCT identifier format: YYYY-NNNNNN-NN"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "registry": {
-                "const": "UMIN-CTR"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "identifier": {
-                "pattern": "^UMIN\\d{9}$",
-                "description": "UMIN-CTR identifier format: UMIN followed by 9 digits"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "registry": {
-                "const": "ChiCTR"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "identifier": {
-                "pattern": "^ChiCTR\\d{10}$",
-                "description": "ChiCTR identifier format: ChiCTR followed by 10 digits"
-              }
-            }
-          }
-        }
+      "required": [
+        "identifier",
+        "registry",
+        "url"
       ]
     },
     "RiskOfBias": {
@@ -2852,7 +3741,10 @@
       "additionalProperties": false,
       "properties": {
         "tool": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "RoB2",
             "ROBINS-I",
@@ -2861,16 +3753,23 @@
           ]
         },
         "overall": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "domains": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "object",
             "additionalProperties": false,
             "required": [
               "domain",
-              "judgement"
+              "judgement",
+              "notes"
             ],
             "properties": {
               "domain": {
@@ -2891,14 +3790,20 @@
                 ]
               },
               "notes": {
-                "type": "string"
+                "type": [
+                  "string",
+                  "null"
+                ]
               }
             }
           },
           "default": []
         },
         "applicability": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "additionalProperties": false,
           "properties": {
             "participants": {
@@ -2934,185 +3839,12 @@
           "$ref": "#/$defs/Provenance"
         }
       },
-      "allOf": [
-        {
-          "if": {
-            "properties": {
-              "tool": {
-                "const": "RoB2"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "overall": {
-                "type": "string",
-                "enum": [
-                  "low",
-                  "some_concerns",
-                  "high",
-                  "unclear"
-                ]
-              },
-              "domains": {
-                "items": {
-                  "properties": {
-                    "domain": {
-                      "type": "string",
-                      "enum": [
-                        "randomization_process",
-                        "deviations_from_intended_interventions",
-                        "missing_outcome_data",
-                        "measurement_of_outcome",
-                        "selection_of_reported_result"
-                      ]
-                    },
-                    "judgement": {
-                      "type": "string",
-                      "enum": [
-                        "low",
-                        "some_concerns",
-                        "high",
-                        "unclear"
-                      ]
-                    }
-                  }
-                },
-                "minItems": 5
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "tool": {
-                "const": "ROBINS-I"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "overall": {
-                "type": "string",
-                "enum": [
-                  "low",
-                  "moderate",
-                  "serious",
-                  "critical",
-                  "no_information"
-                ]
-              },
-              "domains": {
-                "items": {
-                  "properties": {
-                    "domain": {
-                      "type": "string",
-                      "enum": [
-                        "bias_due_to_confounding",
-                        "bias_in_selection_of_participants",
-                        "bias_in_classification_of_interventions",
-                        "bias_due_to_deviations_from_intended_interventions",
-                        "bias_due_to_missing_data",
-                        "bias_in_measurement_of_outcomes",
-                        "bias_in_selection_of_reported_result"
-                      ]
-                    },
-                    "judgement": {
-                      "type": "string",
-                      "enum": [
-                        "low",
-                        "moderate",
-                        "serious",
-                        "critical",
-                        "no_information"
-                      ]
-                    }
-                  }
-                },
-                "minItems": 7
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "tool": {
-                "const": "PROBAST"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "overall": {
-                "type": "string",
-                "enum": [
-                  "low",
-                  "high",
-                  "unclear"
-                ]
-              },
-              "domains": {
-                "items": {
-                  "properties": {
-                    "domain": {
-                      "type": "string",
-                      "enum": [
-                        "participants",
-                        "predictors",
-                        "outcome",
-                        "analysis"
-                      ]
-                    },
-                    "judgement": {
-                      "type": "string",
-                      "enum": [
-                        "low",
-                        "high",
-                        "unclear"
-                      ]
-                    }
-                  }
-                },
-                "minItems": 4
-              },
-              "applicability": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "participants": {
-                    "type": "string",
-                    "enum": [
-                      "low",
-                      "high",
-                      "unclear"
-                    ]
-                  },
-                  "predictors": {
-                    "type": "string",
-                    "enum": [
-                      "low",
-                      "high",
-                      "unclear"
-                    ]
-                  },
-                  "outcome": {
-                    "type": "string",
-                    "enum": [
-                      "low",
-                      "high",
-                      "unclear"
-                    ]
-                  },
-                  "notes": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        }
+      "required": [
+        "applicability",
+        "domains",
+        "overall",
+        "provenance",
+        "tool"
       ]
     },
     "SourceRef": {
@@ -3121,34 +3853,58 @@
       "description": "Reference to a specific location within a document",
       "properties": {
         "anchor": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Free-text pointer like 'Table 2', 'Fig 1', or sentence quote"
         },
         "page": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 1,
           "description": "Page number within the document"
         },
         "figure_id": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Identifier of a specific figure"
         },
         "table_id": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Identifier of a specific table"
         }
-      }
+      },
+      "required": [
+        "anchor",
+        "figure_id",
+        "page",
+        "table_id"
+      ]
     },
     "TruncationInfo": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "value": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "default": false
         },
         "reason": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "token_limit",
             "page_limit",
@@ -3156,129 +3912,11 @@
             "other"
           ]
         }
-      }
+      },
+      "required": [
+        "reason",
+        "value"
+      ]
     }
-  },
-  "allOf": [
-    {
-      "if": {
-        "properties": {
-          "review_type": {
-            "const": "Systematic review (no meta-analysis)"
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "syntheses": {
-            "items": {
-              "properties": {
-                "type": {
-                  "const": "narrative"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "review_type": {
-            "const": "Pairwise meta-analysis"
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "syntheses": {
-            "items": {
-              "properties": {
-                "type": {
-                  "const": "pairwise_meta"
-                },
-                "pairwise_meta": {
-                  "required": [
-                    "pooled"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "review_type": {
-            "const": "Network meta-analysis"
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "syntheses": {
-            "items": {
-              "properties": {
-                "type": {
-                  "const": "network_meta"
-                },
-                "network_meta": {
-                  "required": [
-                    "pooled_effects"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "review_type": {
-            "const": "IPD meta-analysis"
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "syntheses": {
-            "items": {
-              "properties": {
-                "type": {
-                  "const": "ipd_meta"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "review_type": {
-            "const": "Umbrella/Overview review"
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "syntheses": {
-            "items": {
-              "properties": {
-                "type": {
-                  "const": "umbrella_summary"
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  ]
+  }
 }

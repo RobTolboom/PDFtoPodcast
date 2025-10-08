@@ -5,15 +5,32 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "schema_version",
+    "data_leakage_assessment",
+    "datasets",
+    "decision_curves",
+    "document",
+    "extraction_warnings",
+    "fairness_assessment",
+    "figures_summary",
+    "generator",
+    "language",
     "metadata",
-    "study_design",
+    "model_deployment",
+    "models",
+    "outcomes",
+    "performance",
     "population",
     "predictors",
-    "outcomes",
-    "datasets",
-    "models",
-    "performance"
+    "probast",
+    "protocol_deviations",
+    "risk_of_bias",
+    "sample_size_considerations",
+    "schema_version",
+    "study_design",
+    "study_id",
+    "tables_parsed",
+    "tripod_reporting",
+    "truncated"
   ],
   "properties": {
     "schema_version": {
@@ -22,7 +39,10 @@
       "description": "Semantic-like version tag, e.g. v1.0 of v1.2.3"
     },
     "document": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "additionalProperties": false,
       "required": [
         "filename",
@@ -50,12 +70,18 @@
       }
     },
     "study_id": {
-      "type": "string",
+      "type": [
+        "string",
+        "null"
+      ],
       "pattern": "^[A-Za-z0-9._-]+$",
       "description": "Internal opaque ID for this article"
     },
     "generator": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "additionalProperties": false,
       "required": [
         "name",
@@ -126,21 +152,30 @@
       "default": []
     },
     "decision_curves": {
-      "type": "array",
+      "type": [
+        "array",
+        "null"
+      ],
       "items": {
         "$ref": "#/$defs/DecisionCurve"
       },
       "default": []
     },
     "tables_parsed": {
-      "type": "array",
+      "type": [
+        "array",
+        "null"
+      ],
       "items": {
         "$ref": "#/$defs/ParsedTable"
       },
       "default": []
     },
     "figures_summary": {
-      "type": "array",
+      "type": [
+        "array",
+        "null"
+      ],
       "items": {
         "$ref": "#/$defs/FigureSummary"
       },
@@ -150,7 +185,10 @@
       "$ref": "#/$defs/RiskOfBias"
     },
     "probast": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "description": "PROBAST (Prediction model Risk Of Bias ASsessment Tool) assessment",
       "properties": {
         "overall_risk": {
@@ -173,7 +211,10 @@
           "type": "object",
           "properties": {
             "participants": {
-              "type": "object",
+              "type": [
+                "object",
+                "null"
+              ],
               "properties": {
                 "risk_of_bias": {
                   "type": "string",
@@ -197,7 +238,10 @@
               }
             },
             "predictors": {
-              "type": "object",
+              "type": [
+                "object",
+                "null"
+              ],
               "properties": {
                 "risk_of_bias": {
                   "type": "string",
@@ -221,7 +265,10 @@
               }
             },
             "outcome": {
-              "type": "object",
+              "type": [
+                "object",
+                "null"
+              ],
               "properties": {
                 "risk_of_bias": {
                   "type": "string",
@@ -245,7 +292,10 @@
               }
             },
             "analysis": {
-              "type": "object",
+              "type": [
+                "object",
+                "null"
+              ],
               "properties": {
                 "risk_of_bias": {
                   "type": "string",
@@ -260,7 +310,14 @@
                 }
               }
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "analysis",
+            "outcome",
+            "participants",
+            "predictors"
+          ]
         },
         "notes": {
           "type": "string"
@@ -268,29 +325,51 @@
       }
     },
     "sample_size_considerations": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "description": "Sample size, EPV, and overfitting assessment",
       "properties": {
         "events_per_variable": {
           "type": "object",
           "properties": {
             "epv": {
-              "type": "number",
+              "type": [
+                "number",
+                "null"
+              ],
               "description": "Events per candidate predictor variable"
             },
             "n_events": {
-              "type": "integer",
+              "type": [
+                "integer",
+                "null"
+              ],
               "minimum": 0
             },
             "n_candidate_predictors": {
-              "type": "integer",
+              "type": [
+                "integer",
+                "null"
+              ],
               "minimum": 1
             },
             "adequate": {
-              "type": "boolean",
+              "type": [
+                "boolean",
+                "null"
+              ],
               "description": "Whether EPV meets recommended threshold (e.g., ≥10-20)"
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "adequate",
+            "epv",
+            "n_candidate_predictors",
+            "n_events"
+          ]
         },
         "sample_size_justification": {
           "type": "string"
@@ -320,10 +399,16 @@
       }
     },
     "protocol_deviations": {
-      "type": "string"
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "tripod_reporting": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "additionalProperties": false,
       "properties": {
         "version": {
@@ -354,7 +439,10 @@
             "additionalProperties": false,
             "required": [
               "item_id",
-              "reported"
+              "location",
+              "notes",
+              "reported",
+              "source"
             ],
             "properties": {
               "item_id": {
@@ -370,13 +458,19 @@
                 ]
               },
               "location": {
-                "type": "string"
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
               "source": {
                 "$ref": "#/$defs/SourceRef"
               },
               "notes": {
-                "type": "string"
+                "type": [
+                  "string",
+                  "null"
+                ]
               }
             }
           },
@@ -385,16 +479,30 @@
       }
     },
     "fairness_assessment": {
-      "type": "array",
+      "type": [
+        "array",
+        "null"
+      ],
       "description": "Fairness, equity, and subgroup performance assessment",
       "items": {
         "type": "object",
         "additionalProperties": false,
         "required": [
-          "model_id",
+          "algorithmic_fairness",
+          "auc_roc",
+          "bias_mitigation",
+          "calibration_intercept",
+          "calibration_slope",
           "dataset_id",
-          "subgroup_var",
-          "level"
+          "events",
+          "level",
+          "model_id",
+          "n",
+          "notes",
+          "o_e_ratio",
+          "performance_disparity",
+          "source",
+          "subgroup_var"
         ],
         "properties": {
           "model_id": {
@@ -411,11 +519,17 @@
             "type": "string"
           },
           "n": {
-            "type": "integer",
+            "type": [
+              "integer",
+              "null"
+            ],
             "minimum": 0
           },
           "events": {
-            "type": "integer",
+            "type": [
+              "integer",
+              "null"
+            ],
             "minimum": 0
           },
           "auc_roc": {
@@ -461,7 +575,10 @@
             ]
           },
           "algorithmic_fairness": {
-            "type": "object",
+            "type": [
+              "object",
+              "null"
+            ],
             "description": "Algorithmic fairness metrics",
             "properties": {
               "demographic_parity": {
@@ -489,7 +606,10 @@
             }
           },
           "performance_disparity": {
-            "type": "object",
+            "type": [
+              "object",
+              "null"
+            ],
             "properties": {
               "disparity_ratio": {
                 "type": "number",
@@ -504,7 +624,10 @@
             }
           },
           "bias_mitigation": {
-            "type": "object",
+            "type": [
+              "object",
+              "null"
+            ],
             "properties": {
               "applied": {
                 "type": "boolean"
@@ -530,14 +653,20 @@
             "$ref": "#/$defs/SourceRef"
           },
           "notes": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       },
       "default": []
     },
     "data_leakage_assessment": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "description": "Assessment of potential data leakage",
       "properties": {
         "assessed": {
@@ -547,53 +676,100 @@
           "type": "object",
           "properties": {
             "detected": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             },
             "description": {
-              "type": "string"
+              "type": [
+                "string",
+                "null"
+              ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "description",
+            "detected"
+          ]
         },
         "feature_leakage": {
           "type": "object",
           "properties": {
             "detected": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             },
             "leaking_features": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "string"
               }
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "detected",
+            "leaking_features"
+          ]
         },
         "label_leakage": {
           "type": "object",
           "properties": {
             "detected": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             },
             "description": {
-              "type": "string"
+              "type": [
+                "string",
+                "null"
+              ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "description",
+            "detected"
+          ]
         },
         "train_test_contamination": {
           "type": "object",
           "properties": {
             "detected": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             },
             "description": {
-              "type": "string"
+              "type": [
+                "string",
+                "null"
+              ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "description",
+            "detected"
+          ]
         }
       }
     },
     "model_deployment": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "description": "Model deployment and maintenance information",
       "properties": {
         "deployed": {
@@ -625,87 +801,173 @@
           "type": "object",
           "properties": {
             "inference_time_ms": {
-              "type": "number"
+              "type": [
+                "number",
+                "null"
+              ]
             },
             "memory_mb": {
-              "type": "number"
+              "type": [
+                "number",
+                "null"
+              ]
             },
             "gpu_required": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "gpu_required",
+            "inference_time_ms",
+            "memory_mb"
+          ]
         },
         "integration": {
           "type": "object",
           "properties": {
             "ehr_integrated": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             },
             "ehr_system": {
-              "type": "string"
+              "type": [
+                "string",
+                "null"
+              ]
             },
             "api_available": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             },
             "api_url": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "format": "uri"
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "api_available",
+            "api_url",
+            "ehr_integrated",
+            "ehr_system"
+          ]
         },
         "monitoring_plan": {
           "type": "object",
           "properties": {
             "performance_monitoring": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             },
             "monitoring_frequency": {
-              "type": "string"
+              "type": [
+                "string",
+                "null"
+              ]
             },
             "performance_threshold": {
-              "type": "string"
+              "type": [
+                "string",
+                "null"
+              ]
             },
             "update_triggers": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "string"
               }
             },
             "ab_testing": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "ab_testing",
+            "monitoring_frequency",
+            "performance_monitoring",
+            "performance_threshold",
+            "update_triggers"
+          ]
         },
         "version_control": {
           "type": "object",
           "properties": {
             "current_version": {
-              "type": "string"
+              "type": [
+                "string",
+                "null"
+              ]
             },
             "version_history": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "object",
                 "properties": {
                   "version": {
-                    "type": "string"
+                    "type": [
+                      "string",
+                      "null"
+                    ]
                   },
                   "date": {
-                    "type": "string",
+                    "type": [
+                      "string",
+                      "null"
+                    ],
                     "format": "date"
                   },
                   "changes": {
-                    "type": "string"
+                    "type": [
+                      "string",
+                      "null"
+                    ]
                   }
-                }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "changes",
+                  "date",
+                  "version"
+                ]
               }
             }
-          }
+          },
+          "additionalProperties": false,
+          "required": [
+            "current_version",
+            "version_history"
+          ]
         }
       }
     },
     "extraction_warnings": {
-      "type": "array",
+      "type": [
+        "array",
+        "null"
+      ],
       "items": {
         "$ref": "#/$defs/ExtractionWarning"
       },
@@ -720,7 +982,15 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "label"
+        "centres",
+        "countries",
+        "design_notes",
+        "design_type",
+        "label",
+        "purpose",
+        "setting",
+        "source",
+        "time_window_iso8601"
       ],
       "properties": {
         "label": {
@@ -730,7 +1000,10 @@
           ]
         },
         "purpose": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "description": "Aligned with TRIPOD",
           "items": {
             "type": "string",
@@ -747,7 +1020,10 @@
           "default": []
         },
         "design_type": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "prospective",
             "retrospective",
@@ -756,18 +1032,27 @@
           ]
         },
         "centres": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 1
         },
         "countries": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "$ref": "#/$defs/CountryCode"
           },
           "default": []
         },
         "setting": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "time_window_iso8601": {
           "$ref": "#/$defs/ISO8601Duration"
@@ -776,7 +1061,10 @@
           "$ref": "#/$defs/SourceRef"
         },
         "design_notes": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
@@ -785,11 +1073,17 @@
       "additionalProperties": false,
       "properties": {
         "n_total": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 0
         },
         "events": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 0,
           "description": "Number of outcome events in derivation cohort (if applicable)"
         },
@@ -827,10 +1121,16 @@
           ]
         },
         "inclusion_criteria": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "exclusion_criteria": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "follow_up_duration_iso8601": {
           "$ref": "#/$defs/ISO8601Duration"
@@ -848,20 +1148,44 @@
           ]
         },
         "missing_data_overview": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "source": {
           "$ref": "#/$defs/SourceRef"
         }
-      }
+      },
+      "required": [
+        "age_mean",
+        "age_sd",
+        "events",
+        "exclusion_criteria",
+        "follow_up_duration_iso8601",
+        "inclusion_criteria",
+        "missing_data_overview",
+        "n_total",
+        "outcome_incidence_pct",
+        "sex_female_pct",
+        "source"
+      ]
     },
     "Predictor": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "predictor_id",
+        "coding",
+        "definition",
+        "imputation",
+        "measurement_time",
+        "missing_fraction_pct",
         "name",
-        "type"
+        "predictor_id",
+        "source",
+        "transformations",
+        "type",
+        "unit"
       ],
       "properties": {
         "predictor_id": {
@@ -871,7 +1195,10 @@
           "type": "string"
         },
         "definition": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "type": {
           "type": "string",
@@ -887,10 +1214,16 @@
           ]
         },
         "unit": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "measurement_time": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "baseline",
             "followup",
@@ -899,11 +1232,17 @@
           "default": "baseline"
         },
         "coding": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "e.g., one-hot, ordinal scores, splines, standardization"
         },
         "transformations": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "e.g., log, Box-Cox, restricted cubic spline"
         },
         "missing_fraction_pct": {
@@ -919,7 +1258,10 @@
           ]
         },
         "imputation": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "e.g., MICE, mean, indicator method"
         },
         "source": {
@@ -931,8 +1273,13 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "outcome_id",
+        "definition",
+        "measurement_method",
         "name",
+        "outcome_id",
+        "source",
+        "time_horizon",
+        "time_horizon_iso8601",
         "type"
       ],
       "properties": {
@@ -943,7 +1290,10 @@
           "type": "string"
         },
         "definition": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "type": {
           "type": "string",
@@ -955,14 +1305,20 @@
           ]
         },
         "time_horizon": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "e.g., 30-day mortality, 1-year risk"
         },
         "time_horizon_iso8601": {
           "$ref": "#/$defs/ISO8601Duration"
         },
         "measurement_method": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "source": {
           "$ref": "#/$defs/SourceRef"
@@ -973,8 +1329,17 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "case_mix_notes",
+        "centres",
+        "countries",
         "dataset_id",
-        "role"
+        "end_date",
+        "events",
+        "label",
+        "n",
+        "role",
+        "source",
+        "start_date"
       ],
       "properties": {
         "dataset_id": {
@@ -992,37 +1357,61 @@
           ]
         },
         "label": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "centres": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 0
         },
         "countries": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "$ref": "#/$defs/CountryCode"
           },
           "default": []
         },
         "start_date": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "date"
         },
         "end_date": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "date"
         },
         "n": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 0
         },
         "events": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 0
         },
         "case_mix_notes": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "source": {
           "$ref": "#/$defs/SourceRef"
@@ -1033,11 +1422,28 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "model_id",
-        "label",
         "algorithm",
+        "baseline_hazard",
+        "calibration_method",
+        "coefficients",
+        "explainability",
+        "feature_selection",
+        "hyperparameters",
+        "intercept",
+        "internal_validation_method",
+        "label",
+        "link_function",
+        "missing_data_strategy",
+        "model_id",
+        "notes",
         "outcome_id",
-        "training_dataset_id"
+        "predictors_used",
+        "presentation",
+        "regularization",
+        "source",
+        "training_dataset_id",
+        "variable_importance",
+        "web_calculator_url"
       ],
       "properties": {
         "model_id": {
@@ -1073,11 +1479,17 @@
           ]
         },
         "link_function": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "e.g., logit, cloglog, identity"
         },
         "regularization": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "none",
             "lasso",
@@ -1088,25 +1500,35 @@
           "default": "none"
         },
         "feature_selection": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "e.g., AIC/BIC, stepwise, clinical pre-specification"
         },
         "predictors_used": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "string"
           },
           "default": []
         },
         "coefficients": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "description": "For regression-type models; beta coefficients per predictor",
           "items": {
             "type": "object",
             "additionalProperties": false,
             "required": [
+              "beta",
               "predictor",
-              "beta"
+              "se"
             ],
             "properties": {
               "predictor": {
@@ -1149,11 +1571,17 @@
           "description": "Regression intercept; for Cox, log-baseline hazard not used"
         },
         "baseline_hazard": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "If Cox/Fine-Gray: description or function of baseline hazard/cumulative baseline hazard"
         },
         "variable_importance": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "description": "For ML models; scale and definition per paper",
           "items": {
             "type": "object",
@@ -1181,56 +1609,100 @@
           "default": []
         },
         "explainability": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Model explainability and interpretability methods",
           "properties": {
             "shap_values": {
               "type": "object",
               "properties": {
                 "computed": {
-                  "type": "boolean"
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
                 },
                 "global_importance": {
-                  "type": "array",
+                  "type": [
+                    "array",
+                    "null"
+                  ],
                   "items": {
                     "type": "object",
                     "properties": {
                       "predictor": {
-                        "type": "string"
+                        "type": [
+                          "string",
+                          "null"
+                        ]
                       },
                       "mean_abs_shap": {
-                        "type": "number"
+                        "type": [
+                          "number",
+                          "null"
+                        ]
                       }
-                    }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                      "mean_abs_shap",
+                      "predictor"
+                    ]
                   }
                 },
                 "summary_plot_source": {
                   "$ref": "#/$defs/SourceRef"
                 }
-              }
+              },
+              "additionalProperties": false,
+              "required": [
+                "computed",
+                "global_importance",
+                "summary_plot_source"
+              ]
             },
             "lime": {
               "type": "object",
               "properties": {
                 "used": {
-                  "type": "boolean"
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
                 },
                 "n_explanations": {
-                  "type": "integer"
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
                 },
                 "explanation_source": {
                   "$ref": "#/$defs/SourceRef"
                 }
-              }
+              },
+              "additionalProperties": false,
+              "required": [
+                "explanation_source",
+                "n_explanations",
+                "used"
+              ]
             },
             "partial_dependence": {
               "type": "object",
               "properties": {
                 "plots_provided": {
-                  "type": "boolean"
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
                 },
                 "predictors_analyzed": {
-                  "type": "array",
+                  "type": [
+                    "array",
+                    "null"
+                  ],
                   "items": {
                     "type": "string"
                   }
@@ -1238,18 +1710,32 @@
                 "plot_source": {
                   "$ref": "#/$defs/SourceRef"
                 }
-              }
+              },
+              "additionalProperties": false,
+              "required": [
+                "plot_source",
+                "plots_provided",
+                "predictors_analyzed"
+              ]
             },
             "ice_plots": {
               "type": "object",
               "properties": {
                 "provided": {
-                  "type": "boolean"
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
                 },
                 "plot_source": {
                   "$ref": "#/$defs/SourceRef"
                 }
-              }
+              },
+              "additionalProperties": false,
+              "required": [
+                "plot_source",
+                "provided"
+              ]
             },
             "feature_interactions": {
               "type": "array",
@@ -1257,18 +1743,33 @@
                 "type": "object",
                 "properties": {
                   "predictors": {
-                    "type": "array",
+                    "type": [
+                      "array",
+                      "null"
+                    ],
                     "items": {
                       "type": "string"
                     }
                   },
                   "interaction_strength": {
-                    "type": "number"
+                    "type": [
+                      "number",
+                      "null"
+                    ]
                   },
                   "h_statistic": {
-                    "type": "number"
+                    "type": [
+                      "number",
+                      "null"
+                    ]
                   }
-                }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "h_statistic",
+                  "interaction_strength",
+                  "predictors"
+                ]
               }
             },
             "attention_weights": {
@@ -1276,17 +1777,28 @@
               "description": "For attention-based models (transformers, etc.)",
               "properties": {
                 "visualized": {
-                  "type": "boolean"
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
                 },
                 "visualization_source": {
                   "$ref": "#/$defs/SourceRef"
                 }
-              }
+              },
+              "additionalProperties": false,
+              "required": [
+                "visualization_source",
+                "visualized"
+              ]
             }
           }
         },
         "hyperparameters": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "description": "Key hyperparameters as name/value pairs for portability",
           "items": {
             "type": "object",
@@ -1307,7 +1819,10 @@
           "default": []
         },
         "internal_validation_method": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "none",
             "split_sample",
@@ -1319,26 +1834,41 @@
           "default": "none"
         },
         "missing_data_strategy": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Training-time handling of missing values"
         },
         "calibration_method": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "e.g., Platt scaling, isotonic, recalibration slope"
         },
         "presentation": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "e.g., nomogram, score chart, web/mobile calculator"
         },
         "web_calculator_url": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "uri"
         },
         "source": {
           "$ref": "#/$defs/SourceRef"
         },
         "notes": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
@@ -1346,9 +1876,18 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "model_id",
+        "calibration",
+        "clinical_utility",
         "dataset_id",
-        "outcome_id"
+        "discrimination",
+        "model_comparison",
+        "model_id",
+        "notes",
+        "outcome_id",
+        "recalibration",
+        "source",
+        "threshold_metrics",
+        "time_horizon_iso8601"
       ],
       "properties": {
         "model_id": {
@@ -1364,7 +1903,10 @@
           "$ref": "#/$defs/ISO8601Duration"
         },
         "discrimination": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "additionalProperties": false,
           "properties": {
             "auc_roc": {
@@ -1386,7 +1928,11 @@
                 "ci": {
                   "$ref": "#/$defs/EffectCI"
                 }
-              }
+              },
+              "required": [
+                "ci",
+                "point"
+              ]
             },
             "c_statistic": {
               "type": "object",
@@ -1408,7 +1954,11 @@
                   "$ref": "#/$defs/EffectCI"
                 }
               },
-              "description": "Harrell's C voor time-to-event, indien gerapporteerd"
+              "description": "Harrell's C voor time-to-event, indien gerapporteerd",
+              "required": [
+                "ci",
+                "point"
+              ]
             },
             "pr_auc": {
               "type": "object",
@@ -1429,12 +1979,19 @@
                 "ci": {
                   "$ref": "#/$defs/EffectCI"
                 }
-              }
+              },
+              "required": [
+                "ci",
+                "point"
+              ]
             }
           }
         },
         "calibration": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "additionalProperties": false,
           "properties": {
             "calibration_in_the_large": {
@@ -1563,7 +2120,10 @@
           }
         },
         "clinical_utility": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Clinical utility and reclassification metrics",
           "properties": {
             "nri": {
@@ -1571,7 +2131,10 @@
               "description": "Net Reclassification Improvement",
               "properties": {
                 "categorical": {
-                  "type": "object",
+                  "type": [
+                    "object",
+                    "null"
+                  ],
                   "properties": {
                     "nri": {
                       "type": "number"
@@ -1591,7 +2154,10 @@
                   }
                 },
                 "continuous": {
-                  "type": "object",
+                  "type": [
+                    "object",
+                    "null"
+                  ],
                   "properties": {
                     "nri": {
                       "type": "number"
@@ -1601,27 +2167,51 @@
                     }
                   }
                 }
-              }
+              },
+              "additionalProperties": false,
+              "required": [
+                "categorical",
+                "continuous"
+              ]
             },
             "idi": {
               "type": "object",
               "description": "Integrated Discrimination Improvement",
               "properties": {
                 "idi": {
-                  "type": "number"
+                  "type": [
+                    "number",
+                    "null"
+                  ]
                 },
                 "p_value": {
-                  "type": "number"
+                  "type": [
+                    "number",
+                    "null"
+                  ]
                 },
                 "is_events": {
-                  "type": "number",
+                  "type": [
+                    "number",
+                    "null"
+                  ],
                   "description": "Integrated sensitivity for events"
                 },
                 "is_non_events": {
-                  "type": "number",
+                  "type": [
+                    "number",
+                    "null"
+                  ],
                   "description": "Integrated specificity for non-events"
                 }
-              }
+              },
+              "additionalProperties": false,
+              "required": [
+                "idi",
+                "is_events",
+                "is_non_events",
+                "p_value"
+              ]
             },
             "relative_utility": {
               "type": "array",
@@ -1629,18 +2219,32 @@
                 "type": "object",
                 "properties": {
                   "threshold": {
-                    "type": "number"
+                    "type": [
+                      "number",
+                      "null"
+                    ]
                   },
                   "relative_utility": {
-                    "type": "number"
+                    "type": [
+                      "number",
+                      "null"
+                    ]
                   }
-                }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "relative_utility",
+                  "threshold"
+                ]
               }
             }
           }
         },
         "model_comparison": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Comparison with other models",
           "properties": {
             "comparator_models": {
@@ -1653,71 +2257,145 @@
               "type": "object",
               "properties": {
                 "performed": {
-                  "type": "boolean"
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
                 },
                 "comparisons": {
-                  "type": "array",
+                  "type": [
+                    "array",
+                    "null"
+                  ],
                   "items": {
                     "type": "object",
                     "properties": {
                       "model_a": {
-                        "type": "string"
+                        "type": [
+                          "string",
+                          "null"
+                        ]
                       },
                       "model_b": {
-                        "type": "string"
+                        "type": [
+                          "string",
+                          "null"
+                        ]
                       },
                       "auc_difference": {
-                        "type": "number"
+                        "type": [
+                          "number",
+                          "null"
+                        ]
                       },
                       "p_value": {
-                        "type": "number"
+                        "type": [
+                          "number",
+                          "null"
+                        ]
                       }
-                    }
+                    },
+                    "additionalProperties": false,
+                    "required": [
+                      "auc_difference",
+                      "model_a",
+                      "model_b",
+                      "p_value"
+                    ]
                   }
                 }
-              }
+              },
+              "additionalProperties": false,
+              "required": [
+                "comparisons",
+                "performed"
+              ]
             },
             "likelihood_ratio_test": {
               "type": "object",
               "properties": {
                 "performed": {
-                  "type": "boolean"
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
                 },
                 "chi_square": {
-                  "type": "number"
+                  "type": [
+                    "number",
+                    "null"
+                  ]
                 },
                 "df": {
-                  "type": "integer"
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
                 },
                 "p_value": {
-                  "type": "number"
+                  "type": [
+                    "number",
+                    "null"
+                  ]
                 }
-              }
+              },
+              "additionalProperties": false,
+              "required": [
+                "chi_square",
+                "df",
+                "p_value",
+                "performed"
+              ]
             },
             "aic_bic": {
               "type": "object",
               "properties": {
                 "aic": {
-                  "type": "number"
+                  "type": [
+                    "number",
+                    "null"
+                  ]
                 },
                 "bic": {
-                  "type": "number"
+                  "type": [
+                    "number",
+                    "null"
+                  ]
                 },
                 "best_model": {
-                  "type": "string"
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 }
-              }
+              },
+              "additionalProperties": false,
+              "required": [
+                "aic",
+                "best_model",
+                "bic"
+              ]
             }
           }
         },
         "threshold_metrics": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "description": "Metrics bij specifieke beslisdrempels",
           "items": {
             "type": "object",
             "additionalProperties": false,
             "required": [
-              "threshold"
+              "accuracy",
+              "f1",
+              "npv",
+              "ppv",
+              "sensitivity",
+              "specificity",
+              "threshold",
+              "youden_j"
             ],
             "properties": {
               "threshold": {
@@ -1817,7 +2495,10 @@
           "default": []
         },
         "recalibration": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "additionalProperties": false,
           "properties": {
             "intercept_adjustment": {
@@ -1852,7 +2533,10 @@
           "$ref": "#/$defs/SourceRef"
         },
         "notes": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
@@ -1860,8 +2544,10 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "dataset_id",
+        "figure_source",
         "model_id",
-        "dataset_id"
+        "points"
       ],
       "properties": {
         "model_id": {
@@ -1871,7 +2557,10 @@
           "type": "string"
         },
         "points": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "object",
             "additionalProperties": false,
@@ -1919,12 +2608,16 @@
       "additionalProperties": false,
       "description": "Confidence interval for effect estimates",
       "required": [
+        "level",
         "lower",
         "upper"
       ],
       "properties": {
         "level": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "enum": [
             80,
             90,
@@ -1949,7 +2642,8 @@
       "additionalProperties": false,
       "required": [
         "code",
-        "message"
+        "message",
+        "source"
       ],
       "properties": {
         "code": {
@@ -1975,8 +2669,11 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "caption",
         "figure_id",
-        "caption"
+        "key_values",
+        "page",
+        "source"
       ],
       "properties": {
         "figure_id": {
@@ -1986,14 +2683,20 @@
           "type": "string"
         },
         "key_values": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "additionalProperties": {
             "type": "number"
           },
           "default": {}
         },
         "page": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 1
         },
         "source": {
@@ -2040,8 +2743,36 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "article_number",
+        "authors",
+        "conflict_of_interest",
+        "content_hash_sha256",
+        "doi",
+        "eissn",
+        "elocation_id",
+        "epub_ahead_of_print_date",
+        "external_ids",
+        "funding",
+        "issn",
+        "issue",
+        "journal",
+        "journal_abbrev",
+        "page_end",
+        "page_start",
+        "pages",
+        "parsing_context",
+        "pmcid",
+        "pmid",
+        "protocol_ref",
+        "published_date",
+        "published_date_precision",
+        "registration",
+        "source",
+        "supplements",
         "title",
-        "journal"
+        "vancouver_citation",
+        "vancouver_source",
+        "volume"
       ],
       "properties": {
         "title": {
@@ -2051,14 +2782,23 @@
           "type": "string"
         },
         "journal_abbrev": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "published_date": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "date"
         },
         "published_date_precision": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "year",
             "month",
@@ -2066,53 +2806,92 @@
           ]
         },
         "volume": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "issue": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "pages": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "page_start": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "page_end": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "article_number": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "elocation_id": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "issn": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^\\d{4}-\\d{3}[\\dxX]$",
           "description": "International Standard Serial Number (print version)"
         },
         "eissn": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^\\d{4}-\\d{3}[\\dxX]$",
           "description": "Electronic International Standard Serial Number"
         },
         "authors": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "$ref": "#/$defs/Author"
           },
           "default": []
         },
         "pmid": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^\\d{1,8}$"
         },
         "pmcid": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^PMC\\d+$"
         },
         "doi": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^10\\.\\d{4,}(\\.\\d+)?/[-._;()/:A-Za-z0-9\\[\\]]+$",
           "description": "DOI with comprehensive character support including brackets and extended punctuation",
           "examples": [
@@ -2124,19 +2903,34 @@
           "$ref": "#/$defs/Registration"
         },
         "protocol_ref": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "funding": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "conflict_of_interest": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "epub_ahead_of_print_date": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "vancouver_citation": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "vancouver_source": {
           "$ref": "#/$defs/SourceRef"
@@ -2145,14 +2939,20 @@
           "$ref": "#/$defs/SourceRef"
         },
         "external_ids": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "$ref": "#/$defs/ExternalId"
           },
           "default": []
         },
         "supplements": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "$ref": "#/$defs/SupplementFile"
           },
@@ -2162,103 +2962,25 @@
           "$ref": "#/$defs/ParsingContext"
         },
         "content_hash_sha256": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^[a-fA-F0-9]{64}$",
           "description": "SHA-256 hash van bronbestand of platte tekst (64-char hex)"
         }
-      },
-      "dependentSchemas": {
-        "published_date_precision": {
-          "required": [
-            "published_date"
-          ],
-          "properties": {
-            "published_date_precision": {
-              "description": "Precision can only be specified if published_date is present"
-            }
-          }
-        },
-        "page_end": {
-          "required": [
-            "page_start"
-          ],
-          "properties": {
-            "page_end": {
-              "description": "End page requires start page to be specified"
-            }
-          }
-        },
-        "vancouver_source": {
-          "required": [
-            "vancouver_citation"
-          ],
-          "properties": {
-            "vancouver_source": {
-              "description": "Vancouver source reference requires vancouver_citation to be present"
-            }
-          }
-        }
-      },
-      "allOf": [
-        {
-          "if": {
-            "properties": {
-              "published_date_precision": {
-                "const": "day"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "published_date": {
-                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-                "description": "Day precision requires full date format YYYY-MM-DD"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "published_date_precision": {
-                "const": "month"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "published_date": {
-                "pattern": "^\\d{4}-\\d{2}(-\\d{2})?$",
-                "description": "Month precision allows YYYY-MM or YYYY-MM-DD format"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "published_date_precision": {
-                "const": "year"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "published_date": {
-                "pattern": "^\\d{4}(-\\d{2}(-\\d{2})?)?$",
-                "description": "Year precision allows YYYY, YYYY-MM, or YYYY-MM-DD format"
-              }
-            }
-          }
-        }
-      ]
+      }
     },
     "ParsedTable": {
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "page",
+        "rows",
+        "source",
         "table_id",
-        "title"
+        "title",
+        "type"
       ],
       "properties": {
         "table_id": {
@@ -2268,11 +2990,17 @@
           "type": "string"
         },
         "page": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 1
         },
         "type": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "baseline",
             "outcomes",
@@ -2282,7 +3010,10 @@
           ]
         },
         "rows": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "object",
             "additionalProperties": false,
@@ -2311,7 +3042,10 @@
       "additionalProperties": false,
       "properties": {
         "tool": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "RoB2",
             "ROBINS-I",
@@ -2320,16 +3054,23 @@
           ]
         },
         "overall": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "domains": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "object",
             "additionalProperties": false,
             "required": [
               "domain",
-              "judgement"
+              "judgement",
+              "notes"
             ],
             "properties": {
               "domain": {
@@ -2350,14 +3091,20 @@
                 ]
               },
               "notes": {
-                "type": "string"
+                "type": [
+                  "string",
+                  "null"
+                ]
               }
             }
           },
           "default": []
         },
         "applicability": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "additionalProperties": false,
           "properties": {
             "participants": {
@@ -2393,185 +3140,12 @@
           "$ref": "#/$defs/Provenance"
         }
       },
-      "allOf": [
-        {
-          "if": {
-            "properties": {
-              "tool": {
-                "const": "RoB2"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "overall": {
-                "type": "string",
-                "enum": [
-                  "low",
-                  "some_concerns",
-                  "high",
-                  "unclear"
-                ]
-              },
-              "domains": {
-                "items": {
-                  "properties": {
-                    "domain": {
-                      "type": "string",
-                      "enum": [
-                        "randomization_process",
-                        "deviations_from_intended_interventions",
-                        "missing_outcome_data",
-                        "measurement_of_outcome",
-                        "selection_of_reported_result"
-                      ]
-                    },
-                    "judgement": {
-                      "type": "string",
-                      "enum": [
-                        "low",
-                        "some_concerns",
-                        "high",
-                        "unclear"
-                      ]
-                    }
-                  }
-                },
-                "minItems": 5
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "tool": {
-                "const": "ROBINS-I"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "overall": {
-                "type": "string",
-                "enum": [
-                  "low",
-                  "moderate",
-                  "serious",
-                  "critical",
-                  "no_information"
-                ]
-              },
-              "domains": {
-                "items": {
-                  "properties": {
-                    "domain": {
-                      "type": "string",
-                      "enum": [
-                        "bias_due_to_confounding",
-                        "bias_in_selection_of_participants",
-                        "bias_in_classification_of_interventions",
-                        "bias_due_to_deviations_from_intended_interventions",
-                        "bias_due_to_missing_data",
-                        "bias_in_measurement_of_outcomes",
-                        "bias_in_selection_of_reported_result"
-                      ]
-                    },
-                    "judgement": {
-                      "type": "string",
-                      "enum": [
-                        "low",
-                        "moderate",
-                        "serious",
-                        "critical",
-                        "no_information"
-                      ]
-                    }
-                  }
-                },
-                "minItems": 7
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "tool": {
-                "const": "PROBAST"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "overall": {
-                "type": "string",
-                "enum": [
-                  "low",
-                  "high",
-                  "unclear"
-                ]
-              },
-              "domains": {
-                "items": {
-                  "properties": {
-                    "domain": {
-                      "type": "string",
-                      "enum": [
-                        "participants",
-                        "predictors",
-                        "outcome",
-                        "analysis"
-                      ]
-                    },
-                    "judgement": {
-                      "type": "string",
-                      "enum": [
-                        "low",
-                        "high",
-                        "unclear"
-                      ]
-                    }
-                  }
-                },
-                "minItems": 4
-              },
-              "applicability": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "participants": {
-                    "type": "string",
-                    "enum": [
-                      "low",
-                      "high",
-                      "unclear"
-                    ]
-                  },
-                  "predictors": {
-                    "type": "string",
-                    "enum": [
-                      "low",
-                      "high",
-                      "unclear"
-                    ]
-                  },
-                  "outcome": {
-                    "type": "string",
-                    "enum": [
-                      "low",
-                      "high",
-                      "unclear"
-                    ]
-                  },
-                  "notes": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
-          }
-        }
+      "required": [
+        "applicability",
+        "domains",
+        "overall",
+        "provenance",
+        "tool"
       ]
     },
     "SourceRef": {
@@ -2580,34 +3154,58 @@
       "description": "Reference to a specific location within a document",
       "properties": {
         "anchor": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Free-text pointer like 'Table 2', 'Fig 1', or sentence quote"
         },
         "page": {
-          "type": "integer",
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 1,
           "description": "Page number within the document"
         },
         "figure_id": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Identifier of a specific figure"
         },
         "table_id": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Identifier of a specific table"
         }
-      }
+      },
+      "required": [
+        "anchor",
+        "figure_id",
+        "page",
+        "table_id"
+      ]
     },
     "TruncationInfo": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "value": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "default": false
         },
         "reason": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "token_limit",
             "page_limit",
@@ -2615,7 +3213,11 @@
             "other"
           ]
         }
-      }
+      },
+      "required": [
+        "reason",
+        "value"
+      ]
     },
     "ValueWithRaw": {
       "type": "object",
@@ -2632,15 +3234,24 @@
           "description": "Processed/normalized value"
         },
         "raw_text": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Original text as found in document"
         },
         "unit_ucum": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "UCUM unit code if applicable"
         },
         "transformation_confidence": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0,
           "maximum": 1,
           "description": "Confidence in the raw→processed transformation"
@@ -2651,7 +3262,15 @@
         "provenance": {
           "$ref": "#/$defs/Provenance"
         }
-      }
+      },
+      "required": [
+        "provenance",
+        "raw_text",
+        "source",
+        "transformation_confidence",
+        "unit_ucum",
+        "value"
+      ]
     }
   }
 }
