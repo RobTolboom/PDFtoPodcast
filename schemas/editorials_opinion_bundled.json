@@ -3459,82 +3459,21 @@
         }
       }
     },
-    "ParsedTable": {
+    "Passage": {
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "anchor",
+        "bbox",
+        "extraction_method",
+        "ocr_confidence",
         "page",
-        "rows",
-        "source",
-        "table_id",
-        "title",
-        "type"
+        "text"
       ],
       "properties": {
-        "table_id": {
-          "type": "string"
-        },
-        "title": {
-          "type": "string"
-        },
-        "page": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 1
-        },
-        "type": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "enum": [
-            "baseline",
-            "outcomes",
-            "harms",
-            "methods",
-            "other"
-          ]
-        },
-        "rows": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "cells"
-            ],
-            "properties": {
-              "cells": {
-                "type": "array",
-                "minItems": 1,
-                "items": {
-                  "type": "string"
-                }
-              }
-            }
-          }
-        },
-        "source": {
-          "$ref": "#/$defs/SourceRef"
-        }
-      }
-    },
-    "SourceRef": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Reference to a specific location within a document",
-      "properties": {
-        "anchor": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Free-text pointer like 'Table 2', 'Fig 1', or sentence quote"
+        "text": {
+          "type": "string",
+          "description": "Extracted text content"
         },
         "page": {
           "type": [
@@ -3542,48 +3481,139 @@
             "null"
           ],
           "minimum": 1,
-          "description": "Page number within the document"
+          "description": "Page number where text was found"
         },
-        "figure_id": {
+        "bbox": {
+          "$ref": "#/$defs/BoundingBox"
+        },
+        "anchor": {
           "type": [
             "string",
             "null"
           ],
-          "description": "Identifier of a specific figure"
+          "description": "Human-readable location reference"
         },
-        "table_id": {
+        "ocr_confidence": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "OCR confidence score for this text passage"
+        },
+        "extraction_method": {
           "type": [
             "string",
             "null"
           ],
-          "description": "Identifier of a specific table"
+          "enum": [
+            "ocr",
+            "text_layer",
+            "manual"
+          ],
+          "description": "Method used to extract this text"
+        }
+      }
+    },
+    "BoundingBox": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "coordinate_system",
+        "height",
+        "width",
+        "x",
+        "y"
+      ],
+      "properties": {
+        "x": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Left coordinate (points from PDF origin)"
+        },
+        "y": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Bottom coordinate (points from PDF origin)"
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Width in points"
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Height in points"
+        },
+        "coordinate_system": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "pdf_points",
+            "screen_pixels"
+          ],
+          "description": "Coordinate system used for measurements"
+        }
+      }
+    },
+    "ExtractionWarning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message",
+        "source"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "TABLE_PARSE_FAIL",
+            "AMBIGUOUS_UNIT",
+            "CI_PARSE_FAIL",
+            "MISSING_ARM_ID",
+            "MISSING_GROUP_ID",
+            "OTHER"
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        }
+      }
+    },
+    "TruncationInfo": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "token_limit",
+            "page_limit",
+            "timeout",
+            "other"
+          ]
         }
       },
       "required": [
-        "anchor",
-        "figure_id",
-        "page",
-        "table_id"
-      ]
-    },
-    "LanguageCode": {
-      "type": "string",
-      "pattern": "^[a-z]{2,3}(-[A-Z]{2})?(-[a-z]{2,8})*$",
-      "description": "BCP 47 language tag supporting language, region, and variants (e.g., 'en-US', 'zh-Hans-CN', 'ar-EG')",
-      "examples": [
-        "en",
-        "en-US",
-        "en-GB",
-        "nl",
-        "nl-NL",
-        "nl-BE",
-        "de-DE",
-        "fr-FR",
-        "es-ES",
-        "zh-Hans",
-        "zh-Hant",
-        "ar-EG",
-        "he-IL"
+        "reason",
+        "value"
       ]
     },
     "Metadata": {
@@ -3815,524 +3845,6 @@
         }
       }
     },
-    "Passage": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "anchor",
-        "bbox",
-        "extraction_method",
-        "ocr_confidence",
-        "page",
-        "text"
-      ],
-      "properties": {
-        "text": {
-          "type": "string",
-          "description": "Extracted text content"
-        },
-        "page": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 1,
-          "description": "Page number where text was found"
-        },
-        "bbox": {
-          "$ref": "#/$defs/BoundingBox"
-        },
-        "anchor": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Human-readable location reference"
-        },
-        "ocr_confidence": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "minimum": 0,
-          "maximum": 1,
-          "description": "OCR confidence score for this text passage"
-        },
-        "extraction_method": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "enum": [
-            "ocr",
-            "text_layer",
-            "manual"
-          ],
-          "description": "Method used to extract this text"
-        }
-      }
-    },
-    "SupplementFile": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "checksum",
-        "content_type",
-        "doi",
-        "file_size",
-        "filename",
-        "label",
-        "url"
-      ],
-      "properties": {
-        "label": {
-          "type": "string"
-        },
-        "filename": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "url": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "format": "uri"
-        },
-        "doi": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "pattern": "^10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+$"
-        },
-        "content_type": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "file_size": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 0,
-          "description": "File size in bytes"
-        },
-        "checksum": {
-          "$ref": "#/$defs/DataIntegrity"
-        }
-      }
-    },
-    "FigureSummary": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "caption",
-        "figure_id",
-        "key_values",
-        "page",
-        "source"
-      ],
-      "properties": {
-        "figure_id": {
-          "type": "string"
-        },
-        "caption": {
-          "type": "string"
-        },
-        "key_values": {
-          "type": [
-            "object",
-            "null"
-          ],
-          "additionalProperties": {
-            "type": "number"
-          }
-        },
-        "page": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 1
-        },
-        "source": {
-          "$ref": "#/$defs/SourceRef"
-        }
-      }
-    },
-    "ExternalId": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "id",
-        "source",
-        "url",
-        "version"
-      ],
-      "properties": {
-        "source": {
-          "type": "string",
-          "enum": [
-            "PMID",
-            "PMCID",
-            "DOI",
-            "NCT",
-            "ISRCTN",
-            "EudraCT",
-            "EU-CTR",
-            "CTIS",
-            "UMIN",
-            "JPRN",
-            "DRKS",
-            "ChiCTR",
-            "ANZCTR",
-            "arXiv",
-            "bioRxiv",
-            "medRxiv",
-            "PubPeer",
-            "ISBN",
-            "ISSN",
-            "Handle",
-            "URN",
-            "Other"
-          ],
-          "description": "External identifier source system including preprint servers and academic publishers"
-        },
-        "id": {
-          "type": "string",
-          "description": "Identifier value within the source system",
-          "examples": [
-            "1234.5678",
-            "2023.01.001",
-            "10.1101/2023.01.01.123456",
-            "978-0-123456-78-9"
-          ]
-        },
-        "url": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "format": "uri",
-          "description": "Optional direct URL to the external resource"
-        },
-        "version": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Version number for preprints or versioned documents"
-        }
-      }
-    },
-    "TruncationInfo": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "value": {
-          "type": [
-            "boolean",
-            "null"
-          ]
-        },
-        "reason": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "enum": [
-            "token_limit",
-            "page_limit",
-            "timeout",
-            "other"
-          ]
-        }
-      },
-      "required": [
-        "reason",
-        "value"
-      ]
-    },
-    "ExtractionWarning": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "code",
-        "message",
-        "source"
-      ],
-      "properties": {
-        "code": {
-          "type": "string",
-          "enum": [
-            "TABLE_PARSE_FAIL",
-            "AMBIGUOUS_UNIT",
-            "CI_PARSE_FAIL",
-            "MISSING_ARM_ID",
-            "MISSING_GROUP_ID",
-            "OTHER"
-          ]
-        },
-        "message": {
-          "type": "string"
-        },
-        "source": {
-          "$ref": "#/$defs/SourceRef"
-        }
-      }
-    },
-    "DataIntegrity": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Data integrity verification with multiple hash algorithms",
-      "required": [
-        "algorithm",
-        "multiple_hashes",
-        "salt",
-        "value",
-        "verification_timestamp",
-        "verified_by"
-      ],
-      "properties": {
-        "algorithm": {
-          "type": "string",
-          "enum": [
-            "SHA-256",
-            "SHA-512",
-            "SHA-3-256",
-            "SHA-3-512",
-            "BLAKE2b",
-            "SHA-1",
-            "MD5",
-            "CRC32"
-          ],
-          "description": "Cryptographic hash algorithm used"
-        },
-        "value": {
-          "type": "string",
-          "description": "Hex-encoded hash value"
-        },
-        "salt": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Optional salt value for enhanced security"
-        },
-        "verification_timestamp": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "format": "date-time",
-          "description": "When the hash was computed or verified"
-        },
-        "verified_by": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "System or person who verified the hash"
-        },
-        "multiple_hashes": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "type": "object",
-            "required": [
-              "algorithm",
-              "value"
-            ],
-            "properties": {
-              "algorithm": {
-                "type": "string"
-              },
-              "value": {
-                "type": "string"
-              }
-            },
-            "additionalProperties": false
-          },
-          "description": "Additional hash values using different algorithms for enhanced verification"
-        }
-      }
-    },
-    "Registration": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Clinical trial or study registration information",
-      "properties": {
-        "registry": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "enum": [
-            "ClinicalTrials.gov",
-            "ISRCTN",
-            "EudraCT",
-            "EU-CTR",
-            "CTIS",
-            "ChiCTR",
-            "ANZCTR",
-            "UMIN-CTR",
-            "JPRN",
-            "PACTR",
-            "IRCT",
-            "DRKS",
-            "TCTR",
-            "SLCTR",
-            "RPCEC",
-            "REBEC",
-            "Other"
-          ],
-          "description": "Clinical trial registry (includes major international and regional registries)"
-        },
-        "identifier": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Registration identifier within the registry",
-          "examples": [
-            "NCT04123456",
-            "ISRCTN12345678",
-            "2020-001234-56",
-            "UMIN000012345"
-          ]
-        },
-        "url": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "format": "uri",
-          "description": "Direct URL to the registration record"
-        }
-      },
-      "required": [
-        "identifier",
-        "registry",
-        "url"
-      ]
-    },
-    "BoundingBox": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "coordinate_system",
-        "height",
-        "width",
-        "x",
-        "y"
-      ],
-      "properties": {
-        "x": {
-          "type": "number",
-          "minimum": 0,
-          "description": "Left coordinate (points from PDF origin)"
-        },
-        "y": {
-          "type": "number",
-          "minimum": 0,
-          "description": "Bottom coordinate (points from PDF origin)"
-        },
-        "width": {
-          "type": "number",
-          "minimum": 0,
-          "description": "Width in points"
-        },
-        "height": {
-          "type": "number",
-          "minimum": 0,
-          "description": "Height in points"
-        },
-        "coordinate_system": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "enum": [
-            "pdf_points",
-            "screen_pixels"
-          ],
-          "description": "Coordinate system used for measurements"
-        }
-      }
-    },
-    "Author": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Author information for academic publications",
-      "required": [
-        "affiliations",
-        "corresponding",
-        "email",
-        "given_names",
-        "initials",
-        "last_name",
-        "orcid"
-      ],
-      "properties": {
-        "last_name": {
-          "type": "string",
-          "description": "Author's family name"
-        },
-        "initials": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Author's first/middle name initials"
-        },
-        "given_names": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Author's full first and middle names"
-        },
-        "orcid": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "pattern": "^(https://orcid\\.org/)?0000-00(0[2-9]|[1-9]\\d)-\\d{4}-\\d{3}[\\dX]$",
-          "description": "ORCID identifier with checksum validation (optionally with URL prefix)",
-          "examples": [
-            "0000-0002-1825-0097",
-            "https://orcid.org/0000-0002-1825-0097"
-          ]
-        },
-        "affiliations": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "type": "string"
-          },
-          "description": "Author's institutional affiliations"
-        },
-        "corresponding": {
-          "type": [
-            "boolean",
-            "null"
-          ],
-          "description": "Whether this author is the corresponding author"
-        },
-        "email": {
-          "$ref": "#/$defs/EmailAddress"
-        }
-      }
-    },
     "ParsingContext": {
       "type": "object",
       "additionalProperties": false,
@@ -4422,6 +3934,416 @@
         },
         "ai_processing": {
           "$ref": "#/$defs/AIProcessingMetadata"
+        }
+      }
+    },
+    "FigureSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "caption",
+        "figure_id",
+        "key_values",
+        "page",
+        "source"
+      ],
+      "properties": {
+        "figure_id": {
+          "type": "string"
+        },
+        "caption": {
+          "type": "string"
+        },
+        "key_values": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "number"
+          }
+        },
+        "page": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        }
+      }
+    },
+    "LanguageCode": {
+      "type": "string",
+      "pattern": "^[a-z]{2,3}(-[A-Z]{2})?(-[a-z]{2,8})*$",
+      "description": "BCP 47 language tag supporting language, region, and variants (e.g., 'en-US', 'zh-Hans-CN', 'ar-EG')",
+      "examples": [
+        "en",
+        "en-US",
+        "en-GB",
+        "nl",
+        "nl-NL",
+        "nl-BE",
+        "de-DE",
+        "fr-FR",
+        "es-ES",
+        "zh-Hans",
+        "zh-Hant",
+        "ar-EG",
+        "he-IL"
+      ]
+    },
+    "SourceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Reference to a specific location within a document",
+      "properties": {
+        "anchor": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Free-text pointer like 'Table 2', 'Fig 1', or sentence quote"
+        },
+        "page": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "description": "Page number within the document"
+        },
+        "figure_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Identifier of a specific figure"
+        },
+        "table_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Identifier of a specific table"
+        }
+      },
+      "required": [
+        "anchor",
+        "figure_id",
+        "page",
+        "table_id"
+      ]
+    },
+    "ParsedTable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "page",
+        "rows",
+        "source",
+        "table_id",
+        "title",
+        "type"
+      ],
+      "properties": {
+        "table_id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "page": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "baseline",
+            "outcomes",
+            "harms",
+            "methods",
+            "other"
+          ]
+        },
+        "rows": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "cells"
+            ],
+            "properties": {
+              "cells": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        }
+      }
+    },
+    "ExternalId": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "source",
+        "url",
+        "version"
+      ],
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": [
+            "PMID",
+            "PMCID",
+            "DOI",
+            "NCT",
+            "ISRCTN",
+            "EudraCT",
+            "EU-CTR",
+            "CTIS",
+            "UMIN",
+            "JPRN",
+            "DRKS",
+            "ChiCTR",
+            "ANZCTR",
+            "arXiv",
+            "bioRxiv",
+            "medRxiv",
+            "PubPeer",
+            "ISBN",
+            "ISSN",
+            "Handle",
+            "URN",
+            "Other"
+          ],
+          "description": "External identifier source system including preprint servers and academic publishers"
+        },
+        "id": {
+          "type": "string",
+          "description": "Identifier value within the source system",
+          "examples": [
+            "1234.5678",
+            "2023.01.001",
+            "10.1101/2023.01.01.123456",
+            "978-0-123456-78-9"
+          ]
+        },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri",
+          "description": "Optional direct URL to the external resource"
+        },
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Version number for preprints or versioned documents"
+        }
+      }
+    },
+    "Author": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Author information for academic publications",
+      "required": [
+        "affiliations",
+        "corresponding",
+        "email",
+        "given_names",
+        "initials",
+        "last_name",
+        "orcid"
+      ],
+      "properties": {
+        "last_name": {
+          "type": "string",
+          "description": "Author's family name"
+        },
+        "initials": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Author's first/middle name initials"
+        },
+        "given_names": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Author's full first and middle names"
+        },
+        "orcid": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^(https://orcid\\.org/)?0000-00(0[2-9]|[1-9]\\d)-\\d{4}-\\d{3}[\\dX]$",
+          "description": "ORCID identifier with checksum validation (optionally with URL prefix)",
+          "examples": [
+            "0000-0002-1825-0097",
+            "https://orcid.org/0000-0002-1825-0097"
+          ]
+        },
+        "affiliations": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Author's institutional affiliations"
+        },
+        "corresponding": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Whether this author is the corresponding author"
+        },
+        "email": {
+          "$ref": "#/$defs/EmailAddress"
+        }
+      }
+    },
+    "Registration": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Clinical trial or study registration information",
+      "properties": {
+        "registry": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "ClinicalTrials.gov",
+            "ISRCTN",
+            "EudraCT",
+            "EU-CTR",
+            "CTIS",
+            "ChiCTR",
+            "ANZCTR",
+            "UMIN-CTR",
+            "JPRN",
+            "PACTR",
+            "IRCT",
+            "DRKS",
+            "TCTR",
+            "SLCTR",
+            "RPCEC",
+            "REBEC",
+            "Other"
+          ],
+          "description": "Clinical trial registry (includes major international and regional registries)"
+        },
+        "identifier": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Registration identifier within the registry",
+          "examples": [
+            "NCT04123456",
+            "ISRCTN12345678",
+            "2020-001234-56",
+            "UMIN000012345"
+          ]
+        },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri",
+          "description": "Direct URL to the registration record"
+        }
+      },
+      "required": [
+        "identifier",
+        "registry",
+        "url"
+      ]
+    },
+    "SupplementFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "checksum",
+        "content_type",
+        "doi",
+        "file_size",
+        "filename",
+        "label",
+        "url"
+      ],
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "filename": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
+        "doi": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+$"
+        },
+        "content_type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "file_size": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "File size in bytes"
+        },
+        "checksum": {
+          "$ref": "#/$defs/DataIntegrity"
         }
       }
     },
@@ -4827,6 +4749,84 @@
         "performance_metrics",
         "uncertainty_quantification"
       ]
+    },
+    "DataIntegrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Data integrity verification with multiple hash algorithms",
+      "required": [
+        "algorithm",
+        "multiple_hashes",
+        "salt",
+        "value",
+        "verification_timestamp",
+        "verified_by"
+      ],
+      "properties": {
+        "algorithm": {
+          "type": "string",
+          "enum": [
+            "SHA-256",
+            "SHA-512",
+            "SHA-3-256",
+            "SHA-3-512",
+            "BLAKE2b",
+            "SHA-1",
+            "MD5",
+            "CRC32"
+          ],
+          "description": "Cryptographic hash algorithm used"
+        },
+        "value": {
+          "type": "string",
+          "description": "Hex-encoded hash value"
+        },
+        "salt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Optional salt value for enhanced security"
+        },
+        "verification_timestamp": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "When the hash was computed or verified"
+        },
+        "verified_by": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "System or person who verified the hash"
+        },
+        "multiple_hashes": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object",
+            "required": [
+              "algorithm",
+              "value"
+            ],
+            "properties": {
+              "algorithm": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "Additional hash values using different algorithms for enhanced verification"
+        }
+      }
     },
     "EffectCI": {
       "type": "object",

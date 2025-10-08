@@ -1984,18 +1984,11 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "events",
         "group_id",
-        "iqr",
-        "mean",
-        "median",
-        "n",
         "outcome_id",
         "provenance",
-        "sd",
         "source",
-        "total",
-        "unit"
+        "value_type"
       ],
       "properties": {
         "outcome_id": {
@@ -2003,6 +1996,16 @@
         },
         "group_id": {
           "type": "string"
+        },
+        "value_type": {
+          "type": "string",
+          "enum": [
+            "mean_sd",
+            "median_iqr",
+            "binary_events_n",
+            "binary_events_total"
+          ],
+          "description": "Discriminator indicating which statistical fields are populated"
         },
         "n": {
           "type": [
@@ -2082,9 +2085,6 @@
           "$ref": "common.schema.json#/$defs/SourceRef"
         }
       }
-    },
-    "ContrastEffect": {
-      "$ref": "common.schema.json#/$defs/ContrastEffect"
     },
     "SensitivityCI": {
       "type": "object",

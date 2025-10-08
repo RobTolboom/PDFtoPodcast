@@ -2077,17 +2077,10 @@
       "additionalProperties": false,
       "required": [
         "arm_id",
-        "events",
-        "iqr",
-        "mean",
-        "median",
-        "n",
         "outcome_id",
         "provenance",
-        "sd",
         "source",
-        "total",
-        "unit"
+        "value_type"
       ],
       "properties": {
         "outcome_id": {
@@ -2095,6 +2088,16 @@
         },
         "arm_id": {
           "type": "string"
+        },
+        "value_type": {
+          "type": "string",
+          "enum": [
+            "mean_sd",
+            "median_iqr",
+            "binary_events_n",
+            "binary_events_total"
+          ],
+          "description": "Discriminator indicating which statistical fields are populated"
         },
         "n": {
           "type": [
@@ -2174,9 +2177,6 @@
           "$ref": "common.schema.json#/$defs/SourceRef"
         }
       }
-    },
-    "ContrastEffect": {
-      "$ref": "common.schema.json#/$defs/ContrastEffect"
     },
     "ContrastResult": {
       "type": "object",
