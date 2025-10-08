@@ -4,144 +4,427 @@
   "title": "Clinical Trial Extraction (Interventional Studies)",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version","metadata","study_design","population","arms","outcomes","results"],
+  "required": [
+    "arms",
+    "comparisons",
+    "consort_reporting",
+    "document",
+    "estimands",
+    "external_ids",
+    "extraction_quality",
+    "extraction_warnings",
+    "figures_summary",
+    "generator",
+    "interventions",
+    "language",
+    "metadata",
+    "outcomes",
+    "patient_reported_outcomes",
+    "population",
+    "protocol_deviations",
+    "protocol_deviations_structured",
+    "results",
+    "risk_of_bias",
+    "schema_version",
+    "sensitivity_analyses",
+    "study_design",
+    "study_id",
+    "subgroup_analyses",
+    "tables_parsed",
+    "tidier_checklist",
+    "truncated"
+  ],
   "properties": {
-    "schema_version": { "type": "string", "pattern": "^v\\d+\\.\\d+(\\.\\d+)?$", "description": "Semantic-like version tag, e.g. v1.0 or v1.2.3" },
+    "schema_version": {
+      "type": "string",
+      "pattern": "^v\\d+\\.\\d+(\\.\\d+)?$",
+      "description": "Semantic-like version tag, e.g. v1.0 or v1.2.3"
+    },
     "document": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "additionalProperties": false,
-      "required": ["filename", "page_count"],
+      "required": [
+        "filename",
+        "page_count"
+      ],
       "properties": {
-        "filename": { "type": "string" },
-        "content_type": { "type": "string", "enum": ["application/pdf"], "default": "application/pdf" },
-        "size_bytes": { "type": "integer", "minimum": 0 },
-        "page_count": { "type": "integer", "minimum": 1 }
+        "filename": {
+          "type": "string"
+        },
+        "content_type": {
+          "type": "string",
+          "enum": [
+            "application/pdf"
+          ],
+          "default": "application/pdf"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "page_count": {
+          "type": "integer",
+          "minimum": 1
+        }
       }
     },
-    "study_id": { "type": "string", "pattern": "^[A-Za-z0-9._-]+$", "description": "Internal opaque ID for this study/article" },
+    "study_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-Za-z0-9._-]+$",
+      "description": "Internal opaque ID for this study/article"
+    },
     "external_ids": {
-      "type": "array",
-      "items": { "$ref": "common.schema.json#/$defs/ExternalId" },
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "common.schema.json#/$defs/ExternalId"
+      },
       "default": []
     },
     "generator": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "additionalProperties": false,
-      "required": ["name", "model", "timestamp"],
+      "required": [
+        "name",
+        "model",
+        "timestamp"
+      ],
       "properties": {
-        "name": { "type": "string" },
-        "model": { "type": "string" },
-        "temperature": { "type": "number" },
-        "timestamp": { "type": "string", "format": "date-time" }
+        "name": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "temperature": {
+          "type": "number"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
       }
     },
-    "language": { "$ref": "common.schema.json#/$defs/LanguageCode" },
-    "metadata": { "$ref": "common.schema.json#/$defs/Metadata" },
-
-    "study_design": { "$ref": "#/$defs/StudyDesign" },
-    "population": { "$ref": "#/$defs/Population" },
-
+    "language": {
+      "$ref": "common.schema.json#/$defs/LanguageCode"
+    },
+    "metadata": {
+      "$ref": "common.schema.json#/$defs/Metadata"
+    },
+    "study_design": {
+      "$ref": "#/$defs/StudyDesign"
+    },
+    "population": {
+      "$ref": "#/$defs/Population"
+    },
     "interventions": {
-      "type": "array",
+      "type": [
+        "array",
+        "null"
+      ],
       "description": "Optional free-text procedural details per arm; link via arm_id.",
-      "items": { "$ref": "#/$defs/Intervention" },
+      "items": {
+        "$ref": "#/$defs/Intervention"
+      },
       "default": []
     },
-
-    "arms": { "type": "array", "items": { "$ref": "#/$defs/Arm" }, "minItems": 2, "uniqueItems": true },
-
-    "comparisons": { "type": "array", "items": { "$ref": "#/$defs/Comparison" }, "default": [] },
-
+    "arms": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Arm"
+      },
+      "minItems": 2,
+      "uniqueItems": true
+    },
+    "comparisons": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "#/$defs/Comparison"
+      },
+      "default": []
+    },
     "outcomes": {
       "type": "array",
-      "items": { "$ref": "#/$defs/Outcome" },
+      "items": {
+        "$ref": "#/$defs/Outcome"
+      },
       "minItems": 1,
       "uniqueItems": false,
-      "contains": { "type": "object", "properties": { "is_primary": { "const": true } }, "required": ["is_primary"] }
-    },
-
-    "results": { "$ref": "#/$defs/Results" },
-
-    "estimands": {
-      "type": "array",
-      "description": "ICH E9(R1) estimands framework for precise treatment effect definition",
-      "items": { "$ref": "#/$defs/Estimand" },
-      "default": []
-    },
-
-    "patient_reported_outcomes": {
-      "type": "array",
-      "description": "Patient-reported outcome measures (PROMs)",
-      "items": { "$ref": "#/$defs/PatientReportedOutcome" },
-      "default": []
-    },
-
-    "extraction_quality": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "double_data_entry": { "type": "boolean", "default": false },
-        "inter_rater_agreement_kappa": { "type": "number" },
-        "reviewers": { "type": "array", "items": { "type": "string" }, "default": [] },
-        "notes": { "type": "string" }
+      "contains": {
+        "type": "object",
+        "properties": {
+          "is_primary": {
+            "const": true
+          }
+        },
+        "required": [
+          "is_primary"
+        ],
+        "additionalProperties": false
       }
     },
-
-    "tables_parsed": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/ParsedTable" }, "default": [] },
-    "figures_summary": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/FigureSummary" }, "default": [] },
-
-    "risk_of_bias": { "$ref": "common.schema.json#/$defs/RiskOfBias" },
-
-    "protocol_deviations": { "type": "string" },
-    "protocol_deviations_structured": { "type": "array", "items": { "$ref": "#/$defs/ProtocolDeviation" }, "default": [] },
-
-    "consort_reporting": { "$ref": "#/$defs/ConsortReporting" },
-
+    "results": {
+      "$ref": "#/$defs/Results"
+    },
+    "estimands": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "description": "ICH E9(R1) estimands framework for precise treatment effect definition",
+      "items": {
+        "$ref": "#/$defs/Estimand"
+      },
+      "default": []
+    },
+    "patient_reported_outcomes": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "description": "Patient-reported outcome measures (PROMs)",
+      "items": {
+        "$ref": "#/$defs/PatientReportedOutcome"
+      },
+      "default": []
+    },
+    "extraction_quality": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "double_data_entry": {
+          "type": "boolean",
+          "default": false
+        },
+        "inter_rater_agreement_kappa": {
+          "type": "number"
+        },
+        "reviewers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "tables_parsed": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "common.schema.json#/$defs/ParsedTable"
+      },
+      "default": []
+    },
+    "figures_summary": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "common.schema.json#/$defs/FigureSummary"
+      },
+      "default": []
+    },
+    "risk_of_bias": {
+      "$ref": "common.schema.json#/$defs/RiskOfBias"
+    },
+    "protocol_deviations": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "protocol_deviations_structured": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "#/$defs/ProtocolDeviation"
+      },
+      "default": []
+    },
+    "consort_reporting": {
+      "$ref": "#/$defs/ConsortReporting"
+    },
     "tidier_checklist": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "description": "TIDieR (Template for Intervention Description and Replication) checklist for complex interventions",
       "properties": {
-        "completed": { "type": "boolean" },
+        "completed": {
+          "type": "boolean"
+        },
         "items": {
           "type": "array",
           "items": {
             "type": "object",
             "properties": {
-              "item_number": { "type": "integer", "minimum": 1, "maximum": 12 },
-              "item_name": { "type": "string", "enum": ["name", "why", "what_materials", "what_procedures", "who_provided", "how", "where", "when_how_much", "tailoring", "modifications", "how_well_planned", "how_well_actual"] },
-              "reported": { "type": "string", "enum": ["yes", "partially", "no", "not_applicable"] },
-              "location": { "type": "string" }
-            }
+              "item_number": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1,
+                "maximum": 12
+              },
+              "item_name": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "name",
+                  "why",
+                  "what_materials",
+                  "what_procedures",
+                  "who_provided",
+                  "how",
+                  "where",
+                  "when_how_much",
+                  "tailoring",
+                  "modifications",
+                  "how_well_planned",
+                  "how_well_actual"
+                ]
+              },
+              "reported": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "yes",
+                  "partially",
+                  "no",
+                  "not_applicable"
+                ]
+              },
+              "location": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "item_name",
+              "item_number",
+              "location",
+              "reported"
+            ]
           }
         }
       }
     },
-
-    "sensitivity_analyses": { "type": "array", "items": { "$ref": "#/$defs/SensitivityAnalysis" }, "default": [] },
-
-    "subgroup_analyses": { "type": "array", "items": { "$ref": "#/$defs/SubgroupAnalysis" }, "default": [] },
-
-    "extraction_warnings": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/ExtractionWarning" }, "default": [] },
-    "truncated": { "$ref": "common.schema.json#/$defs/TruncationInfo" }
-  },
-
-  "allOf": [
-    {
-      "if": { "properties": { "study_design": { "properties": { "label": { "enum": ["RCT","Cluster-RCT","Crossover-RCT","Factorial-RCT"] } } } } },
-      "then": { "properties": { "study_design": { "properties": { "randomisation": { "not": { "const": "none" } } } } } }
+    "sensitivity_analyses": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "#/$defs/SensitivityAnalysis"
+      },
+      "default": []
     },
-    { "if": { "properties": { "study_design": { "properties": { "label": { "const": "Cluster-RCT" } } } } }, "then": { "properties": { "study_design": { "required": ["cluster_unit", "clusters_per_arm"] } } } },
-    { "if": { "properties": { "study_design": { "properties": { "label": { "const": "Crossover-RCT" } } } } }, "then": { "properties": { "study_design": { "required": ["periods"], "properties": { "periods": { "minimum": 2 } } } } } },
-    { "if": { "properties": { "study_design": { "properties": { "label": { "const": "Factorial-RCT" } } } } }, "then": { "properties": { "study_design": { "required": ["factors"], "properties": { "factors": { "minItems": 1 } } } } } },
-    { "if": { "properties": { "study_design": { "properties": { "label": { "const": "Stepped-wedge" } } } } }, "then": { "properties": { "study_design": { "required": ["steps","rollout_schedule_iso8601"] } } } },
-    { "if": { "properties": { "study_design": { "properties": { "label": { "enum": ["Single-arm","Before-after"] } } } } }, "then": { "properties": { "arms": { "minItems": 1 } } } }
-  ],
-
+    "subgroup_analyses": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "#/$defs/SubgroupAnalysis"
+      },
+      "default": []
+    },
+    "extraction_warnings": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "common.schema.json#/$defs/ExtractionWarning"
+      },
+      "default": []
+    },
+    "truncated": {
+      "$ref": "common.schema.json#/$defs/TruncationInfo"
+    }
+  },
   "$defs": {
     "StudyDesign": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["label"],
+      "required": [
+        "allocation_concealment",
+        "analysis_population",
+        "avg_cluster_size",
+        "blinding",
+        "blinding_details",
+        "block_size",
+        "carryover_checked",
+        "centres",
+        "cluster_unit",
+        "clusters_per_arm",
+        "consent_obtained",
+        "countries",
+        "crossover",
+        "design_details",
+        "design_subtype_notes",
+        "dsmb_dmc",
+        "ethics_approval",
+        "factors",
+        "icc_reported",
+        "interim_analyses",
+        "label",
+        "mams_details",
+        "master_protocol_details",
+        "non_inferiority_margin",
+        "non_inferiority_margin_detail",
+        "periods",
+        "platform_trial_details",
+        "population_context",
+        "randomisation",
+        "randomisation_ratio",
+        "randomisation_type",
+        "response_adaptive_randomisation",
+        "rollout_schedule_iso8601",
+        "sample_size_calculation",
+        "sample_size_reassessment",
+        "sequences",
+        "setting",
+        "source",
+        "steps",
+        "stopping_rules",
+        "stratification_factors",
+        "washout_period_iso8601"
+      ],
       "properties": {
         "label": {
           "type": "string",
@@ -162,223 +445,873 @@
             "Single-arm"
           ]
         },
-        "ethics_approval": { "type": "string" },
-        "consent_obtained": { "type": "string", "enum": ["yes","no","unclear"] },
-        "population_context": { "type": "string", "enum": ["adult","pediatric","mixed","unclear"] },
-        "design_details": { "type": "string" },
-        "centres": { "type": "integer", "minimum": 1 },
-        "countries": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/CountryCode" }, "default": [] },
-        "setting": { "type": "string" },
-        "randomisation": { "type": "string", "enum": ["individual","cluster","blocked","stratified","minimisation","none","unclear"] },
-        "randomisation_ratio": { "type": "string", "description": "Allocation ratio (e.g., 1:1, 2:1, 1:1:1)", "examples": ["1:1", "2:1", "1:1:1"] },
-        "randomisation_type": { "type": "string", "enum": ["central", "local", "web_based", "ivrs", "pharmacy_controlled", "other"] },
+        "ethics_approval": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "consent_obtained": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "yes",
+            "no",
+            "unclear"
+          ]
+        },
+        "population_context": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "adult",
+            "pediatric",
+            "mixed",
+            "unclear"
+          ]
+        },
+        "design_details": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "centres": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "countries": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "common.schema.json#/$defs/CountryCode"
+          },
+          "default": []
+        },
+        "setting": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "randomisation": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "individual",
+            "cluster",
+            "blocked",
+            "stratified",
+            "minimisation",
+            "none",
+            "unclear"
+          ]
+        },
+        "randomisation_ratio": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Allocation ratio (e.g., 1:1, 2:1, 1:1:1)",
+          "examples": [
+            "1:1",
+            "2:1",
+            "1:1:1"
+          ]
+        },
+        "randomisation_type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "central",
+            "local",
+            "web_based",
+            "ivrs",
+            "pharmacy_controlled",
+            "other"
+          ]
+        },
         "stratification_factors": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "object",
             "properties": {
-              "factor": { "type": "string" },
-              "levels": { "type": "array", "items": { "type": "string" } }
-            }
+              "factor": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "levels": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "factor",
+              "levels"
+            ]
           },
           "default": []
         },
         "block_size": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
-            "fixed": { "type": "integer", "minimum": 2 },
-            "permuted": { "type": "array", "items": { "type": "integer", "minimum": 2 } },
-            "random": { "type": "boolean" }
+            "fixed": {
+              "type": "integer",
+              "minimum": 2
+            },
+            "permuted": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 2
+              }
+            },
+            "random": {
+              "type": "boolean"
+            }
           }
         },
-        "allocation_concealment": { "type": "string", "enum": ["adequate","inadequate","unclear"] },
-        "blinding": { "type": "string", "enum": ["open-label","single-blind","double-blind","triple-blind","quadruple-blind","unclear"] },
+        "allocation_concealment": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "adequate",
+            "inadequate",
+            "unclear"
+          ]
+        },
+        "blinding": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "open-label",
+            "single-blind",
+            "double-blind",
+            "triple-blind",
+            "quadruple-blind",
+            "unclear"
+          ]
+        },
         "blinding_details": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
-            "participants_blinded": { "type": "boolean" },
-            "care_providers_blinded": { "type": "boolean" },
-            "outcome_assessors_blinded": { "type": "boolean" },
-            "data_analysts_blinded": { "type": "boolean" },
-            "sham_procedure_used": { "type": "boolean" },
-            "blinding_success_assessed": { "type": "boolean" },
-            "blinding_success_result": { "type": "string", "enum": ["successful", "partially_successful", "unsuccessful", "not_assessed"] },
-            "emergency_unblinding_events": { "type": "integer", "minimum": 0 }
+            "participants_blinded": {
+              "type": "boolean"
+            },
+            "care_providers_blinded": {
+              "type": "boolean"
+            },
+            "outcome_assessors_blinded": {
+              "type": "boolean"
+            },
+            "data_analysts_blinded": {
+              "type": "boolean"
+            },
+            "sham_procedure_used": {
+              "type": "boolean"
+            },
+            "blinding_success_assessed": {
+              "type": "boolean"
+            },
+            "blinding_success_result": {
+              "type": "string",
+              "enum": [
+                "successful",
+                "partially_successful",
+                "unsuccessful",
+                "not_assessed"
+              ]
+            },
+            "emergency_unblinding_events": {
+              "type": "integer",
+              "minimum": 0
+            }
           }
         },
-        "analysis_population": { "type": "string", "enum": ["ITT","mITT","PP","Safety","Other"] },
-        "non_inferiority_margin": { "type": "string" },
-        "non_inferiority_margin_detail": { "$ref": "common.schema.json#/$defs/ValueWithRaw" },
-        "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
-
-        "crossover": { "type": "boolean", "default": false },
-        "washout_period_iso8601": { "$ref": "common.schema.json#/$defs/ISO8601Duration" },
-        "periods": { "type": "integer", "minimum": 2 },
-        "sequences": { "type": "array", "items": { "type": "string" }, "default": [] },
-        "carryover_checked": { "type": "boolean", "default": false },
-
-        "cluster_unit": { "type": "string", "enum": ["hospital","clinic","ward","provider","other"] },
-        "clusters_per_arm": { "type": "integer", "minimum": 1 },
-        "avg_cluster_size": { "type": "number", "minimum": 0 },
-        "icc_reported": { "type": "number", "minimum": 0 },
-
+        "analysis_population": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "ITT",
+            "mITT",
+            "PP",
+            "Safety",
+            "Other"
+          ]
+        },
+        "non_inferiority_margin": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "non_inferiority_margin_detail": {
+          "$ref": "common.schema.json#/$defs/ValueWithRaw"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/SourceRef"
+        },
+        "crossover": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
+        "washout_period_iso8601": {
+          "$ref": "common.schema.json#/$defs/ISO8601Duration"
+        },
+        "periods": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 2
+        },
+        "sequences": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "carryover_checked": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
+        "cluster_unit": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "hospital",
+            "clinic",
+            "ward",
+            "provider",
+            "other"
+          ]
+        },
+        "clusters_per_arm": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "avg_cluster_size": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "icc_reported": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
         "factors": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "object",
-            "required": ["name","levels"],
+            "required": [
+              "name",
+              "levels"
+            ],
             "additionalProperties": false,
             "properties": {
-              "name": { "type": "string" },
-              "levels": { "type": "array", "minItems": 2, "items": { "type": "string" } }
+              "name": {
+                "type": "string"
+              },
+              "levels": {
+                "type": "array",
+                "minItems": 2,
+                "items": {
+                  "type": "string"
+                }
+              }
             }
           },
           "default": []
         },
-
-        "interim_analyses": { "type": "integer", "minimum": 0 },
-        "stopping_rules": { "type": "string" },
+        "interim_analyses": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "stopping_rules": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "dsmb_dmc": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Data Safety Monitoring Board / Data Monitoring Committee details",
           "properties": {
-            "established": { "type": "boolean" },
-            "independent": { "type": "boolean" },
-            "charter_available": { "type": "boolean" },
-            "meeting_frequency": { "type": "string" },
+            "established": {
+              "type": "boolean"
+            },
+            "independent": {
+              "type": "boolean"
+            },
+            "charter_available": {
+              "type": "boolean"
+            },
+            "meeting_frequency": {
+              "type": "string"
+            },
             "stopping_boundaries": {
               "type": "object",
               "properties": {
-                "method": { "type": "string", "enum": ["obrien_fleming", "pocock", "haybittle_peto", "lan_demets", "bayesian", "other"] },
-                "efficacy_boundary": { "type": "number" },
-                "futility_boundary": { "type": "number" },
-                "alpha_spending_function": { "type": "string" }
-              }
+                "method": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "obrien_fleming",
+                    "pocock",
+                    "haybittle_peto",
+                    "lan_demets",
+                    "bayesian",
+                    "other"
+                  ]
+                },
+                "efficacy_boundary": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "futility_boundary": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "alpha_spending_function": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "alpha_spending_function",
+                "efficacy_boundary",
+                "futility_boundary",
+                "method"
+              ]
             },
             "interim_analysis_results": {
               "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
-                  "analysis_number": { "type": "integer", "minimum": 1 },
-                  "information_fraction": { "type": "number", "minimum": 0, "maximum": 1 },
-                  "conditional_power": { "type": "number", "minimum": 0, "maximum": 1 },
-                  "decision": { "type": "string", "enum": ["continue", "stop_efficacy", "stop_futility", "modify_design"] },
-                  "boundary_crossed": { "type": "boolean" }
-                }
+                  "analysis_number": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1
+                  },
+                  "information_fraction": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "conditional_power": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "decision": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "continue",
+                      "stop_efficacy",
+                      "stop_futility",
+                      "modify_design"
+                    ]
+                  },
+                  "boundary_crossed": {
+                    "type": [
+                      "boolean",
+                      "null"
+                    ]
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "analysis_number",
+                  "boundary_crossed",
+                  "conditional_power",
+                  "decision",
+                  "information_fraction"
+                ]
               }
             }
           }
         },
-        "response_adaptive_randomisation": { "type": "boolean", "default": false },
-        "sample_size_reassessment": { "type": "boolean", "default": false },
-
-        "steps": { "type": "integer", "minimum": 2 },
-        "rollout_schedule_iso8601": { "$ref": "common.schema.json#/$defs/ISO8601Duration" },
-
+        "response_adaptive_randomisation": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
+        "sample_size_reassessment": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
+        "steps": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 2
+        },
+        "rollout_schedule_iso8601": {
+          "$ref": "common.schema.json#/$defs/ISO8601Duration"
+        },
         "platform_trial_details": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Details for platform trials with shared control arm",
           "properties": {
-            "shared_control": { "type": "boolean" },
-            "control_arm_id": { "type": "string" },
-            "experimental_arms": { "type": "array", "items": { "type": "string" } },
-            "entry_exit_criteria": { "type": "string" },
-            "borrowing_across_comparisons": { "type": "boolean" }
+            "shared_control": {
+              "type": "boolean"
+            },
+            "control_arm_id": {
+              "type": "string"
+            },
+            "experimental_arms": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "entry_exit_criteria": {
+              "type": "string"
+            },
+            "borrowing_across_comparisons": {
+              "type": "boolean"
+            }
           }
         },
         "master_protocol_details": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Details for umbrella/basket trials",
           "properties": {
-            "protocol_type": { "type": "string", "enum": ["basket", "umbrella", "other"] },
-            "biomarker_driven": { "type": "boolean" },
-            "biomarker_name": { "type": "string" },
+            "protocol_type": {
+              "type": "string",
+              "enum": [
+                "basket",
+                "umbrella",
+                "other"
+              ]
+            },
+            "biomarker_driven": {
+              "type": "boolean"
+            },
+            "biomarker_name": {
+              "type": "string"
+            },
             "cohorts": {
               "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
-                  "cohort_id": { "type": "string" },
-                  "biomarker_status": { "type": "string" },
-                  "tumor_type": { "type": "string" },
-                  "target": { "type": "string" }
-                }
+                  "cohort_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "biomarker_status": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "tumor_type": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "target": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "biomarker_status",
+                  "cohort_id",
+                  "target",
+                  "tumor_type"
+                ]
               }
             }
           }
         },
         "mams_details": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Multi-Arm Multi-Stage trial details",
           "properties": {
-            "stages": { "type": "integer", "minimum": 2 },
-            "intermediate_outcomes": { "type": "array", "items": { "type": "string" } },
-            "selection_rule": { "type": "string" },
-            "arm_dropping_criteria": { "type": "string" }
+            "stages": {
+              "type": "integer",
+              "minimum": 2
+            },
+            "intermediate_outcomes": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "selection_rule": {
+              "type": "string"
+            },
+            "arm_dropping_criteria": {
+              "type": "string"
+            }
           }
         },
         "sample_size_calculation": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "additionalProperties": false,
           "properties": {
-            "assumed_effect": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
-            "alpha": { "type": "number", "minimum": 0, "maximum": 1 },
-            "power": { "type": "number", "minimum": 0, "maximum": 1 },
-            "actual_power": { "type": "number", "minimum": 0, "maximum": 1, "description": "Post-hoc calculated power" },
-            "non_inferiority_margin": { "type": "string" },
+            "assumed_effect": {
+              "$ref": "common.schema.json#/$defs/ContrastEffect"
+            },
+            "alpha": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "power": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "actual_power": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Post-hoc calculated power"
+            },
+            "non_inferiority_margin": {
+              "type": "string"
+            },
             "multiplicity_adjustment": {
               "type": "object",
               "properties": {
-                "method": { "type": "string", "enum": ["bonferroni", "holm", "hochberg", "hommel", "benjamini_hochberg", "gatekeeping", "fallback", "none", "other"] },
-                "adjusted_alpha": { "type": "number", "minimum": 0, "maximum": 1 },
-                "family_wise_error_rate": { "type": "number", "minimum": 0, "maximum": 1 }
-              }
+                "method": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "bonferroni",
+                    "holm",
+                    "hochberg",
+                    "hommel",
+                    "benjamini_hochberg",
+                    "gatekeeping",
+                    "fallback",
+                    "none",
+                    "other"
+                  ]
+                },
+                "adjusted_alpha": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "family_wise_error_rate": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "adjusted_alpha",
+                "family_wise_error_rate",
+                "method"
+              ]
             },
-            "notes": { "type": "string" },
-            "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+            "notes": {
+              "type": "string"
+            },
+            "source": {
+              "$ref": "common.schema.json#/$defs/SourceRef"
+            }
           }
         },
-
-        "design_subtype_notes": { "type": "string" }
+        "design_subtype_notes": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
       }
     },
-
     "Population": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["n_randomised"],
+      "required": [
+        "age_mean",
+        "age_sd",
+        "asa_distribution",
+        "attrition",
+        "bmi_mean",
+        "bmi_sd",
+        "comorbidities_key",
+        "exclusion_criteria",
+        "follow_up_duration_iso8601",
+        "inclusion_criteria",
+        "missing_data",
+        "n_analysed",
+        "n_randomised",
+        "n_screened",
+        "sex_female_pct",
+        "source",
+        "surgery_type",
+        "urgency"
+      ],
       "properties": {
-        "n_screened": { "type": "integer", "minimum": 0 },
-        "n_randomised": { "type": "integer", "minimum": 1 },
-        "n_analysed": { "type": "integer", "minimum": 0 },
-        "age_mean": { "type": "number" },
-        "age_sd": { "type": "number", "minimum": 0 },
-        "sex_female_pct": { "type": "number", "minimum": 0, "maximum": 100 },
-        "asa_distribution": { "type": "string" },
-        "bmi_mean": { "type": "number" },
-        "bmi_sd": { "type": "number", "minimum": 0 },
-        "comorbidities_key": { "type": "string" },
-        "surgery_type": { "type": "string" },
-        "urgency": { "type": "string" },
-        "inclusion_criteria": { "type": "string" },
-        "exclusion_criteria": { "type": "string" },
-        "follow_up_duration_iso8601": { "$ref": "common.schema.json#/$defs/ISO8601Duration" },
+        "n_screened": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "n_randomised": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "n_analysed": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "age_mean": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "age_sd": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "sex_female_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "asa_distribution": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "bmi_mean": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "bmi_sd": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "comorbidities_key": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "surgery_type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "urgency": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "inclusion_criteria": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "exclusion_criteria": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "follow_up_duration_iso8601": {
+          "$ref": "common.schema.json#/$defs/ISO8601Duration"
+        },
         "attrition": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Detailed dropout and attrition tracking",
           "properties": {
-            "overall_dropout_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+            "overall_dropout_pct": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
             "per_arm_dropout": {
               "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
-                  "arm_id": { "type": "string" },
-                  "n_randomised": { "type": "integer", "minimum": 0 },
-                  "n_completed": { "type": "integer", "minimum": 0 },
-                  "dropout_pct": { "type": "number", "minimum": 0, "maximum": 100 }
-                }
+                  "arm_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "n_randomised": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 0
+                  },
+                  "n_completed": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 0
+                  },
+                  "dropout_pct": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": 0,
+                    "maximum": 100
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "arm_id",
+                  "dropout_pct",
+                  "n_completed",
+                  "n_randomised"
+                ]
               }
             },
             "dropout_reasons": {
@@ -386,242 +1319,1057 @@
               "items": {
                 "type": "object",
                 "properties": {
-                  "reason": { "type": "string" },
-                  "count": { "type": "integer", "minimum": 0 },
-                  "arm_id": { "type": "string" }
-                }
+                  "reason": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "count": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 0
+                  },
+                  "arm_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "arm_id",
+                  "count",
+                  "reason"
+                ]
               }
             },
-            "differential_dropout": { "type": "boolean", "description": "Whether dropout differs significantly between arms" }
+            "differential_dropout": {
+              "type": "boolean",
+              "description": "Whether dropout differs significantly between arms"
+            }
           }
         },
         "missing_data": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "additionalProperties": false,
           "properties": {
-            "outcome_missing_pct": { "type": "number", "minimum": 0, "maximum": 100 },
-            "missing_pattern": { "$ref": "common.schema.json#/$defs/MissingDataPattern" },
-            "imputation": { "type": "string" },
+            "outcome_missing_pct": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "missing_pattern": {
+              "$ref": "common.schema.json#/$defs/MissingDataPattern"
+            },
+            "imputation": {
+              "type": "string"
+            },
             "imputation_details": {
               "type": "object",
               "properties": {
-                "method": { "type": "string", "enum": ["complete_case", "last_observation_carried_forward", "multiple_imputation", "worst_case", "best_case", "baseline_observation_carried_forward", "mixed_model", "other"] },
-                "m_imputations": { "type": "integer", "minimum": 1, "description": "Number of multiple imputations" },
-                "variables_imputed": { "type": "array", "items": { "type": "string" } }
-              }
+                "method": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "complete_case",
+                    "last_observation_carried_forward",
+                    "multiple_imputation",
+                    "worst_case",
+                    "best_case",
+                    "baseline_observation_carried_forward",
+                    "mixed_model",
+                    "other"
+                  ]
+                },
+                "m_imputations": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 1,
+                  "description": "Number of multiple imputations"
+                },
+                "variables_imputed": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "m_imputations",
+                "method",
+                "variables_imputed"
+              ]
             },
             "sensitivity_to_missing": {
               "type": "object",
               "properties": {
-                "tipping_point_analysis": { "type": "boolean" },
-                "tipping_point_threshold": { "type": "string" },
-                "conclusion_robust": { "type": "boolean" }
-              }
+                "tipping_point_analysis": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "tipping_point_threshold": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "conclusion_robust": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "conclusion_robust",
+                "tipping_point_analysis",
+                "tipping_point_threshold"
+              ]
             }
           }
         },
-        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+        "source": {
+          "$ref": "common.schema.json#/$defs/SourceRef"
+        }
       }
     },
-
     "Intervention": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["arm_id","arm_label"],
+      "required": [
+        "airway_management",
+        "analgesia_strategy",
+        "anesthesia_technique",
+        "arm_id",
+        "arm_label",
+        "co_interventions",
+        "description",
+        "dose_regimen",
+        "monitoring",
+        "neuromuscular_block",
+        "ontology_terms",
+        "provenance",
+        "route_timing",
+        "source"
+      ],
       "properties": {
-        "arm_id": { "type": "string" },
-        "arm_label": { "type": "string" },
-        "description": { "type": "string" },
-        "dose_regimen": { "type": "string" },
-        "route_timing": { "type": "string" },
-        "co_interventions": { "type": "string" },
-        "anesthesia_technique": { "type": "string" },
-        "airway_management": { "type": "string" },
-        "monitoring": { "type": "string" },
-        "neuromuscular_block": { "type": "string" },
-        "analgesia_strategy": { "type": "string" },
-        "ontology_terms": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/OntologyTerm" }, "default": [] },
-        "provenance": { "$ref": "common.schema.json#/$defs/Provenance" },
-        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+        "arm_id": {
+          "type": "string"
+        },
+        "arm_label": {
+          "type": "string"
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dose_regimen": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "route_timing": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "co_interventions": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "anesthesia_technique": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "airway_management": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "monitoring": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "neuromuscular_block": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "analgesia_strategy": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ontology_terms": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "common.schema.json#/$defs/OntologyTerm"
+          },
+          "default": []
+        },
+        "provenance": {
+          "$ref": "common.schema.json#/$defs/Provenance"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/SourceRef"
+        }
       }
     },
-
     "Arm": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["arm_id","label"],
+      "required": [
+        "adherence_pct",
+        "arm_factors",
+        "arm_id",
+        "crossovers_to",
+        "description",
+        "label",
+        "n_analysed",
+        "n_assigned"
+      ],
       "properties": {
-        "arm_id": { "type": "string" },
-        "label": { "type": "string" },
-        "n_assigned": { "type": "integer", "minimum": 0 },
-        "n_analysed": { "type": "integer", "minimum": 0 },
-        "description": { "type": "string" },
+        "arm_id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "n_assigned": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "n_analysed": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "arm_factors": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Mapping van factor-niveaus naar deze arm (alleen bij factorial-ontwerpen).",
-          "additionalProperties": { "type": "string" },
+          "additionalProperties": {
+            "type": "string"
+          },
           "default": {}
         },
-        "adherence_pct": { "type": "number", "minimum": 0, "maximum": 100, "description": "% deelnemers die de toegewezen interventie ontvingen" },
-        "crossovers_to": { "type": "string", "description": "arm_id waarheen deelnemers zijn gecrossoverd (indien relevant)" }
+        "adherence_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100,
+          "description": "% deelnemers die de toegewezen interventie ontvingen"
+        },
+        "crossovers_to": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "arm_id waarheen deelnemers zijn gecrossoverd (indien relevant)"
+        }
       }
     },
-
     "Comparison": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["comparison_id","comparison_type"],
+      "required": [
+        "arm_a",
+        "arm_b",
+        "comparison_id",
+        "comparison_type",
+        "factor_contrast",
+        "is_primary",
+        "period_contrast"
+      ],
       "properties": {
-        "comparison_id": { "type": "string" },
-        "comparison_type": { "type": "string", "enum": ["arm_vs_arm","main_effect","interaction","period_effect","pre_post"] },
-        "arm_a": { "type": "string", "description": "arm_id (voor arm_vs_arm)" },
-        "arm_b": { "type": "string", "description": "arm_id (voor arm_vs_arm)" },
+        "comparison_id": {
+          "type": "string"
+        },
+        "comparison_type": {
+          "type": "string",
+          "enum": [
+            "arm_vs_arm",
+            "main_effect",
+            "interaction",
+            "period_effect",
+            "pre_post"
+          ]
+        },
+        "arm_a": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "arm_id (voor arm_vs_arm)"
+        },
+        "arm_b": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "arm_id (voor arm_vs_arm)"
+        },
         "factor_contrast": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Voor factorial: welk factorcontrast wordt geanalyseerd.",
           "additionalProperties": false,
-          "properties": { "factor": { "type": "string" }, "level_a": { "type": "string" }, "level_b": { "type": "string" } }
+          "properties": {
+            "factor": {
+              "type": "string"
+            },
+            "level_a": {
+              "type": "string"
+            },
+            "level_b": {
+              "type": "string"
+            }
+          }
         },
         "period_contrast": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Voor crossover/stepped-wedge: periode- of tijdscontrast.",
           "additionalProperties": false,
-          "properties": { "period_a": { "type": "string" }, "period_b": { "type": "string" } }
+          "properties": {
+            "period_a": {
+              "type": "string"
+            },
+            "period_b": {
+              "type": "string"
+            }
+          }
         },
-        "is_primary": { "type": "boolean", "default": false }
+        "is_primary": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        }
       }
     },
-
     "Outcome": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["outcome_id","name","type"],
+      "required": [
+        "censoring_informative_risk",
+        "definition",
+        "direction_of_benefit",
+        "event_competing_risks_present",
+        "is_primary",
+        "measurement_method",
+        "name",
+        "ontology_terms",
+        "outcome_id",
+        "provenance",
+        "scale_max",
+        "scale_min",
+        "source",
+        "timepoint",
+        "timepoint_iso8601",
+        "type",
+        "unit",
+        "unit_ucum"
+      ],
       "properties": {
-        "outcome_id": { "type": "string" },
-        "name": { "type": "string" },
-        "definition": { "type": "string" },
-        "type": { "type": "string", "enum": ["binary","continuous","time_to_event","ordinal","count"] },
-        "is_primary": { "type": "boolean", "default": false },
-        "direction_of_benefit": { "type": "string", "enum": ["higher_better","lower_better","neutral_or_na"] },
-        "unit": { "type": "string" },
-        "timepoint": { "type": "string" },
-        "timepoint_iso8601": { "$ref": "common.schema.json#/$defs/ISO8601Duration" },
-        "measurement_method": { "type": "string" },
-        "scale_min": { "type": "number" },
-        "scale_max": { "type": "number" },
-        "event_competing_risks_present": { "type": "boolean", "default": false },
-        "censoring_informative_risk": { "type": "string", "enum": ["low","moderate","high","unclear"] },
-        "ontology_terms": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/OntologyTerm" }, "default": [] },
-        "provenance": { "$ref": "common.schema.json#/$defs/Provenance" },
-        "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
-        "unit_ucum": { "type": "string", "description": "UCUM code if available" }
+        "outcome_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "definition": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "binary",
+            "continuous",
+            "time_to_event",
+            "ordinal",
+            "count"
+          ]
+        },
+        "is_primary": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
+        "direction_of_benefit": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "higher_better",
+            "lower_better",
+            "neutral_or_na"
+          ]
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "timepoint": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "timepoint_iso8601": {
+          "$ref": "common.schema.json#/$defs/ISO8601Duration"
+        },
+        "measurement_method": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "scale_min": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "scale_max": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "event_competing_risks_present": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
+        "censoring_informative_risk": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "low",
+            "moderate",
+            "high",
+            "unclear"
+          ]
+        },
+        "ontology_terms": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "common.schema.json#/$defs/OntologyTerm"
+          },
+          "default": []
+        },
+        "provenance": {
+          "$ref": "common.schema.json#/$defs/Provenance"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/SourceRef"
+        },
+        "unit_ucum": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "UCUM code if available"
+        }
       }
     },
-
     "PerArmResult": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["outcome_id","arm_id"],
+      "required": [
+        "arm_id",
+        "events",
+        "iqr",
+        "mean",
+        "median",
+        "n",
+        "outcome_id",
+        "provenance",
+        "sd",
+        "source",
+        "total",
+        "unit"
+      ],
       "properties": {
-        "outcome_id": { "type": "string" },
-        "arm_id": { "type": "string" },
-        "n": { "type": "integer", "minimum": 0 },
-        "events": { "type": "integer", "minimum": 0 },
-        "mean": { "type": "number" },
-        "sd": { "type": "number", "minimum": 0 },
-        "median": { "type": "number" },
-        "iqr": { "type": "object", "additionalProperties": false, "properties": { "p25": { "type": "number" }, "p75": { "type": "number" } } },
-        "total": { "type": "integer", "minimum": 0 },
-        "unit": { "type": "string" },
-        "provenance": { "$ref": "common.schema.json#/$defs/Provenance" },
-        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+        "outcome_id": {
+          "type": "string"
+        },
+        "arm_id": {
+          "type": "string"
+        },
+        "n": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "events": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "mean": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "sd": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "median": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "iqr": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "p25": {
+              "type": "number"
+            },
+            "p75": {
+              "type": "number"
+            }
+          }
+        },
+        "total": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "provenance": {
+          "$ref": "common.schema.json#/$defs/Provenance"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/SourceRef"
+        }
       },
       "oneOf": [
-        { "required": ["mean","sd"], "not": { "anyOf": [ { "required": ["median"] }, { "required": ["iqr"] }, { "required": ["events"] } ] } },
-        { "required": ["median","iqr"], "not": { "anyOf": [ { "required": ["mean"] }, { "required": ["sd"] }, { "required": ["events"] } ] }, "properties": { "iqr": { "required": ["p25","p75"] } } },
-        { "description": "Binaire uitkomst per arm", "required": ["events"], "anyOf": [ { "required": ["n"] }, { "required": ["total"] } ] }
+        {
+          "required": [
+            "mean",
+            "sd"
+          ]
+        },
+        {
+          "required": [
+            "median",
+            "iqr"
+          ],
+          "properties": {
+            "iqr": {
+              "required": [
+                "p25",
+                "p75"
+              ]
+            }
+          }
+        },
+        {
+          "description": "Binaire uitkomst per arm",
+          "required": [
+            "events"
+          ],
+          "anyOf": [
+            {
+              "required": [
+                "n"
+              ]
+            },
+            {
+              "required": [
+                "total"
+              ]
+            }
+          ]
+        }
       ]
     },
-
-    "ContrastEffect": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
-
+    "ContrastEffect": {
+      "$ref": "common.schema.json#/$defs/ContrastEffect"
+    },
     "ContrastResult": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["outcome_id","comparison_id","effect"],
+      "required": [
+        "adjusted",
+        "censoring_informative_risk",
+        "cluster_adjusted",
+        "cluster_params",
+        "comparison_id",
+        "covariates",
+        "effect",
+        "event_competing_risks_present",
+        "model",
+        "outcome_id",
+        "population",
+        "provenance",
+        "source"
+      ],
       "properties": {
-        "outcome_id": { "type": "string" },
-        "comparison_id": { "type": "string" },
-        "population": { "type": "string", "enum": ["ITT","mITT","PP","Safety","Other"] },
-        "adjusted": { "type": "boolean", "default": false },
-        "covariates": { "type": "array", "items": { "type": "string" }, "default": [] },
-        "model": { "type": "string", "enum": ["fixed","random","cox","logistic","linear","poisson","nb","gee","mixed","other","na"] },
-        "cluster_adjusted": { "type": "boolean", "default": false },
-        "cluster_params": { "type": "object", "additionalProperties": false, "properties": { "icc": { "type": "number", "minimum": 0 }, "method": { "type": "string", "enum": ["gee","mixed","cluster_robust","other"] } } },
-        "event_competing_risks_present": { "type": "boolean", "default": false },
-        "censoring_informative_risk": { "type": "string", "enum": ["low","moderate","high","unclear"] },
-        "effect": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
-        "provenance": { "$ref": "common.schema.json#/$defs/Provenance" },
-        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+        "outcome_id": {
+          "type": "string"
+        },
+        "comparison_id": {
+          "type": "string"
+        },
+        "population": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "ITT",
+            "mITT",
+            "PP",
+            "Safety",
+            "Other"
+          ]
+        },
+        "adjusted": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
+        "covariates": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "fixed",
+            "random",
+            "cox",
+            "logistic",
+            "linear",
+            "poisson",
+            "nb",
+            "gee",
+            "mixed",
+            "other",
+            "na"
+          ]
+        },
+        "cluster_adjusted": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
+        "cluster_params": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "icc": {
+              "type": "number",
+              "minimum": 0
+            },
+            "method": {
+              "type": "string",
+              "enum": [
+                "gee",
+                "mixed",
+                "cluster_robust",
+                "other"
+              ]
+            }
+          }
+        },
+        "event_competing_risks_present": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
+        "censoring_informative_risk": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "low",
+            "moderate",
+            "high",
+            "unclear"
+          ]
+        },
+        "effect": {
+          "$ref": "common.schema.json#/$defs/ContrastEffect"
+        },
+        "provenance": {
+          "$ref": "common.schema.json#/$defs/Provenance"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/SourceRef"
+        }
       }
     },
-
     "HarmsResult": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["event","arm_id","events","total","source"],
+      "required": [
+        "action_taken",
+        "aesi",
+        "arm_id",
+        "ctcae_grade",
+        "ctcae_version",
+        "event",
+        "events",
+        "meddra_code",
+        "ontology_terms",
+        "outcome",
+        "provenance",
+        "relatedness",
+        "sae",
+        "sae_criteria",
+        "serious",
+        "severity_grade_scale",
+        "source",
+        "total"
+      ],
       "properties": {
-        "event": { "type": "string" },
-        "arm_id": { "type": "string" },
-        "severity_grade_scale": { "type": "string", "enum": ["CTCAE","Clavien-Dindo","Other","NA"] },
-        "ctcae_version": { "type": "string", "description": "e.g., 5.0" },
-        "ctcae_grade": { "type": "integer", "minimum": 1, "maximum": 5 },
-        "events": { "type": "integer", "minimum": 0 },
-        "total": { "type": "integer", "minimum": 0 },
-        "ontology_terms": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/OntologyTerm" }, "default": [] },
-        "provenance": { "$ref": "common.schema.json#/$defs/Provenance" },
-        "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
-        "serious": { "type": "boolean", "default": false },
-        "relatedness": { "type": "string", "enum": ["related","probable","possible","unlikely","not_related","unknown"], "default": "unknown" },
-        "meddra_code": { "type": "string", "description": "MedDRA PT/LLT code indien beschikbaar" },
-        "sae": { "type": "boolean", "description": "Serious Adverse Event" },
-        "sae_criteria": {
-          "type": "array",
-          "items": { "type": "string", "enum": ["death", "life_threatening", "hospitalization", "disability", "congenital_anomaly", "medically_important"] }
+        "event": {
+          "type": "string"
         },
-        "aesi": { "type": "boolean", "description": "Adverse Event of Special Interest" },
-        "outcome": { "type": "string", "enum": ["recovered", "recovering", "not_recovered", "fatal", "unknown"] },
-        "action_taken": { "type": "string", "enum": ["none", "dose_reduced", "dose_interrupted", "drug_withdrawn", "other"] }
+        "arm_id": {
+          "type": "string"
+        },
+        "severity_grade_scale": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "CTCAE",
+            "Clavien-Dindo",
+            "Other",
+            "NA"
+          ]
+        },
+        "ctcae_version": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "e.g., 5.0"
+        },
+        "ctcae_grade": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "maximum": 5
+        },
+        "events": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ontology_terms": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "common.schema.json#/$defs/OntologyTerm"
+          },
+          "default": []
+        },
+        "provenance": {
+          "$ref": "common.schema.json#/$defs/Provenance"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/SourceRef"
+        },
+        "serious": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
+        "relatedness": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "related",
+            "probable",
+            "possible",
+            "unlikely",
+            "not_related",
+            "unknown"
+          ],
+          "default": "unknown"
+        },
+        "meddra_code": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "MedDRA PT/LLT code indien beschikbaar"
+        },
+        "sae": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Serious Adverse Event"
+        },
+        "sae_criteria": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string",
+            "enum": [
+              "death",
+              "life_threatening",
+              "hospitalization",
+              "disability",
+              "congenital_anomaly",
+              "medically_important"
+            ]
+          }
+        },
+        "aesi": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Adverse Event of Special Interest"
+        },
+        "outcome": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "recovered",
+            "recovering",
+            "not_recovered",
+            "fatal",
+            "unknown"
+          ]
+        },
+        "action_taken": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "none",
+            "dose_reduced",
+            "dose_interrupted",
+            "drug_withdrawn",
+            "other"
+          ]
+        }
       }
     },
-
     "Results": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "per_arm": { "type": "array", "items": { "$ref": "#/$defs/PerArmResult" }, "default": [] },
-        "contrasts": { "type": "array", "items": { "$ref": "#/$defs/ContrastResult" }, "default": [] },
-        "harms": { "type": "array", "items": { "$ref": "#/$defs/HarmsResult" }, "default": [] }
-      }
+        "per_arm": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/PerArmResult"
+          },
+          "default": []
+        },
+        "contrasts": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/ContrastResult"
+          },
+          "default": []
+        },
+        "harms": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/HarmsResult"
+          },
+          "default": []
+        }
+      },
+      "required": [
+        "contrasts",
+        "harms",
+        "per_arm"
+      ]
     },
-
     "ProtocolDeviation": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "severity": { "type": "string", "enum": ["major","minor","unclear"] },
-        "count": { "type": "integer", "minimum": 0 },
-        "description": { "type": "string" },
-        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
-      }
+        "severity": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "major",
+            "minor",
+            "unclear"
+          ]
+        },
+        "count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/SourceRef"
+        }
+      },
+      "required": [
+        "count",
+        "description",
+        "severity",
+        "source"
+      ]
     },
-
     "ConsortReporting": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "version": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "CONSORT 2010",
             "CONSORT 2010-extension",
@@ -634,207 +2382,693 @@
           ],
           "default": "CONSORT 2010"
         },
-        "claimed": { "type": "boolean", "default": false },
-        "checklist_available": { "type": "boolean", "default": false },
+        "claimed": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
+        "checklist_available": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
         "items": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["item_id","reported"],
+            "required": [
+              "item_id",
+              "location",
+              "reported",
+              "source"
+            ],
             "properties": {
-              "item_id": { "type": "string", "description": "bv. 1a, 1b, 2a…" },
-              "reported": { "type": "string", "enum": ["yes","partially","no","unclear"] },
-              "location": { "type": "string" },
-              "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+              "item_id": {
+                "type": "string",
+                "description": "bv. 1a, 1b, 2a…"
+              },
+              "reported": {
+                "type": "string",
+                "enum": [
+                  "yes",
+                  "partially",
+                  "no",
+                  "unclear"
+                ]
+              },
+              "location": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "source": {
+                "$ref": "common.schema.json#/$defs/SourceRef"
+              }
             }
           },
           "default": []
         },
-        "notes": { "type": "string" }
-      }
+        "notes": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "checklist_available",
+        "claimed",
+        "items",
+        "notes",
+        "version"
+      ]
     },
-
     "SensitivityAnalysis": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "label": { "type": "string" },
-        "population": { "type": "string", "enum": ["ITT","mITT","PP","Safety","Other"] },
-        "analysis_change": { "type": "string", "description": "Wijziging t.o.v. hoofdmodel (bv. imputatie, exclusies)" },
-        "effect": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
-        "provenance": { "$ref": "common.schema.json#/$defs/Provenance" },
-        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
-      }
+        "label": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "population": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "ITT",
+            "mITT",
+            "PP",
+            "Safety",
+            "Other"
+          ]
+        },
+        "analysis_change": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Wijziging t.o.v. hoofdmodel (bv. imputatie, exclusies)"
+        },
+        "effect": {
+          "$ref": "common.schema.json#/$defs/ContrastEffect"
+        },
+        "provenance": {
+          "$ref": "common.schema.json#/$defs/Provenance"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/SourceRef"
+        }
+      },
+      "required": [
+        "analysis_change",
+        "effect",
+        "label",
+        "population",
+        "provenance",
+        "source"
+      ]
     },
-
     "SubgroupAnalysis": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["factor"],
+      "required": [
+        "effects",
+        "factor",
+        "interaction_p",
+        "levels",
+        "pre_specified",
+        "provenance",
+        "source"
+      ],
       "properties": {
-        "factor": { "type": "string", "description": "bv. leeftijd, ASA, centrum" },
-        "levels": { "type": "array", "items": { "type": "string" }, "default": [] },
-        "interaction_p": { "type": "number", "minimum": 0, "maximum": 1 },
-        "effects": {
-          "type": "array",
-          "items": { "type": "object", "additionalProperties": false, "properties": { "level": { "type": "string" }, "effect": { "$ref": "common.schema.json#/$defs/ContrastEffect" } } },
+        "factor": {
+          "type": "string",
+          "description": "bv. leeftijd, ASA, centrum"
+        },
+        "levels": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
           "default": []
         },
-        "pre_specified": { "type": "boolean", "default": false },
-        "provenance": { "$ref": "common.schema.json#/$defs/Provenance" },
-        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+        "interaction_p": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "effects": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "level": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "effect": {
+                "$ref": "common.schema.json#/$defs/ContrastEffect"
+              }
+            },
+            "required": [
+              "effect",
+              "level"
+            ]
+          },
+          "default": []
+        },
+        "pre_specified": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
+        "provenance": {
+          "$ref": "common.schema.json#/$defs/Provenance"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/SourceRef"
+        }
       }
     },
-
     "Estimand": {
       "type": "object",
       "description": "ICH E9(R1) estimand framework for precise treatment effect definition",
       "additionalProperties": false,
-      "required": ["outcome_id", "population", "treatment", "variable", "population_level_summary"],
+      "required": [
+        "estimand_id",
+        "estimand_type",
+        "intercurrent_events",
+        "outcome_id",
+        "population",
+        "population_level_summary",
+        "sensitivity_estimands",
+        "source",
+        "treatment",
+        "variable"
+      ],
       "properties": {
-        "outcome_id": { "type": "string", "description": "Link to outcome definition" },
-        "estimand_id": { "type": "string" },
-        "estimand_type": {
+        "outcome_id": {
           "type": "string",
-          "enum": ["treatment_policy", "hypothetical", "composite", "principal_stratum", "while_on_treatment"],
+          "description": "Link to outcome definition"
+        },
+        "estimand_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "estimand_type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "treatment_policy",
+            "hypothetical",
+            "composite",
+            "principal_stratum",
+            "while_on_treatment"
+          ],
           "description": "Type of estimand strategy"
         },
-        "population": { "type": "string", "description": "Target population for this estimand" },
-        "treatment": { "type": "string", "description": "Treatment condition being evaluated" },
-        "variable": { "type": "string", "description": "Outcome variable of interest" },
-        "population_level_summary": { "type": "string", "description": "How individual outcomes are summarized (e.g., mean difference, odds ratio)" },
+        "population": {
+          "type": "string",
+          "description": "Target population for this estimand"
+        },
+        "treatment": {
+          "type": "string",
+          "description": "Treatment condition being evaluated"
+        },
+        "variable": {
+          "type": "string",
+          "description": "Outcome variable of interest"
+        },
+        "population_level_summary": {
+          "type": "string",
+          "description": "How individual outcomes are summarized (e.g., mean difference, odds ratio)"
+        },
         "intercurrent_events": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "description": "Events occurring after treatment initiation that affect interpretation",
           "items": {
             "type": "object",
             "properties": {
-              "event_type": { "type": "string", "examples": ["treatment_discontinuation", "rescue_medication", "death", "protocol_deviation"] },
+              "event_type": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "examples": [
+                  "treatment_discontinuation",
+                  "rescue_medication",
+                  "death",
+                  "protocol_deviation"
+                ]
+              },
               "handling_strategy": {
-                "type": "string",
-                "enum": ["treatment_policy", "hypothetical", "composite", "while_on_treatment", "principal_stratum"],
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "treatment_policy",
+                  "hypothetical",
+                  "composite",
+                  "while_on_treatment",
+                  "principal_stratum"
+                ],
                 "description": "How this intercurrent event is handled in the estimand"
               },
-              "description": { "type": "string" }
-            }
+              "description": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "description",
+              "event_type",
+              "handling_strategy"
+            ]
           }
         },
         "sensitivity_estimands": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "description": "Alternative estimands for sensitivity analysis",
           "items": {
             "type": "object",
             "properties": {
-              "estimand_type": { "type": "string" },
-              "description": { "type": "string" }
-            }
+              "estimand_type": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "description": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "description",
+              "estimand_type"
+            ]
           }
         },
-        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+        "source": {
+          "$ref": "common.schema.json#/$defs/SourceRef"
+        }
       }
     },
-
     "PatientReportedOutcome": {
       "type": "object",
       "description": "Patient-reported outcome measure (PROM)",
       "additionalProperties": false,
-      "required": ["instrument_name"],
+      "required": [
+        "completion_rate",
+        "domain",
+        "instrument_name",
+        "instrument_version",
+        "minimally_important_difference",
+        "pro_ctcae",
+        "results_per_arm",
+        "scoring",
+        "source",
+        "timepoints"
+      ],
       "properties": {
-        "instrument_name": { "type": "string", "description": "Name of PRO instrument (e.g., EQ-5D, SF-36, EORTC QLQ-C30)" },
-        "instrument_version": { "type": "string" },
-        "domain": { "type": "string", "description": "Domain assessed (e.g., physical functioning, pain, quality of life)" },
-        "timepoints": { "type": "array", "items": { "type": "string" } },
-        "completion_rate": {
-          "type": "object",
-          "properties": {
-            "baseline_pct": { "type": "number", "minimum": 0, "maximum": 100 },
-            "followup_pct": { "type": "number", "minimum": 0, "maximum": 100 },
-            "differential_by_arm": { "type": "boolean" }
-          }
+        "instrument_name": {
+          "type": "string",
+          "description": "Name of PRO instrument (e.g., EQ-5D, SF-36, EORTC QLQ-C30)"
         },
-        "minimally_important_difference": {
-          "type": "object",
-          "properties": {
-            "value": { "type": "number" },
-            "anchor_based": { "type": "boolean" },
-            "distribution_based": { "type": "boolean" },
-            "source": { "type": "string" }
-          }
+        "instrument_version": {
+          "type": [
+            "string",
+            "null"
+          ]
         },
-        "scoring": {
-          "type": "object",
-          "properties": {
-            "scale_range": { "type": "object", "properties": { "min": { "type": "number" }, "max": { "type": "number" } } },
-            "direction": { "type": "string", "enum": ["higher_better", "lower_better"] },
-            "subscales": { "type": "array", "items": { "type": "string" } }
-          }
+        "domain": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Domain assessed (e.g., physical functioning, pain, quality of life)"
         },
-        "pro_ctcae": {
-          "type": "boolean",
-          "description": "Whether PRO-CTCAE (Patient-Reported Outcomes version of CTCAE) was used"
-        },
-        "results_per_arm": {
-          "type": "array",
+        "timepoints": {
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
-            "type": "object",
-            "properties": {
-              "arm_id": { "type": "string" },
-              "timepoint": { "type": "string" },
-              "mean": { "type": "number" },
-              "sd": { "type": "number" },
-              "median": { "type": "number" },
-              "iqr": { "type": "object", "properties": { "p25": { "type": "number" }, "p75": { "type": "number" } } }
+            "type": "string"
+          }
+        },
+        "completion_rate": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "baseline_pct": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "followup_pct": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "differential_by_arm": {
+              "type": "boolean"
             }
           }
         },
-        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+        "minimally_important_difference": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "value": {
+              "type": "number"
+            },
+            "anchor_based": {
+              "type": "boolean"
+            },
+            "distribution_based": {
+              "type": "boolean"
+            },
+            "source": {
+              "type": "string"
+            }
+          }
+        },
+        "scoring": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "properties": {
+            "scale_range": {
+              "type": "object",
+              "properties": {
+                "min": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "max": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "max",
+                "min"
+              ]
+            },
+            "direction": {
+              "type": "string",
+              "enum": [
+                "higher_better",
+                "lower_better"
+              ]
+            },
+            "subscales": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "pro_ctcae": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Whether PRO-CTCAE (Patient-Reported Outcomes version of CTCAE) was used"
+        },
+        "results_per_arm": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object",
+            "properties": {
+              "arm_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "timepoint": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "mean": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "sd": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "median": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "iqr": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "properties": {
+                  "p25": {
+                    "type": "number"
+                  },
+                  "p75": {
+                    "type": "number"
+                  }
+                }
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "arm_id",
+              "iqr",
+              "mean",
+              "median",
+              "sd",
+              "timepoint"
+            ]
+          }
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/SourceRef"
+        }
       }
     },
-
     "CompositeOutcome": {
       "type": "object",
       "description": "Details for composite outcomes",
       "additionalProperties": false,
       "properties": {
-        "outcome_id": { "type": "string" },
+        "outcome_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "components": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "object",
             "properties": {
-              "component_name": { "type": "string" },
-              "component_id": { "type": "string" },
-              "clinical_importance": { "type": "string", "enum": ["high", "moderate", "low"] },
-              "events_n": { "type": "integer", "minimum": 0 },
-              "contribution_pct": { "type": "number", "minimum": 0, "maximum": 100 }
-            }
+              "component_name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "component_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "clinical_importance": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "high",
+                  "moderate",
+                  "low"
+                ]
+              },
+              "events_n": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "contribution_pct": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 100
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "clinical_importance",
+              "component_id",
+              "component_name",
+              "contribution_pct",
+              "events_n"
+            ]
           }
         },
-        "hierarchical": { "type": "boolean", "description": "Whether components are hierarchically ordered" },
-        "hierarchy_order": { "type": "array", "items": { "type": "string" } },
+        "hierarchical": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Whether components are hierarchically ordered"
+        },
+        "hierarchy_order": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        },
         "win_ratio": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Win ratio analysis for hierarchical composite outcomes",
           "properties": {
-            "win_ratio": { "type": "number", "minimum": 0 },
-            "ci_lower": { "type": "number", "minimum": 0 },
-            "ci_upper": { "type": "number", "minimum": 0 },
-            "p_value": { "type": "number", "minimum": 0, "maximum": 1 }
+            "win_ratio": {
+              "type": "number",
+              "minimum": 0
+            },
+            "ci_lower": {
+              "type": "number",
+              "minimum": 0
+            },
+            "ci_upper": {
+              "type": "number",
+              "minimum": 0
+            },
+            "p_value": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
           }
         },
         "component_specific_effects": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "object",
             "properties": {
-              "component_id": { "type": "string" },
-              "effect": { "$ref": "common.schema.json#/$defs/ContrastEffect" }
-            }
+              "component_id": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "effect": {
+                "$ref": "common.schema.json#/$defs/ContrastEffect"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "component_id",
+              "effect"
+            ]
           }
         },
-        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
-      }
+        "source": {
+          "$ref": "common.schema.json#/$defs/SourceRef"
+        }
+      },
+      "required": [
+        "component_specific_effects",
+        "components",
+        "hierarchical",
+        "hierarchy_order",
+        "outcome_id",
+        "source",
+        "win_ratio"
+      ]
     }
   }
 }

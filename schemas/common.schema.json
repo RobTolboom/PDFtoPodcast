@@ -35,12 +35,29 @@
   "additionalProperties": false,
   "properties": {
     "schema_info": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "description": "Schema metadata and versioning information",
       "properties": {
-        "version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$", "default": "2.1.0" },
-        "last_updated": { "type": "string", "format": "date" },
-        "compatibility": { "type": "string", "enum": ["breaking", "backwards_compatible", "patch"] }
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "default": "2.1.0"
+        },
+        "last_updated": {
+          "type": "string",
+          "format": "date"
+        },
+        "compatibility": {
+          "type": "string",
+          "enum": [
+            "breaking",
+            "backwards_compatible",
+            "patch"
+          ]
+        }
       }
     }
   },
@@ -50,73 +67,182 @@
       "type": "string",
       "pattern": "^P(?:(?:\\d+Y)?(?:\\d+M)?(?:\\d+W)?(?:\\d+D)?)?(?:T(?:\\d+H)?(?:\\d+M)?(?:\\d+(?:\\.\\d+)?S)?)?$",
       "description": "Strict ISO 8601 duration (e.g., 'P30D', 'PT24H', 'P2W', 'P1Y2M3DT4H5M6S').",
-      "examples": ["P30D", "PT24H", "P2W", "P6M", "P1Y", "PT2H30M", "P1Y2M3DT4H5M6.789S"]
+      "examples": [
+        "P30D",
+        "PT24H",
+        "P2W",
+        "P6M",
+        "P1Y",
+        "PT2H30M",
+        "P1Y2M3DT4H5M6.789S"
+      ]
     },
     "LanguageCode": {
       "type": "string",
       "pattern": "^[a-z]{2,3}(-[A-Z]{2})?(-[a-z]{2,8})*$",
       "description": "BCP 47 language tag supporting language, region, and variants (e.g., 'en-US', 'zh-Hans-CN', 'ar-EG')",
-      "examples": ["en", "en-US", "en-GB", "nl", "nl-NL", "nl-BE", "de-DE", "fr-FR", "es-ES", "zh-Hans", "zh-Hant", "ar-EG", "he-IL"]
+      "examples": [
+        "en",
+        "en-US",
+        "en-GB",
+        "nl",
+        "nl-NL",
+        "nl-BE",
+        "de-DE",
+        "fr-FR",
+        "es-ES",
+        "zh-Hans",
+        "zh-Hant",
+        "ar-EG",
+        "he-IL"
+      ]
     },
-
     "LanguageScript": {
       "type": "string",
-      "enum": ["Latin", "Arabic", "Hebrew", "Cyrillic", "Greek", "Han", "Hiragana", "Katakana", "Thai", "Devanagari", "Other"],
+      "enum": [
+        "Latin",
+        "Arabic",
+        "Hebrew",
+        "Cyrillic",
+        "Greek",
+        "Han",
+        "Hiragana",
+        "Katakana",
+        "Thai",
+        "Devanagari",
+        "Other"
+      ],
       "description": "Writing system/script used in the document"
     },
-
     "TextDirection": {
       "type": "string",
-      "enum": ["ltr", "rtl", "ttb", "btt"],
+      "enum": [
+        "ltr",
+        "rtl",
+        "ttb",
+        "btt"
+      ],
       "description": "Text direction: left-to-right, right-to-left, top-to-bottom, bottom-to-top"
     },
-
     "LanguageDetection": {
       "type": "object",
       "additionalProperties": false,
       "description": "Language detection result with confidence scoring and script information",
-      "required": ["language"],
+      "required": [
+        "alternative_languages",
+        "confidence",
+        "detection_method",
+        "dominant_segments",
+        "language",
+        "mixed_language",
+        "script",
+        "text_direction"
+      ],
       "properties": {
-        "language": { "$ref": "#/$defs/LanguageCode" },
-        "script": { "$ref": "#/$defs/LanguageScript" },
-        "text_direction": { "$ref": "#/$defs/TextDirection" },
+        "language": {
+          "$ref": "#/$defs/LanguageCode"
+        },
+        "script": {
+          "$ref": "#/$defs/LanguageScript"
+        },
+        "text_direction": {
+          "$ref": "#/$defs/TextDirection"
+        },
         "confidence": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0,
           "maximum": 1,
           "description": "Confidence score for language detection"
         },
         "detection_method": {
-          "type": "string",
-          "enum": ["automatic", "manual", "metadata", "filename", "character_encoding", "unicode_block"],
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "automatic",
+            "manual",
+            "metadata",
+            "filename",
+            "character_encoding",
+            "unicode_block"
+          ],
           "description": "Method used for language detection"
         },
         "alternative_languages": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "object",
-            "required": ["language", "confidence"],
+            "required": [
+              "confidence",
+              "language",
+              "script"
+            ],
             "properties": {
-              "language": { "$ref": "#/$defs/LanguageCode" },
-              "script": { "$ref": "#/$defs/LanguageScript" },
-              "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
-            }
+              "language": {
+                "$ref": "#/$defs/LanguageCode"
+              },
+              "script": {
+                "$ref": "#/$defs/LanguageScript"
+              },
+              "confidence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
+            },
+            "additionalProperties": false
           },
           "description": "Alternative language candidates with confidence scores"
         },
         "mixed_language": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "description": "Whether document contains multiple languages"
         },
         "dominant_segments": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "object",
             "properties": {
-              "language": { "$ref": "#/$defs/LanguageCode" },
-              "percentage": { "type": "number", "minimum": 0, "maximum": 100 },
-              "sections": { "type": "array", "items": { "type": "string" } }
-            }
+              "language": {
+                "$ref": "#/$defs/LanguageCode"
+              },
+              "percentage": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 100
+              },
+              "sections": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "language",
+              "percentage",
+              "sections"
+            ]
           },
           "description": "Language distribution across document sections"
         }
@@ -127,51 +253,121 @@
       "pattern": "^[A-Z]{2}$",
       "description": "ISO 3166-1 alpha-2 country code (e.g., 'NL', 'US')."
     },
-    "CountryCode": { "$ref": "#/$defs/CountryCodeAlpha2" },
-
+    "CountryCode": {
+      "$ref": "#/$defs/CountryCodeAlpha2"
+    },
     "EmailAddress": {
       "type": "string",
       "format": "email",
       "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
       "description": "Valid email address for correspondence",
-      "examples": ["researcher@university.edu", "corresponding.author@hospital.org"]
+      "examples": [
+        "researcher@university.edu",
+        "corresponding.author@hospital.org"
+      ]
     },
-
     "SourceRef": {
       "type": "object",
       "additionalProperties": false,
       "description": "Reference to a specific location within a document",
       "properties": {
-        "anchor": { "type": "string", "description": "Free-text pointer like 'Table 2', 'Fig 1', or sentence quote" },
-        "page": { "type": "integer", "minimum": 1, "description": "Page number within the document" },
-        "figure_id": { "type": "string", "description": "Identifier of a specific figure" },
-        "table_id": { "type": "string", "description": "Identifier of a specific table" }
-      }
+        "anchor": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Free-text pointer like 'Table 2', 'Fig 1', or sentence quote"
+        },
+        "page": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "description": "Page number within the document"
+        },
+        "figure_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Identifier of a specific figure"
+        },
+        "table_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Identifier of a specific table"
+        }
+      },
+      "required": [
+        "anchor",
+        "figure_id",
+        "page",
+        "table_id"
+      ]
     },
-
     "Author": {
       "type": "object",
       "additionalProperties": false,
       "description": "Author information for academic publications",
-      "required": ["last_name"],
+      "required": [
+        "affiliations",
+        "corresponding",
+        "email",
+        "given_names",
+        "initials",
+        "last_name",
+        "orcid"
+      ],
       "properties": {
-        "last_name": { "type": "string", "description": "Author's family name" },
-        "initials": { "type": "string", "description": "Author's first/middle name initials" },
-        "given_names": { "type": "string", "description": "Author's full first and middle names" },
-        "orcid": {
+        "last_name": {
           "type": "string",
+          "description": "Author's family name"
+        },
+        "initials": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Author's first/middle name initials"
+        },
+        "given_names": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Author's full first and middle names"
+        },
+        "orcid": {
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^(https://orcid\\.org/)?0000-00(0[2-9]|[1-9]\\d)-\\d{4}-\\d{3}[\\dX]$",
           "description": "ORCID identifier with checksum validation (optionally with URL prefix)",
-          "examples": ["0000-0002-1825-0097", "https://orcid.org/0000-0002-1825-0097"]
+          "examples": [
+            "0000-0002-1825-0097",
+            "https://orcid.org/0000-0002-1825-0097"
+          ]
         },
         "affiliations": {
-          "type": "array",
-          "items": { "type": "string" },
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
           "default": [],
           "description": "Author's institutional affiliations"
         },
         "corresponding": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "default": false,
           "description": "Whether this author is the corresponding author"
         },
@@ -181,288 +377,432 @@
         }
       }
     },
-
     "Registration": {
       "type": "object",
       "additionalProperties": false,
       "description": "Clinical trial or study registration information",
       "properties": {
         "registry": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
-            "ClinicalTrials.gov","ISRCTN","EudraCT","EU-CTR","CTIS","ChiCTR","ANZCTR",
-            "UMIN-CTR","JPRN","PACTR","IRCT","DRKS","TCTR","SLCTR","RPCEC","REBEC","Other"
+            "ClinicalTrials.gov",
+            "ISRCTN",
+            "EudraCT",
+            "EU-CTR",
+            "CTIS",
+            "ChiCTR",
+            "ANZCTR",
+            "UMIN-CTR",
+            "JPRN",
+            "PACTR",
+            "IRCT",
+            "DRKS",
+            "TCTR",
+            "SLCTR",
+            "RPCEC",
+            "REBEC",
+            "Other"
           ],
           "description": "Clinical trial registry (includes major international and regional registries)"
         },
         "identifier": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Registration identifier within the registry",
-          "examples": ["NCT04123456", "ISRCTN12345678", "2020-001234-56", "UMIN000012345"]
+          "examples": [
+            "NCT04123456",
+            "ISRCTN12345678",
+            "2020-001234-56",
+            "UMIN000012345"
+          ]
         },
-        "url": { "type": "string", "format": "uri", "description": "Direct URL to the registration record" }
-      },
-      "allOf": [
-        {
-          "if": { "properties": { "registry": { "const": "ClinicalTrials.gov" } } },
-          "then": {
-            "properties": {
-              "identifier": {
-                "pattern": "^NCT\\d{8}$",
-                "description": "ClinicalTrials.gov identifier format: NCT followed by 8 digits"
-              }
-            }
-          }
-        },
-        {
-          "if": { "properties": { "registry": { "const": "ISRCTN" } } },
-          "then": {
-            "properties": {
-              "identifier": {
-                "pattern": "^ISRCTN\\d{8}$",
-                "description": "ISRCTN identifier format: ISRCTN followed by 8 digits"
-              }
-            }
-          }
-        },
-        {
-          "if": { "properties": { "registry": { "const": "EudraCT" } } },
-          "then": {
-            "properties": {
-              "identifier": {
-                "pattern": "^\\d{4}-\\d{6}-\\d{2}$",
-                "description": "EudraCT identifier format: YYYY-NNNNNN-NN"
-              }
-            }
-          }
-        },
-        {
-          "if": { "properties": { "registry": { "const": "UMIN-CTR" } } },
-          "then": {
-            "properties": {
-              "identifier": {
-                "pattern": "^UMIN\\d{9}$",
-                "description": "UMIN-CTR identifier format: UMIN followed by 9 digits"
-              }
-            }
-          }
-        },
-        {
-          "if": { "properties": { "registry": { "const": "ChiCTR" } } },
-          "then": {
-            "properties": {
-              "identifier": {
-                "pattern": "^ChiCTR\\d{10}$",
-                "description": "ChiCTR identifier format: ChiCTR followed by 10 digits"
-              }
-            }
-          }
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri",
+          "description": "Direct URL to the registration record"
         }
+      },
+      "required": [
+        "identifier",
+        "registry",
+        "url"
       ]
     },
-
     "Metadata": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["title", "journal"],
+      "required": [
+        "article_number",
+        "authors",
+        "conflict_of_interest",
+        "content_hash_sha256",
+        "doi",
+        "eissn",
+        "elocation_id",
+        "epub_ahead_of_print_date",
+        "external_ids",
+        "funding",
+        "issn",
+        "issue",
+        "journal",
+        "journal_abbrev",
+        "page_end",
+        "page_start",
+        "pages",
+        "parsing_context",
+        "pmcid",
+        "pmid",
+        "protocol_ref",
+        "published_date",
+        "published_date_precision",
+        "registration",
+        "source",
+        "supplements",
+        "title",
+        "vancouver_citation",
+        "vancouver_source",
+        "volume"
+      ],
       "properties": {
-        "title": { "type": "string" },
-        "journal": { "type": "string" },
-        "journal_abbrev": { "type": "string" },
-        "published_date": { "type": "string", "format": "date" },
-        "published_date_precision": { "type": "string", "enum": ["year", "month", "day"] },
-        "volume": { "type": "string" },
-        "issue": { "type": "string" },
-        "pages": { "type": "string" },
-        "page_start": { "type": "string" },
-        "page_end": { "type": "string" },
-        "article_number": { "type": "string" },
-        "elocation_id": { "type": "string" },
+        "title": {
+          "type": "string"
+        },
+        "journal": {
+          "type": "string"
+        },
+        "journal_abbrev": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "published_date": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date"
+        },
+        "published_date_precision": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "year",
+            "month",
+            "day"
+          ]
+        },
+        "volume": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "issue": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "pages": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "page_start": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "page_end": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "article_number": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "elocation_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "issn": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^\\d{4}-\\d{3}[\\dxX]$",
           "description": "International Standard Serial Number (print version)"
         },
         "eissn": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^\\d{4}-\\d{3}[\\dxX]$",
           "description": "Electronic International Standard Serial Number"
         },
-        "authors": { "type": "array", "items": { "$ref": "#/$defs/Author" }, "default": [] },
-        "pmid": { "type": "string", "pattern": "^\\d{1,8}$" },
-        "pmcid": { "type": "string", "pattern": "^PMC\\d+$" },
+        "authors": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/Author"
+          },
+          "default": []
+        },
+        "pmid": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^\\d{1,8}$"
+        },
+        "pmcid": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^PMC\\d+$"
+        },
         "doi": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^10\\.\\d{4,}(\\.\\d+)?/[-._;()/:A-Za-z0-9\\[\\]]+$",
           "description": "DOI with comprehensive character support including brackets and extended punctuation",
-          "examples": ["10.1056/NEJMoa2001017", "10.1002/(SICI)1097-0142(19960101)77:1<1::AID-CNCR1>3.0.CO;2-Z"]
+          "examples": [
+            "10.1056/NEJMoa2001017",
+            "10.1002/(SICI)1097-0142(19960101)77:1<1::AID-CNCR1>3.0.CO;2-Z"
+          ]
         },
-        "registration": { "$ref": "#/$defs/Registration" },
-        "protocol_ref": { "type": "string" },
-        "funding": { "type": "string" },
-        "conflict_of_interest": { "type": "string" },
-        "epub_ahead_of_print_date": { "type": "string" },
-        "vancouver_citation": { "type": "string" },
-        "vancouver_source": { "$ref": "#/$defs/SourceRef" },
-        "source": { "$ref": "#/$defs/SourceRef" },
-
+        "registration": {
+          "$ref": "#/$defs/Registration"
+        },
+        "protocol_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "funding": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "conflict_of_interest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "epub_ahead_of_print_date": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "vancouver_citation": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "vancouver_source": {
+          "$ref": "#/$defs/SourceRef"
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        },
         "external_ids": {
-          "type": "array",
-          "items": { "$ref": "#/$defs/ExternalId" },
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/ExternalId"
+          },
           "default": []
         },
         "supplements": {
-          "type": "array",
-          "items": { "$ref": "#/$defs/SupplementFile" },
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/SupplementFile"
+          },
           "default": []
         },
-        "parsing_context": { "$ref": "#/$defs/ParsingContext" },
+        "parsing_context": {
+          "$ref": "#/$defs/ParsingContext"
+        },
         "content_hash_sha256": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^[a-fA-F0-9]{64}$",
           "description": "SHA-256 hash van bronbestand of platte tekst (64-char hex)"
         }
-      },
-      "dependentSchemas": {
-        "published_date_precision": {
-          "required": ["published_date"],
-          "properties": {
-            "published_date_precision": {
-              "description": "Precision can only be specified if published_date is present"
-            }
-          }
-        },
-        "page_end": {
-          "required": ["page_start"],
-          "properties": {
-            "page_end": {
-              "description": "End page requires start page to be specified"
-            }
-          }
-        },
-        "vancouver_source": {
-          "required": ["vancouver_citation"],
-          "properties": {
-            "vancouver_source": {
-              "description": "Vancouver source reference requires vancouver_citation to be present"
-            }
-          }
-        }
-      },
-      "allOf": [
-        {
-          "if": {
-            "properties": {
-              "published_date_precision": { "const": "day" }
-            }
-          },
-          "then": {
-            "properties": {
-              "published_date": {
-                "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-                "description": "Day precision requires full date format YYYY-MM-DD"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "published_date_precision": { "const": "month" }
-            }
-          },
-          "then": {
-            "properties": {
-              "published_date": {
-                "pattern": "^\\d{4}-\\d{2}(-\\d{2})?$",
-                "description": "Month precision allows YYYY-MM or YYYY-MM-DD format"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "published_date_precision": { "const": "year" }
-            }
-          },
-          "then": {
-            "properties": {
-              "published_date": {
-                "pattern": "^\\d{4}(-\\d{2}(-\\d{2})?)?$",
-                "description": "Year precision allows YYYY, YYYY-MM, or YYYY-MM-DD format"
-              }
-            }
-          }
-        }
-      ]
+      }
     },
-
     "EffectCI": {
       "type": "object",
       "additionalProperties": false,
       "description": "Confidence interval for effect estimates",
-      "required": ["lower", "upper"],
+      "required": [
+        "level",
+        "lower",
+        "upper"
+      ],
       "properties": {
         "level": {
-          "type": "number",
-          "enum": [80, 90, 95, 99],
+          "type": [
+            "number",
+            "null"
+          ],
+          "enum": [
+            80,
+            90,
+            95,
+            99
+          ],
           "default": 95,
           "description": "Confidence level as percentage"
         },
-        "lower": { "type": "number", "description": "Lower bound of confidence interval" },
-        "upper": { "type": "number", "description": "Upper bound of confidence interval" }
+        "lower": {
+          "type": "number",
+          "description": "Lower bound of confidence interval"
+        },
+        "upper": {
+          "type": "number",
+          "description": "Upper bound of confidence interval"
+        }
       }
     },
-
     "ContrastEffect": {
       "type": "object",
       "additionalProperties": false,
       "description": "Statistical effect estimate with confidence interval",
-      "required": ["type", "point"],
+      "required": [
+        "bayes_factor",
+        "ci",
+        "credible_interval",
+        "favors",
+        "p_value",
+        "point",
+        "posterior_probability",
+        "type"
+      ],
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["RR","IRR","OR","HR","MD","SMD","RD","RMST","Other"],
+          "enum": [
+            "RR",
+            "IRR",
+            "OR",
+            "HR",
+            "MD",
+            "SMD",
+            "RD",
+            "RMST",
+            "Other"
+          ],
           "description": "Type of effect measure (RR=Risk Ratio, OR=Odds Ratio, HR=Hazard Ratio, etc.)"
         },
-        "point": { "type": "number", "description": "Point estimate of the effect" },
-        "ci": { "$ref": "#/$defs/EffectCI" },
-        "credible_interval": { "$ref": "#/$defs/BayesianInterval" },
-        "p_value": {
+        "point": {
           "type": "number",
+          "description": "Point estimate of the effect"
+        },
+        "ci": {
+          "$ref": "#/$defs/EffectCI"
+        },
+        "credible_interval": {
+          "$ref": "#/$defs/BayesianInterval"
+        },
+        "p_value": {
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0,
           "maximum": 1,
           "description": "Statistical significance p-value"
         },
         "bayes_factor": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0,
           "description": "Bayesian evidence ratio (BF10 or BF01)"
         },
         "posterior_probability": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0,
           "maximum": 1,
           "description": "Posterior probability of effect direction"
         },
         "favors": {
-          "type": "string",
-          "enum": ["treatment_or_exposure","control_or_reference","neutral","unclear"],
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "treatment_or_exposure",
+            "control_or_reference",
+            "neutral",
+            "unclear"
+          ],
           "default": "neutral",
           "description": "Which group the effect favors based on clinical interpretation"
         }
       }
     },
-
     "BayesianInterval": {
       "type": "object",
       "additionalProperties": false,
       "description": "Bayesian credible interval",
-      "required": ["lower", "upper", "credibility"],
+      "required": [
+        "credibility",
+        "hdi",
+        "lower",
+        "upper"
+      ],
       "properties": {
-        "lower": { "type": "number", "description": "Lower bound of credible interval" },
-        "upper": { "type": "number", "description": "Upper bound of credible interval" },
+        "lower": {
+          "type": "number",
+          "description": "Lower bound of credible interval"
+        },
+        "upper": {
+          "type": "number",
+          "description": "Upper bound of credible interval"
+        },
         "credibility": {
           "type": "number",
           "minimum": 0,
@@ -470,117 +810,226 @@
           "description": "Credibility level (e.g., 0.95 for 95% CrI)"
         },
         "hdi": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "description": "Whether this is a Highest Density Interval"
         }
       }
     },
-
     "HeterogeneityMetrics": {
       "type": "object",
       "additionalProperties": false,
       "description": "Statistical heterogeneity measures for meta-analysis",
       "properties": {
         "I2_pct": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0,
           "maximum": 100,
           "description": "I-squared statistic (percentage of variance due to heterogeneity)"
         },
         "tau2": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0,
           "description": "Tau-squared (between-study variance)"
         },
         "H_statistic": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 1,
           "description": "H statistic (ratio of total to within-study variance)"
         },
         "Q_statistic": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0,
           "description": "Cochran's Q statistic"
         },
         "Q_p_value": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0,
           "maximum": 1,
           "description": "P-value for Q statistic"
         },
         "prediction_interval": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
-            "lower": { "type": "number" },
-            "upper": { "type": "number" },
-            "level": { "type": "number", "default": 95 }
+            "lower": {
+              "type": "number"
+            },
+            "upper": {
+              "type": "number"
+            },
+            "level": {
+              "type": "number",
+              "default": 95
+            }
           },
           "description": "Prediction interval for future studies"
         }
-      }
+      },
+      "required": [
+        "H_statistic",
+        "I2_pct",
+        "Q_p_value",
+        "Q_statistic",
+        "prediction_interval",
+        "tau2"
+      ]
     },
-
     "Biomarker": {
       "type": "object",
       "additionalProperties": false,
       "description": "Biomarker measurement with clinical context",
-      "required": ["name", "value"],
+      "required": [
+        "assay_type",
+        "cutoff_threshold",
+        "name",
+        "ontology_term",
+        "sensitivity",
+        "source",
+        "specificity",
+        "unit",
+        "value"
+      ],
       "properties": {
-        "name": { "type": "string", "description": "Biomarker name or identifier" },
-        "value": { "type": "number", "description": "Measured value" },
-        "unit": { "type": "string", "description": "Unit of measurement (preferably UCUM)" },
-        "assay_type": {
+        "name": {
           "type": "string",
-          "enum": ["immunoassay", "mass_spec", "pcr", "flow_cytometry", "other"],
+          "description": "Biomarker name or identifier"
+        },
+        "value": {
+          "type": "number",
+          "description": "Measured value"
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Unit of measurement (preferably UCUM)"
+        },
+        "assay_type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "immunoassay",
+            "mass_spec",
+            "pcr",
+            "flow_cytometry",
+            "other"
+          ],
           "description": "Type of assay used"
         },
         "cutoff_threshold": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "description": "Clinical decision threshold"
         },
         "sensitivity": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0,
           "maximum": 1,
           "description": "Diagnostic sensitivity at threshold"
         },
         "specificity": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0,
           "maximum": 1,
           "description": "Diagnostic specificity at threshold"
         },
-        "ontology_term": { "$ref": "#/$defs/OntologyTerm" },
-        "source": { "$ref": "#/$defs/SourceRef" }
+        "ontology_term": {
+          "$ref": "#/$defs/OntologyTerm"
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        }
       }
     },
-
     "SurvivalAnalysis": {
       "type": "object",
       "additionalProperties": false,
       "description": "Time-to-event analysis with censoring information",
-      "required": ["method"],
+      "required": [
+        "censoring",
+        "competing_events",
+        "median_survival",
+        "method"
+      ],
       "properties": {
         "method": {
           "type": "string",
-          "enum": ["kaplan_meier", "cox_regression", "accelerated_failure_time", "competing_risks", "other"],
+          "enum": [
+            "kaplan_meier",
+            "cox_regression",
+            "accelerated_failure_time",
+            "competing_risks",
+            "other"
+          ],
           "description": "Statistical method used for survival analysis"
         },
         "median_survival": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
-            "time": { "type": "number", "minimum": 0 },
-            "unit": { "type": "string" },
-            "ci": { "$ref": "#/$defs/EffectCI" },
-            "not_reached": { "type": "boolean", "description": "Whether median survival was not reached" }
+            "time": {
+              "type": "number",
+              "minimum": 0
+            },
+            "unit": {
+              "type": "string"
+            },
+            "ci": {
+              "$ref": "#/$defs/EffectCI"
+            },
+            "not_reached": {
+              "type": "boolean",
+              "description": "Whether median survival was not reached"
+            }
           }
         },
         "censoring": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "type": {
               "type": "string",
-              "enum": ["right", "left", "interval", "mixed"],
+              "enum": [
+                "right",
+                "left",
+                "interval",
+                "mixed"
+              ],
               "description": "Type of censoring present in the data"
             },
             "percentage": {
@@ -591,46 +1040,90 @@
             },
             "informative_risk": {
               "type": "string",
-              "enum": ["low", "moderate", "high", "unknown"],
+              "enum": [
+                "low",
+                "moderate",
+                "high",
+                "unknown"
+              ],
               "description": "Risk that censoring is informative (not random)"
             }
           }
         },
         "competing_events": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "object",
-            "required": ["event_type"],
+            "required": [
+              "cumulative_incidence",
+              "event_type",
+              "time_point"
+            ],
             "properties": {
-              "event_type": { "type": "string" },
-              "cumulative_incidence": { "type": "number", "minimum": 0, "maximum": 1 },
-              "time_point": { "type": "number", "minimum": 0 }
-            }
+              "event_type": {
+                "type": "string"
+              },
+              "cumulative_incidence": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 1
+              },
+              "time_point": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              }
+            },
+            "additionalProperties": false
           }
         }
       }
     },
-
     "MissingDataPattern": {
       "type": "object",
       "additionalProperties": false,
       "description": "Missing data analysis and patterns",
       "properties": {
         "mechanism": {
-          "type": "string",
-          "enum": ["MCAR", "MAR", "MNAR", "unknown"],
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "MCAR",
+            "MAR",
+            "MNAR",
+            "unknown"
+          ],
           "description": "Missing data mechanism (Missing Completely At Random, Missing At Random, Missing Not At Random)"
         },
         "percentage": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0,
           "maximum": 100,
           "description": "Percentage of missing data"
         },
         "pattern_analysis": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
-            "monotone": { "type": "boolean", "description": "Whether missing pattern is monotone" },
+            "monotone": {
+              "type": "boolean",
+              "description": "Whether missing pattern is monotone"
+            },
             "little_test_p": {
               "type": "number",
               "minimum": 0,
@@ -640,633 +1133,1292 @@
           }
         },
         "imputation_method": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
-            "complete_case", "last_observation_carried_forward", "multiple_imputation",
-            "mean_imputation", "regression_imputation", "hot_deck", "other"
+            "complete_case",
+            "last_observation_carried_forward",
+            "multiple_imputation",
+            "mean_imputation",
+            "regression_imputation",
+            "hot_deck",
+            "other"
           ],
           "description": "Method used to handle missing data"
         },
         "sensitivity_analysis": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "description": "Whether sensitivity analysis for missing data was performed"
         }
-      }
+      },
+      "required": [
+        "imputation_method",
+        "mechanism",
+        "pattern_analysis",
+        "percentage",
+        "sensitivity_analysis"
+      ]
     },
-
     "SampleSizeCalculation": {
       "type": "object",
       "additionalProperties": false,
       "description": "Sample size justification and power analysis",
       "properties": {
-        "target_n": { "type": "integer", "minimum": 1, "description": "Target sample size" },
-        "achieved_n": { "type": "integer", "minimum": 1, "description": "Actually achieved sample size" },
+        "target_n": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "description": "Target sample size"
+        },
+        "achieved_n": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "description": "Actually achieved sample size"
+        },
         "power": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0,
           "maximum": 1,
           "description": "Statistical power (1 - β)"
         },
         "alpha": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0,
           "maximum": 1,
           "default": 0.05,
           "description": "Type I error rate (α)"
         },
         "effect_size": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
-            "value": { "type": "number" },
+            "value": {
+              "type": "number"
+            },
             "type": {
               "type": "string",
-              "enum": ["cohen_d", "odds_ratio", "hazard_ratio", "correlation", "proportion_difference", "other"]
+              "enum": [
+                "cohen_d",
+                "odds_ratio",
+                "hazard_ratio",
+                "correlation",
+                "proportion_difference",
+                "other"
+              ]
             },
-            "clinically_meaningful": { "type": "boolean", "description": "Whether effect size is clinically meaningful" }
+            "clinically_meaningful": {
+              "type": "boolean",
+              "description": "Whether effect size is clinically meaningful"
+            }
           }
         },
         "dropout_rate": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0,
           "maximum": 1,
           "description": "Expected dropout/attrition rate"
         }
-      }
+      },
+      "required": [
+        "achieved_n",
+        "alpha",
+        "dropout_rate",
+        "effect_size",
+        "power",
+        "target_n"
+      ]
     },
-
     "RiskOfBias": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "tool": { "type": "string", "enum": ["RoB2", "ROBINS-I", "PROBAST", "Other"] },
-        "overall": { "type": "string" },
+        "tool": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "RoB2",
+            "ROBINS-I",
+            "PROBAST",
+            "Other"
+          ]
+        },
+        "overall": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "domains": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["domain", "judgement"],
+            "required": [
+              "domain",
+              "judgement",
+              "notes"
+            ],
             "properties": {
-              "domain": { "type": "string" },
+              "domain": {
+                "type": "string"
+              },
               "judgement": {
                 "type": "string",
-                "enum": ["low","some","high","unclear","moderate","serious","critical","no_information","some_concerns"]
+                "enum": [
+                  "low",
+                  "some",
+                  "high",
+                  "unclear",
+                  "moderate",
+                  "serious",
+                  "critical",
+                  "no_information",
+                  "some_concerns"
+                ]
               },
-              "notes": { "type": "string" }
+              "notes": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
             }
           },
           "default": []
         },
         "applicability": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "additionalProperties": false,
           "properties": {
-            "participants": { "type": "string", "enum": ["low", "high", "unclear"] },
-            "predictors": { "type": "string", "enum": ["low", "high", "unclear"] },
-            "outcome": { "type": "string", "enum": ["low", "high", "unclear"] },
-            "notes": { "type": "string" }
-          }
-        },
-        "provenance": { "$ref": "#/$defs/Provenance" }
-      },
-      "allOf": [
-        {
-          "if": { "properties": { "tool": { "const": "RoB2" } } },
-          "then": {
-            "properties": {
-              "overall": { "type": "string", "enum": ["low", "some_concerns", "high", "unclear"] },
-              "domains": {
-                "items": {
-                  "properties": {
-                    "domain": {
-                      "type": "string",
-                      "enum": [
-                        "randomization_process",
-                        "deviations_from_intended_interventions",
-                        "missing_outcome_data",
-                        "measurement_of_outcome",
-                        "selection_of_reported_result"
-                      ]
-                    },
-                    "judgement": { "type": "string", "enum": ["low", "some_concerns", "high", "unclear"] }
-                  }
-                },
-                "minItems": 5
-              }
+            "participants": {
+              "type": "string",
+              "enum": [
+                "low",
+                "high",
+                "unclear"
+              ]
+            },
+            "predictors": {
+              "type": "string",
+              "enum": [
+                "low",
+                "high",
+                "unclear"
+              ]
+            },
+            "outcome": {
+              "type": "string",
+              "enum": [
+                "low",
+                "high",
+                "unclear"
+              ]
+            },
+            "notes": {
+              "type": "string"
             }
           }
         },
-        {
-          "if": { "properties": { "tool": { "const": "ROBINS-I" } } },
-          "then": {
-            "properties": {
-              "overall": { "type": "string", "enum": ["low", "moderate", "serious", "critical", "no_information"] },
-              "domains": {
-                "items": {
-                  "properties": {
-                    "domain": {
-                      "type": "string",
-                      "enum": [
-                        "bias_due_to_confounding",
-                        "bias_in_selection_of_participants",
-                        "bias_in_classification_of_interventions",
-                        "bias_due_to_deviations_from_intended_interventions",
-                        "bias_due_to_missing_data",
-                        "bias_in_measurement_of_outcomes",
-                        "bias_in_selection_of_reported_result"
-                      ]
-                    },
-                    "judgement": { "type": "string", "enum": ["low", "moderate", "serious", "critical", "no_information"] }
-                  }
-                },
-                "minItems": 7
-              }
-            }
-          }
-        },
-        {
-          "if": { "properties": { "tool": { "const": "PROBAST" } } },
-          "then": {
-            "properties": {
-              "overall": { "type": "string", "enum": ["low", "high", "unclear"] },
-              "domains": {
-                "items": {
-                  "properties": {
-                    "domain": { "type": "string", "enum": ["participants", "predictors", "outcome", "analysis"] },
-                    "judgement": { "type": "string", "enum": ["low", "high", "unclear"] }
-                  }
-                },
-                "minItems": 4
-              },
-              "applicability": {
-                "type": "object",
-                "additionalProperties": false,
-                "properties": {
-                  "participants": { "type": "string", "enum": ["low", "high", "unclear"] },
-                  "predictors": { "type": "string", "enum": ["low", "high", "unclear"] },
-                  "outcome": { "type": "string", "enum": ["low", "high", "unclear"] },
-                  "notes": { "type": "string" }
-                }
-              }
-            }
-          }
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
         }
+      },
+      "required": [
+        "applicability",
+        "domains",
+        "overall",
+        "provenance",
+        "tool"
       ]
     },
-
     "ExtractionWarning": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["code", "message"],
+      "required": [
+        "code",
+        "message",
+        "source"
+      ],
       "properties": {
         "code": {
           "type": "string",
-          "enum": ["TABLE_PARSE_FAIL","AMBIGUOUS_UNIT","CI_PARSE_FAIL","MISSING_ARM_ID","MISSING_GROUP_ID","OTHER"]
+          "enum": [
+            "TABLE_PARSE_FAIL",
+            "AMBIGUOUS_UNIT",
+            "CI_PARSE_FAIL",
+            "MISSING_ARM_ID",
+            "MISSING_GROUP_ID",
+            "OTHER"
+          ]
         },
-        "message": { "type": "string" },
-        "source": { "$ref": "#/$defs/SourceRef" }
+        "message": {
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        }
       }
     },
-
     "TruncationInfo": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "value": { "type": "boolean", "default": false },
-        "reason": { "type": "string", "enum": ["token_limit", "page_limit", "timeout", "other"] }
-      }
+        "value": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "token_limit",
+            "page_limit",
+            "timeout",
+            "other"
+          ]
+        }
+      },
+      "required": [
+        "reason",
+        "value"
+      ]
     },
-
     "ParsedTable": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["table_id", "title"],
+      "required": [
+        "page",
+        "rows",
+        "source",
+        "table_id",
+        "title",
+        "type"
+      ],
       "properties": {
-        "table_id": { "type": "string" },
-        "title": { "type": "string" },
-        "page": { "type": "integer", "minimum": 1 },
-        "type": { "type": "string", "enum": ["baseline", "outcomes", "harms", "methods", "other"] },
+        "table_id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "page": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "baseline",
+            "outcomes",
+            "harms",
+            "methods",
+            "other"
+          ]
+        },
         "rows": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["cells"],
-            "properties": { "cells": { "type": "array", "minItems": 1, "items": { "type": "string" } } }
+            "required": [
+              "cells"
+            ],
+            "properties": {
+              "cells": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "default": []
         },
-        "source": { "$ref": "#/$defs/SourceRef" }
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        }
       }
     },
-
     "FigureSummary": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["figure_id", "caption"],
+      "required": [
+        "caption",
+        "figure_id",
+        "key_values",
+        "page",
+        "source"
+      ],
       "properties": {
-        "figure_id": { "type": "string" },
-        "caption": { "type": "string" },
-        "key_values": { "type": "object", "additionalProperties": { "type": "number" }, "default": {} },
-        "page": { "type": "integer", "minimum": 1 },
-        "source": { "$ref": "#/$defs/SourceRef" }
+        "figure_id": {
+          "type": "string"
+        },
+        "caption": {
+          "type": "string"
+        },
+        "key_values": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "number"
+          },
+          "default": {}
+        },
+        "page": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        }
       }
     },
-
     "Provenance": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "extractor": { "type": "string", "description": "Person or system that performed extraction" },
+        "extractor": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Person or system that performed extraction"
+        },
         "method": {
-          "type": "string",
-          "enum": ["human_double_entry","human_single","llm_assisted","rule_based","automated","other"],
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "human_double_entry",
+            "human_single",
+            "llm_assisted",
+            "rule_based",
+            "automated",
+            "other"
+          ],
           "description": "Extraction method used"
         },
         "confidence": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0,
           "maximum": 1,
           "description": "Extractor's confidence in the extraction"
         },
-        "timestamp": { "type": "string", "format": "date-time", "description": "When extraction was performed" },
-        "transformation_notes": { "type": "string", "description": "Notes about data processing or transformation" },
+        "timestamp": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "When extraction was performed"
+        },
+        "transformation_notes": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Notes about data processing or transformation"
+        },
         "consensus_status": {
-          "type": "string",
-          "enum": ["agreement", "disagreement", "resolved", "single_reviewer", "not_applicable"],
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "agreement",
+            "disagreement",
+            "resolved",
+            "single_reviewer",
+            "not_applicable"
+          ],
           "description": "Status of reviewer consensus (for double extraction)"
         },
         "reviewers": {
-          "type": "array",
-          "items": { "type": "string" },
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
           "description": "List of reviewers involved in extraction"
         },
-        "adjudication": { "$ref": "#/$defs/Adjudication" },
-        "source": { "$ref": "#/$defs/SourceRef" }
-      }
+        "adjudication": {
+          "$ref": "#/$defs/Adjudication"
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        }
+      },
+      "required": [
+        "adjudication",
+        "confidence",
+        "consensus_status",
+        "extractor",
+        "method",
+        "reviewers",
+        "source",
+        "timestamp",
+        "transformation_notes"
+      ]
     },
-
     "Adjudication": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "needed": { "type": "boolean", "default": false },
-        "adjudicator": { "type": "string" },
-        "notes": { "type": "string" }
-      }
+        "needed": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
+        "adjudicator": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notes": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "adjudicator",
+        "needed",
+        "notes"
+      ]
     },
-
     "OntologyTerm": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["system", "code"],
+      "required": [
+        "code",
+        "display",
+        "fhir_coding",
+        "system",
+        "version"
+      ],
       "properties": {
         "system": {
           "type": "string",
-          "enum": ["MeSH", "SNOMED-CT", "LOINC", "MedDRA", "ICD-10", "ICD-11", "UMLS", "RxNorm", "ATC", "CPT", "HCPCS", "Other"],
+          "enum": [
+            "MeSH",
+            "SNOMED-CT",
+            "LOINC",
+            "MedDRA",
+            "ICD-10",
+            "ICD-11",
+            "UMLS",
+            "RxNorm",
+            "ATC",
+            "CPT",
+            "HCPCS",
+            "Other"
+          ],
           "description": "Standard medical terminology system"
         },
-        "code": { "type": "string", "description": "Code within the terminology system" },
-        "display": { "type": "string", "description": "Human-readable description of the code" },
-        "version": { "type": "string", "description": "Version of the terminology system used" },
-        "fhir_coding": { "$ref": "#/$defs/FHIRCoding" }
+        "code": {
+          "type": "string",
+          "description": "Code within the terminology system"
+        },
+        "display": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Human-readable description of the code"
+        },
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Version of the terminology system used"
+        },
+        "fhir_coding": {
+          "$ref": "#/$defs/FHIRCoding"
+        }
       }
     },
-
     "FHIRCoding": {
       "type": "object",
       "additionalProperties": false,
       "description": "FHIR R5 Coding datatype for medical terminology",
       "properties": {
         "system": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "uri",
           "description": "URI that identifies the code system"
         },
-        "version": { "type": "string", "description": "Version of the code system" },
-        "code": { "type": "string", "description": "Symbol in syntax defined by the system" },
-        "display": { "type": "string", "description": "Representation defined by the system" },
-        "userSelected": { "type": "boolean", "description": "If this coding was chosen directly by the user" }
-      }
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Version of the code system"
+        },
+        "code": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Symbol in syntax defined by the system"
+        },
+        "display": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Representation defined by the system"
+        },
+        "userSelected": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "If this coding was chosen directly by the user"
+        }
+      },
+      "required": [
+        "code",
+        "display",
+        "system",
+        "userSelected",
+        "version"
+      ]
     },
-
     "FHIRCodeableConcept": {
       "type": "object",
       "additionalProperties": false,
       "description": "FHIR R5 CodeableConcept for complex medical concepts",
       "properties": {
         "coding": {
-          "type": "array",
-          "items": { "$ref": "#/$defs/FHIRCoding" },
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/FHIRCoding"
+          },
           "description": "Code defined by a terminology system"
         },
-        "text": { "type": "string", "description": "Plain text representation of the concept" }
-      }
+        "text": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Plain text representation of the concept"
+        }
+      },
+      "required": [
+        "coding",
+        "text"
+      ]
     },
-
     "FHIRIdentifier": {
       "type": "object",
       "additionalProperties": false,
       "description": "FHIR R5 Identifier for business identifiers",
       "properties": {
         "use": {
-          "type": "string",
-          "enum": ["usual", "official", "temp", "secondary", "old"],
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "usual",
+            "official",
+            "temp",
+            "secondary",
+            "old"
+          ],
           "description": "The purpose of this identifier"
         },
-        "type": { "$ref": "#/$defs/FHIRCodeableConcept" },
+        "type": {
+          "$ref": "#/$defs/FHIRCodeableConcept"
+        },
         "system": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "uri",
           "description": "The namespace for the identifier value"
         },
-        "value": { "type": "string", "description": "The value that is unique" },
-        "period": { "$ref": "#/$defs/FHIRPeriod" },
-        "assigner": { "type": "string", "description": "Organization that issued the identifier" }
-      }
+        "value": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The value that is unique"
+        },
+        "period": {
+          "$ref": "#/$defs/FHIRPeriod"
+        },
+        "assigner": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Organization that issued the identifier"
+        }
+      },
+      "required": [
+        "assigner",
+        "period",
+        "system",
+        "type",
+        "use",
+        "value"
+      ]
     },
-
     "FHIRPeriod": {
       "type": "object",
       "additionalProperties": false,
       "description": "FHIR R5 Period datatype for time ranges",
       "properties": {
         "start": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "date-time",
           "description": "Start time with inclusive boundary"
         },
         "end": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "date-time",
           "description": "End time with inclusive boundary"
         }
-      }
+      },
+      "required": [
+        "end",
+        "start"
+      ]
     },
-
     "FHIRQuantity": {
       "type": "object",
       "additionalProperties": false,
       "description": "FHIR R5 Quantity datatype for measured amounts",
       "properties": {
-        "value": { "type": "number", "description": "Numerical value (with implicit precision)" },
+        "value": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Numerical value (with implicit precision)"
+        },
         "comparator": {
-          "type": "string",
-          "enum": ["<", "<=", ">=", ">"],
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "<",
+            "<=",
+            ">=",
+            ">"
+          ],
           "description": "How to interpret the value"
         },
-        "unit": { "type": "string", "description": "Unit representation" },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Unit representation"
+        },
         "system": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "uri",
           "description": "System that defines coded unit form",
           "default": "http://unitsofmeasure.org"
         },
-        "code": { "type": "string", "description": "Coded form of the unit" }
-      }
+        "code": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Coded form of the unit"
+        }
+      },
+      "required": [
+        "code",
+        "comparator",
+        "system",
+        "unit",
+        "value"
+      ]
     },
-
     "FHIRReference": {
       "type": "object",
       "additionalProperties": false,
       "description": "FHIR R5 Reference to another resource",
       "properties": {
         "reference": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Literal reference, Relative, internal or absolute URL"
         },
         "type": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "uri",
           "description": "Type the reference refers to (e.g. Patient)"
         },
-        "identifier": { "$ref": "#/$defs/FHIRIdentifier" },
-        "display": { "type": "string", "description": "Text alternative for the resource" }
-      }
+        "identifier": {
+          "$ref": "#/$defs/FHIRIdentifier"
+        },
+        "display": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Text alternative for the resource"
+        }
+      },
+      "required": [
+        "display",
+        "identifier",
+        "reference",
+        "type"
+      ]
     },
-
     "LinkedDataResource": {
       "type": "object",
       "additionalProperties": false,
       "description": "Linked Data resource with semantic annotations",
       "properties": {
         "@id": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "uri",
           "description": "Unique identifier (IRI) for this resource"
         },
         "@type": {
           "oneOf": [
-            { "type": "string" },
-            { "type": "array", "items": { "type": "string" } }
+            {
+              "type": "string"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
           ],
           "description": "RDF type(s) of this resource"
         },
         "@context": {
           "oneOf": [
-            { "type": "string", "format": "uri" },
-            { "type": "object" },
-            { "type": "array" }
+            {
+              "type": "string",
+              "format": "uri"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false
+            },
+            {
+              "type": "array"
+            }
           ],
           "description": "JSON-LD context for semantic mapping"
         },
         "sameAs": {
-          "type": "array",
-          "items": { "type": "string", "format": "uri" },
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string",
+            "format": "uri"
+          },
           "description": "URIs of equivalent resources (owl:sameAs)"
         },
         "relatedTo": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "object",
             "properties": {
-              "uri": { "type": "string", "format": "uri" },
-              "relation": { "type": "string", "description": "Type of relationship" },
-              "description": { "type": "string" }
-            }
+              "uri": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uri"
+              },
+              "relation": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Type of relationship"
+              },
+              "description": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "description",
+              "relation",
+              "uri"
+            ]
           },
           "description": "Related resources with relationship types"
         }
-      }
+      },
+      "required": [
+        "@context",
+        "@id",
+        "@type",
+        "relatedTo",
+        "sameAs"
+      ]
     },
-
     "SemanticAnnotation": {
       "type": "object",
       "additionalProperties": false,
       "description": "Semantic annotation linking to knowledge graphs",
       "properties": {
         "concept_uri": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "uri",
           "description": "URI of the semantic concept"
         },
         "ontology": {
-          "type": "string",
-          "enum": ["MESH", "SNOMED-CT", "LOINC", "FHIR", "Schema.org", "FAIR", "Other"],
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "MESH",
+            "SNOMED-CT",
+            "LOINC",
+            "FHIR",
+            "Schema.org",
+            "FAIR",
+            "Other"
+          ],
           "description": "Source ontology or vocabulary"
         },
         "confidence": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0,
           "maximum": 1,
           "description": "Confidence score for this annotation"
         },
         "annotation_method": {
-          "type": "string",
-          "enum": ["manual", "automatic", "hybrid", "crowdsourced"],
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "manual",
+            "automatic",
+            "hybrid",
+            "crowdsourced"
+          ],
           "description": "Method used for semantic annotation"
         },
         "evidence": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Evidence or reasoning for this annotation"
         }
-      }
+      },
+      "required": [
+        "annotation_method",
+        "concept_uri",
+        "confidence",
+        "evidence",
+        "ontology"
+      ]
     },
-
     "ValueWithRaw": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "value": { "type": ["string","number","integer","boolean","null"], "description": "Processed/normalized value" },
-        "raw_text": { "type": "string", "description": "Original text as found in document" },
-        "unit_ucum": { "type": "string", "description": "UCUM unit code if applicable" },
+        "value": {
+          "type": [
+            "string",
+            "number",
+            "integer",
+            "boolean",
+            "null"
+          ],
+          "description": "Processed/normalized value"
+        },
+        "raw_text": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Original text as found in document"
+        },
+        "unit_ucum": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "UCUM unit code if applicable"
+        },
         "transformation_confidence": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0,
           "maximum": 1,
           "description": "Confidence in the raw→processed transformation"
         },
-        "source": { "$ref": "#/$defs/SourceRef" },
-        "provenance": { "$ref": "#/$defs/Provenance" }
-      }
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        }
+      },
+      "required": [
+        "provenance",
+        "raw_text",
+        "source",
+        "transformation_confidence",
+        "unit_ucum",
+        "value"
+      ]
     },
-
     "Measurement": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["value"],
+      "required": [
+        "abnormal_flag",
+        "assay_method",
+        "measurement_timestamp",
+        "provenance",
+        "reference_range",
+        "source",
+        "unit_ucum",
+        "value"
+      ],
       "properties": {
-        "value": { "type": "number", "description": "Measured value" },
-        "unit_ucum": { "type": "string", "description": "UCUM unit code" },
-        "assay_method": { "type": "string", "description": "Laboratory assay or measurement method" },
+        "value": {
+          "type": "number",
+          "description": "Measured value"
+        },
+        "unit_ucum": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "UCUM unit code"
+        },
+        "assay_method": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Laboratory assay or measurement method"
+        },
         "reference_range": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "additionalProperties": false,
           "properties": {
-            "low": { "type": "number", "description": "Lower bound of normal range" },
-            "high": { "type": "number", "description": "Upper bound of normal range" }
+            "low": {
+              "type": "number",
+              "description": "Lower bound of normal range"
+            },
+            "high": {
+              "type": "number",
+              "description": "Upper bound of normal range"
+            }
           }
         },
         "abnormal_flag": {
-          "type": "string",
-          "enum": ["normal", "high", "low", "abnormal", "critical", "unknown"],
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "normal",
+            "high",
+            "low",
+            "abnormal",
+            "critical",
+            "unknown"
+          ],
           "description": "Clinical significance flag"
         },
         "measurement_timestamp": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "date-time",
           "description": "When measurement was taken"
         },
-        "source": { "$ref": "#/$defs/SourceRef" },
-        "provenance": { "$ref": "#/$defs/Provenance" }
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        }
       }
     },
-
     "ExternalId": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["source", "id"],
+      "required": [
+        "id",
+        "source",
+        "url",
+        "version"
+      ],
       "properties": {
         "source": {
           "type": "string",
           "enum": [
-            "PMID","PMCID","DOI","NCT","ISRCTN","EudraCT","EU-CTR","CTIS","UMIN","JPRN","DRKS","ChiCTR","ANZCTR",
-            "arXiv","bioRxiv","medRxiv","PubPeer","ISBN","ISSN","Handle","URN","Other"
+            "PMID",
+            "PMCID",
+            "DOI",
+            "NCT",
+            "ISRCTN",
+            "EudraCT",
+            "EU-CTR",
+            "CTIS",
+            "UMIN",
+            "JPRN",
+            "DRKS",
+            "ChiCTR",
+            "ANZCTR",
+            "arXiv",
+            "bioRxiv",
+            "medRxiv",
+            "PubPeer",
+            "ISBN",
+            "ISSN",
+            "Handle",
+            "URN",
+            "Other"
           ],
           "description": "External identifier source system including preprint servers and academic publishers"
         },
         "id": {
           "type": "string",
           "description": "Identifier value within the source system",
-          "examples": ["1234.5678", "2023.01.001", "10.1101/2023.01.01.123456", "978-0-123456-78-9"]
+          "examples": [
+            "1234.5678",
+            "2023.01.001",
+            "10.1101/2023.01.01.123456",
+            "978-0-123456-78-9"
+          ]
         },
-        "url": { "type": "string", "format": "uri", "description": "Optional direct URL to the external resource" },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri",
+          "description": "Optional direct URL to the external resource"
+        },
         "version": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Version number for preprints or versioned documents"
         }
-      },
-      "allOf": [
-        {
-          "if": { "properties": { "source": { "const": "arXiv" } } },
-          "then": {
-            "properties": {
-              "id": {
-                "pattern": "^(\\d{4}\\.\\d{4,5}|[a-z-]+/\\d{7})$",
-                "description": "arXiv identifier (new: YYMM.NNNN or old: subject-class/YYMMnnn)"
-              }
-            }
-          }
-        },
-        {
-          "if": { "properties": { "source": { "const": "ISBN" } } },
-          "then": {
-            "properties": {
-              "id": {
-                "pattern": "^(?:978|979)[0-9]{10}$|^[0-9]{9}[0-9X]$",
-                "description": "ISBN-10 or ISBN-13 format"
-              }
-            }
-          }
-        }
-      ]
+      }
     },
-
     "ResearcherIdentifier": {
       "type": "object",
       "additionalProperties": false,
       "description": "Academic researcher identifier",
-      "required": ["type", "id"],
+      "required": [
+        "id",
+        "type",
+        "url"
+      ],
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["ORCID", "ResearcherID", "Scopus", "Google_Scholar", "Other"],
+          "enum": [
+            "ORCID",
+            "ResearcherID",
+            "Scopus",
+            "Google_Scholar",
+            "Other"
+          ],
           "description": "Type of researcher identifier"
         },
-        "id": { "type": "string", "description": "Identifier value" },
-        "url": { "type": "string", "format": "uri", "description": "Profile URL" }
+        "id": {
+          "type": "string",
+          "description": "Identifier value"
+        },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri",
+          "description": "Profile URL"
+        }
       }
     },
-
     "InstitutionIdentifier": {
       "type": "object",
       "additionalProperties": false,
       "description": "Institutional identifier (ROR, GRID, etc.)",
-      "required": ["type", "id"],
+      "required": [
+        "id",
+        "name",
+        "type",
+        "url"
+      ],
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["ROR", "GRID", "ISNI", "Wikidata", "Other"],
+          "enum": [
+            "ROR",
+            "GRID",
+            "ISNI",
+            "Wikidata",
+            "Other"
+          ],
           "description": "Type of institutional identifier"
         },
-        "id": { "type": "string", "description": "Identifier value" },
-        "name": { "type": "string", "description": "Institution name" },
-        "url": { "type": "string", "format": "uri", "description": "Institution URL" }
+        "id": {
+          "type": "string",
+          "description": "Identifier value"
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Institution name"
+        },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri",
+          "description": "Institution URL"
+        }
       }
     },
-
     "GrantIdentifier": {
       "type": "object",
       "additionalProperties": false,
       "description": "Research grant or funding identifier",
-      "required": ["funder", "award_id"],
+      "required": [
+        "award_id",
+        "award_title",
+        "funder",
+        "funder_id",
+        "funding_program"
+      ],
       "properties": {
         "funder": {
           "type": "string",
           "description": "Funding organization name"
         },
         "funder_id": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Funder identifier (e.g., Crossref Funder ID)"
         },
         "award_id": {
@@ -1274,376 +2426,936 @@
           "description": "Grant/award number"
         },
         "award_title": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Grant title"
         },
         "funding_program": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Specific funding program or mechanism"
         }
       }
     },
-
     "RegulatoryStatus": {
       "type": "object",
       "additionalProperties": false,
       "description": "Regulatory approval and designation status",
       "properties": {
         "agency": {
-          "type": "string",
-          "enum": ["FDA", "EMA", "PMDA", "Health_Canada", "TGA", "NMPA", "Other"],
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "FDA",
+            "EMA",
+            "PMDA",
+            "Health_Canada",
+            "TGA",
+            "NMPA",
+            "Other"
+          ],
           "description": "Regulatory agency"
         },
         "status": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
-            "pre_clinical", "IND_submitted", "clinical_hold", "fast_track",
-            "breakthrough_therapy", "orphan_designation", "priority_review",
-            "accelerated_approval", "approved", "withdrawn", "other"
+            "pre_clinical",
+            "IND_submitted",
+            "clinical_hold",
+            "fast_track",
+            "breakthrough_therapy",
+            "orphan_designation",
+            "priority_review",
+            "accelerated_approval",
+            "approved",
+            "withdrawn",
+            "other"
           ],
           "description": "Current regulatory status"
         },
         "designation_date": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "date",
           "description": "Date of status/designation"
         },
         "indication": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Medical indication for this status"
         }
-      }
+      },
+      "required": [
+        "agency",
+        "designation_date",
+        "indication",
+        "status"
+      ]
     },
-
     "ClinicalScore": {
       "type": "object",
       "additionalProperties": false,
       "description": "Clinical assessment score or risk calculator",
-      "required": ["name", "value"],
+      "required": [
+        "age_specific",
+        "components",
+        "interpretation",
+        "name",
+        "percentile",
+        "risk_category",
+        "value"
+      ],
       "properties": {
         "name": {
           "type": "string",
           "enum": [
-            "APACHE_II", "APACHE_III", "SOFA", "SAPS_II", "Glasgow_Coma_Scale",
-            "Charlson_Comorbidity_Index", "Elixhauser_Comorbidity_Index", "ASA_Physical_Status",
-            "NYHA_Class", "Child_Pugh_Score", "MELD_Score", "Framingham_Risk_Score",
-            "CHADS2", "CHA2DS2_VASc", "HAS_BLED", "CRUSADE_Score",
-            "PEWS", "PRISM_III", "PIM_3", "Pediatric_Glasgow_Coma_Scale", "SNAPPE_II",
-            "Clinical_Frailty_Scale", "Rockwood_Frailty_Scale", "FRAIL_Scale", "Fried_Frailty_Phenotype",
-            "Katz_ADL", "Lawton_IADL", "Barthel_Index", "Mini_Mental_State_Exam", "MoCA",
-            "Geriatric_Depression_Scale", "Berg_Balance_Scale", "Timed_Up_and_Go", "Other"
+            "APACHE_II",
+            "APACHE_III",
+            "SOFA",
+            "SAPS_II",
+            "Glasgow_Coma_Scale",
+            "Charlson_Comorbidity_Index",
+            "Elixhauser_Comorbidity_Index",
+            "ASA_Physical_Status",
+            "NYHA_Class",
+            "Child_Pugh_Score",
+            "MELD_Score",
+            "Framingham_Risk_Score",
+            "CHADS2",
+            "CHA2DS2_VASc",
+            "HAS_BLED",
+            "CRUSADE_Score",
+            "PEWS",
+            "PRISM_III",
+            "PIM_3",
+            "Pediatric_Glasgow_Coma_Scale",
+            "SNAPPE_II",
+            "Clinical_Frailty_Scale",
+            "Rockwood_Frailty_Scale",
+            "FRAIL_Scale",
+            "Fried_Frailty_Phenotype",
+            "Katz_ADL",
+            "Lawton_IADL",
+            "Barthel_Index",
+            "Mini_Mental_State_Exam",
+            "MoCA",
+            "Geriatric_Depression_Scale",
+            "Berg_Balance_Scale",
+            "Timed_Up_and_Go",
+            "Other"
           ],
           "description": "Standardized clinical scoring system including pediatric and geriatric assessments"
         },
-        "value": { "type": "number", "description": "Calculated score value" },
+        "value": {
+          "type": "number",
+          "description": "Calculated score value"
+        },
         "interpretation": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Clinical interpretation of the score (e.g., 'low risk', 'severe')"
         },
         "percentile": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0,
           "maximum": 100,
           "description": "Percentile rank of this score"
         },
         "risk_category": {
-          "type": "string",
-          "enum": ["low", "low_moderate", "moderate", "moderate_high", "high", "very_high"],
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "low",
+            "low_moderate",
+            "moderate",
+            "moderate_high",
+            "high",
+            "very_high"
+          ],
           "description": "Risk stratification category"
         },
-        "age_specific": { "$ref": "#/$defs/AgeSpecificAssessment" },
+        "age_specific": {
+          "$ref": "#/$defs/AgeSpecificAssessment"
+        },
         "components": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "object",
             "properties": {
-              "component": { "type": "string" },
-              "value": { "type": "number" },
-              "points": { "type": "number" }
-            }
+              "component": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "value": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "points": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "component",
+              "points",
+              "value"
+            ]
           },
           "description": "Individual components contributing to the score"
         }
       }
     },
-
     "AgeSpecificAssessment": {
       "type": "object",
       "additionalProperties": false,
       "description": "Age-specific clinical assessment considerations",
       "properties": {
         "patient_age_group": {
-          "type": "string",
-          "enum": ["neonate", "infant", "toddler", "preschool", "school_age", "adolescent", "young_adult", "adult", "older_adult", "elderly", "very_elderly"],
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "neonate",
+            "infant",
+            "toddler",
+            "preschool",
+            "school_age",
+            "adolescent",
+            "young_adult",
+            "adult",
+            "older_adult",
+            "elderly",
+            "very_elderly"
+          ],
           "description": "Patient age category for contextualized assessment"
         },
         "pediatric_considerations": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
-            "age_months": { "type": "number", "minimum": 0, "description": "Age in months for pediatric patients" },
+            "age_months": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Age in months for pediatric patients"
+            },
             "developmental_stage": {
               "type": "string",
-              "enum": ["neonatal", "infant", "toddler", "preschool", "school_age", "adolescent"]
+              "enum": [
+                "neonatal",
+                "infant",
+                "toddler",
+                "preschool",
+                "school_age",
+                "adolescent"
+              ]
             },
-            "weight_percentile": { "type": "number", "minimum": 0, "maximum": 100 },
-            "height_percentile": { "type": "number", "minimum": 0, "maximum": 100 },
-            "premature_birth": { "type": "boolean", "description": "Whether patient was born prematurely" },
-            "corrected_age": { "type": "number", "description": "Corrected age for premature infants" }
+            "weight_percentile": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "height_percentile": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "premature_birth": {
+              "type": "boolean",
+              "description": "Whether patient was born prematurely"
+            },
+            "corrected_age": {
+              "type": "number",
+              "description": "Corrected age for premature infants"
+            }
           }
         },
         "geriatric_considerations": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "frailty_status": {
               "type": "string",
-              "enum": ["robust", "pre_frail", "frail", "severely_frail", "unknown"]
+              "enum": [
+                "robust",
+                "pre_frail",
+                "frail",
+                "severely_frail",
+                "unknown"
+              ]
             },
-            "cognitive_impairment": { "type": "boolean" },
-            "polypharmacy": { "type": "boolean", "description": "Taking 5 or more medications" },
-            "functional_decline": { "type": "boolean" },
+            "cognitive_impairment": {
+              "type": "boolean"
+            },
+            "polypharmacy": {
+              "type": "boolean",
+              "description": "Taking 5 or more medications"
+            },
+            "functional_decline": {
+              "type": "boolean"
+            },
             "social_support": {
               "type": "string",
-              "enum": ["excellent", "good", "moderate", "poor", "unknown"]
+              "enum": [
+                "excellent",
+                "good",
+                "moderate",
+                "poor",
+                "unknown"
+              ]
             },
             "fall_risk": {
               "type": "string",
-              "enum": ["low", "moderate", "high", "very_high", "unknown"]
+              "enum": [
+                "low",
+                "moderate",
+                "high",
+                "very_high",
+                "unknown"
+              ]
             }
           }
         },
         "normative_data": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
-            "reference_population": { "type": "string" },
-            "age_adjusted_percentile": { "type": "number", "minimum": 0, "maximum": 100 },
-            "sex_specific_norms": { "type": "boolean" }
+            "reference_population": {
+              "type": "string"
+            },
+            "age_adjusted_percentile": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "sex_specific_norms": {
+              "type": "boolean"
+            }
           }
         }
-      }
+      },
+      "required": [
+        "geriatric_considerations",
+        "normative_data",
+        "patient_age_group",
+        "pediatric_considerations"
+      ]
     },
-
     "DrugClassification": {
       "type": "object",
       "additionalProperties": false,
       "description": "Drug/medication classification and coding",
-      "required": ["name"],
+      "required": [
+        "atc_code",
+        "controlled_substance",
+        "mechanism_of_action",
+        "name",
+        "pharmacogenomics",
+        "pregnancy_category",
+        "route_of_administration",
+        "therapeutic_class"
+      ],
       "properties": {
-        "name": { "type": "string", "description": "Generic or brand name of the drug" },
-        "atc_code": {
+        "name": {
           "type": "string",
+          "description": "Generic or brand name of the drug"
+        },
+        "atc_code": {
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^[A-Z]\\d{2}[A-Z]{2}\\d{2}$",
           "description": "Anatomical Therapeutic Chemical (ATC) classification code"
         },
         "therapeutic_class": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Therapeutic classification (e.g., 'antihypertensive', 'antibiotic')"
         },
         "mechanism_of_action": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Primary mechanism of action"
         },
         "route_of_administration": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
-            "oral", "intravenous", "intramuscular", "subcutaneous", "topical",
-            "inhalation", "rectal", "transdermal", "sublingual", "other"
+            "oral",
+            "intravenous",
+            "intramuscular",
+            "subcutaneous",
+            "topical",
+            "inhalation",
+            "rectal",
+            "transdermal",
+            "sublingual",
+            "other"
           ]
         },
         "controlled_substance": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "schedule": {
               "type": "string",
-              "enum": ["I", "II", "III", "IV", "V", "not_controlled"]
+              "enum": [
+                "I",
+                "II",
+                "III",
+                "IV",
+                "V",
+                "not_controlled"
+              ]
             },
-            "jurisdiction": { "type": "string", "description": "Regulatory jurisdiction (e.g., 'DEA', 'Health Canada')" }
+            "jurisdiction": {
+              "type": "string",
+              "description": "Regulatory jurisdiction (e.g., 'DEA', 'Health Canada')"
+            }
           }
         },
         "pregnancy_category": {
-          "type": "string",
-          "enum": ["A", "B", "C", "D", "X", "unknown"],
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "A",
+            "B",
+            "C",
+            "D",
+            "X",
+            "unknown"
+          ],
           "description": "FDA pregnancy risk category"
         },
-        "pharmacogenomics": { "$ref": "#/$defs/PharmacogenomicProfile" }
+        "pharmacogenomics": {
+          "$ref": "#/$defs/PharmacogenomicProfile"
+        }
       }
     },
-
     "PharmacogenomicProfile": {
       "type": "object",
       "additionalProperties": false,
       "description": "Pharmacogenomic information for precision medicine",
       "properties": {
         "metabolizing_enzymes": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "object",
-            "required": ["gene", "enzyme"],
+            "required": [
+              "activity_score",
+              "clinical_relevance",
+              "enzyme",
+              "gene",
+              "phenotype_prediction"
+            ],
             "properties": {
               "gene": {
                 "type": "string",
-                "enum": ["CYP2D6", "CYP2C19", "CYP2C9", "CYP3A4", "CYP3A5", "CYP1A2", "UGT1A1", "TPMT", "DPYD", "Other"],
+                "enum": [
+                  "CYP2D6",
+                  "CYP2C19",
+                  "CYP2C9",
+                  "CYP3A4",
+                  "CYP3A5",
+                  "CYP1A2",
+                  "UGT1A1",
+                  "TPMT",
+                  "DPYD",
+                  "Other"
+                ],
                 "description": "Gene encoding metabolizing enzyme"
               },
-              "enzyme": { "type": "string", "description": "Enzyme name" },
-              "phenotype_prediction": {
+              "enzyme": {
                 "type": "string",
-                "enum": ["ultrarapid_metabolizer", "extensive_metabolizer", "intermediate_metabolizer", "poor_metabolizer", "unknown"],
+                "description": "Enzyme name"
+              },
+              "phenotype_prediction": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "ultrarapid_metabolizer",
+                  "extensive_metabolizer",
+                  "intermediate_metabolizer",
+                  "poor_metabolizer",
+                  "unknown"
+                ],
                 "description": "Predicted metabolizer phenotype"
               },
               "activity_score": {
-                "type": "number",
+                "type": [
+                  "number",
+                  "null"
+                ],
                 "minimum": 0,
                 "description": "Predicted enzyme activity score"
               },
               "clinical_relevance": {
-                "type": "string",
-                "enum": ["high", "moderate", "low", "unknown"],
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "high",
+                  "moderate",
+                  "low",
+                  "unknown"
+                ],
                 "description": "Clinical significance of the genetic variant"
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "drug_targets": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "object",
             "properties": {
-              "gene": { "type": "string", "description": "Target gene" },
-              "protein": { "type": "string", "description": "Target protein" },
-              "variant": { "type": "string", "description": "Genetic variant affecting drug target" },
+              "gene": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Target gene"
+              },
+              "protein": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Target protein"
+              },
+              "variant": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Genetic variant affecting drug target"
+              },
               "effect": {
-                "type": "string",
-                "enum": ["increased_efficacy", "decreased_efficacy", "increased_toxicity", "decreased_toxicity", "no_effect", "unknown"]
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "increased_efficacy",
+                  "decreased_efficacy",
+                  "increased_toxicity",
+                  "decreased_toxicity",
+                  "no_effect",
+                  "unknown"
+                ]
               }
-            }
+            },
+            "additionalProperties": false,
+            "required": [
+              "effect",
+              "gene",
+              "protein",
+              "variant"
+            ]
           }
         },
         "hla_associations": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "object",
             "properties": {
               "hla_allele": {
-                "type": "string",
+                "type": [
+                  "string",
+                  "null"
+                ],
                 "pattern": "^HLA-[A-Z]\\*\\d{2}:\\d{2}",
                 "description": "HLA allele associated with drug reaction"
               },
               "reaction_type": {
-                "type": "string",
-                "enum": ["stevens_johnson_syndrome", "dress", "hepatotoxicity", "hypersensitivity", "other"]
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "stevens_johnson_syndrome",
+                  "dress",
+                  "hepatotoxicity",
+                  "hypersensitivity",
+                  "other"
+                ]
               },
-              "odds_ratio": { "type": "number", "minimum": 0 },
-              "population": { "type": "string", "description": "Population where association was observed" }
-            }
+              "odds_ratio": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "minimum": 0
+              },
+              "population": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Population where association was observed"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "hla_allele",
+              "odds_ratio",
+              "population",
+              "reaction_type"
+            ]
           }
         },
         "guidelines": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "object",
             "properties": {
               "source": {
-                "type": "string",
-                "enum": ["CPIC", "DPWG", "FDA", "EMA", "PharmGKB", "Other"],
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "CPIC",
+                  "DPWG",
+                  "FDA",
+                  "EMA",
+                  "PharmGKB",
+                  "Other"
+                ],
                 "description": "Guideline source organization"
               },
-              "recommendation": { "type": "string", "description": "Clinical recommendation" },
+              "recommendation": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Clinical recommendation"
+              },
               "evidence_level": {
-                "type": "string",
-                "enum": ["A", "B", "C", "D", "insufficient"],
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "A",
+                  "B",
+                  "C",
+                  "D",
+                  "insufficient"
+                ],
                 "description": "Level of evidence supporting the recommendation"
               },
-              "url": { "type": "string", "format": "uri" }
-            }
+              "url": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uri"
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "evidence_level",
+              "recommendation",
+              "source",
+              "url"
+            ]
           }
         }
-      }
+      },
+      "required": [
+        "drug_targets",
+        "guidelines",
+        "hla_associations",
+        "metabolizing_enzymes"
+      ]
     },
-
     "PrecisionMedicineMarker": {
       "type": "object",
       "additionalProperties": false,
       "description": "Precision medicine biomarker information",
       "properties": {
         "marker_type": {
-          "type": "string",
-          "enum": ["genomic", "proteomic", "metabolomic", "transcriptomic", "epigenomic", "multi_omic"],
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "genomic",
+            "proteomic",
+            "metabolomic",
+            "transcriptomic",
+            "epigenomic",
+            "multi_omic"
+          ],
           "description": "Type of biomarker"
         },
         "clinical_application": {
-          "type": "string",
-          "enum": ["diagnostic", "prognostic", "predictive", "pharmacodynamic", "safety", "companion_diagnostic"],
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "diagnostic",
+            "prognostic",
+            "predictive",
+            "pharmacodynamic",
+            "safety",
+            "companion_diagnostic"
+          ],
           "description": "Clinical use of the biomarker"
         },
         "genomic_coordinates": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
-            "chromosome": { "type": "string", "pattern": "^(chr)?(\\d{1,2}|X|Y|MT)$" },
-            "position": { "type": "integer", "minimum": 1 },
-            "reference_allele": { "type": "string" },
-            "alternative_allele": { "type": "string" },
-            "genome_build": { "type": "string", "enum": ["GRCh37", "GRCh38", "hg19", "hg38"] }
+            "chromosome": {
+              "type": "string",
+              "pattern": "^(chr)?(\\d{1,2}|X|Y|MT)$"
+            },
+            "position": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "reference_allele": {
+              "type": "string"
+            },
+            "alternative_allele": {
+              "type": "string"
+            },
+            "genome_build": {
+              "type": "string",
+              "enum": [
+                "GRCh37",
+                "GRCh38",
+                "hg19",
+                "hg38"
+              ]
+            }
           }
         },
         "variant_annotation": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
-            "rs_id": { "type": "string", "pattern": "^rs\\d+$", "description": "dbSNP reference SNP ID" },
-            "hgvs_notation": { "type": "string", "description": "HGVS nomenclature" },
+            "rs_id": {
+              "type": "string",
+              "pattern": "^rs\\d+$",
+              "description": "dbSNP reference SNP ID"
+            },
+            "hgvs_notation": {
+              "type": "string",
+              "description": "HGVS nomenclature"
+            },
             "consequence": {
               "type": "string",
-              "enum": ["missense", "nonsense", "frameshift", "splice_site", "synonymous", "intronic", "regulatory", "other"]
+              "enum": [
+                "missense",
+                "nonsense",
+                "frameshift",
+                "splice_site",
+                "synonymous",
+                "intronic",
+                "regulatory",
+                "other"
+              ]
             },
             "pathogenicity": {
               "type": "string",
-              "enum": ["pathogenic", "likely_pathogenic", "uncertain_significance", "likely_benign", "benign"],
+              "enum": [
+                "pathogenic",
+                "likely_pathogenic",
+                "uncertain_significance",
+                "likely_benign",
+                "benign"
+              ],
               "description": "Clinical significance classification"
             }
           }
         },
         "expression_data": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
-            "tissue_type": { "type": "string" },
-            "expression_level": { "type": "number" },
-            "fold_change": { "type": "number" },
-            "p_value": { "type": "number", "minimum": 0, "maximum": 1 }
+            "tissue_type": {
+              "type": "string"
+            },
+            "expression_level": {
+              "type": "number"
+            },
+            "fold_change": {
+              "type": "number"
+            },
+            "p_value": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
           }
         },
         "therapeutic_implications": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "object",
             "properties": {
-              "drug_name": { "type": "string" },
-              "response_prediction": {
-                "type": "string",
-                "enum": ["responsive", "resistant", "intermediate", "unknown"]
+              "drug_name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
-              "evidence_level": { "type": "string", "enum": ["I", "II", "III", "IV"] },
+              "response_prediction": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "responsive",
+                  "resistant",
+                  "intermediate",
+                  "unknown"
+                ]
+              },
+              "evidence_level": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "I",
+                  "II",
+                  "III",
+                  "IV"
+                ]
+              },
               "clinical_trials": {
-                "type": "array",
-                "items": { "type": "string" },
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "type": "string"
+                },
                 "description": "Related clinical trial identifiers"
               }
-            }
+            },
+            "additionalProperties": false,
+            "required": [
+              "clinical_trials",
+              "drug_name",
+              "evidence_level",
+              "response_prediction"
+            ]
           }
         }
-      }
+      },
+      "required": [
+        "clinical_application",
+        "expression_data",
+        "genomic_coordinates",
+        "marker_type",
+        "therapeutic_implications",
+        "variant_annotation"
+      ]
     },
-
     "SeverityScale": {
       "type": "object",
       "additionalProperties": false,
       "description": "Clinical severity assessment scale",
-      "required": ["scale_name", "grade"],
+      "required": [
+        "description",
+        "grade",
+        "numeric_value",
+        "scale_name",
+        "version"
+      ],
       "properties": {
         "scale_name": {
           "type": "string",
           "enum": [
-            "CTCAE_v5", "WHO_Toxicity", "NCI_CTC", "Common_Toxicity_Criteria",
-            "Glasgow_Coma_Scale", "Richmond_Agitation_Sedation_Scale", "Pain_Scale_0_10",
-            "Modified_Rankin_Scale", "ECOG_Performance_Status", "Karnofsky_Performance_Status", "Other"
+            "CTCAE_v5",
+            "WHO_Toxicity",
+            "NCI_CTC",
+            "Common_Toxicity_Criteria",
+            "Glasgow_Coma_Scale",
+            "Richmond_Agitation_Sedation_Scale",
+            "Pain_Scale_0_10",
+            "Modified_Rankin_Scale",
+            "ECOG_Performance_Status",
+            "Karnofsky_Performance_Status",
+            "Other"
           ],
           "description": "Standardized severity or grading scale"
         },
@@ -1652,276 +3364,671 @@
           "description": "Grade or level on the scale (e.g., '1', '2', 'mild', 'severe')"
         },
         "numeric_value": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "description": "Numeric representation of the grade"
         },
         "description": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Textual description of what this grade means"
         },
         "version": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Version of the scale used (e.g., 'v5.0' for CTCAE)"
         }
       }
     },
-
     "BoundingBox": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["x", "y", "width", "height"],
+      "required": [
+        "coordinate_system",
+        "height",
+        "width",
+        "x",
+        "y"
+      ],
       "properties": {
-        "x": { "type": "number", "minimum": 0, "description": "Left coordinate (points from PDF origin)" },
-        "y": { "type": "number", "minimum": 0, "description": "Bottom coordinate (points from PDF origin)" },
-        "width": { "type": "number", "minimum": 0, "description": "Width in points" },
-        "height": { "type": "number", "minimum": 0, "description": "Height in points" },
+        "x": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Left coordinate (points from PDF origin)"
+        },
+        "y": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Bottom coordinate (points from PDF origin)"
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Width in points"
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Height in points"
+        },
         "coordinate_system": {
-          "type": "string",
-          "enum": ["pdf_points", "screen_pixels"],
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "pdf_points",
+            "screen_pixels"
+          ],
           "default": "pdf_points",
           "description": "Coordinate system used for measurements"
         }
       }
     },
-
     "Passage": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["text"],
+      "required": [
+        "anchor",
+        "bbox",
+        "extraction_method",
+        "ocr_confidence",
+        "page",
+        "text"
+      ],
       "properties": {
-        "text": { "type": "string", "description": "Extracted text content" },
-        "page": { "type": "integer", "minimum": 1, "description": "Page number where text was found" },
-        "bbox": { "$ref": "#/$defs/BoundingBox" },
-        "anchor": { "type": "string", "description": "Human-readable location reference" },
+        "text": {
+          "type": "string",
+          "description": "Extracted text content"
+        },
+        "page": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "description": "Page number where text was found"
+        },
+        "bbox": {
+          "$ref": "#/$defs/BoundingBox"
+        },
+        "anchor": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Human-readable location reference"
+        },
         "ocr_confidence": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0,
           "maximum": 1,
           "description": "OCR confidence score for this text passage"
         },
         "extraction_method": {
-          "type": "string",
-          "enum": ["ocr", "text_layer", "manual"],
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "ocr",
+            "text_layer",
+            "manual"
+          ],
           "description": "Method used to extract this text"
         }
       }
     },
-
     "Quantity": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["value"],
+      "required": [
+        "unit_text",
+        "unit_ucum",
+        "value"
+      ],
       "properties": {
-        "value": { "type": "number" },
-        "unit_text": { "type": "string" },
-        "unit_ucum": { "type": "string" }
+        "value": {
+          "type": "number"
+        },
+        "unit_text": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "unit_ucum": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
       }
     },
-
     "NumberOrValueWithRaw": {
       "oneOf": [
-        { "type": "number" },
-        { "$ref": "#/$defs/ValueWithRaw" }
+        {
+          "type": "number"
+        },
+        {
+          "$ref": "#/$defs/ValueWithRaw"
+        }
       ]
     },
-
     "StringOrValueWithRaw": {
       "oneOf": [
-        { "type": "string" },
-        { "$ref": "#/$defs/ValueWithRaw" }
+        {
+          "type": "string"
+        },
+        {
+          "$ref": "#/$defs/ValueWithRaw"
+        }
       ]
     },
-
     "TimepointAnchor": {
       "type": "string",
       "enum": [
-        "baseline","preoperative","intraoperative","postoperative","discharge",
-        "30d","90d","6m","12m","longest_followup","other","unknown"
+        "baseline",
+        "preoperative",
+        "intraoperative",
+        "postoperative",
+        "discharge",
+        "30d",
+        "90d",
+        "6m",
+        "12m",
+        "longest_followup",
+        "other",
+        "unknown"
       ],
       "description": "Standardized study timepoint anchors"
     },
-
     "TimeRange": {
       "type": "object",
       "additionalProperties": false,
       "description": "Time period with start and end points",
       "properties": {
-        "start": { "type": "string", "format": "date-time", "description": "Start timestamp" },
-        "end": { "type": "string", "format": "date-time", "description": "End timestamp" },
-        "duration": { "$ref": "#/$defs/ISO8601Duration" },
-        "ongoing": { "type": "boolean", "default": false, "description": "Whether the period is still active" }
-      }
+        "start": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "Start timestamp"
+        },
+        "end": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "End timestamp"
+        },
+        "duration": {
+          "$ref": "#/$defs/ISO8601Duration"
+        },
+        "ongoing": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false,
+          "description": "Whether the period is still active"
+        }
+      },
+      "required": [
+        "duration",
+        "end",
+        "ongoing",
+        "start"
+      ]
     },
-
     "FollowupSchedule": {
       "type": "object",
       "additionalProperties": false,
       "description": "Structured follow-up assessment schedule",
-      "required": ["timepoints"],
+      "required": [
+        "primary_endpoint_timepoint",
+        "timepoints"
+      ],
       "properties": {
         "timepoints": {
           "type": "array",
           "items": {
             "type": "object",
-            "required": ["anchor"],
+            "required": [
+              "anchor",
+              "assessments",
+              "duration_from_baseline",
+              "window"
+            ],
             "properties": {
-              "anchor": { "$ref": "#/$defs/TimepointAnchor" },
-              "duration_from_baseline": { "$ref": "#/$defs/ISO8601Duration" },
+              "anchor": {
+                "$ref": "#/$defs/TimepointAnchor"
+              },
+              "duration_from_baseline": {
+                "$ref": "#/$defs/ISO8601Duration"
+              },
               "assessments": {
-                "type": "array",
-                "items": { "type": "string" },
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "type": "string"
+                },
                 "description": "Assessments performed at this timepoint"
               },
               "window": {
-                "type": "object",
+                "type": [
+                  "object",
+                  "null"
+                ],
                 "properties": {
-                  "before": { "$ref": "#/$defs/ISO8601Duration" },
-                  "after": { "$ref": "#/$defs/ISO8601Duration" }
+                  "before": {
+                    "$ref": "#/$defs/ISO8601Duration"
+                  },
+                  "after": {
+                    "$ref": "#/$defs/ISO8601Duration"
+                  }
                 },
                 "description": "Acceptable time window around scheduled timepoint"
               }
-            }
+            },
+            "additionalProperties": false
           },
           "description": "Scheduled follow-up timepoints"
         },
-        "primary_endpoint_timepoint": { "$ref": "#/$defs/TimepointAnchor" }
+        "primary_endpoint_timepoint": {
+          "$ref": "#/$defs/TimepointAnchor"
+        }
       }
     },
-
     "StudyPhase": {
       "type": "string",
       "enum": [
-        "preclinical", "phase_0", "phase_I", "phase_II", "phase_III", "phase_IV",
-        "pilot", "feasibility", "proof_of_concept", "first_in_human", "other"
+        "preclinical",
+        "phase_0",
+        "phase_I",
+        "phase_II",
+        "phase_III",
+        "phase_IV",
+        "pilot",
+        "feasibility",
+        "proof_of_concept",
+        "first_in_human",
+        "other"
       ],
       "description": "Clinical trial or study phase classification"
     },
-
     "ParsingContext": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["parser_name", "parsing_timestamp"],
+      "required": [
+        "ai_processing",
+        "language_detected",
+        "ocr_engine",
+        "ocr_quality_score",
+        "page_count",
+        "parser_name",
+        "parser_version",
+        "parsing_timestamp",
+        "parsing_warnings",
+        "pdf_producer",
+        "sections_detected"
+      ],
       "properties": {
-        "parser_name": { "type": "string", "description": "Name of the parsing tool/library used" },
-        "parser_version": { "type": "string", "description": "Version of the parsing tool" },
-        "parsing_timestamp": { "type": "string", "format": "date-time", "description": "When parsing was performed" },
-        "language_detected": { "$ref": "#/$defs/LanguageCode", "description": "Detected language of the document" },
-        "ocr_engine": { "type": "string", "description": "OCR engine used (if applicable)" },
+        "parser_name": {
+          "type": "string",
+          "description": "Name of the parsing tool/library used"
+        },
+        "parser_version": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Version of the parsing tool"
+        },
+        "parsing_timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When parsing was performed"
+        },
+        "language_detected": {
+          "$ref": "#/$defs/LanguageCode",
+          "description": "Detected language of the document"
+        },
+        "ocr_engine": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "OCR engine used (if applicable)"
+        },
         "ocr_quality_score": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0,
           "maximum": 1,
           "description": "Overall OCR quality assessment"
         },
-        "pdf_producer": { "type": "string", "description": "Software that generated the PDF" },
-        "page_count": { "type": "integer", "minimum": 1, "description": "Total pages in document" },
+        "pdf_producer": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Software that generated the PDF"
+        },
+        "page_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "description": "Total pages in document"
+        },
         "sections_detected": {
-          "type": "array",
-          "items": { "type": "string" },
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
           "default": [],
           "description": "Document sections automatically detected"
         },
         "parsing_warnings": {
-          "type": "array",
-          "items": { "type": "string" },
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
           "default": [],
           "description": "Warnings encountered during parsing"
         },
-        "ai_processing": { "$ref": "#/$defs/AIProcessingMetadata" }
+        "ai_processing": {
+          "$ref": "#/$defs/AIProcessingMetadata"
+        }
       }
     },
-
     "AIProcessingMetadata": {
       "type": "object",
       "additionalProperties": false,
       "description": "Metadata for AI/ML processing and bias detection",
       "properties": {
         "model_info": {
-          "type": "object",
-          "required": ["name", "version"],
+          "type": [
+            "object",
+            "null"
+          ],
+          "required": [
+            "name",
+            "version"
+          ],
           "properties": {
-            "name": { "type": "string", "description": "Model name or identifier" },
-            "version": { "type": "string", "description": "Model version" },
+            "name": {
+              "type": "string",
+              "description": "Model name or identifier"
+            },
+            "version": {
+              "type": "string",
+              "description": "Model version"
+            },
             "architecture": {
               "type": "string",
-              "enum": ["transformer", "cnn", "rnn", "lstm", "gru", "bert", "gpt", "ensemble", "classical_ml", "other"],
+              "enum": [
+                "transformer",
+                "cnn",
+                "rnn",
+                "lstm",
+                "gru",
+                "bert",
+                "gpt",
+                "ensemble",
+                "classical_ml",
+                "other"
+              ],
               "description": "Model architecture type"
             },
-            "training_data_size": { "type": "integer", "minimum": 0 },
-            "training_date": { "type": "string", "format": "date" },
-            "fine_tuned": { "type": "boolean", "description": "Whether model was fine-tuned for specific domain" },
-            "domain_specific": { "type": "boolean", "description": "Whether model is domain-specific (e.g., medical)" }
+            "training_data_size": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "training_date": {
+              "type": "string",
+              "format": "date"
+            },
+            "fine_tuned": {
+              "type": "boolean",
+              "description": "Whether model was fine-tuned for specific domain"
+            },
+            "domain_specific": {
+              "type": "boolean",
+              "description": "Whether model is domain-specific (e.g., medical)"
+            }
           }
         },
         "performance_metrics": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
-            "accuracy": { "type": "number", "minimum": 0, "maximum": 1 },
-            "precision": { "type": "number", "minimum": 0, "maximum": 1 },
-            "recall": { "type": "number", "minimum": 0, "maximum": 1 },
-            "f1_score": { "type": "number", "minimum": 0, "maximum": 1 },
-            "auc_roc": { "type": "number", "minimum": 0, "maximum": 1 },
-            "confidence_interval": { "$ref": "#/$defs/EffectCI" },
+            "accuracy": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "precision": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "recall": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "f1_score": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "auc_roc": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "confidence_interval": {
+              "$ref": "#/$defs/EffectCI"
+            },
             "validation_method": {
               "type": "string",
-              "enum": ["cross_validation", "holdout", "temporal_split", "external_validation", "other"]
+              "enum": [
+                "cross_validation",
+                "holdout",
+                "temporal_split",
+                "external_validation",
+                "other"
+              ]
             },
-            "test_set_size": { "type": "integer", "minimum": 0 }
+            "test_set_size": {
+              "type": "integer",
+              "minimum": 0
+            }
           }
         },
         "bias_assessment": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Assessment of potential biases in AI model",
           "properties": {
             "demographic_bias": {
               "type": "object",
               "properties": {
-                "assessed": { "type": "boolean" },
-                "bias_detected": { "type": "boolean" },
+                "assessed": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "bias_detected": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
                 "affected_groups": {
-                  "type": "array",
-                  "items": { "type": "string" },
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "type": "string"
+                  },
                   "description": "Demographic groups showing bias"
                 },
-                "mitigation_applied": { "type": "boolean" },
+                "mitigation_applied": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
                 "fairness_metrics": {
-                  "type": "object",
+                  "type": [
+                    "object",
+                    "null"
+                  ],
                   "properties": {
-                    "demographic_parity": { "type": "number" },
-                    "equalized_odds": { "type": "number" },
-                    "calibration": { "type": "number" }
+                    "demographic_parity": {
+                      "type": "number"
+                    },
+                    "equalized_odds": {
+                      "type": "number"
+                    },
+                    "calibration": {
+                      "type": "number"
+                    }
                   }
                 }
-              }
+              },
+              "additionalProperties": false,
+              "required": [
+                "affected_groups",
+                "assessed",
+                "bias_detected",
+                "fairness_metrics",
+                "mitigation_applied"
+              ]
             },
             "selection_bias": {
               "type": "object",
               "properties": {
                 "training_data_representativeness": {
-                  "type": "string",
-                  "enum": ["high", "moderate", "low", "unknown"]
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "high",
+                    "moderate",
+                    "low",
+                    "unknown"
+                  ]
                 },
-                "sampling_method": { "type": "string" },
-                "geographic_bias": { "type": "boolean" },
-                "temporal_bias": { "type": "boolean" }
-              }
+                "sampling_method": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "geographic_bias": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "temporal_bias": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "geographic_bias",
+                "sampling_method",
+                "temporal_bias",
+                "training_data_representativeness"
+              ]
             },
             "confirmation_bias": {
               "type": "object",
               "properties": {
-                "label_quality_assessment": { "type": "boolean" },
-                "inter_annotator_agreement": { "type": "number", "minimum": 0, "maximum": 1 },
-                "annotation_guidelines": { "type": "string" }
-              }
+                "label_quality_assessment": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "inter_annotator_agreement": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1
+                },
+                "annotation_guidelines": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "annotation_guidelines",
+                "inter_annotator_agreement",
+                "label_quality_assessment"
+              ]
             }
           }
         },
         "explainability": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "method": {
               "type": "string",
-              "enum": ["lime", "shap", "attention_weights", "gradient_attribution", "integrated_gradients", "permutation_importance", "other"],
+              "enum": [
+                "lime",
+                "shap",
+                "attention_weights",
+                "gradient_attribution",
+                "integrated_gradients",
+                "permutation_importance",
+                "other"
+              ],
               "description": "Explainability method used"
             },
             "feature_importance": {
@@ -1929,72 +4036,201 @@
               "items": {
                 "type": "object",
                 "properties": {
-                  "feature": { "type": "string" },
-                  "importance_score": { "type": "number" },
-                  "rank": { "type": "integer", "minimum": 1 }
-                }
+                  "feature": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "importance_score": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "rank": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "feature",
+                  "importance_score",
+                  "rank"
+                ]
               }
             },
-            "global_explanations": { "type": "boolean" },
-            "local_explanations": { "type": "boolean" },
-            "counterfactual_examples": { "type": "boolean" }
+            "global_explanations": {
+              "type": "boolean"
+            },
+            "local_explanations": {
+              "type": "boolean"
+            },
+            "counterfactual_examples": {
+              "type": "boolean"
+            }
           }
         },
         "uncertainty_quantification": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "method": {
               "type": "string",
-              "enum": ["bayesian", "ensemble", "monte_carlo_dropout", "conformal_prediction", "none"],
+              "enum": [
+                "bayesian",
+                "ensemble",
+                "monte_carlo_dropout",
+                "conformal_prediction",
+                "none"
+              ],
               "description": "Uncertainty quantification method"
             },
-            "epistemic_uncertainty": { "type": "number", "description": "Model uncertainty" },
-            "aleatoric_uncertainty": { "type": "number", "description": "Data uncertainty" },
-            "prediction_intervals": { "type": "boolean" },
-            "out_of_distribution_detection": { "type": "boolean" }
+            "epistemic_uncertainty": {
+              "type": "number",
+              "description": "Model uncertainty"
+            },
+            "aleatoric_uncertainty": {
+              "type": "number",
+              "description": "Data uncertainty"
+            },
+            "prediction_intervals": {
+              "type": "boolean"
+            },
+            "out_of_distribution_detection": {
+              "type": "boolean"
+            }
           }
         },
         "ethical_considerations": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
-            "informed_consent": { "type": "boolean", "description": "Whether data subjects provided informed consent for AI processing" },
-            "data_minimization": { "type": "boolean", "description": "Whether data minimization principle was applied" },
-            "right_to_explanation": { "type": "boolean", "description": "Whether explanations are provided to affected individuals" },
+            "informed_consent": {
+              "type": "boolean",
+              "description": "Whether data subjects provided informed consent for AI processing"
+            },
+            "data_minimization": {
+              "type": "boolean",
+              "description": "Whether data minimization principle was applied"
+            },
+            "right_to_explanation": {
+              "type": "boolean",
+              "description": "Whether explanations are provided to affected individuals"
+            },
             "human_oversight": {
               "type": "string",
-              "enum": ["human_in_the_loop", "human_on_the_loop", "human_out_of_the_loop"],
+              "enum": [
+                "human_in_the_loop",
+                "human_on_the_loop",
+                "human_out_of_the_loop"
+              ],
               "description": "Level of human oversight in AI decisions"
             },
-            "impact_assessment": { "type": "boolean", "description": "Whether algorithmic impact assessment was conducted" }
+            "impact_assessment": {
+              "type": "boolean",
+              "description": "Whether algorithmic impact assessment was conducted"
+            }
           }
         }
-      }
+      },
+      "required": [
+        "bias_assessment",
+        "ethical_considerations",
+        "explainability",
+        "model_info",
+        "performance_metrics",
+        "uncertainty_quantification"
+      ]
     },
-
     "SupplementFile": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["label"],
+      "required": [
+        "checksum",
+        "content_type",
+        "doi",
+        "file_size",
+        "filename",
+        "label",
+        "url"
+      ],
       "properties": {
-        "label": { "type": "string" },
-        "filename": { "type": "string" },
-        "url": { "type": "string", "format": "uri" },
-        "doi": { "type": "string", "pattern": "^10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+$" },
-        "content_type": { "type": "string" },
-        "file_size": { "type": "integer", "minimum": 0, "description": "File size in bytes" },
-        "checksum": { "$ref": "#/$defs/DataIntegrity" }
+        "label": {
+          "type": "string"
+        },
+        "filename": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
+        "doi": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+$"
+        },
+        "content_type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "file_size": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "File size in bytes"
+        },
+        "checksum": {
+          "$ref": "#/$defs/DataIntegrity"
+        }
       }
     },
-
     "DataIntegrity": {
       "type": "object",
       "additionalProperties": false,
       "description": "Data integrity verification with multiple hash algorithms",
-      "required": ["algorithm", "value"],
+      "required": [
+        "algorithm",
+        "multiple_hashes",
+        "salt",
+        "value",
+        "verification_timestamp",
+        "verified_by"
+      ],
       "properties": {
         "algorithm": {
           "type": "string",
-          "enum": ["SHA-256", "SHA-512", "SHA-3-256", "SHA-3-512", "BLAKE2b", "SHA-1", "MD5", "CRC32"],
+          "enum": [
+            "SHA-256",
+            "SHA-512",
+            "SHA-3-256",
+            "SHA-3-512",
+            "BLAKE2b",
+            "SHA-1",
+            "MD5",
+            "CRC32"
+          ],
           "description": "Cryptographic hash algorithm used"
         },
         "value": {
@@ -2002,144 +4238,85 @@
           "description": "Hex-encoded hash value"
         },
         "salt": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Optional salt value for enhanced security"
         },
         "verification_timestamp": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "date-time",
           "description": "When the hash was computed or verified"
         },
         "verified_by": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "System or person who verified the hash"
         },
         "multiple_hashes": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "object",
-            "required": ["algorithm", "value"],
+            "required": [
+              "algorithm",
+              "value"
+            ],
             "properties": {
-              "algorithm": { "type": "string" },
-              "value": { "type": "string" }
-            }
+              "algorithm": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
           },
           "description": "Additional hash values using different algorithms for enhanced verification"
         }
-      },
-      "allOf": [
-        {
-          "if": { "properties": { "algorithm": { "const": "SHA-256" } } },
-          "then": {
-            "properties": {
-              "value": {
-                "pattern": "^[a-fA-F0-9]{64}$",
-                "description": "SHA-256 hash must be 64 hex characters"
-              }
-            }
-          }
-        },
-        {
-          "if": { "properties": { "algorithm": { "const": "SHA-512" } } },
-          "then": {
-            "properties": {
-              "value": {
-                "pattern": "^[a-fA-F0-9]{128}$",
-                "description": "SHA-512 hash must be 128 hex characters"
-              }
-            }
-          }
-        },
-        {
-          "if": { "properties": { "algorithm": { "const": "SHA-3-256" } } },
-          "then": {
-            "properties": {
-              "value": {
-                "pattern": "^[a-fA-F0-9]{64}$",
-                "description": "SHA-3-256 hash must be 64 hex characters"
-              }
-            }
-          }
-        },
-        {
-          "if": { "properties": { "algorithm": { "const": "SHA-3-512" } } },
-          "then": {
-            "properties": {
-              "value": {
-                "pattern": "^[a-fA-F0-9]{128}$",
-                "description": "SHA-3-512 hash must be 128 hex characters"
-              }
-            }
-          }
-        },
-        {
-          "if": { "properties": { "algorithm": { "const": "BLAKE2b" } } },
-          "then": {
-            "properties": {
-              "value": {
-                "pattern": "^[a-fA-F0-9]{128}$",
-                "description": "BLAKE2b hash must be 128 hex characters"
-              }
-            }
-          }
-        },
-        {
-          "if": { "properties": { "algorithm": { "const": "SHA-1" } } },
-          "then": {
-            "properties": {
-              "value": {
-                "pattern": "^[a-fA-F0-9]{40}$",
-                "description": "SHA-1 hash must be 40 hex characters"
-              }
-            }
-          }
-        },
-        {
-          "if": { "properties": { "algorithm": { "const": "MD5" } } },
-          "then": {
-            "properties": {
-              "value": {
-                "pattern": "^[a-fA-F0-9]{32}$",
-                "description": "MD5 hash must be 32 hex characters"
-              }
-            }
-          }
-        },
-        {
-          "if": { "properties": { "algorithm": { "const": "CRC32" } } },
-          "then": {
-            "properties": {
-              "value": {
-                "pattern": "^[a-fA-F0-9]{8}$",
-                "description": "CRC32 hash must be 8 hex characters"
-              }
-            }
-          }
-        }
-      ]
+      }
     },
-
     "DataProtectionCompliance": {
       "type": "object",
       "additionalProperties": false,
       "description": "Data protection and privacy compliance information",
       "properties": {
         "gdpr_compliance": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "lawful_basis": {
               "type": "string",
               "enum": [
-                "consent", "contract", "legal_obligation", "vital_interests",
-                "public_task", "legitimate_interests"
+                "consent",
+                "contract",
+                "legal_obligation",
+                "vital_interests",
+                "public_task",
+                "legitimate_interests"
               ],
               "description": "GDPR Article 6 lawful basis for processing"
             },
             "special_categories_basis": {
               "type": "string",
               "enum": [
-                "explicit_consent", "employment_law", "vital_interests", "public_health",
-                "scientific_research", "archiving", "not_applicable"
+                "explicit_consent",
+                "employment_law",
+                "vital_interests",
+                "public_health",
+                "scientific_research",
+                "archiving",
+                "not_applicable"
               ],
               "description": "GDPR Article 9 basis for special category data"
             },
@@ -2147,18 +4324,35 @@
               "type": "array",
               "items": {
                 "type": "string",
-                "enum": ["access", "rectification", "erasure", "restrict", "portability", "object"]
+                "enum": [
+                  "access",
+                  "rectification",
+                  "erasure",
+                  "restrict",
+                  "portability",
+                  "object"
+                ]
               }
             }
           }
         },
         "hipaa_compliance": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
-            "covered_entity": { "type": "boolean", "description": "Whether organization is HIPAA covered entity" },
+            "covered_entity": {
+              "type": "boolean",
+              "description": "Whether organization is HIPAA covered entity"
+            },
             "de_identification_method": {
               "type": "string",
-              "enum": ["safe_harbor", "expert_determination", "not_applicable"],
+              "enum": [
+                "safe_harbor",
+                "expert_determination",
+                "not_applicable"
+              ],
               "description": "HIPAA de-identification method used"
             },
             "business_associate_agreement": {
@@ -2168,232 +4362,655 @@
           }
         },
         "geographic_restrictions": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "object",
             "properties": {
-              "region": { "type": "string", "description": "Geographic region (e.g., 'EU', 'US', 'Canada')" },
-              "restriction_type": {
-                "type": "string",
-                "enum": ["data_localization", "access_restriction", "transfer_prohibition"]
+              "region": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Geographic region (e.g., 'EU', 'US', 'Canada')"
               },
-              "rationale": { "type": "string" }
-            }
+              "restriction_type": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "data_localization",
+                  "access_restriction",
+                  "transfer_prohibition"
+                ]
+              },
+              "rationale": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "rationale",
+              "region",
+              "restriction_type"
+            ]
           }
         },
         "encryption_standards": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "data_at_rest": {
               "type": "object",
               "properties": {
                 "algorithm": {
-                  "type": "string",
-                  "enum": ["AES-256", "AES-128", "ChaCha20-Poly1305", "Other"]
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "AES-256",
+                    "AES-128",
+                    "ChaCha20-Poly1305",
+                    "Other"
+                  ]
                 },
                 "key_management": {
-                  "type": "string",
-                  "enum": ["HSM", "KMS", "BYOK", "customer_managed", "provider_managed"]
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "HSM",
+                    "KMS",
+                    "BYOK",
+                    "customer_managed",
+                    "provider_managed"
+                  ]
                 }
-              }
+              },
+              "additionalProperties": false,
+              "required": [
+                "algorithm",
+                "key_management"
+              ]
             },
             "data_in_transit": {
               "type": "object",
               "properties": {
                 "protocol": {
-                  "type": "string",
-                  "enum": ["TLS_1.3", "TLS_1.2", "mTLS", "Other"]
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "TLS_1.3",
+                    "TLS_1.2",
+                    "mTLS",
+                    "Other"
+                  ]
                 },
-                "certificate_validation": { "type": "boolean" }
-              }
+                "certificate_validation": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "certificate_validation",
+                "protocol"
+              ]
             },
             "data_in_use": {
               "type": "object",
               "properties": {
                 "method": {
-                  "type": "string",
-                  "enum": ["secure_enclaves", "homomorphic_encryption", "confidential_computing", "none"]
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "secure_enclaves",
+                    "homomorphic_encryption",
+                    "confidential_computing",
+                    "none"
+                  ]
                 },
-                "attestation": { "type": "boolean" }
-              }
+                "attestation": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "attestation",
+                "method"
+              ]
             }
           }
         },
         "privacy_enhancing_technologies": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "differential_privacy": {
               "type": "object",
               "properties": {
-                "applied": { "type": "boolean" },
-                "epsilon": { "type": "number", "minimum": 0, "description": "Privacy budget parameter" },
-                "delta": { "type": "number", "minimum": 0, "maximum": 1, "description": "Failure probability" },
+                "applied": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "epsilon": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "description": "Privacy budget parameter"
+                },
+                "delta": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1,
+                  "description": "Failure probability"
+                },
                 "mechanism": {
-                  "type": "string",
-                  "enum": ["laplace", "gaussian", "exponential", "sparse_vector", "other"]
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "laplace",
+                    "gaussian",
+                    "exponential",
+                    "sparse_vector",
+                    "other"
+                  ]
                 }
-              }
+              },
+              "additionalProperties": false,
+              "required": [
+                "applied",
+                "delta",
+                "epsilon",
+                "mechanism"
+              ]
             },
             "federated_learning": {
               "type": "object",
               "properties": {
-                "applied": { "type": "boolean" },
-                "aggregation_method": {
-                  "type": "string",
-                  "enum": ["federated_averaging", "secure_aggregation", "differential_private_aggregation"]
+                "applied": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
                 },
-                "participants": { "type": "integer", "minimum": 1 }
-              }
+                "aggregation_method": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "federated_averaging",
+                    "secure_aggregation",
+                    "differential_private_aggregation"
+                  ]
+                },
+                "participants": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 1
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "aggregation_method",
+                "applied",
+                "participants"
+              ]
             },
             "synthetic_data": {
               "type": "object",
               "properties": {
-                "applied": { "type": "boolean" },
+                "applied": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
                 "generation_method": {
-                  "type": "string",
-                  "enum": ["gan", "vae", "bayesian_networks", "copulas", "other"]
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "gan",
+                    "vae",
+                    "bayesian_networks",
+                    "copulas",
+                    "other"
+                  ]
                 },
                 "privacy_metrics": {
-                  "type": "object",
+                  "type": [
+                    "object",
+                    "null"
+                  ],
                   "properties": {
-                    "membership_inference_resistance": { "type": "number", "minimum": 0, "maximum": 1 },
-                    "attribute_inference_resistance": { "type": "number", "minimum": 0, "maximum": 1 }
+                    "membership_inference_resistance": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "attribute_inference_resistance": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    }
                   }
                 }
-              }
+              },
+              "additionalProperties": false,
+              "required": [
+                "applied",
+                "generation_method",
+                "privacy_metrics"
+              ]
             },
             "secure_multiparty_computation": {
               "type": "object",
               "properties": {
-                "applied": { "type": "boolean" },
+                "applied": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
                 "protocol": {
-                  "type": "string",
-                  "enum": ["garbled_circuits", "secret_sharing", "homomorphic_encryption", "other"]
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "garbled_circuits",
+                    "secret_sharing",
+                    "homomorphic_encryption",
+                    "other"
+                  ]
                 },
                 "security_model": {
-                  "type": "string",
-                  "enum": ["semi_honest", "malicious", "covert"]
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "semi_honest",
+                    "malicious",
+                    "covert"
+                  ]
                 }
-              }
+              },
+              "additionalProperties": false,
+              "required": [
+                "applied",
+                "protocol",
+                "security_model"
+              ]
             }
           }
         },
         "zero_trust_architecture": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
-            "implemented": { "type": "boolean" },
+            "implemented": {
+              "type": "boolean"
+            },
             "identity_verification": {
               "type": "string",
-              "enum": ["continuous", "session_based", "transaction_based"]
+              "enum": [
+                "continuous",
+                "session_based",
+                "transaction_based"
+              ]
             },
-            "device_verification": { "type": "boolean" },
-            "network_segmentation": { "type": "boolean" },
-            "least_privilege_access": { "type": "boolean" }
+            "device_verification": {
+              "type": "boolean"
+            },
+            "network_segmentation": {
+              "type": "boolean"
+            },
+            "least_privilege_access": {
+              "type": "boolean"
+            }
           }
         }
-      }
+      },
+      "required": [
+        "encryption_standards",
+        "gdpr_compliance",
+        "geographic_restrictions",
+        "hipaa_compliance",
+        "privacy_enhancing_technologies",
+        "zero_trust_architecture"
+      ]
     },
-
     "BlockchainIntegration": {
       "type": "object",
       "additionalProperties": false,
       "description": "Blockchain/DLT integration for immutable audit trails",
       "properties": {
-        "enabled": { "type": "boolean" },
+        "enabled": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
         "network": {
-          "type": "string",
-          "enum": ["ethereum", "hyperledger_fabric", "corda", "quorum", "private_chain", "other"]
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "ethereum",
+            "hyperledger_fabric",
+            "corda",
+            "quorum",
+            "private_chain",
+            "other"
+          ]
         },
         "consensus_mechanism": {
-          "type": "string",
-          "enum": ["proof_of_work", "proof_of_stake", "proof_of_authority", "pbft", "raft", "other"]
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "proof_of_work",
+            "proof_of_stake",
+            "proof_of_authority",
+            "pbft",
+            "raft",
+            "other"
+          ]
         },
         "smart_contracts": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "object",
             "properties": {
-              "address": { "type": "string" },
-              "function": { "type": "string", "description": "Purpose of the smart contract" },
+              "address": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "function": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Purpose of the smart contract"
+              },
               "audit_status": {
-                "type": "string",
-                "enum": ["audited", "self_audited", "not_audited"]
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "audited",
+                  "self_audited",
+                  "not_audited"
+                ]
               }
-            }
+            },
+            "additionalProperties": false,
+            "required": [
+              "address",
+              "audit_status",
+              "function"
+            ]
           }
         },
         "transaction_hash": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "pattern": "^0x[a-fA-F0-9]{64}$",
           "description": "Blockchain transaction hash for this record"
         },
-        "block_number": { "type": "integer", "minimum": 0 },
-        "gas_used": { "type": "integer", "minimum": 0 },
+        "block_number": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "gas_used": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
         "immutability_proof": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
-            "merkle_root": { "type": "string" },
-            "timestamp": { "type": "string", "format": "date-time" },
-            "validator_signatures": { "type": "array", "items": { "type": "string" } }
+            "merkle_root": {
+              "type": "string"
+            },
+            "timestamp": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "validator_signatures": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
           }
         }
-      }
+      },
+      "required": [
+        "block_number",
+        "consensus_mechanism",
+        "enabled",
+        "gas_used",
+        "immutability_proof",
+        "network",
+        "smart_contracts",
+        "transaction_hash"
+      ]
     },
-
     "AuditTrail": {
       "type": "object",
       "additionalProperties": false,
       "description": "Audit trail and change tracking information",
       "properties": {
         "creation": {
-          "type": "object",
-          "required": ["timestamp", "user"],
+          "type": [
+            "object",
+            "null"
+          ],
+          "required": [
+            "timestamp",
+            "user"
+          ],
           "properties": {
-            "timestamp": { "type": "string", "format": "date-time" },
-            "user": { "type": "string" },
-            "system": { "type": "string" },
-            "ip_address": { "type": "string", "format": "ipv4" }
+            "timestamp": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "user": {
+              "type": "string"
+            },
+            "system": {
+              "type": "string"
+            },
+            "ip_address": {
+              "type": "string",
+              "format": "ipv4"
+            }
           }
         },
         "modifications": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "object",
-            "required": ["timestamp", "user", "action"],
+            "required": [
+              "action",
+              "field_changed",
+              "new_value",
+              "old_value",
+              "reason",
+              "timestamp",
+              "user"
+            ],
             "properties": {
-              "timestamp": { "type": "string", "format": "date-time" },
-              "user": { "type": "string" },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "user": {
+                "type": "string"
+              },
               "action": {
                 "type": "string",
-                "enum": ["create", "read", "update", "delete", "export", "share"]
+                "enum": [
+                  "create",
+                  "read",
+                  "update",
+                  "delete",
+                  "export",
+                  "share"
+                ]
               },
-              "field_changed": { "type": "string" },
-              "old_value": { "type": "string" },
-              "new_value": { "type": "string" },
-              "reason": { "type": "string" }
-            }
+              "field_changed": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "old_value": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "new_value": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "reason": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "additionalProperties": false
           }
         },
         "access_log": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "object",
             "properties": {
-              "timestamp": { "type": "string", "format": "date-time" },
-              "user": { "type": "string" },
-              "action": { "type": "string" },
-              "success": { "type": "boolean" },
-              "ip_address": { "type": "string" }
-            }
+              "timestamp": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "user": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "action": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "success": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "ip_address": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "action",
+              "ip_address",
+              "success",
+              "timestamp",
+              "user"
+            ]
           }
         },
-        "blockchain_anchoring": { "$ref": "#/$defs/BlockchainIntegration" },
+        "blockchain_anchoring": {
+          "$ref": "#/$defs/BlockchainIntegration"
+        },
         "immutability_verification": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "hash_chain": {
               "type": "array",
-              "items": { "type": "string" },
+              "items": {
+                "type": "string"
+              },
               "description": "Chain of cryptographic hashes for tamper detection"
             },
             "digital_signatures": {
@@ -2401,62 +5018,179 @@
               "items": {
                 "type": "object",
                 "properties": {
-                  "signer": { "type": "string" },
-                  "signature": { "type": "string" },
-                  "algorithm": { "type": "string", "enum": ["RSA", "ECDSA", "EdDSA"] },
-                  "timestamp": { "type": "string", "format": "date-time" }
-                }
+                  "signer": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "signature": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "algorithm": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "RSA",
+                      "ECDSA",
+                      "EdDSA"
+                    ]
+                  },
+                  "timestamp": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "date-time"
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "algorithm",
+                  "signature",
+                  "signer",
+                  "timestamp"
+                ]
               }
             },
             "trusted_timestamping": {
               "type": "object",
               "properties": {
-                "authority": { "type": "string" },
-                "timestamp_token": { "type": "string" },
-                "verification_url": { "type": "string", "format": "uri" }
-              }
+                "authority": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "timestamp_token": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "verification_url": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "uri"
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "authority",
+                "timestamp_token",
+                "verification_url"
+              ]
             }
           }
         }
-      }
+      },
+      "required": [
+        "access_log",
+        "blockchain_anchoring",
+        "creation",
+        "immutability_verification",
+        "modifications"
+      ]
     },
-
     "ConsentTracking": {
       "type": "object",
       "additionalProperties": false,
       "description": "Patient/participant consent tracking",
       "properties": {
-        "consent_obtained": { "type": "boolean", "description": "Whether informed consent was obtained" },
+        "consent_obtained": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Whether informed consent was obtained"
+        },
         "consent_type": {
-          "type": "string",
-          "enum": ["written", "verbal", "electronic", "implied", "broad", "specific"],
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "written",
+            "verbal",
+            "electronic",
+            "implied",
+            "broad",
+            "specific"
+          ],
           "description": "Type of consent obtained"
         },
         "consent_scope": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "string",
             "enum": [
-              "research_participation", "data_sharing", "publication", "genetic_analysis",
-              "long_term_storage", "commercial_use", "international_transfer"
+              "research_participation",
+              "data_sharing",
+              "publication",
+              "genetic_analysis",
+              "long_term_storage",
+              "commercial_use",
+              "international_transfer"
             ]
           }
         },
         "withdrawal_right": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "description": "Whether participant can withdraw consent"
         },
-        "consent_document_version": { "type": "string" },
+        "consent_document_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "ethics_approval": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
-            "committee_name": { "type": "string" },
-            "approval_number": { "type": "string" },
-            "approval_date": { "type": "string", "format": "date" },
-            "expiry_date": { "type": "string", "format": "date" }
+            "committee_name": {
+              "type": "string"
+            },
+            "approval_number": {
+              "type": "string"
+            },
+            "approval_date": {
+              "type": "string",
+              "format": "date"
+            },
+            "expiry_date": {
+              "type": "string",
+              "format": "date"
+            }
           }
         }
-      }
+      },
+      "required": [
+        "consent_document_version",
+        "consent_obtained",
+        "consent_scope",
+        "consent_type",
+        "ethics_approval",
+        "withdrawal_right"
+      ]
     }
-  }
+  },
+  "required": [
+    "schema_info"
+  ]
 }

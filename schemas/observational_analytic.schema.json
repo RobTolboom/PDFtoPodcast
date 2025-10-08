@@ -4,7 +4,35 @@
   "title": "Observational Analytic Study Extraction",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "metadata", "study_design", "population", "exposures", "outcomes", "results"],
+  "required": [
+    "analysis_plan_registered",
+    "causal_dag",
+    "comparisons",
+    "document",
+    "exposures",
+    "external_ids",
+    "extraction_quality",
+    "extraction_warnings",
+    "figures_summary",
+    "generator",
+    "groups",
+    "language",
+    "metadata",
+    "outcomes",
+    "population",
+    "protocol_deviations",
+    "results",
+    "risk_of_bias",
+    "robins_e",
+    "schema_version",
+    "strobe_reporting",
+    "study_design",
+    "study_id",
+    "subgroup_analyses",
+    "tables_parsed",
+    "time_varying_confounding",
+    "truncated"
+  ],
   "properties": {
     "schema_version": {
       "type": "string",
@@ -12,100 +40,214 @@
       "description": "Semantic-like version tag, e.g. v1.0 or v1.2.3"
     },
     "document": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "additionalProperties": false,
-      "required": ["filename", "page_count"],
+      "required": [
+        "filename",
+        "page_count"
+      ],
       "properties": {
-        "filename": { "type": "string" },
-        "content_type": { "type": "string", "enum": ["application/pdf"], "default": "application/pdf" },
-        "size_bytes": { "type": "integer", "minimum": 0 },
-        "page_count": { "type": "integer", "minimum": 1 }
+        "filename": {
+          "type": "string"
+        },
+        "content_type": {
+          "type": "string",
+          "enum": [
+            "application/pdf"
+          ],
+          "default": "application/pdf"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "page_count": {
+          "type": "integer",
+          "minimum": 1
+        }
       }
     },
-    "study_id": { "type": "string", "pattern": "^[A-Za-z0-9._-]+$", "description": "Internal opaque ID for this study/article" },
+    "study_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-Za-z0-9._-]+$",
+      "description": "Internal opaque ID for this study/article"
+    },
     "external_ids": {
-      "type": "array",
-      "items": { "$ref": "common.schema.json#/$defs/ExternalId" },
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "common.schema.json#/$defs/ExternalId"
+      },
       "default": []
     },
     "generator": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "additionalProperties": false,
-      "required": ["name", "model", "timestamp"],
+      "required": [
+        "name",
+        "model",
+        "timestamp"
+      ],
       "properties": {
-        "name": { "type": "string" },
-        "model": { "type": "string" },
-        "temperature": { "type": "number" },
-        "timestamp": { "type": "string", "format": "date-time" }
+        "name": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "temperature": {
+          "type": "number"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
       }
     },
-    "language": { "$ref": "common.schema.json#/$defs/LanguageCode" },
-    "metadata": { "$ref": "common.schema.json#/$defs/Metadata" },
-    "study_design": { "$ref": "#/$defs/StudyDesign" },
-    "population": { "$ref": "#/$defs/Population" },
-
+    "language": {
+      "$ref": "common.schema.json#/$defs/LanguageCode"
+    },
+    "metadata": {
+      "$ref": "common.schema.json#/$defs/Metadata"
+    },
+    "study_design": {
+      "$ref": "#/$defs/StudyDesign"
+    },
+    "population": {
+      "$ref": "#/$defs/Population"
+    },
     "exposures": {
       "type": "array",
       "description": "Exposure variables assessed in the study.",
-      "items": { "$ref": "#/$defs/Exposure" },
+      "items": {
+        "$ref": "#/$defs/Exposure"
+      },
       "minItems": 1
     },
-
     "groups": {
-      "type": "array",
+      "type": [
+        "array",
+        "null"
+      ],
       "description": "Optional derived groups (e.g., exposed/unexposed, categories).",
-      "items": { "$ref": "#/$defs/Group" },
+      "items": {
+        "$ref": "#/$defs/Group"
+      },
       "default": []
     },
-
     "comparisons": {
-      "type": "array",
+      "type": [
+        "array",
+        "null"
+      ],
       "description": "Contrasts to estimate effects (between groups or exposure levels).",
-      "items": { "$ref": "#/$defs/Comparison" },
+      "items": {
+        "$ref": "#/$defs/Comparison"
+      },
       "default": []
     },
-
     "outcomes": {
       "type": "array",
-      "items": { "$ref": "#/$defs/Outcome" },
+      "items": {
+        "$ref": "#/$defs/Outcome"
+      },
       "minItems": 1,
       "uniqueItems": false
     },
-
-    "results": { "$ref": "#/$defs/Results" },
-
+    "results": {
+      "$ref": "#/$defs/Results"
+    },
     "subgroup_analyses": {
-      "type": "array",
-      "items": { "$ref": "#/$defs/SubgroupAnalysisObs" },
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "#/$defs/SubgroupAnalysisObs"
+      },
       "default": []
     },
-
     "analysis_plan_registered": {
-      "type": "string",
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Link/registratie van vooraf gespecificeerd analyseplan (indien aanwezig)"
     },
-
     "causal_dag": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "description": "Directed Acyclic Graph (DAG) for causal assumptions",
       "properties": {
-        "provided": { "type": "boolean" },
-        "dag_figure_source": { "$ref": "common.schema.json#/$defs/SourceRef" },
-        "nodes": { "type": "array", "items": { "type": "string" }, "description": "All variables in DAG" },
+        "provided": {
+          "type": "boolean"
+        },
+        "dag_figure_source": {
+          "$ref": "common.schema.json#/$defs/SourceRef"
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "All variables in DAG"
+        },
         "edges": {
           "type": "array",
           "items": {
             "type": "object",
             "properties": {
-              "from": { "type": "string" },
-              "to": { "type": "string" },
-              "edge_type": { "type": "string", "enum": ["direct_causal", "confounding", "mediation", "selection"] }
-            }
+              "from": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "to": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "edge_type": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "direct_causal",
+                  "confounding",
+                  "mediation",
+                  "selection"
+                ]
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "edge_type",
+              "from",
+              "to"
+            ]
           }
         },
         "backdoor_paths": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Identified backdoor paths from exposure to outcome"
         },
         "minimal_adjustment_sets": {
@@ -113,172 +255,470 @@
           "items": {
             "type": "object",
             "properties": {
-              "variables": { "type": "array", "items": { "type": "string" } },
-              "sufficient": { "type": "boolean" }
-            }
+              "variables": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "type": "string"
+                }
+              },
+              "sufficient": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "sufficient",
+              "variables"
+            ]
           }
         },
         "collider_bias_risk": {
           "type": "object",
           "properties": {
-            "present": { "type": "boolean" },
-            "colliders_conditioned_on": { "type": "array", "items": { "type": "string" } }
-          }
+            "present": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "colliders_conditioned_on": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "colliders_conditioned_on",
+            "present"
+          ]
         },
         "selection_bias_risk": {
           "type": "object",
           "properties": {
-            "present": { "type": "boolean" },
-            "selection_node": { "type": "string" },
-            "bias_direction": { "type": "string" }
-          }
+            "present": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "selection_node": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "bias_direction": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "bias_direction",
+            "present",
+            "selection_node"
+          ]
         },
         "mediation_paths": {
           "type": "array",
           "items": {
             "type": "object",
             "properties": {
-              "mediator": { "type": "string" },
-              "direct_effect_estimable": { "type": "boolean" },
-              "indirect_effect_estimable": { "type": "boolean" }
-            }
+              "mediator": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "direct_effect_estimable": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "indirect_effect_estimable": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "direct_effect_estimable",
+              "indirect_effect_estimable",
+              "mediator"
+            ]
           }
         }
       }
     },
-
     "time_varying_confounding": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "description": "Time-varying confounding and g-methods",
       "properties": {
-        "present": { "type": "boolean" },
-        "time_varying_confounders": { "type": "array", "items": { "type": "string" } },
+        "present": {
+          "type": "boolean"
+        },
+        "time_varying_confounders": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "method": {
           "type": "string",
-          "enum": ["marginal_structural_model", "g_formula", "g_estimation", "sequential_trials", "other"]
+          "enum": [
+            "marginal_structural_model",
+            "g_formula",
+            "g_estimation",
+            "sequential_trials",
+            "other"
+          ]
         },
         "msm_details": {
           "type": "object",
           "description": "Marginal Structural Model details",
           "properties": {
-            "stabilized_weights": { "type": "boolean" },
-            "weight_truncation": { "type": "object", "properties": { "lower_percentile": { "type": "number" }, "upper_percentile": { "type": "number" } } },
-            "denominator_model": { "type": "string" },
-            "numerator_model": { "type": "string" },
-            "positivity_violations": { "type": "boolean" }
-          }
+            "stabilized_weights": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "weight_truncation": {
+              "type": [
+                "object",
+                "null"
+              ],
+              "properties": {
+                "lower_percentile": {
+                  "type": "number"
+                },
+                "upper_percentile": {
+                  "type": "number"
+                }
+              }
+            },
+            "denominator_model": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "numerator_model": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "positivity_violations": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "denominator_model",
+            "numerator_model",
+            "positivity_violations",
+            "stabilized_weights",
+            "weight_truncation"
+          ]
         },
         "g_formula_details": {
           "type": "object",
           "properties": {
-            "parametric": { "type": "boolean" },
-            "outcome_models": { "type": "array", "items": { "type": "string" } },
-            "confounder_models": { "type": "array", "items": { "type": "string" } },
-            "monte_carlo_samples": { "type": "integer" }
-          }
+            "parametric": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "outcome_models": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            },
+            "confounder_models": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "string"
+              }
+            },
+            "monte_carlo_samples": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "confounder_models",
+            "monte_carlo_samples",
+            "outcome_models",
+            "parametric"
+          ]
         },
-        "sequential_exchangeability_assumption": { "type": "string" }
+        "sequential_exchangeability_assumption": {
+          "type": "string"
+        }
       }
     },
-
     "extraction_quality": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "additionalProperties": false,
       "properties": {
-        "double_data_entry": { "type": "boolean", "default": false },
-        "inter_rater_agreement_kappa": { "type": "number" },
-        "reviewers": { "type": "array", "items": { "type": "string" }, "default": [] },
-        "notes": { "type": "string" }
+        "double_data_entry": {
+          "type": "boolean",
+          "default": false
+        },
+        "inter_rater_agreement_kappa": {
+          "type": "number"
+        },
+        "reviewers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "notes": {
+          "type": "string"
+        }
       }
     },
-
-    "tables_parsed": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/ParsedTable" }, "default": [] },
-    "figures_summary": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/FigureSummary" }, "default": [] },
-    "risk_of_bias": { "$ref": "common.schema.json#/$defs/RiskOfBias" },
-
+    "tables_parsed": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "common.schema.json#/$defs/ParsedTable"
+      },
+      "default": []
+    },
+    "figures_summary": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "common.schema.json#/$defs/FigureSummary"
+      },
+      "default": []
+    },
+    "risk_of_bias": {
+      "$ref": "common.schema.json#/$defs/RiskOfBias"
+    },
     "robins_e": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "description": "ROBINS-E (Risk Of Bias In Non-randomized Studies - of Exposures) assessment",
       "properties": {
-        "overall_risk": { "type": "string", "enum": ["low", "some_concerns", "high", "very_high"] },
+        "overall_risk": {
+          "type": "string",
+          "enum": [
+            "low",
+            "some_concerns",
+            "high",
+            "very_high"
+          ]
+        },
         "domains": {
           "type": "object",
           "properties": {
-            "confounding": { "type": "string", "enum": ["low", "some_concerns", "high", "very_high"] },
-            "measurement_exposure": { "type": "string", "enum": ["low", "some_concerns", "high", "very_high"] },
-            "missing_data": { "type": "string", "enum": ["low", "some_concerns", "high", "very_high"] },
-            "measurement_outcome": { "type": "string", "enum": ["low", "some_concerns", "high", "very_high"] },
-            "selection_reported_result": { "type": "string", "enum": ["low", "some_concerns", "high", "very_high"] }
-          }
+            "confounding": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "enum": [
+                "low",
+                "some_concerns",
+                "high",
+                "very_high"
+              ]
+            },
+            "measurement_exposure": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "enum": [
+                "low",
+                "some_concerns",
+                "high",
+                "very_high"
+              ]
+            },
+            "missing_data": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "enum": [
+                "low",
+                "some_concerns",
+                "high",
+                "very_high"
+              ]
+            },
+            "measurement_outcome": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "enum": [
+                "low",
+                "some_concerns",
+                "high",
+                "very_high"
+              ]
+            },
+            "selection_reported_result": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "enum": [
+                "low",
+                "some_concerns",
+                "high",
+                "very_high"
+              ]
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "confounding",
+            "measurement_exposure",
+            "measurement_outcome",
+            "missing_data",
+            "selection_reported_result"
+          ]
         },
-        "notes": { "type": "string" }
+        "notes": {
+          "type": "string"
+        }
       }
     },
-
     "strobe_reporting": {
-      "type": "object",
+      "type": [
+        "object",
+        "null"
+      ],
       "description": "STROBE and extensions reporting checklist",
       "properties": {
         "version": {
           "type": "string",
-          "enum": ["STROBE", "STROBE-MR", "RECORD", "STROBE-RDS", "STROBE-NI", "other"]
+          "enum": [
+            "STROBE",
+            "STROBE-MR",
+            "RECORD",
+            "STROBE-RDS",
+            "STROBE-NI",
+            "other"
+          ]
         },
-        "claimed": { "type": "boolean" },
-        "checklist_available": { "type": "boolean" },
-        "items_reported_pct": { "type": "number", "minimum": 0, "maximum": 100 }
-      }
-    },
-    "protocol_deviations": { "type": "string" },
-    "extraction_warnings": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/ExtractionWarning" }, "default": [] },
-    "truncated": { "$ref": "common.schema.json#/$defs/TruncationInfo" }
-  },
-
-  "allOf": [
-    {
-      "if": { "properties": { "study_design": { "properties": { "label": { "const": "Cohort" } } } } },
-      "then": {
-        "properties": {
-          "study_design": { "required": ["cohort_direction"] },
-          "population": { "required": ["n_total"] }
+        "claimed": {
+          "type": "boolean"
+        },
+        "checklist_available": {
+          "type": "boolean"
+        },
+        "items_reported_pct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
         }
       }
     },
-    {
-      "if": { "properties": { "study_design": { "properties": { "label": { "const": "Case-control" } } } } },
-      "then": {
-        "properties": {
-          "population": { "required": ["n_cases", "n_controls"] },
-          "study_design": { "properties": { "matching": { "default": "none" } } }
-        }
-      }
+    "protocol_deviations": {
+      "type": [
+        "string",
+        "null"
+      ]
     },
-    {
-      "if": { "properties": { "study_design": { "properties": { "label": { "const": "Cross-sectional" } } } } },
-      "then": { "properties": { "study_design": { "required": ["sampling_frame"] } } }
+    "extraction_warnings": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "$ref": "common.schema.json#/$defs/ExtractionWarning"
+      },
+      "default": []
     },
-    {
-      "if": { "properties": { "study_design": { "properties": { "label": { "const": "Ecological" } } } } },
-      "then": { "properties": { "study_design": { "required": ["ecological_level"] } } }
-    },
-    {
-      "if": { "properties": { "study_design": { "properties": { "label": { "const": "Case-control" } } } } },
-      "then": {
-        "properties": {
-          "study_design": {
-            "allOf": [
-              { "if": { "properties": { "matching": { "enum": ["individual", "frequency"] } } }, "then": { "required": ["matching_variables"] } }
-            ]
-          }
-        }
-      }
+    "truncated": {
+      "$ref": "common.schema.json#/$defs/TruncationInfo"
     }
-  ],
-
+  },
   "$defs": {
     "StudyDesign": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["label"],
+      "required": [
+        "case_crossover_details",
+        "censoring_rules",
+        "cohort_direction",
+        "confounding_strategy",
+        "control_sampling",
+        "design_notes",
+        "did_details",
+        "ecological_level",
+        "exposure_assessment",
+        "follow_up_scheme",
+        "grace_period_days",
+        "immortal_time_handling",
+        "label",
+        "latency_induction_window_days",
+        "matching",
+        "matching_ratio",
+        "matching_variables",
+        "new_user_design",
+        "outcome_assessment",
+        "prevalent_user_bias_risk",
+        "rdd_details",
+        "sampling_frame",
+        "sccs_details",
+        "source",
+        "target_trial_emulation",
+        "time_at_risk_definition",
+        "time_origin",
+        "weighting_used"
+      ],
       "properties": {
         "label": {
           "type": "string",
@@ -295,50 +735,217 @@
             "Interrupted time series"
           ]
         },
-
-        "cohort_direction": { "type": "string", "enum": ["prospective", "retrospective", "ambidirectional", "unclear"] },
-        "time_origin": { "type": "string", "description": "Index date origin (e.g., diagnosis, admission)" },
-        "follow_up_scheme": { "type": "string", "description": "Fixed vs variable follow-up; scheduled visits" },
-
-        "time_at_risk_definition": { "type": "string", "description": "Start/stop regels; grace periods" },
-        "immortal_time_handling": { "type": "string", "enum": ["excluded", "time-varying_exposure", "landmarking", "unknown", "other"] },
-
+        "cohort_direction": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "prospective",
+            "retrospective",
+            "ambidirectional",
+            "unclear"
+          ]
+        },
+        "time_origin": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Index date origin (e.g., diagnosis, admission)"
+        },
+        "follow_up_scheme": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Fixed vs variable follow-up; scheduled visits"
+        },
+        "time_at_risk_definition": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Start/stop regels; grace periods"
+        },
+        "immortal_time_handling": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "excluded",
+            "time-varying_exposure",
+            "landmarking",
+            "unknown",
+            "other"
+          ]
+        },
         "target_trial_emulation": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Detailed target trial emulation framework",
           "properties": {
-            "used": { "type": "boolean", "default": false },
-            "eligibility_criteria": { "type": "string", "description": "Who would be eligible for the trial" },
-            "treatment_assignment": { "type": "string", "description": "How treatment is assigned at time zero" },
-            "treatment_strategies": { "type": "array", "items": { "type": "string" } },
-            "outcome_definition": { "type": "string" },
-            "causal_contrasts": { "type": "string" },
-            "start_of_follow_up": { "type": "string", "description": "Time zero definition" },
-            "end_of_follow_up": { "type": "string" },
-            "protocol_deviations_handling": { "type": "string", "enum": ["ITT", "per_protocol", "as_treated"] }
+            "used": {
+              "type": "boolean",
+              "default": false
+            },
+            "eligibility_criteria": {
+              "type": "string",
+              "description": "Who would be eligible for the trial"
+            },
+            "treatment_assignment": {
+              "type": "string",
+              "description": "How treatment is assigned at time zero"
+            },
+            "treatment_strategies": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "outcome_definition": {
+              "type": "string"
+            },
+            "causal_contrasts": {
+              "type": "string"
+            },
+            "start_of_follow_up": {
+              "type": "string",
+              "description": "Time zero definition"
+            },
+            "end_of_follow_up": {
+              "type": "string"
+            },
+            "protocol_deviations_handling": {
+              "type": "string",
+              "enum": [
+                "ITT",
+                "per_protocol",
+                "as_treated"
+              ]
+            }
           }
         },
-        "new_user_design": { "type": "boolean", "default": false },
-        "prevalent_user_bias_risk": { "type": "string", "enum": ["low", "moderate", "high", "unclear"] },
-        "grace_period_days": { "type": "integer", "minimum": 0 },
-        "latency_induction_window_days": { "type": "integer", "minimum": 0 },
-        "censoring_rules": { "type": "string" },
-
-        "matching": { "type": "string", "enum": ["none", "individual", "frequency"] },
-        "matching_ratio": { "type": "number", "minimum": 0 },
-        "matching_variables": { "type": "array", "items": { "type": "string" }, "default": [] },
-        "control_sampling": { "type": "string", "enum": ["incidence_density", "cumulative", "nested", "other"] },
-
-        "sampling_frame": { "type": "string", "description": "Source population frame (for cross-sectional)" },
-        "weighting_used": { "type": "boolean", "default": false },
-
-        "ecological_level": { "type": "string", "description": "Unit of analysis (e.g., region, hospital)" },
-
-        "exposure_assessment": { "type": "string" },
-        "outcome_assessment": { "type": "string" },
-
+        "new_user_design": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
+        "prevalent_user_bias_risk": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "low",
+            "moderate",
+            "high",
+            "unclear"
+          ]
+        },
+        "grace_period_days": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "latency_induction_window_days": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "censoring_rules": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "matching": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "none",
+            "individual",
+            "frequency"
+          ]
+        },
+        "matching_ratio": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "matching_variables": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "control_sampling": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "incidence_density",
+            "cumulative",
+            "nested",
+            "other"
+          ]
+        },
+        "sampling_frame": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Source population frame (for cross-sectional)"
+        },
+        "weighting_used": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
+        "ecological_level": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Unit of analysis (e.g., region, hospital)"
+        },
+        "exposure_assessment": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "outcome_assessment": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "confounding_strategy": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "description": "Approaches used to control confounding",
           "items": {
             "type": "string",
@@ -358,291 +965,943 @@
           },
           "default": []
         },
-
-        "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
+        "source": {
+          "$ref": "common.schema.json#/$defs/SourceRef"
+        },
         "sccs_details": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Self-Controlled Case Series design details",
           "properties": {
-            "observation_period": { "type": "string" },
-            "risk_periods": { "type": "array", "items": { "type": "string" } },
-            "control_periods": { "type": "array", "items": { "type": "string" } },
-            "age_adjustment": { "type": "boolean" },
-            "seasonality_adjustment": { "type": "boolean" }
+            "observation_period": {
+              "type": "string"
+            },
+            "risk_periods": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "control_periods": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "age_adjustment": {
+              "type": "boolean"
+            },
+            "seasonality_adjustment": {
+              "type": "boolean"
+            }
           }
         },
         "case_crossover_details": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Case-crossover design details",
           "properties": {
-            "hazard_period": { "type": "string" },
-            "control_period_selection": { "type": "string", "enum": ["fixed_window", "time_stratified", "case_time_control"] },
-            "washout_period": { "type": "string" },
-            "bidirectional": { "type": "boolean" }
+            "hazard_period": {
+              "type": "string"
+            },
+            "control_period_selection": {
+              "type": "string",
+              "enum": [
+                "fixed_window",
+                "time_stratified",
+                "case_time_control"
+              ]
+            },
+            "washout_period": {
+              "type": "string"
+            },
+            "bidirectional": {
+              "type": "boolean"
+            }
           }
         },
         "rdd_details": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Regression Discontinuity Design details",
           "properties": {
-            "design_type": { "type": "string", "enum": ["sharp", "fuzzy"] },
-            "running_variable": { "type": "string" },
-            "cutoff_value": { "type": "number" },
-            "bandwidth": { "type": "number" },
-            "bandwidth_selection_method": { "type": "string" },
-            "kernel_function": { "type": "string" },
-            "manipulation_test": { "type": "object", "properties": { "performed": { "type": "boolean" }, "p_value": { "type": "number" } } },
-            "covariate_balance_at_cutoff": { "type": "boolean" }
+            "design_type": {
+              "type": "string",
+              "enum": [
+                "sharp",
+                "fuzzy"
+              ]
+            },
+            "running_variable": {
+              "type": "string"
+            },
+            "cutoff_value": {
+              "type": "number"
+            },
+            "bandwidth": {
+              "type": "number"
+            },
+            "bandwidth_selection_method": {
+              "type": "string"
+            },
+            "kernel_function": {
+              "type": "string"
+            },
+            "manipulation_test": {
+              "type": "object",
+              "properties": {
+                "performed": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "p_value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "p_value",
+                "performed"
+              ]
+            },
+            "covariate_balance_at_cutoff": {
+              "type": "boolean"
+            }
           }
         },
         "did_details": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Difference-in-Differences design details",
           "properties": {
-            "treatment_group": { "type": "string" },
-            "control_group": { "type": "string" },
-            "pre_period": { "type": "string" },
-            "post_period": { "type": "string" },
+            "treatment_group": {
+              "type": "string"
+            },
+            "control_group": {
+              "type": "string"
+            },
+            "pre_period": {
+              "type": "string"
+            },
+            "post_period": {
+              "type": "string"
+            },
             "parallel_trends_assumption": {
               "type": "object",
               "properties": {
-                "tested": { "type": "boolean" },
-                "test_method": { "type": "string" },
-                "holds": { "type": "boolean" },
-                "event_study_performed": { "type": "boolean" }
-              }
+                "tested": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "test_method": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "holds": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "event_study_performed": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "event_study_performed",
+                "holds",
+                "test_method",
+                "tested"
+              ]
             },
-            "staggered_adoption": { "type": "boolean" },
-            "triple_difference": { "type": "boolean" }
+            "staggered_adoption": {
+              "type": "boolean"
+            },
+            "triple_difference": {
+              "type": "boolean"
+            }
           }
         },
-        "design_notes": { "type": "string" }
+        "design_notes": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
       }
     },
-
     "Population": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "n_total": { "type": "integer", "minimum": 0, "description": "Total cohort/sample size" },
-        "n_cases": { "type": "integer", "minimum": 0, "description": "For case-control designs" },
-        "n_controls": { "type": "integer", "minimum": 0, "description": "For case-control designs" },
-        "person_time_total": { "type": "number", "minimum": 0, "description": "Total person-time (e.g., person-years)" },
-        "age_mean": { "type": "number" },
-        "age_sd": { "type": "number", "minimum": 0 },
-        "sex_female_pct": { "type": "number", "minimum": 0, "maximum": 100 },
-        "inclusion_criteria": { "type": "string" },
-        "exclusion_criteria": { "type": "string" },
+        "n_total": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Total cohort/sample size"
+        },
+        "n_cases": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "For case-control designs"
+        },
+        "n_controls": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "For case-control designs"
+        },
+        "person_time_total": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "Total person-time (e.g., person-years)"
+        },
+        "age_mean": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "age_sd": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "sex_female_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
+        "inclusion_criteria": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "exclusion_criteria": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "follow_up_duration_iso8601": {
           "$ref": "common.schema.json#/$defs/ISO8601Duration",
           "description": "ISO 8601 duration (typical for cohort)"
         },
-        "loss_to_follow_up_pct": { "type": "number", "minimum": 0, "maximum": 100 },
+        "loss_to_follow_up_pct": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100
+        },
         "missing_data": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "additionalProperties": false,
           "properties": {
-            "variables_with_missing": { "type": "array", "items": { "type": "string" }, "default": [] },
-            "imputation": { "type": "string" }
+            "variables_with_missing": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": []
+            },
+            "imputation": {
+              "type": "string"
+            }
           }
         },
-        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
-      }
+        "source": {
+          "$ref": "common.schema.json#/$defs/SourceRef"
+        }
+      },
+      "required": [
+        "age_mean",
+        "age_sd",
+        "exclusion_criteria",
+        "follow_up_duration_iso8601",
+        "inclusion_criteria",
+        "loss_to_follow_up_pct",
+        "missing_data",
+        "n_cases",
+        "n_controls",
+        "n_total",
+        "person_time_total",
+        "sex_female_pct",
+        "source"
+      ]
     },
-
     "Exposure": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["exposure_id", "name", "type"],
+      "required": [
+        "categories",
+        "definition",
+        "exposure_id",
+        "instrumental_variable",
+        "instrumental_variable_used",
+        "measurement_time",
+        "misclassification_risk",
+        "name",
+        "ontology_terms",
+        "per_unit_effect",
+        "provenance",
+        "source",
+        "time_window_iso8601",
+        "type",
+        "unit"
+      ],
       "properties": {
-        "exposure_id": { "type": "string" },
-        "name": { "type": "string" },
-        "definition": { "type": "string" },
-        "type": { "type": "string", "enum": ["binary", "categorical", "continuous", "time_varying"] },
+        "exposure_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "definition": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "binary",
+            "categorical",
+            "continuous",
+            "time_varying"
+          ]
+        },
         "categories": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "description": "For categorical exposures: ordered list of levels",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "default": []
         },
-        "unit": { "type": "string" },
-        "per_unit_effect": { "type": "number", "description": "Optional: unit increase for contrast definition (meta info)" },
-        "measurement_time": { "type": "string", "enum": ["baseline", "time_varying", "unknown"], "default": "baseline" },
-        "time_window_iso8601": { "$ref": "common.schema.json#/$defs/ISO8601Duration" },
-        "instrumental_variable_used": { "type": "boolean", "default": false },
-        "instrumental_variable": { "type": "string", "description": "If IV used, specify" },
-        "misclassification_risk": { "type": "string", "enum": ["low", "moderate", "high", "unclear"] },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "per_unit_effect": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Optional: unit increase for contrast definition (meta info)"
+        },
+        "measurement_time": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "baseline",
+            "time_varying",
+            "unknown"
+          ],
+          "default": "baseline"
+        },
+        "time_window_iso8601": {
+          "$ref": "common.schema.json#/$defs/ISO8601Duration"
+        },
+        "instrumental_variable_used": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
+        "instrumental_variable": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "If IV used, specify"
+        },
+        "misclassification_risk": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "low",
+            "moderate",
+            "high",
+            "unclear"
+          ]
+        },
         "ontology_terms": {
-          "type": "array",
-          "items": { "$ref": "common.schema.json#/$defs/OntologyTerm" },
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "common.schema.json#/$defs/OntologyTerm"
+          },
           "default": []
         },
-        "provenance": { "$ref": "common.schema.json#/$defs/Provenance" },
-        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
-      },
-      "allOf": [
-        {
-          "if": { "properties": { "type": { "const": "categorical" } } },
-          "then": {
-            "required": ["categories"],
-            "properties": {
-              "categories": { "minItems": 2 }
-            }
-          }
+        "provenance": {
+          "$ref": "common.schema.json#/$defs/Provenance"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/SourceRef"
         }
-      ]
+      }
     },
-
     "Group": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["group_id", "label"],
+      "required": [
+        "description",
+        "exposure_levels",
+        "group_id",
+        "label",
+        "n"
+      ],
       "properties": {
-        "group_id": { "type": "string" },
-        "label": { "type": "string" },
-        "n": { "type": "integer", "minimum": 0 },
-        "description": { "type": "string" },
+        "group_id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "n": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "exposure_levels": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Mapping exposure->level/value for this group",
-          "additionalProperties": { "type": "string" },
+          "additionalProperties": {
+            "type": "string"
+          },
           "default": {}
         }
       }
     },
-
     "Comparison": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["comparison_id", "comparison_type", "outcome_scope"],
+      "required": [
+        "comparison_id",
+        "comparison_type",
+        "exposure_contrast",
+        "group_a",
+        "group_b",
+        "is_primary",
+        "outcome_scope",
+        "specified_outcomes",
+        "trend_spec"
+      ],
       "properties": {
-        "comparison_id": { "type": "string" },
-        "comparison_type": { "type": "string", "enum": ["group_vs_group", "exposure_contrast", "trend"] },
-        "group_a": { "type": "string", "description": "group_id (for group_vs_group)" },
-        "group_b": { "type": "string", "description": "group_id (for group_vs_group)" },
+        "comparison_id": {
+          "type": "string"
+        },
+        "comparison_type": {
+          "type": "string",
+          "enum": [
+            "group_vs_group",
+            "exposure_contrast",
+            "trend"
+          ]
+        },
+        "group_a": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "group_id (for group_vs_group)"
+        },
+        "group_b": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "group_id (for group_vs_group)"
+        },
         "exposure_contrast": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "additionalProperties": false,
           "properties": {
-            "exposure_id": { "type": "string" },
-            "level_a": { "type": "string" },
-            "level_b": { "type": "string" },
-            "per_unit": { "type": "number", "description": "For continuous exposure, effect per unit" }
+            "exposure_id": {
+              "type": "string"
+            },
+            "level_a": {
+              "type": "string"
+            },
+            "level_b": {
+              "type": "string"
+            },
+            "per_unit": {
+              "type": "number",
+              "description": "For continuous exposure, effect per unit"
+            }
           }
         },
         "trend_spec": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "additionalProperties": false,
           "properties": {
-            "exposure_id": { "type": "string" },
-            "coding": { "type": "string", "enum": ["ordinal", "quantile", "spline", "other"] }
+            "exposure_id": {
+              "type": "string"
+            },
+            "coding": {
+              "type": "string",
+              "enum": [
+                "ordinal",
+                "quantile",
+                "spline",
+                "other"
+              ]
+            }
           }
         },
-        "outcome_scope": { "type": "string", "enum": ["all_outcomes", "primary_only", "specified_list"] },
-        "specified_outcomes": { "type": "array", "items": { "type": "string" }, "default": [] },
-        "is_primary": { "type": "boolean", "default": false }
+        "outcome_scope": {
+          "type": "string",
+          "enum": [
+            "all_outcomes",
+            "primary_only",
+            "specified_list"
+          ]
+        },
+        "specified_outcomes": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "is_primary": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        }
       }
     },
-
     "Outcome": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["outcome_id", "name", "type"],
+      "required": [
+        "censoring_informative_risk",
+        "definition",
+        "direction_of_benefit",
+        "event_competing_risks_present",
+        "measurement_method",
+        "misclassification_risk",
+        "name",
+        "ontology_terms",
+        "outcome_id",
+        "provenance",
+        "scale_max",
+        "scale_min",
+        "source",
+        "timepoint",
+        "timepoint_iso8601",
+        "type",
+        "unit",
+        "unit_ucum"
+      ],
       "properties": {
-        "outcome_id": { "type": "string" },
-        "name": { "type": "string" },
-        "definition": { "type": "string" },
-        "type": { "type": "string", "enum": ["binary", "continuous", "time_to_event", "ordinal", "count"] },
-        "direction_of_benefit": { "type": "string", "enum": ["higher_better", "lower_better", "neutral_or_na"] },
-        "unit": { "type": "string" },
-        "timepoint": { "type": "string" },
-        "timepoint_iso8601": { "$ref": "common.schema.json#/$defs/ISO8601Duration" },
-        "measurement_method": { "type": "string" },
-        "scale_min": { "type": "number" },
-        "scale_max": { "type": "number" },
-        "misclassification_risk": { "type": "string", "enum": ["low", "moderate", "high", "unclear"] },
-        "event_competing_risks_present": { "type": "boolean", "default": false },
-        "censoring_informative_risk": { "type": "string", "enum": ["low", "moderate", "high", "unclear"] },
+        "outcome_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "definition": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "binary",
+            "continuous",
+            "time_to_event",
+            "ordinal",
+            "count"
+          ]
+        },
+        "direction_of_benefit": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "higher_better",
+            "lower_better",
+            "neutral_or_na"
+          ]
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "timepoint": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "timepoint_iso8601": {
+          "$ref": "common.schema.json#/$defs/ISO8601Duration"
+        },
+        "measurement_method": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "scale_min": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "scale_max": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "misclassification_risk": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "low",
+            "moderate",
+            "high",
+            "unclear"
+          ]
+        },
+        "event_competing_risks_present": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
+        "censoring_informative_risk": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "low",
+            "moderate",
+            "high",
+            "unclear"
+          ]
+        },
         "ontology_terms": {
-          "type": "array",
-          "items": { "$ref": "common.schema.json#/$defs/OntologyTerm" },
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "common.schema.json#/$defs/OntologyTerm"
+          },
           "default": []
         },
-        "provenance": { "$ref": "common.schema.json#/$defs/Provenance" },
-        "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
-        "unit_ucum": { "type": "string", "description": "UCUM code if available" }
+        "provenance": {
+          "$ref": "common.schema.json#/$defs/Provenance"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/SourceRef"
+        },
+        "unit_ucum": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "UCUM code if available"
+        }
       }
     },
-
     "PerGroupResult": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["outcome_id", "group_id"],
+      "required": [
+        "events",
+        "group_id",
+        "iqr",
+        "mean",
+        "median",
+        "n",
+        "outcome_id",
+        "provenance",
+        "sd",
+        "source",
+        "total",
+        "unit"
+      ],
       "properties": {
-        "outcome_id": { "type": "string" },
-        "group_id": { "type": "string" },
-        "n": { "type": "integer", "minimum": 0 },
-        "events": { "type": "integer", "minimum": 0 },
-        "mean": { "type": "number" },
-        "sd": { "type": "number", "minimum": 0 },
-        "median": { "type": "number" },
-        "iqr": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": { "p25": { "type": "number" }, "p75": { "type": "number" } }
+        "outcome_id": {
+          "type": "string"
         },
-        "total": { "type": "integer", "minimum": 0 },
-        "unit": { "type": "string" },
-        "provenance": { "$ref": "common.schema.json#/$defs/Provenance" },
-        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+        "group_id": {
+          "type": "string"
+        },
+        "n": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "events": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "mean": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "sd": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "median": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "iqr": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "p25": {
+              "type": "number"
+            },
+            "p75": {
+              "type": "number"
+            }
+          }
+        },
+        "total": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "provenance": {
+          "$ref": "common.schema.json#/$defs/Provenance"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/SourceRef"
+        }
       },
       "oneOf": [
         {
-          "required": ["mean", "sd"],
-          "not": { "anyOf": [ { "required": ["median"] }, { "required": ["iqr"] }, { "required": ["events"] } ] }
+          "required": [
+            "mean",
+            "sd"
+          ]
         },
         {
-          "required": ["median", "iqr"],
-          "not": { "anyOf": [ { "required": ["mean"] }, { "required": ["sd"] }, { "required": ["events"] } ] },
-          "properties": { "iqr": { "required": ["p25", "p75"] } }
+          "required": [
+            "median",
+            "iqr"
+          ],
+          "properties": {
+            "iqr": {
+              "required": [
+                "p25",
+                "p75"
+              ]
+            }
+          }
         },
         {
           "description": "Binary outcome per group",
-          "required": ["events"],
-          "anyOf": [ { "required": ["n"] }, { "required": ["total"] } ]
+          "required": [
+            "events"
+          ],
+          "anyOf": [
+            {
+              "required": [
+                "n"
+              ]
+            },
+            {
+              "required": [
+                "total"
+              ]
+            }
+          ]
         }
       ]
     },
-
-    "ContrastEffect": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
-
+    "ContrastEffect": {
+      "$ref": "common.schema.json#/$defs/ContrastEffect"
+    },
     "SensitivityCI": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "e_value": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "E-value for unmeasured confounding sensitivity",
           "properties": {
-            "point_estimate": { "type": "number" },
-            "ci_limit": { "type": "number", "description": "E-value for confidence interval limit" },
-            "interpretation": { "type": "string" }
+            "point_estimate": {
+              "type": "number"
+            },
+            "ci_limit": {
+              "type": "number",
+              "description": "E-value for confidence interval limit"
+            },
+            "interpretation": {
+              "type": "string"
+            }
           }
         },
         "negative_controls": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "negative_control_outcomes": {
               "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
-                  "outcome_name": { "type": "string" },
-                  "rationale": { "type": "string", "description": "Why this is expected to have no causal effect" },
-                  "observed_effect": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
-                  "null_hypothesis_rejected": { "type": "boolean" },
-                  "residual_confounding_suggested": { "type": "boolean" }
-                }
+                  "outcome_name": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "rationale": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "Why this is expected to have no causal effect"
+                  },
+                  "observed_effect": {
+                    "$ref": "common.schema.json#/$defs/ContrastEffect"
+                  },
+                  "null_hypothesis_rejected": {
+                    "type": [
+                      "boolean",
+                      "null"
+                    ]
+                  },
+                  "residual_confounding_suggested": {
+                    "type": [
+                      "boolean",
+                      "null"
+                    ]
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "null_hypothesis_rejected",
+                  "observed_effect",
+                  "outcome_name",
+                  "rationale",
+                  "residual_confounding_suggested"
+                ]
               }
             },
             "negative_control_exposures": {
@@ -650,254 +1909,989 @@
               "items": {
                 "type": "object",
                 "properties": {
-                  "exposure_name": { "type": "string" },
-                  "rationale": { "type": "string" },
-                  "observed_effect": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
-                  "null_hypothesis_rejected": { "type": "boolean" }
-                }
+                  "exposure_name": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "rationale": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "observed_effect": {
+                    "$ref": "common.schema.json#/$defs/ContrastEffect"
+                  },
+                  "null_hypothesis_rejected": {
+                    "type": [
+                      "boolean",
+                      "null"
+                    ]
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "exposure_name",
+                  "null_hypothesis_rejected",
+                  "observed_effect",
+                  "rationale"
+                ]
               }
             }
           }
         },
         "quantitative_bias_analysis": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
-            "performed": { "type": "boolean" },
+            "performed": {
+              "type": "boolean"
+            },
             "bias_parameters": {
               "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
-                  "bias_type": { "type": "string", "enum": ["unmeasured_confounding", "misclassification", "selection_bias"] },
-                  "bias_magnitude": { "type": "string" },
-                  "bias_direction": { "type": "string", "enum": ["toward_null", "away_from_null", "unknown"] },
-                  "bias_corrected_estimate": { "$ref": "common.schema.json#/$defs/ContrastEffect" }
-                }
+                  "bias_type": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "unmeasured_confounding",
+                      "misclassification",
+                      "selection_bias"
+                    ]
+                  },
+                  "bias_magnitude": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "bias_direction": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "toward_null",
+                      "away_from_null",
+                      "unknown"
+                    ]
+                  },
+                  "bias_corrected_estimate": {
+                    "$ref": "common.schema.json#/$defs/ContrastEffect"
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "bias_corrected_estimate",
+                  "bias_direction",
+                  "bias_magnitude",
+                  "bias_type"
+                ]
               }
             }
           }
         },
         "rule_out_approach": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "What strength of confounding can be ruled out",
           "properties": {
-            "confounding_strength_ruled_out": { "type": "string" },
-            "robust_to": { "type": "string" }
+            "confounding_strength_ruled_out": {
+              "type": "string"
+            },
+            "robust_to": {
+              "type": "string"
+            }
           }
         },
-        "notes": { "type": "string" }
-      }
+        "notes": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "e_value",
+        "negative_controls",
+        "notes",
+        "quantitative_bias_analysis",
+        "rule_out_approach"
+      ]
     },
-
     "ContrastResult": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["outcome_id", "comparison_id", "effect"],
+      "required": [
+        "adjusted",
+        "censoring_informative_risk",
+        "comparison_id",
+        "competing_risks_method",
+        "covariates",
+        "effect",
+        "model",
+        "outcome_id",
+        "propensity_score",
+        "provenance",
+        "ps_overlap_notes",
+        "ps_overlap_ok",
+        "sensitivity",
+        "source"
+      ],
       "properties": {
-        "outcome_id": { "type": "string" },
-        "comparison_id": { "type": "string" },
-        "adjusted": { "type": "boolean", "default": true },
-        "covariates": { "type": "array", "items": { "type": "string" }, "default": [] },
+        "outcome_id": {
+          "type": "string"
+        },
+        "comparison_id": {
+          "type": "string"
+        },
+        "adjusted": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": true
+        },
+        "covariates": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
         "model": {
-          "type": "string",
-          "enum": ["cox", "logistic", "linear", "poisson", "nb", "gee", "mixed", "ipw", "iv", "g-methods", "other", "na"]
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "cox",
+            "logistic",
+            "linear",
+            "poisson",
+            "nb",
+            "gee",
+            "mixed",
+            "ipw",
+            "iv",
+            "g-methods",
+            "other",
+            "na"
+          ]
         },
         "propensity_score": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "additionalProperties": false,
           "properties": {
-            "method": { "type": "string", "enum": ["matching", "stratification", "IPTW", "SMR-weighting", "overlap", "doubly_robust", "tmle", "aipw", "entropy_balancing", "other"] },
-            "matching_ratio": { "type": "number", "minimum": 0 },
-            "caliper": { "type": "number", "minimum": 0 },
-            "variables": { "type": "array", "items": { "type": "string" }, "default": [] },
-            "ps_model": { "type": "string", "description": "Model used to estimate propensity score" },
-            "c_statistic": { "type": "number", "minimum": 0, "maximum": 1, "description": "PS model discrimination" },
+            "method": {
+              "type": "string",
+              "enum": [
+                "matching",
+                "stratification",
+                "IPTW",
+                "SMR-weighting",
+                "overlap",
+                "doubly_robust",
+                "tmle",
+                "aipw",
+                "entropy_balancing",
+                "other"
+              ]
+            },
+            "matching_ratio": {
+              "type": "number",
+              "minimum": 0
+            },
+            "caliper": {
+              "type": "number",
+              "minimum": 0
+            },
+            "variables": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "default": []
+            },
+            "ps_model": {
+              "type": "string",
+              "description": "Model used to estimate propensity score"
+            },
+            "c_statistic": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "PS model discrimination"
+            },
             "balance_diagnostics": {
               "type": "object",
               "properties": {
-                "balance_ok": { "type": "boolean", "default": false },
-                "max_smd_after": { "type": "number", "description": "Max absolute standardized mean difference post-balance" },
-                "mean_smd_after": { "type": "number" },
-                "love_plot_source": { "$ref": "common.schema.json#/$defs/SourceRef" },
-                "balance_threshold": { "type": "number", "default": 0.1 },
-                "variables_imbalanced": { "type": "array", "items": { "type": "string" } }
-              }
+                "balance_ok": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ],
+                  "default": false
+                },
+                "max_smd_after": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "description": "Max absolute standardized mean difference post-balance"
+                },
+                "mean_smd_after": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "love_plot_source": {
+                  "$ref": "common.schema.json#/$defs/SourceRef"
+                },
+                "balance_threshold": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "default": 0.1
+                },
+                "variables_imbalanced": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "balance_ok",
+                "balance_threshold",
+                "love_plot_source",
+                "max_smd_after",
+                "mean_smd_after",
+                "variables_imbalanced"
+              ]
             },
             "positivity": {
               "type": "object",
               "properties": {
-                "overlap_adequate": { "type": "boolean" },
-                "overlap_plot_source": { "$ref": "common.schema.json#/$defs/SourceRef" },
-                "positivity_violations": { "type": "boolean" },
-                "trimming_applied": { "type": "boolean" },
-                "trimming_threshold": { "type": "number" }
-              }
+                "overlap_adequate": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "overlap_plot_source": {
+                  "$ref": "common.schema.json#/$defs/SourceRef"
+                },
+                "positivity_violations": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "trimming_applied": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "trimming_threshold": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "overlap_adequate",
+                "overlap_plot_source",
+                "positivity_violations",
+                "trimming_applied",
+                "trimming_threshold"
+              ]
             },
             "weight_diagnostics": {
               "type": "object",
               "properties": {
-                "stabilized_weights": { "type": "boolean" },
-                "truncated_weights": { "type": "boolean" },
-                "truncation_percentiles": { "type": "object", "properties": { "lower": { "type": "number" }, "upper": { "type": "number" } } },
-                "effective_sample_size": { "type": "number" },
-                "max_weight": { "type": "number" },
-                "weight_variance": { "type": "number" }
-              }
+                "stabilized_weights": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "truncated_weights": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "truncation_percentiles": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "lower": {
+                      "type": "number"
+                    },
+                    "upper": {
+                      "type": "number"
+                    }
+                  }
+                },
+                "effective_sample_size": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "max_weight": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "weight_variance": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "effective_sample_size",
+                "max_weight",
+                "stabilized_weights",
+                "truncated_weights",
+                "truncation_percentiles",
+                "weight_variance"
+              ]
             },
             "doubly_robust_details": {
               "type": "object",
               "description": "For AIPW, TMLE, and other doubly robust methods",
               "properties": {
-                "outcome_model": { "type": "string" },
-                "ps_model": { "type": "string" },
-                "cross_fitting": { "type": "boolean" },
-                "super_learner": { "type": "boolean" },
-                "ensemble_methods": { "type": "array", "items": { "type": "string" } }
-              }
+                "outcome_model": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "ps_model": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "cross_fitting": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "super_learner": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "ensemble_methods": {
+                  "type": [
+                    "array",
+                    "null"
+                  ],
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "cross_fitting",
+                "ensemble_methods",
+                "outcome_model",
+                "ps_model",
+                "super_learner"
+              ]
             }
           }
         },
-        "ps_overlap_ok": { "type": "boolean", "default": false },
-        "ps_overlap_notes": { "type": "string" },
-        "competing_risks_method": { "type": "string", "enum": ["none", "Fine-Gray", "cause-specific", "other"] },
-        "censoring_informative_risk": { "type": "string", "enum": ["low", "moderate", "high", "unclear"] },
-        "sensitivity": { "$ref": "#/$defs/SensitivityCI" },
-        "effect": { "$ref": "#/$defs/ContrastEffect" },
-        "provenance": { "$ref": "common.schema.json#/$defs/Provenance" },
-        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+        "ps_overlap_ok": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
+        "ps_overlap_notes": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "competing_risks_method": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "none",
+            "Fine-Gray",
+            "cause-specific",
+            "other"
+          ]
+        },
+        "censoring_informative_risk": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "low",
+            "moderate",
+            "high",
+            "unclear"
+          ]
+        },
+        "sensitivity": {
+          "$ref": "#/$defs/SensitivityCI"
+        },
+        "effect": {
+          "$ref": "#/$defs/ContrastEffect"
+        },
+        "provenance": {
+          "$ref": "common.schema.json#/$defs/Provenance"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/SourceRef"
+        }
       }
     },
-
     "HarmsResult": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["event", "group_id", "events", "total", "source"],
+      "required": [
+        "ctcae_grade",
+        "ctcae_version",
+        "event",
+        "events",
+        "group_id",
+        "meddra_code",
+        "ontology_terms",
+        "provenance",
+        "relatedness",
+        "serious",
+        "severity_grade_scale",
+        "source",
+        "total"
+      ],
       "properties": {
-        "event": { "type": "string" },
-        "group_id": { "type": "string" },
-        "severity_grade_scale": { "type": "string", "enum": ["CTCAE", "Clavien-Dindo", "Other", "NA"] },
-        "ctcae_version": { "type": "string", "description": "bv. 5.0" },
-        "ctcae_grade": { "type": "integer", "minimum": 1, "maximum": 5 },
-        "events": { "type": "integer", "minimum": 0 },
-        "total": { "type": "integer", "minimum": 0 },
-        "meddra_code": { "type": "string", "description": "MedDRA PT/LLT code indien beschikbaar" },
+        "event": {
+          "type": "string"
+        },
+        "group_id": {
+          "type": "string"
+        },
+        "severity_grade_scale": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "CTCAE",
+            "Clavien-Dindo",
+            "Other",
+            "NA"
+          ]
+        },
+        "ctcae_version": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "bv. 5.0"
+        },
+        "ctcae_grade": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "maximum": 5
+        },
+        "events": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "meddra_code": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "MedDRA PT/LLT code indien beschikbaar"
+        },
         "ontology_terms": {
-          "type": "array",
-          "items": { "$ref": "common.schema.json#/$defs/OntologyTerm" },
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "common.schema.json#/$defs/OntologyTerm"
+          },
           "default": []
         },
-        "provenance": { "$ref": "common.schema.json#/$defs/Provenance" },
-        "source": { "$ref": "common.schema.json#/$defs/SourceRef" },
-        "serious": { "type": "boolean", "default": false },
-        "relatedness": { "type": "string", "enum": ["related", "probable", "possible", "unlikely", "not_related", "unknown"], "default": "unknown" }
+        "provenance": {
+          "$ref": "common.schema.json#/$defs/Provenance"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/SourceRef"
+        },
+        "serious": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
+        "relatedness": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "related",
+            "probable",
+            "possible",
+            "unlikely",
+            "not_related",
+            "unknown"
+          ],
+          "default": "unknown"
+        }
       }
     },
-
     "Results": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "per_group": { "type": "array", "items": { "$ref": "#/$defs/PerGroupResult" }, "default": [] },
-        "contrasts": { "type": "array", "items": { "$ref": "#/$defs/ContrastResult" }, "default": [] },
-        "harms": { "type": "array", "items": { "$ref": "#/$defs/HarmsResult" }, "default": [] }
-      }
+        "per_group": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/PerGroupResult"
+          },
+          "default": []
+        },
+        "contrasts": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/ContrastResult"
+          },
+          "default": []
+        },
+        "harms": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "$ref": "#/$defs/HarmsResult"
+          },
+          "default": []
+        }
+      },
+      "required": [
+        "contrasts",
+        "harms",
+        "per_group"
+      ]
     },
-
     "SubgroupAnalysisObs": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["factor"],
+      "required": [
+        "additive_interaction",
+        "causal_vs_statistical",
+        "effects",
+        "factor",
+        "interaction_p",
+        "interaction_scale",
+        "levels",
+        "pre_specified",
+        "provenance",
+        "source",
+        "sufficient_cause_framework"
+      ],
       "properties": {
-        "factor": { "type": "string" },
-        "levels": { "type": "array", "items": { "type": "string" }, "default": [] },
-        "interaction_p": { "type": "number", "minimum": 0, "maximum": 1 },
-        "interaction_scale": { "type": "string", "enum": ["multiplicative", "additive", "both"] },
+        "factor": {
+          "type": "string"
+        },
+        "levels": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "interaction_p": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "interaction_scale": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "multiplicative",
+            "additive",
+            "both"
+          ]
+        },
         "effects": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "properties": { "level": { "type": "string" }, "effect": { "$ref": "common.schema.json#/$defs/ContrastEffect" } }
+            "properties": {
+              "level": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "effect": {
+                "$ref": "common.schema.json#/$defs/ContrastEffect"
+              }
+            },
+            "required": [
+              "effect",
+              "level"
+            ]
           },
           "default": []
         },
         "additive_interaction": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Measures of additive interaction (biological interaction)",
           "properties": {
-            "reri": { "type": "number", "description": "Relative Excess Risk due to Interaction" },
-            "reri_ci_lower": { "type": "number" },
-            "reri_ci_upper": { "type": "number" },
-            "ap": { "type": "number", "description": "Attributable Proportion due to interaction", "minimum": 0, "maximum": 1 },
-            "si": { "type": "number", "description": "Synergy Index", "minimum": 0 },
-            "interpretation": { "type": "string", "enum": ["positive_interaction", "negative_interaction", "no_interaction"] }
+            "reri": {
+              "type": "number",
+              "description": "Relative Excess Risk due to Interaction"
+            },
+            "reri_ci_lower": {
+              "type": "number"
+            },
+            "reri_ci_upper": {
+              "type": "number"
+            },
+            "ap": {
+              "type": "number",
+              "description": "Attributable Proportion due to interaction",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "si": {
+              "type": "number",
+              "description": "Synergy Index",
+              "minimum": 0
+            },
+            "interpretation": {
+              "type": "string",
+              "enum": [
+                "positive_interaction",
+                "negative_interaction",
+                "no_interaction"
+              ]
+            }
           }
         },
-        "causal_vs_statistical": { "type": "string", "enum": ["causal_interaction", "statistical_interaction", "unclear"] },
-        "sufficient_cause_framework": { "type": "string", "description": "Interpretation under sufficient cause (Rothman) framework" },
-        "pre_specified": { "type": "boolean", "default": false },
-        "provenance": { "$ref": "common.schema.json#/$defs/Provenance" },
-        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+        "causal_vs_statistical": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "causal_interaction",
+            "statistical_interaction",
+            "unclear"
+          ]
+        },
+        "sufficient_cause_framework": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Interpretation under sufficient cause (Rothman) framework"
+        },
+        "pre_specified": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "default": false
+        },
+        "provenance": {
+          "$ref": "common.schema.json#/$defs/Provenance"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/SourceRef"
+        }
       }
     },
-
     "InstrumentalVariableAnalysis": {
       "type": "object",
       "description": "Instrumental variable analysis details",
       "additionalProperties": false,
       "properties": {
-        "instrument": { "type": "string" },
-        "instrument_type": { "type": "string", "enum": ["genetic", "policy", "preference", "distance", "other"] },
+        "instrument": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "instrument_type": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "genetic",
+            "policy",
+            "preference",
+            "distance",
+            "other"
+          ]
+        },
         "assumptions": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "relevance": {
               "type": "object",
               "properties": {
-                "f_statistic": { "type": "number", "description": "First-stage F-statistic" },
-                "partial_r2": { "type": "number" },
-                "weak_instrument": { "type": "boolean" }
-              }
+                "f_statistic": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "description": "First-stage F-statistic"
+                },
+                "partial_r2": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "weak_instrument": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "f_statistic",
+                "partial_r2",
+                "weak_instrument"
+              ]
             },
             "exclusion_restriction": {
               "type": "object",
               "properties": {
-                "plausible": { "type": "boolean" },
-                "justification": { "type": "string" },
-                "testable_implications": { "type": "string" }
-              }
+                "plausible": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "justification": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "testable_implications": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "justification",
+                "plausible",
+                "testable_implications"
+              ]
             },
             "exchangeability": {
               "type": "object",
               "properties": {
-                "plausible": { "type": "boolean" },
-                "balance_check": { "type": "string" }
-              }
+                "plausible": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "balance_check": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "balance_check",
+                "plausible"
+              ]
             }
           }
         },
-        "estimation_method": { "type": "string", "enum": ["2SLS", "GMM", "control_function", "LIML", "other"] },
+        "estimation_method": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "2SLS",
+            "GMM",
+            "control_function",
+            "LIML",
+            "other"
+          ]
+        },
         "late": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Local Average Treatment Effect (complier average causal effect)",
           "properties": {
-            "effect": { "$ref": "common.schema.json#/$defs/ContrastEffect" },
-            "complier_proportion": { "type": "number", "minimum": 0, "maximum": 1 },
-            "interpretation": { "type": "string" }
+            "effect": {
+              "$ref": "common.schema.json#/$defs/ContrastEffect"
+            },
+            "complier_proportion": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "interpretation": {
+              "type": "string"
+            }
           }
         },
         "mendelian_randomization": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "For genetic instrumental variables",
           "properties": {
-            "snps_used": { "type": "array", "items": { "type": "string" } },
-            "pleiotropy_assessment": { "type": "string" },
-            "mr_egger": { "type": "boolean" },
-            "heterogeneity_test": { "type": "object", "properties": { "i2": { "type": "number" }, "q_statistic_p": { "type": "number" } } }
+            "snps_used": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "pleiotropy_assessment": {
+              "type": "string"
+            },
+            "mr_egger": {
+              "type": "boolean"
+            },
+            "heterogeneity_test": {
+              "type": "object",
+              "properties": {
+                "i2": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "q_statistic_p": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "required": [
+                "i2",
+                "q_statistic_p"
+              ]
+            }
           }
         },
-        "sensitivity_analyses": { "type": "array", "items": { "type": "string" } }
-      }
+        "sensitivity_analyses": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "assumptions",
+        "estimation_method",
+        "instrument",
+        "instrument_type",
+        "late",
+        "mendelian_randomization",
+        "sensitivity_analyses"
+      ]
     }
   }
 }
