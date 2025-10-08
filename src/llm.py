@@ -414,6 +414,17 @@ class OpenAIProvider(BaseLLMProvider):
         # Fallback: extract from output array structure
         if not content:
             logger.warning("output_text is empty, trying to extract from output array")
+
+            # DEBUG: Dump full output array for analysis
+            try:
+                import json as json_module
+
+                output_json = json_module.dumps(response.output, indent=2, default=str)
+                logger.info(f"=== FULL response.output ARRAY ===\n{output_json}\n=== END ===")
+            except Exception as serialize_error:
+                logger.error(f"Could not serialize response.output: {serialize_error}")
+                logger.error(f"Raw response.output repr: {repr(response.output)}")
+
             if response.output and len(response.output) > 0:
                 # Try multiple extraction strategies
                 for i, output_item in enumerate(response.output):
@@ -478,8 +489,20 @@ class OpenAIProvider(BaseLLMProvider):
         if not content:
             logger.error("Failed to extract any text content from response")
             logger.error(f"Response attributes: {dir(response)}")
+
+            # DEBUG: Serialize entire output structure for analysis
             if hasattr(response, "output"):
-                logger.error(f"Output structure: {response.output}")
+                try:
+                    import json as json_module
+
+                    output_json = json_module.dumps(response.output, indent=2, default=str)
+                    logger.error(
+                        f"=== FULL response.output (NO CONTENT FOUND) ===\n{output_json}\n=== END ==="
+                    )
+                except Exception as serialize_error:
+                    logger.error(f"Could not serialize response.output: {serialize_error}")
+                    logger.error(f"Raw response.output repr: {repr(response.output)}")
+
             raise LLMProviderError("No text output received from model")
 
         # Parse JSON
