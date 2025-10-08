@@ -327,6 +327,67 @@ class OpenAIProvider(BaseLLMProvider):
         self.client = openai.OpenAI(api_key=settings.openai_api_key, timeout=settings.timeout)
         logger.info(f"Initialized OpenAI provider with model: {settings.openai_model}")
 
+    def _parse_response_output(self, response) -> Dict[str, Any]:
+        """
+        Extract and parse JSON from OpenAI Responses API response.
+
+        Handles extraction from response.output_text with fallback to manual
+        extraction from response.output array structure. Includes extensive
+        debug logging for troubleshooting response parsing issues.
+
+        Args:
+            response: OpenAI Responses API response object
+
+        Returns:
+            Parsed JSON dictionary
+
+        Raises:
+            LLMProviderError: If no text output found or JSON parsing fails
+        """
+        # Log response structure for debugging
+        logger.info(f"Response status: {response.status if hasattr(response, 'status') else 'N/A'}")
+        logger.info(f"Response output type: {type(response.output)}")
+        logger.info(
+            f"Response output length: {len(response.output) if hasattr(response, 'output') else 'N/A'}"
+        )
+
+        # Try convenience property first
+        content = response.output_text if hasattr(response, "output_text") else None
+        logger.info(f"Output text available: {content is not None}")
+        logger.info(f"Output text length: {len(content) if content else 0}")
+        logger.info(f"Output text preview: {content[:200] if content else 'EMPTY'}")
+
+        # Fallback: extract from output array structure
+        if not content:
+            logger.warning("output_text is empty, trying to extract from output array")
+            if response.output and len(response.output) > 0:
+                first_output = response.output[0]
+                logger.info(
+                    f"First output item type: {first_output.get('type') if isinstance(first_output, dict) else type(first_output)}"
+                )
+                if (
+                    isinstance(first_output, dict)
+                    and first_output.get("type") == "message"
+                    and "content" in first_output
+                ):
+                    for content_item in first_output["content"]:
+                        if content_item.get("type") == "output_text":
+                            content = content_item.get("text", "")
+                            logger.info(f"Extracted text from output array: {len(content)} chars")
+                            break
+
+        # Validate we got content
+        if not content:
+            raise LLMProviderError("No text output received from model")
+
+        # Parse JSON
+        content = content.strip()
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse JSON response: {e}")
+            raise LLMProviderError(f"Invalid JSON response: {e}")
+
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=4, max=10),
@@ -395,47 +456,8 @@ class OpenAIProvider(BaseLLMProvider):
                 **kwargs,
             )
 
-            # Use SDK convenience property and parse JSON
-            logger.info(
-                f"Response status: {response.status if hasattr(response, 'status') else 'N/A'}"
-            )
-            logger.info(f"Response output type: {type(response.output)}")
-            logger.info(
-                f"Response output length: {len(response.output) if hasattr(response, 'output') else 'N/A'}"
-            )
-
-            content = response.output_text if hasattr(response, "output_text") else None
-            logger.info(f"Output text available: {content is not None}")
-            logger.info(f"Output text length: {len(content) if content else 0}")
-            logger.info(f"Output text preview: {content[:200] if content else 'EMPTY'}")
-
-            if not content:
-                # Fallback: try to extract from output array
-                logger.warning("output_text is empty, trying to extract from output array")
-                if response.output and len(response.output) > 0:
-                    first_output = response.output[0]
-                    logger.info(
-                        f"First output item type: {first_output.get('type') if isinstance(first_output, dict) else type(first_output)}"
-                    )
-                    if (
-                        isinstance(first_output, dict)
-                        and first_output.get("type") == "message"
-                        and "content" in first_output
-                    ):
-                        for content_item in first_output["content"]:
-                            if content_item.get("type") == "output_text":
-                                content = content_item.get("text", "")
-                                logger.info(
-                                    f"Extracted text from output array: {len(content)} chars"
-                                )
-                                break
-
-            if not content:
-                raise LLMProviderError("No text output received from model")
-
-            content = content.strip()
-            result = json.loads(content)
-
+            # Parse JSON response
+            result = self._parse_response_output(response)
             logger.info(f"Successfully generated schema-conforming JSON using {schema_name}")
             return result
 
@@ -445,9 +467,6 @@ class OpenAIProvider(BaseLLMProvider):
             schema_size = len(json.dumps(schema))
             logger.error(f"Schema size: {schema_size} bytes (~{schema_size//4} tokens)")
             raise LLMProviderError(f"OpenAI schema-based generation failed: {e}")
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse JSON response: {e}")
-            raise LLMProviderError(f"Invalid JSON response: {e}")
 
     @retry(
         stop=stop_after_attempt(3),
@@ -529,47 +548,8 @@ class OpenAIProvider(BaseLLMProvider):
                 **kwargs,
             )
 
-            # Use SDK convenience property and parse JSON
-            logger.info(
-                f"Response status: {response.status if hasattr(response, 'status') else 'N/A'}"
-            )
-            logger.info(f"Response output type: {type(response.output)}")
-            logger.info(
-                f"Response output length: {len(response.output) if hasattr(response, 'output') else 'N/A'}"
-            )
-
-            content = response.output_text if hasattr(response, "output_text") else None
-            logger.info(f"Output text available: {content is not None}")
-            logger.info(f"Output text length: {len(content) if content else 0}")
-            logger.info(f"Output text preview: {content[:200] if content else 'EMPTY'}")
-
-            if not content:
-                # Fallback: try to extract from output array
-                logger.warning("output_text is empty, trying to extract from output array")
-                if response.output and len(response.output) > 0:
-                    first_output = response.output[0]
-                    logger.info(
-                        f"First output item type: {first_output.get('type') if isinstance(first_output, dict) else type(first_output)}"
-                    )
-                    if (
-                        isinstance(first_output, dict)
-                        and first_output.get("type") == "message"
-                        and "content" in first_output
-                    ):
-                        for content_item in first_output["content"]:
-                            if content_item.get("type") == "output_text":
-                                content = content_item.get("text", "")
-                                logger.info(
-                                    f"Extracted text from output array: {len(content)} chars"
-                                )
-                                break
-
-            if not content:
-                raise LLMProviderError("No text output received from model")
-
-            content = content.strip()
-            result = json.loads(content)
-
+            # Parse JSON response
+            result = self._parse_response_output(response)
             logger.info(
                 f"Successfully extracted schema-conforming JSON from PDF using {schema_name}"
             )
@@ -581,9 +561,6 @@ class OpenAIProvider(BaseLLMProvider):
         except openai.OpenAIError as e:
             logger.error(f"OpenAI API error with PDF upload: {e}")
             raise LLMProviderError(f"OpenAI PDF processing failed: {e}")
-        except json.JSONDecodeError as e:
-            logger.error(f"Failed to parse JSON response: {e}")
-            raise LLMProviderError(f"Invalid JSON response: {e}")
 
 
 class ClaudeProvider(BaseLLMProvider):
