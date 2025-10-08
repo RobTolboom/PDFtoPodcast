@@ -78,8 +78,7 @@
           "type": "number"
         },
         "timestamp": {
-          "type": "string",
-          "format": "date-time"
+          "type": "string"
         }
       }
     },
@@ -2334,7 +2333,6 @@
         },
         "url": {
           "type": "string",
-          "format": "uri",
           "description": "Optional direct URL to the external resource"
         },
         "version": {
@@ -2489,8 +2487,7 @@
           "type": "string"
         },
         "published_date": {
-          "type": "string",
-          "format": "date"
+          "type": "string"
         },
         "published_date_precision": {
           "type": "string",
@@ -2867,7 +2864,6 @@
         },
         "timestamp": {
           "type": "string",
-          "format": "date-time",
           "description": "When extraction was performed"
         },
         "transformation_notes": {

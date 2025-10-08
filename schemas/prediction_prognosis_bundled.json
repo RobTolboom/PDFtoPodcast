@@ -73,8 +73,7 @@
           "type": "number"
         },
         "timestamp": {
-          "type": "string",
-          "format": "date-time"
+          "type": "string"
         }
       }
     },
@@ -600,8 +599,7 @@
           "type": "boolean"
         },
         "deployment_date": {
-          "type": "string",
-          "format": "date"
+          "type": "string"
         },
         "deployment_setting": {
           "type": "string"
@@ -648,8 +646,7 @@
               "type": "boolean"
             },
             "api_url": {
-              "type": "string",
-              "format": "uri"
+              "type": "string"
             }
           }
         },
@@ -691,8 +688,7 @@
                     "type": "string"
                   },
                   "date": {
-                    "type": "string",
-                    "format": "date"
+                    "type": "string"
                   },
                   "changes": {
                     "type": "string"
@@ -1006,12 +1002,10 @@
           "default": []
         },
         "start_date": {
-          "type": "string",
-          "format": "date"
+          "type": "string"
         },
         "end_date": {
-          "type": "string",
-          "format": "date"
+          "type": "string"
         },
         "n": {
           "type": "integer",
@@ -1331,8 +1325,7 @@
           "description": "e.g., nomogram, score chart, web/mobile calculator"
         },
         "web_calculator_url": {
-          "type": "string",
-          "format": "uri"
+          "type": "string"
         },
         "source": {
           "$ref": "#/$defs/SourceRef"
@@ -2054,8 +2047,7 @@
           "type": "string"
         },
         "published_date": {
-          "type": "string",
-          "format": "date"
+          "type": "string"
         },
         "published_date_precision": {
           "type": "string",

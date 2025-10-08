@@ -72,8 +72,7 @@
           "type": "number"
         },
         "timestamp": {
-          "type": "string",
-          "format": "date-time"
+          "type": "string"
         }
       }
     },
@@ -130,8 +129,7 @@
           "description": "Version of this living review (e.g., v1.0, v2.1)"
         },
         "version_date": {
-          "type": "string",
-          "format": "date"
+          "type": "string"
         },
         "update_schedule": {
           "type": "object",
@@ -148,8 +146,7 @@
               ]
             },
             "next_planned_update": {
-              "type": "string",
-              "format": "date"
+              "type": "string"
             },
             "surveillance_method": {
               "type": "string",
@@ -190,8 +187,7 @@
                 "type": "string"
               },
               "date": {
-                "type": "string",
-                "format": "date"
+                "type": "string"
               },
               "new_studies_added": {
                 "type": "integer",
@@ -245,8 +241,7 @@
               "default": false
             },
             "discontinuation_date": {
-              "type": "string",
-              "format": "date"
+              "type": "string"
             },
             "reason": {
               "type": "string"
@@ -341,16 +336,13 @@
           "default": []
         },
         "date_from": {
-          "type": "string",
-          "format": "date"
+          "type": "string"
         },
         "date_to": {
-          "type": "string",
-          "format": "date"
+          "type": "string"
         },
         "last_search_date": {
-          "type": "string",
-          "format": "date"
+          "type": "string"
         },
         "deduplication_approach": {
           "type": "string"
@@ -1490,14 +1482,6 @@
           "properties": {
             "table_source": {
               "$ref": "#/$defs/SourceRef"
-            },
-            "format": {
-              "type": "string",
-              "enum": [
-                "upper_triangle",
-                "lower_triangle",
-                "full_matrix"
-              ]
             }
           }
         },
@@ -2120,8 +2104,7 @@
           "type": "string"
         },
         "url": {
-          "type": "string",
-          "format": "uri"
+          "type": "string"
         },
         "doi": {
           "type": "string",
@@ -2463,8 +2446,7 @@
           "type": "string"
         },
         "published_date": {
-          "type": "string",
-          "format": "date"
+          "type": "string"
         },
         "published_date_precision": {
           "type": "string",
@@ -2755,7 +2737,6 @@
         },
         "url": {
           "type": "string",
-          "format": "uri",
           "description": "Direct URL to the registration record"
         }
       },

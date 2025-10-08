@@ -69,8 +69,7 @@
           "type": "number"
         },
         "timestamp": {
-          "type": "string",
-          "format": "date-time"
+          "type": "string"
         }
       }
     },
@@ -257,20 +256,16 @@
           "type": "object",
           "properties": {
             "submitted": {
-              "type": "string",
-              "format": "date"
+              "type": "string"
             },
             "accepted": {
-              "type": "string",
-              "format": "date"
+              "type": "string"
             },
             "published_online": {
-              "type": "string",
-              "format": "date"
+              "type": "string"
             },
             "published_print": {
-              "type": "string",
-              "format": "date"
+              "type": "string"
             }
           }
         },
@@ -463,8 +458,7 @@
                 "type": "string"
               },
               "publication_date": {
-                "type": "string",
-                "format": "date"
+                "type": "string"
               },
               "response_type": {
                 "type": "string",
@@ -500,8 +494,7 @@
                 "type": "string"
               },
               "publication_date": {
-                "type": "string",
-                "format": "date"
+                "type": "string"
               },
               "response_type": {
                 "type": "string",
@@ -551,8 +544,7 @@
                 "type": "object",
                 "properties": {
                   "url": {
-                    "type": "string",
-                    "format": "uri"
+                    "type": "string"
                   },
                   "title": {
                     "type": "string"
@@ -586,8 +578,7 @@
                     ]
                   },
                   "url": {
-                    "type": "string",
-                    "format": "uri"
+                    "type": "string"
                   },
                   "description": {
                     "type": "string"
@@ -610,15 +601,13 @@
                     ]
                   },
                   "url": {
-                    "type": "string",
-                    "format": "uri"
+                    "type": "string"
                   },
                   "duration": {
                     "type": "string"
                   },
                   "transcript_url": {
-                    "type": "string",
-                    "format": "uri"
+                    "type": "string"
                   }
                 }
               }
@@ -643,8 +632,7 @@
                     ]
                   },
                   "thread_url": {
-                    "type": "string",
-                    "format": "uri"
+                    "type": "string"
                   },
                   "author_handle": {
                     "type": "string"
@@ -693,8 +681,7 @@
                     "type": "string"
                   },
                   "date": {
-                    "type": "string",
-                    "format": "date-time"
+                    "type": "string"
                   },
                   "changes": {
                     "type": "string"
@@ -730,8 +717,7 @@
                     "type": "string"
                   },
                   "posted_date": {
-                    "type": "string",
-                    "format": "date"
+                    "type": "string"
                   },
                   "version": {
                     "type": "string"
@@ -762,8 +748,7 @@
                     "type": "string"
                   },
                   "comment_date": {
-                    "type": "string",
-                    "format": "date-time"
+                    "type": "string"
                   },
                   "moderation_status": {
                     "type": "string",
@@ -842,8 +827,7 @@
                     "maximum": 1
                   },
                   "url": {
-                    "type": "string",
-                    "format": "uri"
+                    "type": "string"
                   }
                 }
               }
@@ -855,8 +839,7 @@
                   "type": "boolean"
                 },
                 "url": {
-                  "type": "string",
-                  "format": "uri"
+                  "type": "string"
                 },
                 "reading_level": {
                   "type": "string"
@@ -872,19 +855,16 @@
               "type": "boolean"
             },
             "rss_feed": {
-              "type": "string",
-              "format": "uri"
+              "type": "string"
             },
             "webhook_endpoints": {
               "type": "array",
               "items": {
-                "type": "string",
-                "format": "uri"
+                "type": "string"
               }
             },
             "last_updated": {
-              "type": "string",
-              "format": "date-time"
+              "type": "string"
             }
           }
         }
@@ -1047,8 +1027,7 @@
                     ]
                   },
                   "correction_date": {
-                    "type": "string",
-                    "format": "date"
+                    "type": "string"
                   },
                   "correction_text": {
                     "type": "string"
@@ -1222,8 +1201,7 @@
                     "type": "string"
                   },
                   "publication_date": {
-                    "type": "string",
-                    "format": "date"
+                    "type": "string"
                   },
                   "citation_context": {
                     "type": "string",
@@ -1359,8 +1337,7 @@
                     ]
                   },
                   "citation_date": {
-                    "type": "string",
-                    "format": "date"
+                    "type": "string"
                   },
                   "influence_level": {
                     "type": "string",
@@ -1465,8 +1442,7 @@
                     "type": "string"
                   },
                   "statement_date": {
-                    "type": "string",
-                    "format": "date"
+                    "type": "string"
                   }
                 }
               }
@@ -1538,8 +1514,7 @@
           "description": "DOI; pattern accepts upper- and lowercase letters"
         },
         "url": {
-          "type": "string",
-          "format": "uri"
+          "type": "string"
         },
         "source": {
           "$ref": "#/$defs/SourceRef"
@@ -1566,8 +1541,7 @@
           "type": "string"
         },
         "url": {
-          "type": "string",
-          "format": "uri"
+          "type": "string"
         },
         "type": {
           "type": "string",
@@ -2089,7 +2063,6 @@
         },
         "url": {
           "type": "string",
-          "format": "uri",
           "description": "Optional direct URL to the external resource"
         },
         "version": {
@@ -2229,8 +2202,7 @@
           "type": "string"
         },
         "published_date": {
-          "type": "string",
-          "format": "date"
+          "type": "string"
         },
         "published_date_precision": {
           "type": "string",
