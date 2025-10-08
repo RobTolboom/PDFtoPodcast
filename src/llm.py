@@ -108,6 +108,59 @@ class LLMProviderError(LLMError):
     pass
 
 
+def _repair_json_quotes(json_str: str) -> str:
+    """
+    Attempt to repair JSON with unescaped quotes in string values.
+
+    This is a workaround for OpenAI Responses API bug where strict mode
+    doesn't properly escape quotes within string values.
+
+    Strategy:
+    - Find patterns like: "key": "value with "unescaped" quotes"
+    - Escape the internal quotes: "key": "value with \"unescaped\" quotes"
+
+    Args:
+        json_str: Malformed JSON string with unescaped quotes
+
+    Returns:
+        Repaired JSON string (best effort)
+
+    Warning:
+        This is heuristic-based and may not work for all cases.
+        It's a workaround for API bugs, not a robust solution.
+    """
+    import re
+
+    # Pattern to find string values that contain unescaped quotes
+    # Match: "key": "value with potential "quote" inside"
+    # This is simplified and won't catch all cases, but handles common ones
+
+    def escape_quotes_in_match(match):
+        """Escape quotes within a JSON string value"""
+        key_part = match.group(1)  # Everything before the value
+        value_part = match.group(2)  # The string value content
+
+        # Escape any unescaped quotes in the value
+        # Already escaped quotes (\") should remain as-is
+        escaped_value = value_part.replace(r"\"", "\x00")  # Protect already escaped
+        escaped_value = escaped_value.replace('"', r"\"")  # Escape unescaped quotes
+        escaped_value = escaped_value.replace("\x00", r"\"")  # Restore protected
+
+        return f'{key_part}"{escaped_value}"'
+
+    # Pattern: "key": "value content that might have "quotes""
+    # This matches from the key to the end quote, capturing the value
+    pattern = r'("(?:[^"\\]|\\.)*"\s*:\s*)"([^"]*(?:"[^"]*)*)"'
+
+    try:
+        repaired = re.sub(pattern, escape_quotes_in_match, json_str)
+        logger.info("JSON repair attempt completed")
+        return repaired
+    except Exception as e:
+        logger.warning(f"JSON repair failed: {e}, returning original")
+        return json_str
+
+
 def _extract_json_from_markdown(content: str) -> str:
     """
     Extract JSON content from markdown code blocks.
@@ -409,9 +462,24 @@ class OpenAIProvider(BaseLLMProvider):
                     f"(chars {context_start}-{context_end}): {context}"
                 )
 
-            raise LLMProviderError(
-                f"Invalid JSON response at position {e.pos if hasattr(e, 'pos') else 'unknown'}: {e}"
+            # Attempt to repair common JSON issues (unescaped quotes)
+            logger.warning(
+                "Attempting JSON repair for unescaped quotes (OpenAI API bug workaround)..."
             )
+            try:
+                repaired_content = _repair_json_quotes(content)
+                result = json.loads(repaired_content)
+                logger.warning(
+                    "✓ JSON repair successful! This is a workaround for OpenAI Responses API bug. "
+                    "Consider reporting to OpenAI that strict mode doesn't escape quotes properly."
+                )
+                return result
+            except json.JSONDecodeError as repair_error:
+                logger.error(f"JSON repair also failed: {repair_error}")
+                raise LLMProviderError(
+                    f"Invalid JSON response at position {e.pos if hasattr(e, 'pos') else 'unknown'}: {e}. "
+                    f"Repair attempt also failed. This may be an OpenAI API bug with strict mode."
+                )
 
     @retry(
         stop=stop_after_attempt(3),
