@@ -192,7 +192,10 @@
       "description": "PROBAST (Prediction model Risk Of Bias ASsessment Tool) assessment",
       "properties": {
         "overall_risk": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "low",
             "high",
@@ -200,7 +203,10 @@
           ]
         },
         "overall_applicability": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "low",
             "high",
@@ -208,7 +214,10 @@
           ]
         },
         "domains": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "participants": {
               "type": [
@@ -217,7 +226,10 @@
               ],
               "properties": {
                 "risk_of_bias": {
-                  "type": "string",
+                  "type": [
+                    "string",
+                    "null"
+                  ],
                   "enum": [
                     "low",
                     "high",
@@ -225,7 +237,10 @@
                   ]
                 },
                 "applicability": {
-                  "type": "string",
+                  "type": [
+                    "string",
+                    "null"
+                  ],
                   "enum": [
                     "low",
                     "high",
@@ -233,10 +248,18 @@
                   ]
                 },
                 "concerns": {
-                  "type": "string"
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 }
               },
-              "additionalProperties": false
+              "additionalProperties": false,
+              "required": [
+                "risk_of_bias",
+                "applicability",
+                "concerns"
+              ]
             },
             "predictors": {
               "type": [
@@ -245,7 +268,10 @@
               ],
               "properties": {
                 "risk_of_bias": {
-                  "type": "string",
+                  "type": [
+                    "string",
+                    "null"
+                  ],
                   "enum": [
                     "low",
                     "high",
@@ -253,7 +279,10 @@
                   ]
                 },
                 "applicability": {
-                  "type": "string",
+                  "type": [
+                    "string",
+                    "null"
+                  ],
                   "enum": [
                     "low",
                     "high",
@@ -261,10 +290,18 @@
                   ]
                 },
                 "concerns": {
-                  "type": "string"
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 }
               },
-              "additionalProperties": false
+              "additionalProperties": false,
+              "required": [
+                "risk_of_bias",
+                "applicability",
+                "concerns"
+              ]
             },
             "outcome": {
               "type": [
@@ -273,7 +310,10 @@
               ],
               "properties": {
                 "risk_of_bias": {
-                  "type": "string",
+                  "type": [
+                    "string",
+                    "null"
+                  ],
                   "enum": [
                     "low",
                     "high",
@@ -281,7 +321,10 @@
                   ]
                 },
                 "applicability": {
-                  "type": "string",
+                  "type": [
+                    "string",
+                    "null"
+                  ],
                   "enum": [
                     "low",
                     "high",
@@ -289,10 +332,18 @@
                   ]
                 },
                 "concerns": {
-                  "type": "string"
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 }
               },
-              "additionalProperties": false
+              "additionalProperties": false,
+              "required": [
+                "risk_of_bias",
+                "applicability",
+                "concerns"
+              ]
             },
             "analysis": {
               "type": [
@@ -301,7 +352,10 @@
               ],
               "properties": {
                 "risk_of_bias": {
-                  "type": "string",
+                  "type": [
+                    "string",
+                    "null"
+                  ],
                   "enum": [
                     "low",
                     "high",
@@ -309,10 +363,17 @@
                   ]
                 },
                 "concerns": {
-                  "type": "string"
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 }
               },
-              "additionalProperties": false
+              "additionalProperties": false,
+              "required": [
+                "risk_of_bias",
+                "concerns"
+              ]
             }
           },
           "additionalProperties": false,
@@ -324,10 +385,19 @@
           ]
         },
         "notes": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "overall_risk",
+        "overall_applicability",
+        "domains",
+        "notes"
+      ]
     },
     "sample_size_considerations": {
       "type": [
@@ -337,7 +407,10 @@
       "description": "Sample size, EPV, and overfitting assessment",
       "properties": {
         "events_per_variable": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "epv": {
               "type": [
@@ -377,13 +450,22 @@
           ]
         },
         "sample_size_justification": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "a_priori_calculation": {
-          "type": "boolean"
+          "type": [
+            "boolean",
+            "null"
+          ]
         },
         "overfitting_risk": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "low",
             "moderate",
@@ -392,17 +474,31 @@
           ]
         },
         "shrinkage_factor": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0,
           "maximum": 1,
           "description": "Uniform shrinkage factor if reported"
         },
         "optimism": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "description": "Estimated optimism in performance from bootstrap/CV"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "events_per_variable",
+        "sample_size_justification",
+        "a_priori_calculation",
+        "overfitting_risk",
+        "shrinkage_factor",
+        "optimism"
+      ]
     },
     "protocol_deviations": {
       "type": [
@@ -418,7 +514,10 @@
       "additionalProperties": false,
       "properties": {
         "version": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "TRIPOD 2015",
             "TRIPOD-AI 2024",
@@ -431,15 +530,24 @@
           "default": "TRIPOD 2015"
         },
         "claimed": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "default": false
         },
         "checklist_available": {
-          "type": "boolean",
+          "type": [
+            "boolean",
+            "null"
+          ],
           "default": false
         },
         "items": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "object",
             "additionalProperties": false,
@@ -482,7 +590,13 @@
           },
           "default": []
         }
-      }
+      },
+      "required": [
+        "version",
+        "claimed",
+        "checklist_available",
+        "items"
+      ]
     },
     "fairness_assessment": {
       "type": [
@@ -588,29 +702,55 @@
             "description": "Algorithmic fairness metrics",
             "properties": {
               "demographic_parity": {
-                "type": "number",
+                "type": [
+                  "number",
+                  "null"
+                ],
                 "description": "Difference in positive prediction rates"
               },
               "equal_opportunity": {
-                "type": "number",
+                "type": [
+                  "number",
+                  "null"
+                ],
                 "description": "Difference in TPR"
               },
               "equalized_odds": {
-                "type": "number",
+                "type": [
+                  "number",
+                  "null"
+                ],
                 "description": "Max difference in TPR or FPR"
               },
               "predictive_parity": {
-                "type": "number",
+                "type": [
+                  "number",
+                  "null"
+                ],
                 "description": "Difference in PPV"
               },
               "fairness_satisfied": {
-                "type": "boolean"
+                "type": [
+                  "boolean",
+                  "null"
+                ]
               },
               "fairness_threshold": {
-                "type": "number"
+                "type": [
+                  "number",
+                  "null"
+                ]
               }
             },
-            "additionalProperties": false
+            "additionalProperties": false,
+            "required": [
+              "demographic_parity",
+              "equal_opportunity",
+              "equalized_odds",
+              "predictive_parity",
+              "fairness_satisfied",
+              "fairness_threshold"
+            ]
           },
           "performance_disparity": {
             "type": [
@@ -619,17 +759,31 @@
             ],
             "properties": {
               "disparity_ratio": {
-                "type": "number",
+                "type": [
+                  "number",
+                  "null"
+                ],
                 "description": "Performance ratio vs reference group"
               },
               "reference_group": {
-                "type": "string"
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
               "clinically_meaningful": {
-                "type": "boolean"
+                "type": [
+                  "boolean",
+                  "null"
+                ]
               }
             },
-            "additionalProperties": false
+            "additionalProperties": false,
+            "required": [
+              "disparity_ratio",
+              "reference_group",
+              "clinically_meaningful"
+            ]
           },
           "bias_mitigation": {
             "type": [
@@ -638,10 +792,16 @@
             ],
             "properties": {
               "applied": {
-                "type": "boolean"
+                "type": [
+                  "boolean",
+                  "null"
+                ]
               },
               "method": {
-                "type": "string",
+                "type": [
+                  "string",
+                  "null"
+                ],
                 "enum": [
                   "pre_processing",
                   "in_processing",
@@ -650,13 +810,25 @@
                 ]
               },
               "technique": {
-                "type": "string"
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
               "effectiveness": {
-                "type": "string"
+                "type": [
+                  "string",
+                  "null"
+                ]
               }
             },
-            "additionalProperties": false
+            "additionalProperties": false,
+            "required": [
+              "applied",
+              "method",
+              "technique",
+              "effectiveness"
+            ]
           },
           "source": {
             "$ref": "#/$defs/SourceRef"
@@ -679,10 +851,16 @@
       "description": "Assessment of potential data leakage",
       "properties": {
         "assessed": {
-          "type": "boolean"
+          "type": [
+            "boolean",
+            "null"
+          ]
         },
         "temporal_leakage": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "detected": {
               "type": [
@@ -704,7 +882,10 @@
           ]
         },
         "feature_leakage": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "detected": {
               "type": [
@@ -729,7 +910,10 @@
           ]
         },
         "label_leakage": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "detected": {
               "type": [
@@ -751,7 +935,10 @@
           ]
         },
         "train_test_contamination": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "detected": {
               "type": [
@@ -773,7 +960,14 @@
           ]
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "assessed",
+        "temporal_leakage",
+        "feature_leakage",
+        "label_leakage",
+        "train_test_contamination"
+      ]
     },
     "model_deployment": {
       "type": [
@@ -783,17 +977,29 @@
       "description": "Model deployment and maintenance information",
       "properties": {
         "deployed": {
-          "type": "boolean"
+          "type": [
+            "boolean",
+            "null"
+          ]
         },
         "deployment_date": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "date"
         },
         "deployment_setting": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "model_format": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "enum": [
             "PMML",
             "ONNX",
@@ -805,10 +1011,16 @@
           ]
         },
         "software_requirements": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "computational_requirements": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "inference_time_ms": {
               "type": [
@@ -837,7 +1049,10 @@
           ]
         },
         "integration": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "ehr_integrated": {
               "type": [
@@ -874,7 +1089,10 @@
           ]
         },
         "monitoring_plan": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "performance_monitoring": {
               "type": [
@@ -920,7 +1138,10 @@
           ]
         },
         "version_control": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "properties": {
             "current_version": {
               "type": [
@@ -972,7 +1193,18 @@
           ]
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "required": [
+        "deployed",
+        "deployment_date",
+        "deployment_setting",
+        "model_format",
+        "software_requirements",
+        "computational_requirements",
+        "integration",
+        "monitoring_plan",
+        "version_control"
+      ]
     },
     "extraction_warnings": {
       "type": [
@@ -1627,7 +1859,10 @@
           "description": "Model explainability and interpretability methods",
           "properties": {
             "shap_values": {
-              "type": "object",
+              "type": [
+                "object",
+                "null"
+              ],
               "properties": {
                 "computed": {
                   "type": [
@@ -1675,7 +1910,10 @@
               ]
             },
             "lime": {
-              "type": "object",
+              "type": [
+                "object",
+                "null"
+              ],
               "properties": {
                 "used": {
                   "type": [
@@ -1701,7 +1939,10 @@
               ]
             },
             "partial_dependence": {
-              "type": "object",
+              "type": [
+                "object",
+                "null"
+              ],
               "properties": {
                 "plots_provided": {
                   "type": [
@@ -1730,7 +1971,10 @@
               ]
             },
             "ice_plots": {
-              "type": "object",
+              "type": [
+                "object",
+                "null"
+              ],
               "properties": {
                 "provided": {
                   "type": [
@@ -1749,7 +1993,10 @@
               ]
             },
             "feature_interactions": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "object",
                 "properties": {
@@ -1784,7 +2031,10 @@
               }
             },
             "attention_weights": {
-              "type": "object",
+              "type": [
+                "object",
+                "null"
+              ],
               "description": "For attention-based models (transformers, etc.)",
               "properties": {
                 "visualized": {
@@ -1804,7 +2054,15 @@
               ]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "required": [
+            "shap_values",
+            "lime",
+            "partial_dependence",
+            "ice_plots",
+            "feature_interactions",
+            "attention_weights"
+          ]
         },
         "hyperparameters": {
           "type": [
@@ -1922,7 +2180,10 @@
           "additionalProperties": false,
           "properties": {
             "auc_roc": {
-              "type": "object",
+              "type": [
+                "object",
+                "null"
+              ],
               "additionalProperties": false,
               "properties": {
                 "point": {
@@ -1947,7 +2208,10 @@
               ]
             },
             "c_statistic": {
-              "type": "object",
+              "type": [
+                "object",
+                "null"
+              ],
               "additionalProperties": false,
               "properties": {
                 "point": {
@@ -1973,7 +2237,10 @@
               ]
             },
             "pr_auc": {
-              "type": "object",
+              "type": [
+                "object",
+                "null"
+              ],
               "additionalProperties": false,
               "properties": {
                 "point": {
@@ -1997,7 +2264,12 @@
                 "point"
               ]
             }
-          }
+          },
+          "required": [
+            "auc_roc",
+            "c_statistic",
+            "pr_auc"
+          ]
         },
         "calibration": {
           "type": [
@@ -2038,7 +2310,10 @@
               ]
             },
             "calibration_level": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "enum": [
                 "weak",
                 "moderate",
@@ -2129,7 +2404,21 @@
             "calibration_plot_source": {
               "$ref": "#/$defs/SourceRef"
             }
-          }
+          },
+          "required": [
+            "calibration_in_the_large",
+            "intercept",
+            "slope",
+            "calibration_level",
+            "o_e_ratio",
+            "brier",
+            "scaled_brier",
+            "hl_test_p",
+            "ici",
+            "spiegelhalter_z",
+            "spiegelhalter_p",
+            "calibration_plot_source"
+          ]
         },
         "clinical_utility": {
           "type": [
@@ -2139,7 +2428,10 @@
           "description": "Clinical utility and reclassification metrics",
           "properties": {
             "nri": {
-              "type": "object",
+              "type": [
+                "object",
+                "null"
+              ],
               "description": "Net Reclassification Improvement",
               "properties": {
                 "categorical": {
@@ -2149,22 +2441,40 @@
                   ],
                   "properties": {
                     "nri": {
-                      "type": "number"
+                      "type": [
+                        "number",
+                        "null"
+                      ]
                     },
                     "nri_events": {
-                      "type": "number"
+                      "type": [
+                        "number",
+                        "null"
+                      ]
                     },
                     "nri_non_events": {
-                      "type": "number"
+                      "type": [
+                        "number",
+                        "null"
+                      ]
                     },
                     "categories": {
-                      "type": "array",
+                      "type": [
+                        "array",
+                        "null"
+                      ],
                       "items": {
                         "type": "string"
                       }
                     }
                   },
-                  "additionalProperties": false
+                  "additionalProperties": false,
+                  "required": [
+                    "nri",
+                    "nri_events",
+                    "nri_non_events",
+                    "categories"
+                  ]
                 },
                 "continuous": {
                   "type": [
@@ -2173,13 +2483,23 @@
                   ],
                   "properties": {
                     "nri": {
-                      "type": "number"
+                      "type": [
+                        "number",
+                        "null"
+                      ]
                     },
                     "p_value": {
-                      "type": "number"
+                      "type": [
+                        "number",
+                        "null"
+                      ]
                     }
                   },
-                  "additionalProperties": false
+                  "additionalProperties": false,
+                  "required": [
+                    "nri",
+                    "p_value"
+                  ]
                 }
               },
               "additionalProperties": false,
@@ -2189,7 +2509,10 @@
               ]
             },
             "idi": {
-              "type": "object",
+              "type": [
+                "object",
+                "null"
+              ],
               "description": "Integrated Discrimination Improvement",
               "properties": {
                 "idi": {
@@ -2228,7 +2551,10 @@
               ]
             },
             "relative_utility": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "object",
                 "properties": {
@@ -2253,7 +2579,12 @@
               }
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "required": [
+            "nri",
+            "idi",
+            "relative_utility"
+          ]
         },
         "model_comparison": {
           "type": [
@@ -2263,13 +2594,19 @@
           "description": "Comparison with other models",
           "properties": {
             "comparator_models": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "string"
               }
             },
             "delong_test": {
-              "type": "object",
+              "type": [
+                "object",
+                "null"
+              ],
               "properties": {
                 "performed": {
                   "type": [
@@ -2327,7 +2664,10 @@
               ]
             },
             "likelihood_ratio_test": {
-              "type": "object",
+              "type": [
+                "object",
+                "null"
+              ],
               "properties": {
                 "performed": {
                   "type": [
@@ -2363,7 +2703,10 @@
               ]
             },
             "aic_bic": {
-              "type": "object",
+              "type": [
+                "object",
+                "null"
+              ],
               "properties": {
                 "aic": {
                   "type": [
@@ -2392,7 +2735,13 @@
               ]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "required": [
+            "comparator_models",
+            "delong_test",
+            "likelihood_ratio_test",
+            "aic_bic"
+          ]
         },
         "threshold_metrics": {
           "type": [
@@ -2538,12 +2887,24 @@
               ]
             },
             "method": {
-              "type": "string"
+              "type": [
+                "string",
+                "null"
+              ]
             },
             "notes": {
-              "type": "string"
+              "type": [
+                "string",
+                "null"
+              ]
             }
-          }
+          },
+          "required": [
+            "intercept_adjustment",
+            "slope_adjustment",
+            "method",
+            "notes"
+          ]
         },
         "source": {
           "$ref": "#/$defs/SourceRef"

@@ -342,23 +342,41 @@
           ],
           "properties": {
             "submitted": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "format": "date"
             },
             "accepted": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "format": "date"
             },
             "published_online": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "format": "date"
             },
             "published_print": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "format": "date"
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "required": [
+            "submitted",
+            "accepted",
+            "published_online",
+            "published_print"
+          ]
         },
         "editorial_process": {
           "type": [
@@ -367,20 +385,38 @@
           ],
           "properties": {
             "peer_reviewed": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             },
             "editor_reviewed": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             },
             "fast_tracked": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             },
             "revision_count": {
-              "type": "integer",
+              "type": [
+                "integer",
+                "null"
+              ],
               "minimum": 0
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "required": [
+            "peer_reviewed",
+            "editor_reviewed",
+            "fast_tracked",
+            "revision_count"
+          ]
         }
       },
       "required": [
@@ -821,7 +857,10 @@
           ],
           "properties": {
             "embedded_videos": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "object",
                 "properties": {
@@ -869,7 +908,10 @@
               }
             },
             "interactive_graphics": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "object",
                 "properties": {
@@ -909,7 +951,10 @@
               }
             },
             "audio_content": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "object",
                 "properties": {
@@ -956,7 +1001,12 @@
               }
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "required": [
+            "embedded_videos",
+            "interactive_graphics",
+            "audio_content"
+          ]
         },
         "social_media_integration": {
           "type": [
@@ -965,7 +1015,10 @@
           ],
           "properties": {
             "thread_summaries": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "object",
                 "properties": {
@@ -1001,19 +1054,33 @@
                     ],
                     "properties": {
                       "likes": {
-                        "type": "integer",
+                        "type": [
+                          "integer",
+                          "null"
+                        ],
                         "minimum": 0
                       },
                       "shares": {
-                        "type": "integer",
+                        "type": [
+                          "integer",
+                          "null"
+                        ],
                         "minimum": 0
                       },
                       "comments": {
-                        "type": "integer",
+                        "type": [
+                          "integer",
+                          "null"
+                        ],
                         "minimum": 0
                       }
                     },
-                    "additionalProperties": false
+                    "additionalProperties": false,
+                    "required": [
+                      "likes",
+                      "shares",
+                      "comments"
+                    ]
                   }
                 },
                 "additionalProperties": false,
@@ -1026,14 +1093,21 @@
               }
             },
             "hashtags": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "string"
               },
               "description": "Relevant hashtags for social media promotion"
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "required": [
+            "thread_summaries",
+            "hashtags"
+          ]
         },
         "version_control": {
           "type": [
@@ -1042,10 +1116,16 @@
           ],
           "properties": {
             "is_living_document": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             },
             "version_history": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "object",
                 "properties": {
@@ -1091,7 +1171,10 @@
               }
             },
             "preprint_versions": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "object",
                 "properties": {
@@ -1138,7 +1221,12 @@
               }
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "required": [
+            "is_living_document",
+            "version_history",
+            "preprint_versions"
+          ]
         },
         "peer_commentary": {
           "type": [
@@ -1147,10 +1235,16 @@
           ],
           "properties": {
             "open_peer_review": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             },
             "public_comments": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "object",
                 "properties": {
@@ -1203,7 +1297,10 @@
               }
             },
             "expert_annotations": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "object",
                 "properties": {
@@ -1248,7 +1345,12 @@
               }
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "required": [
+            "open_peer_review",
+            "public_comments",
+            "expert_annotations"
+          ]
         },
         "accessibility": {
           "type": [
@@ -1257,19 +1359,34 @@
           ],
           "properties": {
             "screen_reader_compatible": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             },
             "alt_text_provided": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             },
             "high_contrast_available": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             },
             "font_size_adjustable": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             },
             "translations": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "object",
                 "properties": {
@@ -1313,7 +1430,10 @@
               }
             },
             "plain_language_version": {
-              "type": "object",
+              "type": [
+                "object",
+                "null"
+              ],
               "properties": {
                 "available": {
                   "type": [
@@ -1343,7 +1463,15 @@
               ]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "required": [
+            "screen_reader_compatible",
+            "alt_text_provided",
+            "high_contrast_available",
+            "font_size_adjustable",
+            "translations",
+            "plain_language_version"
+          ]
         },
         "real_time_updates": {
           "type": [
@@ -1352,25 +1480,43 @@
           ],
           "properties": {
             "update_notifications": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             },
             "rss_feed": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "format": "uri"
             },
             "webhook_endpoints": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "string",
                 "format": "uri"
               }
             },
             "last_updated": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "format": "date-time"
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "required": [
+            "update_notifications",
+            "rss_feed",
+            "webhook_endpoints",
+            "last_updated"
+          ]
         }
       },
       "required": [
@@ -1394,7 +1540,10 @@
           ],
           "properties": {
             "domain_expertise": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "enum": [
                 "recognized_expert",
                 "established_researcher",
@@ -1405,19 +1554,31 @@
               "description": "Assessment of author expertise in the editorial topic area"
             },
             "h_index": {
-              "type": "integer",
+              "type": [
+                "integer",
+                "null"
+              ],
               "minimum": 0
             },
             "years_experience": {
-              "type": "integer",
+              "type": [
+                "integer",
+                "null"
+              ],
               "minimum": 0
             },
             "relevant_publications": {
-              "type": "integer",
+              "type": [
+                "integer",
+                "null"
+              ],
               "minimum": 0
             },
             "institutional_affiliation_quality": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "enum": [
                 "tier_1",
                 "tier_2",
@@ -1428,10 +1589,21 @@
               "description": "Quality tier of author's institutional affiliation"
             },
             "previous_editorial_experience": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "required": [
+            "domain_expertise",
+            "h_index",
+            "years_experience",
+            "relevant_publications",
+            "institutional_affiliation_quality",
+            "previous_editorial_experience"
+          ]
         },
         "source_credibility": {
           "type": [
@@ -1440,7 +1612,10 @@
           ],
           "properties": {
             "source_types": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "string",
                 "enum": [
@@ -1458,25 +1633,37 @@
               }
             },
             "citation_quality_score": {
-              "type": "number",
+              "type": [
+                "number",
+                "null"
+              ],
               "minimum": 0,
               "maximum": 10,
               "description": "Overall quality assessment of cited sources"
             },
             "primary_source_ratio": {
-              "type": "number",
+              "type": [
+                "number",
+                "null"
+              ],
               "minimum": 0,
               "maximum": 1,
               "description": "Proportion of citations that are primary sources"
             },
             "recent_source_ratio": {
-              "type": "number",
+              "type": [
+                "number",
+                "null"
+              ],
               "minimum": 0,
               "maximum": 1,
               "description": "Proportion of citations from last 5 years"
             },
             "source_independence": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "enum": [
                 "independent",
                 "some_conflicts",
@@ -1486,7 +1673,14 @@
               "description": "Independence of cited sources from potential conflicts"
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "required": [
+            "source_types",
+            "citation_quality_score",
+            "primary_source_ratio",
+            "recent_source_ratio",
+            "source_independence"
+          ]
         },
         "fact_checking": {
           "type": [
@@ -1495,13 +1689,19 @@
           ],
           "properties": {
             "factual_claims_verified": {
-              "type": "number",
+              "type": [
+                "number",
+                "null"
+              ],
               "minimum": 0,
               "maximum": 1,
               "description": "Proportion of factual claims that have been verified"
             },
             "verification_method": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "enum": [
                 "automated",
                 "manual",
@@ -1511,7 +1711,10 @@
               ]
             },
             "disputed_claims": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "object",
                 "properties": {
@@ -1555,7 +1758,10 @@
               }
             },
             "corrections_issued": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "object",
                 "properties": {
@@ -1594,7 +1800,13 @@
               }
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "required": [
+            "factual_claims_verified",
+            "verification_method",
+            "disputed_claims",
+            "corrections_issued"
+          ]
         },
         "transparency": {
           "type": [
@@ -1603,10 +1815,16 @@
           ],
           "properties": {
             "methodology_disclosed": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             },
             "data_availability": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "enum": [
                 "fully_available",
                 "partially_available",
@@ -1616,13 +1834,22 @@
               "description": "Availability of underlying data"
             },
             "funding_disclosed": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             },
             "conflicts_disclosed": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             },
             "peer_review_process": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "enum": [
                 "open_peer_review",
                 "single_blind",
@@ -1632,7 +1859,10 @@
               ]
             },
             "editorial_independence": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "enum": [
                 "fully_independent",
                 "mostly_independent",
@@ -1642,7 +1872,15 @@
               ]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "required": [
+            "methodology_disclosed",
+            "data_availability",
+            "funding_disclosed",
+            "conflicts_disclosed",
+            "peer_review_process",
+            "editorial_independence"
+          ]
         },
         "readability": {
           "type": [
@@ -1651,16 +1889,25 @@
           ],
           "properties": {
             "flesch_reading_ease": {
-              "type": "number",
+              "type": [
+                "number",
+                "null"
+              ],
               "minimum": 0,
               "maximum": 100
             },
             "flesch_kincaid_grade": {
-              "type": "number",
+              "type": [
+                "number",
+                "null"
+              ],
               "minimum": 0
             },
             "target_audience_appropriateness": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "enum": [
                 "general_public",
                 "healthcare_professionals",
@@ -1670,7 +1917,10 @@
               ]
             },
             "technical_jargon_level": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "enum": [
                 "minimal",
                 "moderate",
@@ -1679,7 +1929,10 @@
               ]
             },
             "accessibility_features": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "string",
                 "enum": [
@@ -1691,7 +1944,14 @@
               }
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "required": [
+            "flesch_reading_ease",
+            "flesch_kincaid_grade",
+            "target_audience_appropriateness",
+            "technical_jargon_level",
+            "accessibility_features"
+          ]
         },
         "overall_quality_score": {
           "type": [
@@ -1700,17 +1960,26 @@
           ],
           "properties": {
             "composite_score": {
-              "type": "number",
+              "type": [
+                "number",
+                "null"
+              ],
               "minimum": 0,
               "maximum": 100,
               "description": "Overall quality score (0-100)"
             },
             "scoring_methodology": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "description": "Method used to calculate composite score"
             },
             "quality_tier": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "enum": [
                 "exceptional",
                 "high",
@@ -1721,7 +1990,10 @@
               "description": "Categorical quality assessment"
             },
             "reliability_confidence": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "enum": [
                 "very_high",
                 "high",
@@ -1732,7 +2004,13 @@
               "description": "Confidence in the reliability of this assessment"
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "required": [
+            "composite_score",
+            "scoring_methodology",
+            "quality_tier",
+            "reliability_confidence"
+          ]
         }
       },
       "required": [
@@ -1756,23 +2034,38 @@
           ],
           "properties": {
             "citation_count": {
-              "type": "integer",
+              "type": [
+                "integer",
+                "null"
+              ],
               "minimum": 0
             },
             "h_index_contribution": {
-              "type": "number",
+              "type": [
+                "number",
+                "null"
+              ],
               "minimum": 0
             },
             "field_weighted_citation_impact": {
-              "type": "number",
+              "type": [
+                "number",
+                "null"
+              ],
               "minimum": 0
             },
             "relative_citation_ratio": {
-              "type": "number",
+              "type": [
+                "number",
+                "null"
+              ],
               "minimum": 0
             },
             "citing_papers": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "object",
                 "properties": {
@@ -1818,7 +2111,14 @@
               }
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "required": [
+            "citation_count",
+            "h_index_contribution",
+            "field_weighted_citation_impact",
+            "relative_citation_ratio",
+            "citing_papers"
+          ]
         },
         "altmetrics": {
           "type": [
@@ -1827,11 +2127,17 @@
           ],
           "properties": {
             "altmetric_score": {
-              "type": "number",
+              "type": [
+                "number",
+                "null"
+              ],
               "minimum": 0
             },
             "social_media": {
-              "type": "object",
+              "type": [
+                "object",
+                "null"
+              ],
               "properties": {
                 "twitter_mentions": {
                   "type": [
@@ -1868,22 +2174,36 @@
                   ],
                   "properties": {
                     "positive": {
-                      "type": "number",
+                      "type": [
+                        "number",
+                        "null"
+                      ],
                       "minimum": 0,
                       "maximum": 1
                     },
                     "negative": {
-                      "type": "number",
+                      "type": [
+                        "number",
+                        "null"
+                      ],
                       "minimum": 0,
                       "maximum": 1
                     },
                     "neutral": {
-                      "type": "number",
+                      "type": [
+                        "number",
+                        "null"
+                      ],
                       "minimum": 0,
                       "maximum": 1
                     }
                   },
-                  "additionalProperties": false
+                  "additionalProperties": false,
+                  "required": [
+                    "positive",
+                    "negative",
+                    "neutral"
+                  ]
                 }
               },
               "additionalProperties": false,
@@ -1896,7 +2216,10 @@
               ]
             },
             "news_mentions": {
-              "type": "object",
+              "type": [
+                "object",
+                "null"
+              ],
               "properties": {
                 "mainstream_media": {
                   "type": [
@@ -1928,7 +2251,10 @@
               ]
             },
             "downloads": {
-              "type": "object",
+              "type": [
+                "object",
+                "null"
+              ],
               "properties": {
                 "total_downloads": {
                   "type": [
@@ -1982,7 +2308,13 @@
               ]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "required": [
+            "altmetric_score",
+            "social_media",
+            "news_mentions",
+            "downloads"
+          ]
         },
         "policy_impact": {
           "type": [
@@ -1991,7 +2323,10 @@
           ],
           "properties": {
             "policy_citations": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "object",
                 "properties": {
@@ -2051,7 +2386,10 @@
               }
             },
             "healthcare_practice_changes": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "object",
                 "properties": {
@@ -2096,7 +2434,11 @@
               }
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "required": [
+            "policy_citations",
+            "healthcare_practice_changes"
+          ]
         },
         "expert_reception": {
           "type": [
@@ -2105,7 +2447,10 @@
           ],
           "properties": {
             "expert_responses": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "object",
                 "properties": {
@@ -2167,7 +2512,10 @@
               }
             },
             "professional_society_reactions": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "object",
                 "properties": {
@@ -2213,7 +2561,11 @@
               }
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "required": [
+            "expert_responses",
+            "professional_society_reactions"
+          ]
         },
         "longitudinal_impact": {
           "type": [
@@ -2222,7 +2574,10 @@
           ],
           "properties": {
             "impact_timeline": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "object",
                 "properties": {
@@ -2272,7 +2627,10 @@
               }
             },
             "sustained_influence": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "enum": [
                 "lasting_impact",
                 "moderate_longevity",
@@ -2282,7 +2640,11 @@
               "description": "Assessment of long-term influence sustainability"
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "required": [
+            "impact_timeline",
+            "sustained_influence"
+          ]
         }
       },
       "required": [
@@ -2615,7 +2977,10 @@
           ],
           "properties": {
             "overall_tone": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "enum": [
                 "authoritative",
                 "persuasive",
@@ -2627,7 +2992,10 @@
               ]
             },
             "emotional_appeal": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "enum": [
                 "high",
                 "moderate",
@@ -2636,7 +3004,10 @@
               ]
             },
             "formality_level": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "enum": [
                 "very_formal",
                 "formal",
@@ -2646,7 +3017,12 @@
               ]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "required": [
+            "overall_tone",
+            "emotional_appeal",
+            "formality_level"
+          ]
         }
       },
       "required": [
@@ -2667,18 +3043,27 @@
           ],
           "properties": {
             "cherry_picking": {
-              "type": "boolean",
+              "type": [
+                "boolean",
+                "null"
+              ],
               "description": "Evidence of selective citation or data presentation"
             },
             "omitted_evidence": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "string"
               },
               "description": "Key evidence or perspectives that are notably absent"
             },
             "source_diversity": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "enum": [
                 "diverse",
                 "limited",
@@ -2688,7 +3073,12 @@
               "description": "Diversity of sources and viewpoints presented"
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "required": [
+            "cherry_picking",
+            "omitted_evidence",
+            "source_diversity"
+          ]
         },
         "confirmation_bias": {
           "type": [
@@ -2697,22 +3087,36 @@
           ],
           "properties": {
             "predetermined_conclusion": {
-              "type": "boolean",
+              "type": [
+                "boolean",
+                "null"
+              ],
               "description": "Evidence that conclusion was predetermined"
             },
             "selective_interpretation": {
-              "type": "boolean",
+              "type": [
+                "boolean",
+                "null"
+              ],
               "description": "Evidence of interpreting ambiguous data to support position"
             },
             "dismissal_of_contradictory_evidence": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "string"
               },
               "description": "Contradictory evidence that is dismissed without adequate justification"
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "required": [
+            "predetermined_conclusion",
+            "selective_interpretation",
+            "dismissal_of_contradictory_evidence"
+          ]
         },
         "framing_bias": {
           "type": [
@@ -2721,18 +3125,27 @@
           ],
           "properties": {
             "loaded_language": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "string"
               },
               "description": "Emotionally charged or biased language used"
             },
             "false_dichotomy": {
-              "type": "boolean",
+              "type": [
+                "boolean",
+                "null"
+              ],
               "description": "Presentation of complex issues as binary choices"
             },
             "contextualization": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "enum": [
                 "balanced",
                 "one_sided",
@@ -2742,7 +3155,12 @@
               "description": "How information is contextualized"
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "required": [
+            "loaded_language",
+            "false_dichotomy",
+            "contextualization"
+          ]
         },
         "authority_bias": {
           "type": [
@@ -2751,18 +3169,28 @@
           ],
           "properties": {
             "inappropriate_appeals_to_authority": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "string"
               },
               "description": "Appeals to authority outside their expertise"
             },
             "argument_from_position": {
-              "type": "boolean",
+              "type": [
+                "boolean",
+                "null"
+              ],
               "description": "Arguments based on author's position rather than evidence"
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "required": [
+            "inappropriate_appeals_to_authority",
+            "argument_from_position"
+          ]
         },
         "statistical_bias": {
           "type": [
@@ -2771,22 +3199,36 @@
           ],
           "properties": {
             "misrepresentation_of_data": {
-              "type": "array",
+              "type": [
+                "array",
+                "null"
+              ],
               "items": {
                 "type": "string"
               },
               "description": "Ways in which data is misrepresented"
             },
             "correlation_causation_confusion": {
-              "type": "boolean",
+              "type": [
+                "boolean",
+                "null"
+              ],
               "description": "Inappropriate inference of causation from correlation"
             },
             "sample_size_issues": {
-              "type": "boolean",
+              "type": [
+                "boolean",
+                "null"
+              ],
               "description": "Inappropriate generalizations from small samples"
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "required": [
+            "misrepresentation_of_data",
+            "correlation_causation_confusion",
+            "sample_size_issues"
+          ]
         }
       },
       "required": [
@@ -2884,7 +3326,10 @@
           ],
           "properties": {
             "premise_validity": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "enum": [
                 "strong",
                 "moderate",
@@ -2893,7 +3338,10 @@
               ]
             },
             "logical_coherence": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "enum": [
                 "coherent",
                 "mostly_coherent",
@@ -2902,7 +3350,10 @@
               ]
             },
             "evidence_quality": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "enum": [
                 "high_quality",
                 "moderate_quality",
@@ -2911,7 +3362,10 @@
               ]
             },
             "conclusion_support": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "enum": [
                 "strongly_supported",
                 "moderately_supported",
@@ -2920,7 +3374,13 @@
               ]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "required": [
+            "premise_validity",
+            "logical_coherence",
+            "evidence_quality",
+            "conclusion_support"
+          ]
         },
         "counterargument_consideration": {
           "type": [
@@ -2929,13 +3389,22 @@
           ],
           "properties": {
             "acknowledges_counterarguments": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             },
             "addresses_counterarguments": {
-              "type": "boolean"
+              "type": [
+                "boolean",
+                "null"
+              ]
             },
             "strength_of_rebuttal": {
-              "type": "string",
+              "type": [
+                "string",
+                "null"
+              ],
               "enum": [
                 "convincing",
                 "partial",
@@ -2944,7 +3413,12 @@
               ]
             }
           },
-          "additionalProperties": false
+          "additionalProperties": false,
+          "required": [
+            "acknowledges_counterarguments",
+            "addresses_counterarguments",
+            "strength_of_rebuttal"
+          ]
         }
       },
       "required": [
