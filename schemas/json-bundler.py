@@ -2,31 +2,36 @@
 """
 JSON Schema Bundler for Medical Literature Extraction Schemas
 
-This script creates standalone, self-contained versions of JSON schemas that reference
-external common definitions. It transforms modular schema architectures into monolithic
-ones while preserving all functionality.
+This script creates standalone, self-contained versions of extraction schemas that
+reference external common definitions. It transforms modular schema architectures
+into monolithic ones while preserving all functionality.
 
 Purpose:
-    Converts schemas with external $ref dependencies into bundled schemas where all
-    referenced definitions are embedded locally. This is useful for:
+    Converts extraction schemas with external $ref dependencies into bundled schemas
+    where all referenced definitions are embedded locally. This is useful for:
     - Production deployments where external file dependencies aren't desired
     - Schema distribution requiring self-contained files
+    - OpenAI API structured outputs requiring standalone schemas
     - Validation libraries that don't support external $ref resolution
-    - API documentation tools needing standalone schemas
 
 Example Usage:
-    # Bundle all schemas in current directory
+    # Bundle all extraction schemas in current directory
     python json-bundler.py
 
     # Bundle schemas in specific directory
     python json-bundler.py --directory /path/to/schemas
 
 Input Requirements:
-    - common.schema.json: Contains shared $defs referenced by other schemas
-    - *.schema.json: Schema files containing external references to common.schema.json
+    - common.schema.json: Contains shared $defs referenced by extraction schemas
+    - *_trial.schema.json, *_analytic.schema.json, etc.: Extraction schemas with
+      external references to common.schema.json
+
+Excluded from bundling:
+    - classification.schema.json: Self-contained pipeline schema (no external refs)
+    - validation.schema.json: Self-contained pipeline schema (no external refs)
 
 Output:
-    - *_bundled.json: Self-contained schemas with embedded common definitions
+    - *_bundled.json: Self-contained extraction schemas with embedded common definitions
 
 Algorithm Overview:
     1. Discover all *.schema.json files (excluding common.schema.json)
@@ -199,11 +204,16 @@ def bundle_schema(
 
 def discover_schema_files(directory: str = ".") -> List[Path]:
     """
-    Discover all schema files in a directory except common.schema.json.
+    Discover extraction schema files that need bundling.
 
     Scans the specified directory for JSON schema files following the naming
-    convention *.schema.json and excludes the common.schema.json file since
-    it contains shared definitions rather than being a target for bundling.
+    convention *.schema.json and excludes schemas that don't need bundling:
+    - common.schema.json: Contains shared definitions (source, not target)
+    - classification.schema.json: Self-contained pipeline schema
+    - validation.schema.json: Self-contained pipeline schema
+
+    Only extraction schemas with external references to common.schema.json
+    are included for bundling.
 
     Args:
         directory: Path to directory containing schema files (default: current directory)
@@ -219,9 +229,16 @@ def discover_schema_files(directory: str = ".") -> List[Path]:
     schema_dir = Path(directory)
     schema_files = []
 
+    # Schemas to skip: common definitions + self-contained pipeline schemas
+    skip_schemas = {
+        "common.schema.json",  # Shared definitions (not a bundling target)
+        "classification.schema.json",  # Self-contained, no external refs
+        "validation.schema.json",  # Self-contained, no external refs
+    }
+
     # Find all schema files using glob pattern
     for file_path in schema_dir.glob("*.schema.json"):
-        if file_path.name != "common.schema.json":  # Exclude common schema
+        if file_path.name not in skip_schemas:
             schema_files.append(file_path)
 
     return sorted(schema_files)  # Sort for consistent processing order
