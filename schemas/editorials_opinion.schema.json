@@ -58,8 +58,7 @@
           "type": "string",
           "enum": [
             "application/pdf"
-          ],
-          "default": "application/pdf"
+          ]
         },
         "size_bytes": {
           "type": "integer",
@@ -136,15 +135,13 @@
         "peer_reviewed",
         "not_peer_reviewed",
         "unknown"
-      ],
-      "default": "unknown"
+      ]
     },
     "invited": {
       "type": [
         "boolean",
         "null"
-      ],
-      "default": false
+      ]
     },
     "editorial_context": {
       "$ref": "#/$defs/EditorialContext"
@@ -159,8 +156,7 @@
       ],
       "items": {
         "type": "string"
-      },
-      "default": []
+      }
     },
     "stance_overall": {
       "type": "string",
@@ -186,8 +182,7 @@
       ],
       "items": {
         "type": "string"
-      },
-      "default": []
+      }
     },
     "arguments": {
       "type": "array",
@@ -204,8 +199,7 @@
       "description": "Practice/policy/research recommendations, if any.",
       "items": {
         "$ref": "#/$defs/Recommendation"
-      },
-      "default": []
+      }
     },
     "notable_quotes": {
       "type": [
@@ -235,8 +229,7 @@
             "$ref": "common.schema.json#/$defs/SourceRef"
           }
         }
-      },
-      "default": []
+      }
     },
     "limitations_or_bias": {
       "type": [
@@ -267,8 +260,7 @@
       ],
       "items": {
         "$ref": "common.schema.json#/$defs/ParsedTable"
-      },
-      "default": []
+      }
     },
     "figures_summary": {
       "type": [
@@ -277,8 +269,7 @@
       ],
       "items": {
         "$ref": "common.schema.json#/$defs/FigureSummary"
-      },
-      "default": []
+      }
     },
     "extraction_warnings": {
       "type": [
@@ -287,8 +278,7 @@
       ],
       "items": {
         "$ref": "common.schema.json#/$defs/ExtractionWarning"
-      },
-      "default": []
+      }
     },
     "truncated": {
       "$ref": "common.schema.json#/$defs/TruncationInfo"
@@ -2821,8 +2811,7 @@
             "con",
             "neutral",
             "unclear"
-          ],
-          "default": "neutral"
+          ]
         },
         "evidence_type": {
           "type": [
@@ -2838,8 +2827,7 @@
             "data_analysis",
             "none",
             "other"
-          ],
-          "default": "other"
+          ]
         },
         "cited_refs": {
           "type": [
@@ -2848,8 +2836,7 @@
           ],
           "items": {
             "$ref": "#/$defs/CitedRef"
-          },
-          "default": []
+          }
         },
         "evidence_links": {
           "type": [
@@ -2858,8 +2845,7 @@
           ],
           "items": {
             "$ref": "#/$defs/LinkedEvidence"
-          },
-          "default": []
+          }
         },
         "support_strength": {
           "type": [
@@ -2875,8 +2861,7 @@
           ],
           "items": {
             "type": "string"
-          },
-          "default": []
+          }
         },
         "rhetorical_analysis": {
           "$ref": "#/$defs/RhetoricalAnalysis"
@@ -3461,8 +3446,7 @@
             "low",
             "moderate",
             "high"
-          ],
-          "default": "moderate"
+          ]
         },
         "target_audience": {
           "type": [

@@ -56,8 +56,7 @@
           "type": "string",
           "enum": [
             "application/pdf"
-          ],
-          "default": "application/pdf"
+          ]
         },
         "size_bytes": {
           "type": "integer",
@@ -148,8 +147,7 @@
       "type": "array",
       "items": {
         "$ref": "#/$defs/PerformanceResult"
-      },
-      "default": []
+      }
     },
     "decision_curves": {
       "type": [
@@ -158,8 +156,7 @@
       ],
       "items": {
         "$ref": "#/$defs/DecisionCurve"
-      },
-      "default": []
+      }
     },
     "tables_parsed": {
       "type": [
@@ -168,8 +165,7 @@
       ],
       "items": {
         "$ref": "#/$defs/ParsedTable"
-      },
-      "default": []
+      }
     },
     "figures_summary": {
       "type": [
@@ -178,8 +174,7 @@
       ],
       "items": {
         "$ref": "#/$defs/FigureSummary"
-      },
-      "default": []
+      }
     },
     "risk_of_bias": {
       "$ref": "#/$defs/RiskOfBias"
@@ -526,22 +521,19 @@
             "MI-CLAIM",
             "STARD-AI",
             "other"
-          ],
-          "default": "TRIPOD 2015"
+          ]
         },
         "claimed": {
           "type": [
             "boolean",
             "null"
-          ],
-          "default": false
+          ]
         },
         "checklist_available": {
           "type": [
             "boolean",
             "null"
-          ],
-          "default": false
+          ]
         },
         "items": {
           "type": [
@@ -587,8 +579,7 @@
                 ]
               }
             }
-          },
-          "default": []
+          }
         }
       },
       "required": [
@@ -652,48 +643,10 @@
             ],
             "minimum": 0
           },
-          "auc_roc": {
-            "oneOf": [
-              {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 1
-              },
-              {
-                "$ref": "#/$defs/ValueWithRaw"
-              }
-            ]
-          },
-          "calibration_slope": {
-            "oneOf": [
-              {
-                "type": "number"
-              },
-              {
-                "$ref": "#/$defs/ValueWithRaw"
-              }
-            ]
-          },
-          "calibration_intercept": {
-            "oneOf": [
-              {
-                "type": "number"
-              },
-              {
-                "$ref": "#/$defs/ValueWithRaw"
-              }
-            ]
-          },
-          "o_e_ratio": {
-            "oneOf": [
-              {
-                "type": "number"
-              },
-              {
-                "$ref": "#/$defs/ValueWithRaw"
-              }
-            ]
-          },
+          "auc_roc": {},
+          "calibration_slope": {},
+          "calibration_intercept": {},
+          "o_e_ratio": {},
           "algorithmic_fairness": {
             "type": [
               "object",
@@ -840,8 +793,7 @@
             ]
           }
         }
-      },
-      "default": []
+      }
     },
     "data_leakage_assessment": {
       "type": [
@@ -1213,8 +1165,7 @@
       ],
       "items": {
         "$ref": "#/$defs/ExtractionWarning"
-      },
-      "default": []
+      }
     },
     "truncated": {
       "$ref": "#/$defs/TruncationInfo"
@@ -1259,8 +1210,7 @@
               "impact",
               "comparison"
             ]
-          },
-          "default": []
+          }
         },
         "design_type": {
           "type": [
@@ -1288,8 +1238,7 @@
           ],
           "items": {
             "$ref": "#/$defs/CountryCode"
-          },
-          "default": []
+          }
         },
         "setting": {
           "type": [
@@ -1330,39 +1279,9 @@
           "minimum": 0,
           "description": "Number of outcome events in derivation cohort (if applicable)"
         },
-        "age_mean": {
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "$ref": "#/$defs/ValueWithRaw"
-            }
-          ]
-        },
-        "age_sd": {
-          "oneOf": [
-            {
-              "type": "number",
-              "minimum": 0
-            },
-            {
-              "$ref": "#/$defs/ValueWithRaw"
-            }
-          ]
-        },
-        "sex_female_pct": {
-          "oneOf": [
-            {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 100
-            },
-            {
-              "$ref": "#/$defs/ValueWithRaw"
-            }
-          ]
-        },
+        "age_mean": {},
+        "age_sd": {},
+        "sex_female_pct": {},
         "inclusion_criteria": {
           "type": [
             "string",
@@ -1378,18 +1297,7 @@
         "follow_up_duration_iso8601": {
           "$ref": "#/$defs/ISO8601Duration"
         },
-        "outcome_incidence_pct": {
-          "oneOf": [
-            {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 100
-            },
-            {
-              "$ref": "#/$defs/ValueWithRaw"
-            }
-          ]
-        },
+        "outcome_incidence_pct": {},
         "missing_data_overview": {
           "type": [
             "string",
@@ -1471,8 +1379,7 @@
             "baseline",
             "followup",
             "unknown"
-          ],
-          "default": "baseline"
+          ]
         },
         "coding": {
           "type": [
@@ -1488,18 +1395,7 @@
           ],
           "description": "e.g., log, Box-Cox, restricted cubic spline"
         },
-        "missing_fraction_pct": {
-          "oneOf": [
-            {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 100
-            },
-            {
-              "$ref": "#/$defs/ValueWithRaw"
-            }
-          ]
-        },
+        "missing_fraction_pct": {},
         "imputation": {
           "type": [
             "string",
@@ -1619,8 +1515,7 @@
           ],
           "items": {
             "$ref": "#/$defs/CountryCode"
-          },
-          "default": []
+          }
         },
         "start_date": {
           "type": [
@@ -1739,8 +1634,7 @@
             "ridge",
             "elastic_net",
             "other"
-          ],
-          "default": "none"
+          ]
         },
         "feature_selection": {
           "type": [
@@ -1756,8 +1650,7 @@
           ],
           "items": {
             "type": "string"
-          },
-          "default": []
+          }
         },
         "coefficients": {
           "type": [
@@ -1777,40 +1670,12 @@
               "predictor": {
                 "type": "string"
               },
-              "beta": {
-                "oneOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "$ref": "#/$defs/ValueWithRaw"
-                  }
-                ]
-              },
-              "se": {
-                "oneOf": [
-                  {
-                    "type": "number",
-                    "minimum": 0
-                  },
-                  {
-                    "$ref": "#/$defs/ValueWithRaw"
-                  }
-                ]
-              }
+              "beta": {},
+              "se": {}
             }
-          },
-          "default": []
+          }
         },
         "intercept": {
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "$ref": "#/$defs/ValueWithRaw"
-            }
-          ],
           "description": "Regression intercept; for Cox, log-baseline hazard not used"
         },
         "baseline_hazard": {
@@ -1837,19 +1702,9 @@
               "predictor": {
                 "type": "string"
               },
-              "importance": {
-                "oneOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "$ref": "#/$defs/ValueWithRaw"
-                  }
-                ]
-              }
+              "importance": {}
             }
-          },
-          "default": []
+          }
         },
         "explainability": {
           "type": [
@@ -2085,8 +1940,7 @@
                 "type": "string"
               }
             }
-          },
-          "default": []
+          }
         },
         "internal_validation_method": {
           "type": [
@@ -2100,8 +1954,7 @@
             "bootstrap",
             "repeated_cv",
             "other"
-          ],
-          "default": "none"
+          ]
         },
         "missing_data_strategy": {
           "type": [
@@ -2186,18 +2039,7 @@
               ],
               "additionalProperties": false,
               "properties": {
-                "point": {
-                  "oneOf": [
-                    {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 1
-                    },
-                    {
-                      "$ref": "#/$defs/ValueWithRaw"
-                    }
-                  ]
-                },
+                "point": {},
                 "ci": {
                   "$ref": "#/$defs/EffectCI"
                 }
@@ -2214,18 +2056,7 @@
               ],
               "additionalProperties": false,
               "properties": {
-                "point": {
-                  "oneOf": [
-                    {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 1
-                    },
-                    {
-                      "$ref": "#/$defs/ValueWithRaw"
-                    }
-                  ]
-                },
+                "point": {},
                 "ci": {
                   "$ref": "#/$defs/EffectCI"
                 }
@@ -2243,18 +2074,7 @@
               ],
               "additionalProperties": false,
               "properties": {
-                "point": {
-                  "oneOf": [
-                    {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 1
-                    },
-                    {
-                      "$ref": "#/$defs/ValueWithRaw"
-                    }
-                  ]
-                },
+                "point": {},
                 "ci": {
                   "$ref": "#/$defs/EffectCI"
                 }
@@ -2279,36 +2099,10 @@
           "additionalProperties": false,
           "properties": {
             "calibration_in_the_large": {
-              "oneOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "$ref": "#/$defs/ValueWithRaw"
-                }
-              ],
               "description": "Difference between mean predicted and observed risk"
             },
-            "intercept": {
-              "oneOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "$ref": "#/$defs/ValueWithRaw"
-                }
-              ]
-            },
-            "slope": {
-              "oneOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "$ref": "#/$defs/ValueWithRaw"
-                }
-              ]
-            },
+            "intercept": {},
+            "slope": {},
             "calibration_level": {
               "type": [
                 "string",
@@ -2322,85 +2116,16 @@
               "description": "Weak=intercept, moderate=slope+intercept, strong=flexible"
             },
             "o_e_ratio": {
-              "oneOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "$ref": "#/$defs/ValueWithRaw"
-                }
-              ],
               "description": "Observed/Expected"
             },
-            "brier": {
-              "oneOf": [
-                {
-                  "type": "number",
-                  "minimum": 0
-                },
-                {
-                  "$ref": "#/$defs/ValueWithRaw"
-                }
-              ]
-            },
-            "scaled_brier": {
-              "oneOf": [
-                {
-                  "type": "number",
-                  "minimum": 0,
-                  "maximum": 1
-                },
-                {
-                  "$ref": "#/$defs/ValueWithRaw"
-                }
-              ]
-            },
-            "hl_test_p": {
-              "oneOf": [
-                {
-                  "type": "number",
-                  "minimum": 0,
-                  "maximum": 1
-                },
-                {
-                  "$ref": "#/$defs/ValueWithRaw"
-                }
-              ]
-            },
+            "brier": {},
+            "scaled_brier": {},
+            "hl_test_p": {},
             "ici": {
-              "oneOf": [
-                {
-                  "type": "number",
-                  "minimum": 0
-                },
-                {
-                  "$ref": "#/$defs/ValueWithRaw"
-                }
-              ],
               "description": "Integrated Calibration Index"
             },
-            "spiegelhalter_z": {
-              "oneOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "$ref": "#/$defs/ValueWithRaw"
-                }
-              ]
-            },
-            "spiegelhalter_p": {
-              "oneOf": [
-                {
-                  "type": "number",
-                  "minimum": 0,
-                  "maximum": 1
-                },
-                {
-                  "$ref": "#/$defs/ValueWithRaw"
-                }
-              ]
-            },
+            "spiegelhalter_z": {},
+            "spiegelhalter_p": {},
             "calibration_plot_source": {
               "$ref": "#/$defs/SourceRef"
             }
@@ -2763,101 +2488,16 @@
               "youden_j"
             ],
             "properties": {
-              "threshold": {
-                "oneOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "$ref": "#/$defs/ValueWithRaw"
-                  }
-                ]
-              },
-              "sensitivity": {
-                "oneOf": [
-                  {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1
-                  },
-                  {
-                    "$ref": "#/$defs/ValueWithRaw"
-                  }
-                ]
-              },
-              "specificity": {
-                "oneOf": [
-                  {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1
-                  },
-                  {
-                    "$ref": "#/$defs/ValueWithRaw"
-                  }
-                ]
-              },
-              "ppv": {
-                "oneOf": [
-                  {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1
-                  },
-                  {
-                    "$ref": "#/$defs/ValueWithRaw"
-                  }
-                ]
-              },
-              "npv": {
-                "oneOf": [
-                  {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1
-                  },
-                  {
-                    "$ref": "#/$defs/ValueWithRaw"
-                  }
-                ]
-              },
-              "accuracy": {
-                "oneOf": [
-                  {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1
-                  },
-                  {
-                    "$ref": "#/$defs/ValueWithRaw"
-                  }
-                ]
-              },
-              "f1": {
-                "oneOf": [
-                  {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1
-                  },
-                  {
-                    "$ref": "#/$defs/ValueWithRaw"
-                  }
-                ]
-              },
-              "youden_j": {
-                "oneOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "$ref": "#/$defs/ValueWithRaw"
-                  }
-                ]
-              }
+              "threshold": {},
+              "sensitivity": {},
+              "specificity": {},
+              "ppv": {},
+              "npv": {},
+              "accuracy": {},
+              "f1": {},
+              "youden_j": {}
             }
-          },
-          "default": []
+          }
         },
         "recalibration": {
           "type": [
@@ -2866,26 +2506,8 @@
           ],
           "additionalProperties": false,
           "properties": {
-            "intercept_adjustment": {
-              "oneOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "$ref": "#/$defs/ValueWithRaw"
-                }
-              ]
-            },
-            "slope_adjustment": {
-              "oneOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "$ref": "#/$defs/ValueWithRaw"
-                }
-              ]
-            },
+            "intercept_adjustment": {},
+            "slope_adjustment": {},
             "method": {
               "type": [
                 "string",
@@ -2946,249 +2568,15 @@
               "net_benefit"
             ],
             "properties": {
-              "threshold": {
-                "oneOf": [
-                  {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1
-                  },
-                  {
-                    "$ref": "#/$defs/ValueWithRaw"
-                  }
-                ]
-              },
-              "net_benefit": {
-                "oneOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "$ref": "#/$defs/ValueWithRaw"
-                  }
-                ]
-              }
+              "threshold": {},
+              "net_benefit": {}
             }
-          },
-          "default": []
+          }
         },
         "figure_source": {
           "$ref": "#/$defs/SourceRef"
         }
       }
-    },
-    "RiskOfBias": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "tool": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "enum": [
-            "RoB2",
-            "ROBINS-I",
-            "PROBAST",
-            "Other"
-          ]
-        },
-        "overall": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "domains": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "domain",
-              "judgement",
-              "notes"
-            ],
-            "properties": {
-              "domain": {
-                "type": "string"
-              },
-              "judgement": {
-                "type": "string",
-                "enum": [
-                  "low",
-                  "some",
-                  "high",
-                  "unclear",
-                  "moderate",
-                  "serious",
-                  "critical",
-                  "no_information",
-                  "some_concerns"
-                ]
-              },
-              "notes": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              }
-            }
-          },
-          "default": []
-        },
-        "applicability": {
-          "type": [
-            "object",
-            "null"
-          ],
-          "additionalProperties": false,
-          "properties": {
-            "participants": {
-              "type": "string",
-              "enum": [
-                "low",
-                "high",
-                "unclear"
-              ]
-            },
-            "predictors": {
-              "type": "string",
-              "enum": [
-                "low",
-                "high",
-                "unclear"
-              ]
-            },
-            "outcome": {
-              "type": "string",
-              "enum": [
-                "low",
-                "high",
-                "unclear"
-              ]
-            },
-            "notes": {
-              "type": "string"
-            }
-          }
-        },
-        "provenance": {
-          "$ref": "#/$defs/Provenance"
-        }
-      },
-      "required": [
-        "applicability",
-        "domains",
-        "overall",
-        "provenance",
-        "tool"
-      ]
-    },
-    "ExtractionWarning": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "code",
-        "message",
-        "source"
-      ],
-      "properties": {
-        "code": {
-          "type": "string",
-          "enum": [
-            "TABLE_PARSE_FAIL",
-            "AMBIGUOUS_UNIT",
-            "CI_PARSE_FAIL",
-            "MISSING_ARM_ID",
-            "MISSING_GROUP_ID",
-            "OTHER"
-          ]
-        },
-        "message": {
-          "type": "string"
-        },
-        "source": {
-          "$ref": "#/$defs/SourceRef"
-        }
-      }
-    },
-    "CountryCode": {
-      "$ref": "#/$defs/CountryCodeAlpha2"
-    },
-    "TruncationInfo": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "value": {
-          "type": [
-            "boolean",
-            "null"
-          ],
-          "default": false
-        },
-        "reason": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "enum": [
-            "token_limit",
-            "page_limit",
-            "timeout",
-            "other"
-          ]
-        }
-      },
-      "required": [
-        "reason",
-        "value"
-      ]
-    },
-    "SourceRef": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Reference to a specific location within a document",
-      "properties": {
-        "anchor": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Free-text pointer like 'Table 2', 'Fig 1', or sentence quote"
-        },
-        "page": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 1,
-          "description": "Page number within the document"
-        },
-        "figure_id": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Identifier of a specific figure"
-        },
-        "table_id": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Identifier of a specific table"
-        }
-      },
-      "required": [
-        "anchor",
-        "figure_id",
-        "page",
-        "table_id"
-      ]
     },
     "ParsedTable": {
       "type": "object",
@@ -3248,8 +2636,7 @@
                 }
               }
             }
-          },
-          "default": []
+          }
         },
         "source": {
           "$ref": "#/$defs/SourceRef"
@@ -3271,127 +2658,66 @@
         "P1Y2M3DT4H5M6.789S"
       ]
     },
-    "Provenance": {
+    "SourceRef": {
       "type": "object",
       "additionalProperties": false,
+      "description": "Reference to a specific location within a document",
       "properties": {
-        "extractor": {
+        "anchor": {
           "type": [
             "string",
             "null"
           ],
-          "description": "Person or system that performed extraction"
+          "description": "Free-text pointer like 'Table 2', 'Fig 1', or sentence quote"
         },
-        "method": {
+        "page": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "description": "Page number within the document"
+        },
+        "figure_id": {
           "type": [
             "string",
             "null"
           ],
-          "enum": [
-            "human_double_entry",
-            "human_single",
-            "llm_assisted",
-            "rule_based",
-            "automated",
-            "other"
-          ],
-          "description": "Extraction method used"
+          "description": "Identifier of a specific figure"
         },
-        "confidence": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Extractor's confidence in the extraction"
-        },
-        "timestamp": {
+        "table_id": {
           "type": [
             "string",
             "null"
           ],
-          "format": "date-time",
-          "description": "When extraction was performed"
-        },
-        "transformation_notes": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Notes about data processing or transformation"
-        },
-        "consensus_status": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "enum": [
-            "agreement",
-            "disagreement",
-            "resolved",
-            "single_reviewer",
-            "not_applicable"
-          ],
-          "description": "Status of reviewer consensus (for double extraction)"
-        },
-        "reviewers": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "type": "string"
-          },
-          "description": "List of reviewers involved in extraction"
-        },
-        "adjudication": {
-          "$ref": "#/$defs/Adjudication"
-        },
-        "source": {
-          "$ref": "#/$defs/SourceRef"
+          "description": "Identifier of a specific table"
         }
       },
       "required": [
-        "adjudication",
-        "confidence",
-        "consensus_status",
-        "extractor",
-        "method",
-        "reviewers",
-        "source",
-        "timestamp",
-        "transformation_notes"
+        "anchor",
+        "figure_id",
+        "page",
+        "table_id"
       ]
     },
-    "Adjudication": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "needed": {
-          "type": [
-            "boolean",
-            "null"
-          ],
-          "default": false
-        },
-        "adjudicator": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "notes": {
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "required": [
-        "adjudicator",
-        "needed",
-        "notes"
+    "LanguageCode": {
+      "type": "string",
+      "pattern": "^[a-z]{2,3}(-[A-Z]{2})?(-[a-z]{2,8})*$",
+      "description": "BCP 47 language tag supporting language, region, and variants (e.g., 'en-US', 'zh-Hans-CN', 'ar-EG')",
+      "examples": [
+        "en",
+        "en-US",
+        "en-GB",
+        "nl",
+        "nl-NL",
+        "nl-BE",
+        "de-DE",
+        "fr-FR",
+        "es-ES",
+        "zh-Hans",
+        "zh-Hant",
+        "ar-EG",
+        "he-IL"
       ]
     },
     "EffectCI": {
@@ -3415,7 +2741,6 @@
             95,
             99
           ],
-          "default": 95,
           "description": "Confidence level as percentage"
         },
         "lower": {
@@ -3425,123 +2750,6 @@
         "upper": {
           "type": "number",
           "description": "Upper bound of confidence interval"
-        }
-      }
-    },
-    "CountryCodeAlpha2": {
-      "type": "string",
-      "pattern": "^[A-Z]{2}$",
-      "description": "ISO 3166-1 alpha-2 country code (e.g., 'NL', 'US')."
-    },
-    "ValueWithRaw": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "value": {
-          "type": [
-            "string",
-            "number",
-            "integer",
-            "boolean",
-            "null"
-          ],
-          "description": "Processed/normalized value"
-        },
-        "raw_text": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Original text as found in document"
-        },
-        "unit_ucum": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "UCUM unit code if applicable"
-        },
-        "transformation_confidence": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Confidence in the raw→processed transformation"
-        },
-        "source": {
-          "$ref": "#/$defs/SourceRef"
-        },
-        "provenance": {
-          "$ref": "#/$defs/Provenance"
-        }
-      },
-      "required": [
-        "provenance",
-        "raw_text",
-        "source",
-        "transformation_confidence",
-        "unit_ucum",
-        "value"
-      ]
-    },
-    "LanguageCode": {
-      "type": "string",
-      "pattern": "^[a-z]{2,3}(-[A-Z]{2})?(-[a-z]{2,8})*$",
-      "description": "BCP 47 language tag supporting language, region, and variants (e.g., 'en-US', 'zh-Hans-CN', 'ar-EG')",
-      "examples": [
-        "en",
-        "en-US",
-        "en-GB",
-        "nl",
-        "nl-NL",
-        "nl-BE",
-        "de-DE",
-        "fr-FR",
-        "es-ES",
-        "zh-Hans",
-        "zh-Hant",
-        "ar-EG",
-        "he-IL"
-      ]
-    },
-    "FigureSummary": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "caption",
-        "figure_id",
-        "key_values",
-        "page",
-        "source"
-      ],
-      "properties": {
-        "figure_id": {
-          "type": "string"
-        },
-        "caption": {
-          "type": "string"
-        },
-        "key_values": {
-          "type": [
-            "object",
-            "null"
-          ],
-          "additionalProperties": {
-            "type": "number"
-          },
-          "default": {}
-        },
-        "page": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 1
-        },
-        "source": {
-          "$ref": "#/$defs/SourceRef"
         }
       }
     },
@@ -3676,8 +2884,7 @@
           ],
           "items": {
             "$ref": "#/$defs/Author"
-          },
-          "default": []
+          }
         },
         "pmid": {
           "type": [
@@ -3751,8 +2958,7 @@
           ],
           "items": {
             "$ref": "#/$defs/ExternalId"
-          },
-          "default": []
+          }
         },
         "supplements": {
           "type": [
@@ -3761,8 +2967,7 @@
           ],
           "items": {
             "$ref": "#/$defs/SupplementFile"
-          },
-          "default": []
+          }
         },
         "parsing_context": {
           "$ref": "#/$defs/ParsingContext"
@@ -3776,6 +2981,658 @@
           "description": "SHA-256 hash van bronbestand of platte tekst (64-char hex)"
         }
       }
+    },
+    "ExternalId": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "source",
+        "url",
+        "version"
+      ],
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": [
+            "PMID",
+            "PMCID",
+            "DOI",
+            "NCT",
+            "ISRCTN",
+            "EudraCT",
+            "EU-CTR",
+            "CTIS",
+            "UMIN",
+            "JPRN",
+            "DRKS",
+            "ChiCTR",
+            "ANZCTR",
+            "arXiv",
+            "bioRxiv",
+            "medRxiv",
+            "PubPeer",
+            "ISBN",
+            "ISSN",
+            "Handle",
+            "URN",
+            "Other"
+          ],
+          "description": "External identifier source system including preprint servers and academic publishers"
+        },
+        "id": {
+          "type": "string",
+          "description": "Identifier value within the source system",
+          "examples": [
+            "1234.5678",
+            "2023.01.001",
+            "10.1101/2023.01.01.123456",
+            "978-0-123456-78-9"
+          ]
+        },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri",
+          "description": "Optional direct URL to the external resource"
+        },
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Version number for preprints or versioned documents"
+        }
+      }
+    },
+    "RiskOfBias": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tool": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "RoB2",
+            "ROBINS-I",
+            "PROBAST",
+            "Other"
+          ]
+        },
+        "overall": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "domains": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "domain",
+              "judgement",
+              "notes"
+            ],
+            "properties": {
+              "domain": {
+                "type": "string"
+              },
+              "judgement": {
+                "type": "string",
+                "enum": [
+                  "low",
+                  "some",
+                  "high",
+                  "unclear",
+                  "moderate",
+                  "serious",
+                  "critical",
+                  "no_information",
+                  "some_concerns"
+                ]
+              },
+              "notes": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "applicability": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "participants": {
+              "type": "string",
+              "enum": [
+                "low",
+                "high",
+                "unclear"
+              ]
+            },
+            "predictors": {
+              "type": "string",
+              "enum": [
+                "low",
+                "high",
+                "unclear"
+              ]
+            },
+            "outcome": {
+              "type": "string",
+              "enum": [
+                "low",
+                "high",
+                "unclear"
+              ]
+            },
+            "notes": {
+              "type": "string"
+            }
+          }
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        }
+      },
+      "required": [
+        "applicability",
+        "domains",
+        "overall",
+        "provenance",
+        "tool"
+      ]
+    },
+    "SupplementFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "checksum",
+        "content_type",
+        "doi",
+        "file_size",
+        "filename",
+        "label",
+        "url"
+      ],
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "filename": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
+        "doi": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+$"
+        },
+        "content_type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "file_size": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "description": "File size in bytes"
+        },
+        "checksum": {
+          "$ref": "#/$defs/DataIntegrity"
+        }
+      }
+    },
+    "FigureSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "caption",
+        "figure_id",
+        "key_values",
+        "page",
+        "source"
+      ],
+      "properties": {
+        "figure_id": {
+          "type": "string"
+        },
+        "caption": {
+          "type": "string"
+        },
+        "key_values": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "number"
+          }
+        },
+        "page": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        }
+      }
+    },
+    "Author": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Author information for academic publications",
+      "required": [
+        "affiliations",
+        "corresponding",
+        "email",
+        "given_names",
+        "initials",
+        "last_name",
+        "orcid"
+      ],
+      "properties": {
+        "last_name": {
+          "type": "string",
+          "description": "Author's family name"
+        },
+        "initials": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Author's first/middle name initials"
+        },
+        "given_names": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Author's full first and middle names"
+        },
+        "orcid": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^(https://orcid\\.org/)?0000-00(0[2-9]|[1-9]\\d)-\\d{4}-\\d{3}[\\dX]$",
+          "description": "ORCID identifier with checksum validation (optionally with URL prefix)",
+          "examples": [
+            "0000-0002-1825-0097",
+            "https://orcid.org/0000-0002-1825-0097"
+          ]
+        },
+        "affiliations": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Author's institutional affiliations"
+        },
+        "corresponding": {
+          "type": [
+            "boolean",
+            "null"
+          ],
+          "description": "Whether this author is the corresponding author"
+        },
+        "email": {
+          "$ref": "#/$defs/EmailAddress"
+        }
+      }
+    },
+    "TruncationInfo": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "token_limit",
+            "page_limit",
+            "timeout",
+            "other"
+          ]
+        }
+      },
+      "required": [
+        "reason",
+        "value"
+      ]
+    },
+    "CountryCode": {
+      "$ref": "#/$defs/CountryCodeAlpha2"
+    },
+    "ExtractionWarning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message",
+        "source"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "TABLE_PARSE_FAIL",
+            "AMBIGUOUS_UNIT",
+            "CI_PARSE_FAIL",
+            "MISSING_ARM_ID",
+            "MISSING_GROUP_ID",
+            "OTHER"
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        }
+      }
+    },
+    "Provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "extractor": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Person or system that performed extraction"
+        },
+        "method": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "human_double_entry",
+            "human_single",
+            "llm_assisted",
+            "rule_based",
+            "automated",
+            "other"
+          ],
+          "description": "Extraction method used"
+        },
+        "confidence": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Extractor's confidence in the extraction"
+        },
+        "timestamp": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "When extraction was performed"
+        },
+        "transformation_notes": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Notes about data processing or transformation"
+        },
+        "consensus_status": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "agreement",
+            "disagreement",
+            "resolved",
+            "single_reviewer",
+            "not_applicable"
+          ],
+          "description": "Status of reviewer consensus (for double extraction)"
+        },
+        "reviewers": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "List of reviewers involved in extraction"
+        },
+        "adjudication": {
+          "$ref": "#/$defs/Adjudication"
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        }
+      },
+      "required": [
+        "adjudication",
+        "confidence",
+        "consensus_status",
+        "extractor",
+        "method",
+        "reviewers",
+        "source",
+        "timestamp",
+        "transformation_notes"
+      ]
+    },
+    "DataIntegrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Data integrity verification with multiple hash algorithms",
+      "required": [
+        "algorithm",
+        "multiple_hashes",
+        "salt",
+        "value",
+        "verification_timestamp",
+        "verified_by"
+      ],
+      "properties": {
+        "algorithm": {
+          "type": "string",
+          "enum": [
+            "SHA-256",
+            "SHA-512",
+            "SHA-3-256",
+            "SHA-3-512",
+            "BLAKE2b",
+            "SHA-1",
+            "MD5",
+            "CRC32"
+          ],
+          "description": "Cryptographic hash algorithm used"
+        },
+        "value": {
+          "type": "string",
+          "description": "Hex-encoded hash value"
+        },
+        "salt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Optional salt value for enhanced security"
+        },
+        "verification_timestamp": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time",
+          "description": "When the hash was computed or verified"
+        },
+        "verified_by": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "System or person who verified the hash"
+        },
+        "multiple_hashes": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "object",
+            "required": [
+              "algorithm",
+              "value"
+            ],
+            "properties": {
+              "algorithm": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "Additional hash values using different algorithms for enhanced verification"
+        }
+      }
+    },
+    "Registration": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Clinical trial or study registration information",
+      "properties": {
+        "registry": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "ClinicalTrials.gov",
+            "ISRCTN",
+            "EudraCT",
+            "EU-CTR",
+            "CTIS",
+            "ChiCTR",
+            "ANZCTR",
+            "UMIN-CTR",
+            "JPRN",
+            "PACTR",
+            "IRCT",
+            "DRKS",
+            "TCTR",
+            "SLCTR",
+            "RPCEC",
+            "REBEC",
+            "Other"
+          ],
+          "description": "Clinical trial registry (includes major international and regional registries)"
+        },
+        "identifier": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Registration identifier within the registry",
+          "examples": [
+            "NCT04123456",
+            "ISRCTN12345678",
+            "2020-001234-56",
+            "UMIN000012345"
+          ]
+        },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri",
+          "description": "Direct URL to the registration record"
+        }
+      },
+      "required": [
+        "identifier",
+        "registry",
+        "url"
+      ]
+    },
+    "Adjudication": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "needed": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "adjudicator": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "notes": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "adjudicator",
+        "needed",
+        "notes"
+      ]
     },
     "ParsingContext": {
       "type": "object",
@@ -3852,7 +3709,6 @@
           "items": {
             "type": "string"
           },
-          "default": [],
           "description": "Document sections automatically detected"
         },
         "parsing_warnings": {
@@ -3863,7 +3719,6 @@
           "items": {
             "type": "string"
           },
-          "default": [],
           "description": "Warnings encountered during parsing"
         },
         "ai_processing": {
@@ -3871,64 +3726,10 @@
         }
       }
     },
-    "Registration": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Clinical trial or study registration information",
-      "properties": {
-        "registry": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "enum": [
-            "ClinicalTrials.gov",
-            "ISRCTN",
-            "EudraCT",
-            "EU-CTR",
-            "CTIS",
-            "ChiCTR",
-            "ANZCTR",
-            "UMIN-CTR",
-            "JPRN",
-            "PACTR",
-            "IRCT",
-            "DRKS",
-            "TCTR",
-            "SLCTR",
-            "RPCEC",
-            "REBEC",
-            "Other"
-          ],
-          "description": "Clinical trial registry (includes major international and regional registries)"
-        },
-        "identifier": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Registration identifier within the registry",
-          "examples": [
-            "NCT04123456",
-            "ISRCTN12345678",
-            "2020-001234-56",
-            "UMIN000012345"
-          ]
-        },
-        "url": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "format": "uri",
-          "description": "Direct URL to the registration record"
-        }
-      },
-      "required": [
-        "identifier",
-        "registry",
-        "url"
-      ]
+    "CountryCodeAlpha2": {
+      "type": "string",
+      "pattern": "^[A-Z]{2}$",
+      "description": "ISO 3166-1 alpha-2 country code (e.g., 'NL', 'US')."
     },
     "AIProcessingMetadata": {
       "type": "object",
@@ -4322,272 +4123,6 @@
         "performance_metrics",
         "uncertainty_quantification"
       ]
-    },
-    "ExternalId": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "id",
-        "source",
-        "url",
-        "version"
-      ],
-      "properties": {
-        "source": {
-          "type": "string",
-          "enum": [
-            "PMID",
-            "PMCID",
-            "DOI",
-            "NCT",
-            "ISRCTN",
-            "EudraCT",
-            "EU-CTR",
-            "CTIS",
-            "UMIN",
-            "JPRN",
-            "DRKS",
-            "ChiCTR",
-            "ANZCTR",
-            "arXiv",
-            "bioRxiv",
-            "medRxiv",
-            "PubPeer",
-            "ISBN",
-            "ISSN",
-            "Handle",
-            "URN",
-            "Other"
-          ],
-          "description": "External identifier source system including preprint servers and academic publishers"
-        },
-        "id": {
-          "type": "string",
-          "description": "Identifier value within the source system",
-          "examples": [
-            "1234.5678",
-            "2023.01.001",
-            "10.1101/2023.01.01.123456",
-            "978-0-123456-78-9"
-          ]
-        },
-        "url": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "format": "uri",
-          "description": "Optional direct URL to the external resource"
-        },
-        "version": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Version number for preprints or versioned documents"
-        }
-      }
-    },
-    "Author": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Author information for academic publications",
-      "required": [
-        "affiliations",
-        "corresponding",
-        "email",
-        "given_names",
-        "initials",
-        "last_name",
-        "orcid"
-      ],
-      "properties": {
-        "last_name": {
-          "type": "string",
-          "description": "Author's family name"
-        },
-        "initials": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Author's first/middle name initials"
-        },
-        "given_names": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Author's full first and middle names"
-        },
-        "orcid": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "pattern": "^(https://orcid\\.org/)?0000-00(0[2-9]|[1-9]\\d)-\\d{4}-\\d{3}[\\dX]$",
-          "description": "ORCID identifier with checksum validation (optionally with URL prefix)",
-          "examples": [
-            "0000-0002-1825-0097",
-            "https://orcid.org/0000-0002-1825-0097"
-          ]
-        },
-        "affiliations": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "type": "string"
-          },
-          "default": [],
-          "description": "Author's institutional affiliations"
-        },
-        "corresponding": {
-          "type": [
-            "boolean",
-            "null"
-          ],
-          "default": false,
-          "description": "Whether this author is the corresponding author"
-        },
-        "email": {
-          "$ref": "#/$defs/EmailAddress"
-        }
-      }
-    },
-    "SupplementFile": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "checksum",
-        "content_type",
-        "doi",
-        "file_size",
-        "filename",
-        "label",
-        "url"
-      ],
-      "properties": {
-        "label": {
-          "type": "string"
-        },
-        "filename": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "url": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "format": "uri"
-        },
-        "doi": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "pattern": "^10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+$"
-        },
-        "content_type": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "file_size": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 0,
-          "description": "File size in bytes"
-        },
-        "checksum": {
-          "$ref": "#/$defs/DataIntegrity"
-        }
-      }
-    },
-    "DataIntegrity": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Data integrity verification with multiple hash algorithms",
-      "required": [
-        "algorithm",
-        "multiple_hashes",
-        "salt",
-        "value",
-        "verification_timestamp",
-        "verified_by"
-      ],
-      "properties": {
-        "algorithm": {
-          "type": "string",
-          "enum": [
-            "SHA-256",
-            "SHA-512",
-            "SHA-3-256",
-            "SHA-3-512",
-            "BLAKE2b",
-            "SHA-1",
-            "MD5",
-            "CRC32"
-          ],
-          "description": "Cryptographic hash algorithm used"
-        },
-        "value": {
-          "type": "string",
-          "description": "Hex-encoded hash value"
-        },
-        "salt": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Optional salt value for enhanced security"
-        },
-        "verification_timestamp": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "format": "date-time",
-          "description": "When the hash was computed or verified"
-        },
-        "verified_by": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "System or person who verified the hash"
-        },
-        "multiple_hashes": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "type": "object",
-            "required": [
-              "algorithm",
-              "value"
-            ],
-            "properties": {
-              "algorithm": {
-                "type": "string"
-              },
-              "value": {
-                "type": "string"
-              }
-            },
-            "additionalProperties": false
-          },
-          "description": "Additional hash values using different algorithms for enhanced verification"
-        }
-      }
     },
     "EmailAddress": {
       "type": "string",

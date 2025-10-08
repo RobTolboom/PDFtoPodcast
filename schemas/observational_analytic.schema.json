@@ -57,8 +57,7 @@
           "type": "string",
           "enum": [
             "application/pdf"
-          ],
-          "default": "application/pdf"
+          ]
         },
         "size_bytes": {
           "type": "integer",
@@ -85,8 +84,7 @@
       ],
       "items": {
         "$ref": "common.schema.json#/$defs/ExternalId"
-      },
-      "default": []
+      }
     },
     "generator": {
       "type": [
@@ -143,8 +141,7 @@
       "description": "Optional derived groups (e.g., exposed/unexposed, categories).",
       "items": {
         "$ref": "#/$defs/Group"
-      },
-      "default": []
+      }
     },
     "comparisons": {
       "type": [
@@ -154,8 +151,7 @@
       "description": "Contrasts to estimate effects (between groups or exposure levels).",
       "items": {
         "$ref": "#/$defs/Comparison"
-      },
-      "default": []
+      }
     },
     "outcomes": {
       "type": "array",
@@ -175,8 +171,7 @@
       ],
       "items": {
         "$ref": "#/$defs/SubgroupAnalysisObs"
-      },
-      "default": []
+      }
     },
     "analysis_plan_registered": {
       "type": [
@@ -576,8 +571,7 @@
           "type": [
             "boolean",
             "null"
-          ],
-          "default": false
+          ]
         },
         "inter_rater_agreement_kappa": {
           "type": [
@@ -592,8 +586,7 @@
           ],
           "items": {
             "type": "string"
-          },
-          "default": []
+          }
         },
         "notes": {
           "type": [
@@ -616,8 +609,7 @@
       ],
       "items": {
         "$ref": "common.schema.json#/$defs/ParsedTable"
-      },
-      "default": []
+      }
     },
     "figures_summary": {
       "type": [
@@ -626,8 +618,7 @@
       ],
       "items": {
         "$ref": "common.schema.json#/$defs/FigureSummary"
-      },
-      "default": []
+      }
     },
     "risk_of_bias": {
       "$ref": "common.schema.json#/$defs/RiskOfBias"
@@ -804,8 +795,7 @@
       ],
       "items": {
         "$ref": "common.schema.json#/$defs/ExtractionWarning"
-      },
-      "default": []
+      }
     },
     "truncated": {
       "$ref": "common.schema.json#/$defs/TruncationInfo"
@@ -918,8 +908,7 @@
               "type": [
                 "boolean",
                 "null"
-              ],
-              "default": false
+              ]
             },
             "eligibility_criteria": {
               "type": [
@@ -998,8 +987,7 @@
           "type": [
             "boolean",
             "null"
-          ],
-          "default": false
+          ]
         },
         "prevalent_user_bias_risk": {
           "type": [
@@ -1058,8 +1046,7 @@
           ],
           "items": {
             "type": "string"
-          },
-          "default": []
+          }
         },
         "control_sampling": {
           "type": [
@@ -1084,8 +1071,7 @@
           "type": [
             "boolean",
             "null"
-          ],
-          "default": false
+          ]
         },
         "ecological_level": {
           "type": [
@@ -1127,8 +1113,7 @@
               "standardization",
               "other"
             ]
-          },
-          "default": []
+          }
         },
         "source": {
           "$ref": "common.schema.json#/$defs/SourceRef"
@@ -1518,8 +1503,7 @@
               ],
               "items": {
                 "type": "string"
-              },
-              "default": []
+              }
             },
             "imputation": {
               "type": [
@@ -1603,8 +1587,7 @@
           "description": "For categorical exposures: ordered list of levels",
           "items": {
             "type": "string"
-          },
-          "default": []
+          }
         },
         "unit": {
           "type": [
@@ -1628,8 +1611,7 @@
             "baseline",
             "time_varying",
             "unknown"
-          ],
-          "default": "baseline"
+          ]
         },
         "time_window_iso8601": {
           "$ref": "common.schema.json#/$defs/ISO8601Duration"
@@ -1638,8 +1620,7 @@
           "type": [
             "boolean",
             "null"
-          ],
-          "default": false
+          ]
         },
         "instrumental_variable": {
           "type": [
@@ -1667,8 +1648,7 @@
           ],
           "items": {
             "$ref": "common.schema.json#/$defs/OntologyTerm"
-          },
-          "default": []
+          }
         },
         "provenance": {
           "$ref": "common.schema.json#/$defs/Provenance"
@@ -1716,8 +1696,7 @@
           "description": "Mapping exposure->level/value for this group",
           "additionalProperties": {
             "type": "string"
-          },
-          "default": {}
+          }
         }
       }
     },
@@ -1847,15 +1826,13 @@
           ],
           "items": {
             "type": "string"
-          },
-          "default": []
+          }
         },
         "is_primary": {
           "type": [
             "boolean",
             "null"
-          ],
-          "default": false
+          ]
         }
       }
     },
@@ -1965,8 +1942,7 @@
           "type": [
             "boolean",
             "null"
-          ],
-          "default": false
+          ]
         },
         "censoring_informative_risk": {
           "type": [
@@ -1987,8 +1963,7 @@
           ],
           "items": {
             "$ref": "common.schema.json#/$defs/OntologyTerm"
-          },
-          "default": []
+          }
         },
         "provenance": {
           "$ref": "common.schema.json#/$defs/Provenance"
@@ -2106,47 +2081,7 @@
         "source": {
           "$ref": "common.schema.json#/$defs/SourceRef"
         }
-      },
-      "oneOf": [
-        {
-          "required": [
-            "mean",
-            "sd"
-          ]
-        },
-        {
-          "required": [
-            "median",
-            "iqr"
-          ],
-          "properties": {
-            "iqr": {
-              "required": [
-                "p25",
-                "p75"
-              ]
-            }
-          }
-        },
-        {
-          "description": "Binary outcome per group",
-          "required": [
-            "events"
-          ],
-          "anyOf": [
-            {
-              "required": [
-                "n"
-              ]
-            },
-            {
-              "required": [
-                "total"
-              ]
-            }
-          ]
-        }
-      ]
+      }
     },
     "ContrastEffect": {
       "$ref": "common.schema.json#/$defs/ContrastEffect"
@@ -2427,8 +2362,7 @@
           "type": [
             "boolean",
             "null"
-          ],
-          "default": true
+          ]
         },
         "covariates": {
           "type": [
@@ -2437,8 +2371,7 @@
           ],
           "items": {
             "type": "string"
-          },
-          "default": []
+          }
         },
         "model": {
           "type": [
@@ -2506,8 +2439,7 @@
               ],
               "items": {
                 "type": "string"
-              },
-              "default": []
+              }
             },
             "ps_model": {
               "type": [
@@ -2535,8 +2467,7 @@
                   "type": [
                     "boolean",
                     "null"
-                  ],
-                  "default": false
+                  ]
                 },
                 "max_smd_after": {
                   "type": [
@@ -2558,8 +2489,7 @@
                   "type": [
                     "number",
                     "null"
-                  ],
-                  "default": 0.1
+                  ]
                 },
                 "variables_imbalanced": {
                   "type": [
@@ -2764,8 +2694,7 @@
           "type": [
             "boolean",
             "null"
-          ],
-          "default": false
+          ]
         },
         "ps_overlap_notes": {
           "type": [
@@ -2885,8 +2814,7 @@
           ],
           "items": {
             "$ref": "common.schema.json#/$defs/OntologyTerm"
-          },
-          "default": []
+          }
         },
         "provenance": {
           "$ref": "common.schema.json#/$defs/Provenance"
@@ -2898,8 +2826,7 @@
           "type": [
             "boolean",
             "null"
-          ],
-          "default": false
+          ]
         },
         "relatedness": {
           "type": [
@@ -2913,8 +2840,7 @@
             "unlikely",
             "not_related",
             "unknown"
-          ],
-          "default": "unknown"
+          ]
         }
       }
     },
@@ -2929,8 +2855,7 @@
           ],
           "items": {
             "$ref": "#/$defs/PerGroupResult"
-          },
-          "default": []
+          }
         },
         "contrasts": {
           "type": [
@@ -2939,8 +2864,7 @@
           ],
           "items": {
             "$ref": "#/$defs/ContrastResult"
-          },
-          "default": []
+          }
         },
         "harms": {
           "type": [
@@ -2949,8 +2873,7 @@
           ],
           "items": {
             "$ref": "#/$defs/HarmsResult"
-          },
-          "default": []
+          }
         }
       },
       "required": [
@@ -2986,8 +2909,7 @@
           ],
           "items": {
             "type": "string"
-          },
-          "default": []
+          }
         },
         "interaction_p": {
           "type": [
@@ -3031,8 +2953,7 @@
               "effect",
               "level"
             ]
-          },
-          "default": []
+          }
         },
         "additive_interaction": {
           "type": [
@@ -3121,8 +3042,7 @@
           "type": [
             "boolean",
             "null"
-          ],
-          "default": false
+          ]
         },
         "provenance": {
           "$ref": "common.schema.json#/$defs/Provenance"

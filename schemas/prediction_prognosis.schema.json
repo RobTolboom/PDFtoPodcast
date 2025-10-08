@@ -56,8 +56,7 @@
           "type": "string",
           "enum": [
             "application/pdf"
-          ],
-          "default": "application/pdf"
+          ]
         },
         "size_bytes": {
           "type": "integer",
@@ -148,8 +147,7 @@
       "type": "array",
       "items": {
         "$ref": "#/$defs/PerformanceResult"
-      },
-      "default": []
+      }
     },
     "decision_curves": {
       "type": [
@@ -158,8 +156,7 @@
       ],
       "items": {
         "$ref": "#/$defs/DecisionCurve"
-      },
-      "default": []
+      }
     },
     "tables_parsed": {
       "type": [
@@ -168,8 +165,7 @@
       ],
       "items": {
         "$ref": "common.schema.json#/$defs/ParsedTable"
-      },
-      "default": []
+      }
     },
     "figures_summary": {
       "type": [
@@ -178,8 +174,7 @@
       ],
       "items": {
         "$ref": "common.schema.json#/$defs/FigureSummary"
-      },
-      "default": []
+      }
     },
     "risk_of_bias": {
       "$ref": "common.schema.json#/$defs/RiskOfBias"
@@ -526,22 +521,19 @@
             "MI-CLAIM",
             "STARD-AI",
             "other"
-          ],
-          "default": "TRIPOD 2015"
+          ]
         },
         "claimed": {
           "type": [
             "boolean",
             "null"
-          ],
-          "default": false
+          ]
         },
         "checklist_available": {
           "type": [
             "boolean",
             "null"
-          ],
-          "default": false
+          ]
         },
         "items": {
           "type": [
@@ -587,8 +579,7 @@
                 ]
               }
             }
-          },
-          "default": []
+          }
         }
       },
       "required": [
@@ -652,48 +643,10 @@
             ],
             "minimum": 0
           },
-          "auc_roc": {
-            "oneOf": [
-              {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 1
-              },
-              {
-                "$ref": "common.schema.json#/$defs/ValueWithRaw"
-              }
-            ]
-          },
-          "calibration_slope": {
-            "oneOf": [
-              {
-                "type": "number"
-              },
-              {
-                "$ref": "common.schema.json#/$defs/ValueWithRaw"
-              }
-            ]
-          },
-          "calibration_intercept": {
-            "oneOf": [
-              {
-                "type": "number"
-              },
-              {
-                "$ref": "common.schema.json#/$defs/ValueWithRaw"
-              }
-            ]
-          },
-          "o_e_ratio": {
-            "oneOf": [
-              {
-                "type": "number"
-              },
-              {
-                "$ref": "common.schema.json#/$defs/ValueWithRaw"
-              }
-            ]
-          },
+          "auc_roc": {},
+          "calibration_slope": {},
+          "calibration_intercept": {},
+          "o_e_ratio": {},
           "algorithmic_fairness": {
             "type": [
               "object",
@@ -840,8 +793,7 @@
             ]
           }
         }
-      },
-      "default": []
+      }
     },
     "data_leakage_assessment": {
       "type": [
@@ -1213,8 +1165,7 @@
       ],
       "items": {
         "$ref": "common.schema.json#/$defs/ExtractionWarning"
-      },
-      "default": []
+      }
     },
     "truncated": {
       "$ref": "common.schema.json#/$defs/TruncationInfo"
@@ -1259,8 +1210,7 @@
               "impact",
               "comparison"
             ]
-          },
-          "default": []
+          }
         },
         "design_type": {
           "type": [
@@ -1288,8 +1238,7 @@
           ],
           "items": {
             "$ref": "common.schema.json#/$defs/CountryCode"
-          },
-          "default": []
+          }
         },
         "setting": {
           "type": [
@@ -1330,39 +1279,9 @@
           "minimum": 0,
           "description": "Number of outcome events in derivation cohort (if applicable)"
         },
-        "age_mean": {
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "$ref": "common.schema.json#/$defs/ValueWithRaw"
-            }
-          ]
-        },
-        "age_sd": {
-          "oneOf": [
-            {
-              "type": "number",
-              "minimum": 0
-            },
-            {
-              "$ref": "common.schema.json#/$defs/ValueWithRaw"
-            }
-          ]
-        },
-        "sex_female_pct": {
-          "oneOf": [
-            {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 100
-            },
-            {
-              "$ref": "common.schema.json#/$defs/ValueWithRaw"
-            }
-          ]
-        },
+        "age_mean": {},
+        "age_sd": {},
+        "sex_female_pct": {},
         "inclusion_criteria": {
           "type": [
             "string",
@@ -1378,18 +1297,7 @@
         "follow_up_duration_iso8601": {
           "$ref": "common.schema.json#/$defs/ISO8601Duration"
         },
-        "outcome_incidence_pct": {
-          "oneOf": [
-            {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 100
-            },
-            {
-              "$ref": "common.schema.json#/$defs/ValueWithRaw"
-            }
-          ]
-        },
+        "outcome_incidence_pct": {},
         "missing_data_overview": {
           "type": [
             "string",
@@ -1471,8 +1379,7 @@
             "baseline",
             "followup",
             "unknown"
-          ],
-          "default": "baseline"
+          ]
         },
         "coding": {
           "type": [
@@ -1488,18 +1395,7 @@
           ],
           "description": "e.g., log, Box-Cox, restricted cubic spline"
         },
-        "missing_fraction_pct": {
-          "oneOf": [
-            {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 100
-            },
-            {
-              "$ref": "common.schema.json#/$defs/ValueWithRaw"
-            }
-          ]
-        },
+        "missing_fraction_pct": {},
         "imputation": {
           "type": [
             "string",
@@ -1619,8 +1515,7 @@
           ],
           "items": {
             "$ref": "common.schema.json#/$defs/CountryCode"
-          },
-          "default": []
+          }
         },
         "start_date": {
           "type": [
@@ -1739,8 +1634,7 @@
             "ridge",
             "elastic_net",
             "other"
-          ],
-          "default": "none"
+          ]
         },
         "feature_selection": {
           "type": [
@@ -1756,8 +1650,7 @@
           ],
           "items": {
             "type": "string"
-          },
-          "default": []
+          }
         },
         "coefficients": {
           "type": [
@@ -1777,40 +1670,12 @@
               "predictor": {
                 "type": "string"
               },
-              "beta": {
-                "oneOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "$ref": "common.schema.json#/$defs/ValueWithRaw"
-                  }
-                ]
-              },
-              "se": {
-                "oneOf": [
-                  {
-                    "type": "number",
-                    "minimum": 0
-                  },
-                  {
-                    "$ref": "common.schema.json#/$defs/ValueWithRaw"
-                  }
-                ]
-              }
+              "beta": {},
+              "se": {}
             }
-          },
-          "default": []
+          }
         },
         "intercept": {
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "$ref": "common.schema.json#/$defs/ValueWithRaw"
-            }
-          ],
           "description": "Regression intercept; for Cox, log-baseline hazard not used"
         },
         "baseline_hazard": {
@@ -1837,19 +1702,9 @@
               "predictor": {
                 "type": "string"
               },
-              "importance": {
-                "oneOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "$ref": "common.schema.json#/$defs/ValueWithRaw"
-                  }
-                ]
-              }
+              "importance": {}
             }
-          },
-          "default": []
+          }
         },
         "explainability": {
           "type": [
@@ -2085,8 +1940,7 @@
                 "type": "string"
               }
             }
-          },
-          "default": []
+          }
         },
         "internal_validation_method": {
           "type": [
@@ -2100,8 +1954,7 @@
             "bootstrap",
             "repeated_cv",
             "other"
-          ],
-          "default": "none"
+          ]
         },
         "missing_data_strategy": {
           "type": [
@@ -2186,18 +2039,7 @@
               ],
               "additionalProperties": false,
               "properties": {
-                "point": {
-                  "oneOf": [
-                    {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 1
-                    },
-                    {
-                      "$ref": "common.schema.json#/$defs/ValueWithRaw"
-                    }
-                  ]
-                },
+                "point": {},
                 "ci": {
                   "$ref": "common.schema.json#/$defs/EffectCI"
                 }
@@ -2214,18 +2056,7 @@
               ],
               "additionalProperties": false,
               "properties": {
-                "point": {
-                  "oneOf": [
-                    {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 1
-                    },
-                    {
-                      "$ref": "common.schema.json#/$defs/ValueWithRaw"
-                    }
-                  ]
-                },
+                "point": {},
                 "ci": {
                   "$ref": "common.schema.json#/$defs/EffectCI"
                 }
@@ -2243,18 +2074,7 @@
               ],
               "additionalProperties": false,
               "properties": {
-                "point": {
-                  "oneOf": [
-                    {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 1
-                    },
-                    {
-                      "$ref": "common.schema.json#/$defs/ValueWithRaw"
-                    }
-                  ]
-                },
+                "point": {},
                 "ci": {
                   "$ref": "common.schema.json#/$defs/EffectCI"
                 }
@@ -2279,36 +2099,10 @@
           "additionalProperties": false,
           "properties": {
             "calibration_in_the_large": {
-              "oneOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "$ref": "common.schema.json#/$defs/ValueWithRaw"
-                }
-              ],
               "description": "Difference between mean predicted and observed risk"
             },
-            "intercept": {
-              "oneOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "$ref": "common.schema.json#/$defs/ValueWithRaw"
-                }
-              ]
-            },
-            "slope": {
-              "oneOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "$ref": "common.schema.json#/$defs/ValueWithRaw"
-                }
-              ]
-            },
+            "intercept": {},
+            "slope": {},
             "calibration_level": {
               "type": [
                 "string",
@@ -2322,85 +2116,16 @@
               "description": "Weak=intercept, moderate=slope+intercept, strong=flexible"
             },
             "o_e_ratio": {
-              "oneOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "$ref": "common.schema.json#/$defs/ValueWithRaw"
-                }
-              ],
               "description": "Observed/Expected"
             },
-            "brier": {
-              "oneOf": [
-                {
-                  "type": "number",
-                  "minimum": 0
-                },
-                {
-                  "$ref": "common.schema.json#/$defs/ValueWithRaw"
-                }
-              ]
-            },
-            "scaled_brier": {
-              "oneOf": [
-                {
-                  "type": "number",
-                  "minimum": 0,
-                  "maximum": 1
-                },
-                {
-                  "$ref": "common.schema.json#/$defs/ValueWithRaw"
-                }
-              ]
-            },
-            "hl_test_p": {
-              "oneOf": [
-                {
-                  "type": "number",
-                  "minimum": 0,
-                  "maximum": 1
-                },
-                {
-                  "$ref": "common.schema.json#/$defs/ValueWithRaw"
-                }
-              ]
-            },
+            "brier": {},
+            "scaled_brier": {},
+            "hl_test_p": {},
             "ici": {
-              "oneOf": [
-                {
-                  "type": "number",
-                  "minimum": 0
-                },
-                {
-                  "$ref": "common.schema.json#/$defs/ValueWithRaw"
-                }
-              ],
               "description": "Integrated Calibration Index"
             },
-            "spiegelhalter_z": {
-              "oneOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "$ref": "common.schema.json#/$defs/ValueWithRaw"
-                }
-              ]
-            },
-            "spiegelhalter_p": {
-              "oneOf": [
-                {
-                  "type": "number",
-                  "minimum": 0,
-                  "maximum": 1
-                },
-                {
-                  "$ref": "common.schema.json#/$defs/ValueWithRaw"
-                }
-              ]
-            },
+            "spiegelhalter_z": {},
+            "spiegelhalter_p": {},
             "calibration_plot_source": {
               "$ref": "common.schema.json#/$defs/SourceRef"
             }
@@ -2763,101 +2488,16 @@
               "youden_j"
             ],
             "properties": {
-              "threshold": {
-                "oneOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "$ref": "common.schema.json#/$defs/ValueWithRaw"
-                  }
-                ]
-              },
-              "sensitivity": {
-                "oneOf": [
-                  {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1
-                  },
-                  {
-                    "$ref": "common.schema.json#/$defs/ValueWithRaw"
-                  }
-                ]
-              },
-              "specificity": {
-                "oneOf": [
-                  {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1
-                  },
-                  {
-                    "$ref": "common.schema.json#/$defs/ValueWithRaw"
-                  }
-                ]
-              },
-              "ppv": {
-                "oneOf": [
-                  {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1
-                  },
-                  {
-                    "$ref": "common.schema.json#/$defs/ValueWithRaw"
-                  }
-                ]
-              },
-              "npv": {
-                "oneOf": [
-                  {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1
-                  },
-                  {
-                    "$ref": "common.schema.json#/$defs/ValueWithRaw"
-                  }
-                ]
-              },
-              "accuracy": {
-                "oneOf": [
-                  {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1
-                  },
-                  {
-                    "$ref": "common.schema.json#/$defs/ValueWithRaw"
-                  }
-                ]
-              },
-              "f1": {
-                "oneOf": [
-                  {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1
-                  },
-                  {
-                    "$ref": "common.schema.json#/$defs/ValueWithRaw"
-                  }
-                ]
-              },
-              "youden_j": {
-                "oneOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "$ref": "common.schema.json#/$defs/ValueWithRaw"
-                  }
-                ]
-              }
+              "threshold": {},
+              "sensitivity": {},
+              "specificity": {},
+              "ppv": {},
+              "npv": {},
+              "accuracy": {},
+              "f1": {},
+              "youden_j": {}
             }
-          },
-          "default": []
+          }
         },
         "recalibration": {
           "type": [
@@ -2866,26 +2506,8 @@
           ],
           "additionalProperties": false,
           "properties": {
-            "intercept_adjustment": {
-              "oneOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "$ref": "common.schema.json#/$defs/ValueWithRaw"
-                }
-              ]
-            },
-            "slope_adjustment": {
-              "oneOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "$ref": "common.schema.json#/$defs/ValueWithRaw"
-                }
-              ]
-            },
+            "intercept_adjustment": {},
+            "slope_adjustment": {},
             "method": {
               "type": [
                 "string",
@@ -2946,31 +2568,10 @@
               "net_benefit"
             ],
             "properties": {
-              "threshold": {
-                "oneOf": [
-                  {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1
-                  },
-                  {
-                    "$ref": "common.schema.json#/$defs/ValueWithRaw"
-                  }
-                ]
-              },
-              "net_benefit": {
-                "oneOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "$ref": "common.schema.json#/$defs/ValueWithRaw"
-                  }
-                ]
-              }
+              "threshold": {},
+              "net_benefit": {}
             }
-          },
-          "default": []
+          }
         },
         "figure_source": {
           "$ref": "common.schema.json#/$defs/SourceRef"

@@ -43,8 +43,7 @@
       "properties": {
         "version": {
           "type": "string",
-          "pattern": "^\\d+\\.\\d+\\.\\d+$",
-          "default": "2.1.0"
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
         },
         "last_updated": {
           "type": "string",
@@ -361,7 +360,6 @@
           "items": {
             "type": "string"
           },
-          "default": [],
           "description": "Author's institutional affiliations"
         },
         "corresponding": {
@@ -369,7 +367,6 @@
             "boolean",
             "null"
           ],
-          "default": false,
           "description": "Whether this author is the corresponding author"
         },
         "email": {
@@ -567,8 +564,7 @@
           ],
           "items": {
             "$ref": "#/$defs/Author"
-          },
-          "default": []
+          }
         },
         "pmid": {
           "type": [
@@ -642,8 +638,7 @@
           ],
           "items": {
             "$ref": "#/$defs/ExternalId"
-          },
-          "default": []
+          }
         },
         "supplements": {
           "type": [
@@ -652,8 +647,7 @@
           ],
           "items": {
             "$ref": "#/$defs/SupplementFile"
-          },
-          "default": []
+          }
         },
         "parsing_context": {
           "$ref": "#/$defs/ParsingContext"
@@ -689,7 +683,6 @@
             95,
             99
           ],
-          "default": 95,
           "description": "Confidence level as percentage"
         },
         "lower": {
@@ -779,7 +772,6 @@
             "neutral",
             "unclear"
           ],
-          "default": "neutral",
           "description": "Which group the effect favors based on clinical interpretation"
         }
       }
@@ -878,8 +870,7 @@
               "type": "number"
             },
             "level": {
-              "type": "number",
-              "default": 95
+              "type": "number"
             }
           },
           "description": "Prediction interval for future studies",
@@ -1205,7 +1196,6 @@
           ],
           "minimum": 0,
           "maximum": 1,
-          "default": 0.05,
           "description": "Type I error rate (α)"
         },
         "effect_size": {
@@ -1314,8 +1304,7 @@
                 ]
               }
             }
-          },
-          "default": []
+          }
         },
         "applicability": {
           "type": [
@@ -1401,8 +1390,7 @@
           "type": [
             "boolean",
             "null"
-          ],
-          "default": false
+          ]
         },
         "reason": {
           "type": [
@@ -1480,8 +1468,7 @@
                 }
               }
             }
-          },
-          "default": []
+          }
         },
         "source": {
           "$ref": "#/$defs/SourceRef"
@@ -1512,8 +1499,7 @@
           ],
           "additionalProperties": {
             "type": "number"
-          },
-          "default": {}
+          }
         },
         "page": {
           "type": [
@@ -1628,8 +1614,7 @@
           "type": [
             "boolean",
             "null"
-          ],
-          "default": false
+          ]
         },
         "adjudicator": {
           "type": [
@@ -1902,8 +1887,7 @@
             "null"
           ],
           "format": "uri",
-          "description": "System that defines coded unit form",
-          "default": "http://unitsofmeasure.org"
+          "description": "System that defines coded unit form"
         },
         "code": {
           "type": [
@@ -3438,7 +3422,6 @@
             "pdf_points",
             "screen_pixels"
           ],
-          "default": "pdf_points",
           "description": "Coordinate system used for measurements"
         }
       }
@@ -3593,7 +3576,6 @@
             "boolean",
             "null"
           ],
-          "default": false,
           "description": "Whether the period is still active"
         }
       },
@@ -3758,7 +3740,6 @@
           "items": {
             "type": "string"
           },
-          "default": [],
           "description": "Document sections automatically detected"
         },
         "parsing_warnings": {
@@ -3769,7 +3750,6 @@
           "items": {
             "type": "string"
           },
-          "default": [],
           "description": "Warnings encountered during parsing"
         },
         "ai_processing": {

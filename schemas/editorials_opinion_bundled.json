@@ -58,8 +58,7 @@
           "type": "string",
           "enum": [
             "application/pdf"
-          ],
-          "default": "application/pdf"
+          ]
         },
         "size_bytes": {
           "type": "integer",
@@ -136,15 +135,13 @@
         "peer_reviewed",
         "not_peer_reviewed",
         "unknown"
-      ],
-      "default": "unknown"
+      ]
     },
     "invited": {
       "type": [
         "boolean",
         "null"
-      ],
-      "default": false
+      ]
     },
     "editorial_context": {
       "$ref": "#/$defs/EditorialContext"
@@ -159,8 +156,7 @@
       ],
       "items": {
         "type": "string"
-      },
-      "default": []
+      }
     },
     "stance_overall": {
       "type": "string",
@@ -186,8 +182,7 @@
       ],
       "items": {
         "type": "string"
-      },
-      "default": []
+      }
     },
     "arguments": {
       "type": "array",
@@ -204,8 +199,7 @@
       "description": "Practice/policy/research recommendations, if any.",
       "items": {
         "$ref": "#/$defs/Recommendation"
-      },
-      "default": []
+      }
     },
     "notable_quotes": {
       "type": [
@@ -235,8 +229,7 @@
             "$ref": "#/$defs/SourceRef"
           }
         }
-      },
-      "default": []
+      }
     },
     "limitations_or_bias": {
       "type": [
@@ -267,8 +260,7 @@
       ],
       "items": {
         "$ref": "#/$defs/ParsedTable"
-      },
-      "default": []
+      }
     },
     "figures_summary": {
       "type": [
@@ -277,8 +269,7 @@
       ],
       "items": {
         "$ref": "#/$defs/FigureSummary"
-      },
-      "default": []
+      }
     },
     "extraction_warnings": {
       "type": [
@@ -287,8 +278,7 @@
       ],
       "items": {
         "$ref": "#/$defs/ExtractionWarning"
-      },
-      "default": []
+      }
     },
     "truncated": {
       "$ref": "#/$defs/TruncationInfo"
@@ -2821,8 +2811,7 @@
             "con",
             "neutral",
             "unclear"
-          ],
-          "default": "neutral"
+          ]
         },
         "evidence_type": {
           "type": [
@@ -2838,8 +2827,7 @@
             "data_analysis",
             "none",
             "other"
-          ],
-          "default": "other"
+          ]
         },
         "cited_refs": {
           "type": [
@@ -2848,8 +2836,7 @@
           ],
           "items": {
             "$ref": "#/$defs/CitedRef"
-          },
-          "default": []
+          }
         },
         "evidence_links": {
           "type": [
@@ -2858,8 +2845,7 @@
           ],
           "items": {
             "$ref": "#/$defs/LinkedEvidence"
-          },
-          "default": []
+          }
         },
         "support_strength": {
           "type": [
@@ -2875,8 +2861,7 @@
           ],
           "items": {
             "type": "string"
-          },
-          "default": []
+          }
         },
         "rhetorical_analysis": {
           "$ref": "#/$defs/RhetoricalAnalysis"
@@ -3461,8 +3446,7 @@
             "low",
             "moderate",
             "high"
-          ],
-          "default": "moderate"
+          ]
         },
         "target_audience": {
           "type": [
@@ -3474,105 +3458,6 @@
           "$ref": "#/$defs/SourceRef"
         }
       }
-    },
-    "ExtractionWarning": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "code",
-        "message",
-        "source"
-      ],
-      "properties": {
-        "code": {
-          "type": "string",
-          "enum": [
-            "TABLE_PARSE_FAIL",
-            "AMBIGUOUS_UNIT",
-            "CI_PARSE_FAIL",
-            "MISSING_ARM_ID",
-            "MISSING_GROUP_ID",
-            "OTHER"
-          ]
-        },
-        "message": {
-          "type": "string"
-        },
-        "source": {
-          "$ref": "#/$defs/SourceRef"
-        }
-      }
-    },
-    "TruncationInfo": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "value": {
-          "type": [
-            "boolean",
-            "null"
-          ],
-          "default": false
-        },
-        "reason": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "enum": [
-            "token_limit",
-            "page_limit",
-            "timeout",
-            "other"
-          ]
-        }
-      },
-      "required": [
-        "reason",
-        "value"
-      ]
-    },
-    "SourceRef": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Reference to a specific location within a document",
-      "properties": {
-        "anchor": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Free-text pointer like 'Table 2', 'Fig 1', or sentence quote"
-        },
-        "page": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 1,
-          "description": "Page number within the document"
-        },
-        "figure_id": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Identifier of a specific figure"
-        },
-        "table_id": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Identifier of a specific table"
-        }
-      },
-      "required": [
-        "anchor",
-        "figure_id",
-        "page",
-        "table_id"
-      ]
     },
     "ParsedTable": {
       "type": "object",
@@ -3632,94 +3517,24 @@
                 }
               }
             }
-          },
-          "default": []
+          }
         },
         "source": {
           "$ref": "#/$defs/SourceRef"
         }
       }
     },
-    "ExternalId": {
+    "SourceRef": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "id",
-        "source",
-        "url",
-        "version"
-      ],
+      "description": "Reference to a specific location within a document",
       "properties": {
-        "source": {
-          "type": "string",
-          "enum": [
-            "PMID",
-            "PMCID",
-            "DOI",
-            "NCT",
-            "ISRCTN",
-            "EudraCT",
-            "EU-CTR",
-            "CTIS",
-            "UMIN",
-            "JPRN",
-            "DRKS",
-            "ChiCTR",
-            "ANZCTR",
-            "arXiv",
-            "bioRxiv",
-            "medRxiv",
-            "PubPeer",
-            "ISBN",
-            "ISSN",
-            "Handle",
-            "URN",
-            "Other"
-          ],
-          "description": "External identifier source system including preprint servers and academic publishers"
-        },
-        "id": {
-          "type": "string",
-          "description": "Identifier value within the source system",
-          "examples": [
-            "1234.5678",
-            "2023.01.001",
-            "10.1101/2023.01.01.123456",
-            "978-0-123456-78-9"
-          ]
-        },
-        "url": {
+        "anchor": {
           "type": [
             "string",
             "null"
           ],
-          "format": "uri",
-          "description": "Optional direct URL to the external resource"
-        },
-        "version": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Version number for preprints or versioned documents"
-        }
-      }
-    },
-    "Passage": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "anchor",
-        "bbox",
-        "extraction_method",
-        "ocr_confidence",
-        "page",
-        "text"
-      ],
-      "properties": {
-        "text": {
-          "type": "string",
-          "description": "Extracted text content"
+          "description": "Free-text pointer like 'Table 2', 'Fig 1', or sentence quote"
         },
         "page": {
           "type": [
@@ -3727,40 +3542,29 @@
             "null"
           ],
           "minimum": 1,
-          "description": "Page number where text was found"
+          "description": "Page number within the document"
         },
-        "bbox": {
-          "$ref": "#/$defs/BoundingBox"
-        },
-        "anchor": {
+        "figure_id": {
           "type": [
             "string",
             "null"
           ],
-          "description": "Human-readable location reference"
+          "description": "Identifier of a specific figure"
         },
-        "ocr_confidence": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "minimum": 0,
-          "maximum": 1,
-          "description": "OCR confidence score for this text passage"
-        },
-        "extraction_method": {
+        "table_id": {
           "type": [
             "string",
             "null"
           ],
-          "enum": [
-            "ocr",
-            "text_layer",
-            "manual"
-          ],
-          "description": "Method used to extract this text"
+          "description": "Identifier of a specific table"
         }
-      }
+      },
+      "required": [
+        "anchor",
+        "figure_id",
+        "page",
+        "table_id"
+      ]
     },
     "LanguageCode": {
       "type": "string",
@@ -3781,45 +3585,6 @@
         "ar-EG",
         "he-IL"
       ]
-    },
-    "FigureSummary": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "caption",
-        "figure_id",
-        "key_values",
-        "page",
-        "source"
-      ],
-      "properties": {
-        "figure_id": {
-          "type": "string"
-        },
-        "caption": {
-          "type": "string"
-        },
-        "key_values": {
-          "type": [
-            "object",
-            "null"
-          ],
-          "additionalProperties": {
-            "type": "number"
-          },
-          "default": {}
-        },
-        "page": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 1
-        },
-        "source": {
-          "$ref": "#/$defs/SourceRef"
-        }
-      }
     },
     "Metadata": {
       "type": "object",
@@ -3952,8 +3717,7 @@
           ],
           "items": {
             "$ref": "#/$defs/Author"
-          },
-          "default": []
+          }
         },
         "pmid": {
           "type": [
@@ -4027,8 +3791,7 @@
           ],
           "items": {
             "$ref": "#/$defs/ExternalId"
-          },
-          "default": []
+          }
         },
         "supplements": {
           "type": [
@@ -4037,8 +3800,7 @@
           ],
           "items": {
             "$ref": "#/$defs/SupplementFile"
-          },
-          "default": []
+          }
         },
         "parsing_context": {
           "$ref": "#/$defs/ParsingContext"
@@ -4053,64 +3815,62 @@
         }
       }
     },
-    "Registration": {
+    "Passage": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Clinical trial or study registration information",
+      "required": [
+        "anchor",
+        "bbox",
+        "extraction_method",
+        "ocr_confidence",
+        "page",
+        "text"
+      ],
       "properties": {
-        "registry": {
+        "text": {
+          "type": "string",
+          "description": "Extracted text content"
+        },
+        "page": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "description": "Page number where text was found"
+        },
+        "bbox": {
+          "$ref": "#/$defs/BoundingBox"
+        },
+        "anchor": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Human-readable location reference"
+        },
+        "ocr_confidence": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "OCR confidence score for this text passage"
+        },
+        "extraction_method": {
           "type": [
             "string",
             "null"
           ],
           "enum": [
-            "ClinicalTrials.gov",
-            "ISRCTN",
-            "EudraCT",
-            "EU-CTR",
-            "CTIS",
-            "ChiCTR",
-            "ANZCTR",
-            "UMIN-CTR",
-            "JPRN",
-            "PACTR",
-            "IRCT",
-            "DRKS",
-            "TCTR",
-            "SLCTR",
-            "RPCEC",
-            "REBEC",
-            "Other"
+            "ocr",
+            "text_layer",
+            "manual"
           ],
-          "description": "Clinical trial registry (includes major international and regional registries)"
-        },
-        "identifier": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Registration identifier within the registry",
-          "examples": [
-            "NCT04123456",
-            "ISRCTN12345678",
-            "2020-001234-56",
-            "UMIN000012345"
-          ]
-        },
-        "url": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "format": "uri",
-          "description": "Direct URL to the registration record"
+          "description": "Method used to extract this text"
         }
-      },
-      "required": [
-        "identifier",
-        "registry",
-        "url"
-      ]
+      }
     },
     "SupplementFile": {
       "type": "object",
@@ -4167,142 +3927,162 @@
         }
       }
     },
-    "BoundingBox": {
+    "FigureSummary": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "coordinate_system",
-        "height",
-        "width",
-        "x",
-        "y"
+        "caption",
+        "figure_id",
+        "key_values",
+        "page",
+        "source"
       ],
       "properties": {
-        "x": {
-          "type": "number",
-          "minimum": 0,
-          "description": "Left coordinate (points from PDF origin)"
+        "figure_id": {
+          "type": "string"
         },
-        "y": {
-          "type": "number",
-          "minimum": 0,
-          "description": "Bottom coordinate (points from PDF origin)"
+        "caption": {
+          "type": "string"
         },
-        "width": {
-          "type": "number",
-          "minimum": 0,
-          "description": "Width in points"
+        "key_values": {
+          "type": [
+            "object",
+            "null"
+          ],
+          "additionalProperties": {
+            "type": "number"
+          }
         },
-        "height": {
-          "type": "number",
-          "minimum": 0,
-          "description": "Height in points"
+        "page": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
         },
-        "coordinate_system": {
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        }
+      }
+    },
+    "ExternalId": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "source",
+        "url",
+        "version"
+      ],
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": [
+            "PMID",
+            "PMCID",
+            "DOI",
+            "NCT",
+            "ISRCTN",
+            "EudraCT",
+            "EU-CTR",
+            "CTIS",
+            "UMIN",
+            "JPRN",
+            "DRKS",
+            "ChiCTR",
+            "ANZCTR",
+            "arXiv",
+            "bioRxiv",
+            "medRxiv",
+            "PubPeer",
+            "ISBN",
+            "ISSN",
+            "Handle",
+            "URN",
+            "Other"
+          ],
+          "description": "External identifier source system including preprint servers and academic publishers"
+        },
+        "id": {
+          "type": "string",
+          "description": "Identifier value within the source system",
+          "examples": [
+            "1234.5678",
+            "2023.01.001",
+            "10.1101/2023.01.01.123456",
+            "978-0-123456-78-9"
+          ]
+        },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri",
+          "description": "Optional direct URL to the external resource"
+        },
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Version number for preprints or versioned documents"
+        }
+      }
+    },
+    "TruncationInfo": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "reason": {
           "type": [
             "string",
             "null"
           ],
           "enum": [
-            "pdf_points",
-            "screen_pixels"
-          ],
-          "default": "pdf_points",
-          "description": "Coordinate system used for measurements"
+            "token_limit",
+            "page_limit",
+            "timeout",
+            "other"
+          ]
         }
-      }
+      },
+      "required": [
+        "reason",
+        "value"
+      ]
     },
-    "ParsingContext": {
+    "ExtractionWarning": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "ai_processing",
-        "language_detected",
-        "ocr_engine",
-        "ocr_quality_score",
-        "page_count",
-        "parser_name",
-        "parser_version",
-        "parsing_timestamp",
-        "parsing_warnings",
-        "pdf_producer",
-        "sections_detected"
+        "code",
+        "message",
+        "source"
       ],
       "properties": {
-        "parser_name": {
+        "code": {
           "type": "string",
-          "description": "Name of the parsing tool/library used"
+          "enum": [
+            "TABLE_PARSE_FAIL",
+            "AMBIGUOUS_UNIT",
+            "CI_PARSE_FAIL",
+            "MISSING_ARM_ID",
+            "MISSING_GROUP_ID",
+            "OTHER"
+          ]
         },
-        "parser_version": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Version of the parsing tool"
+        "message": {
+          "type": "string"
         },
-        "parsing_timestamp": {
-          "type": "string",
-          "format": "date-time",
-          "description": "When parsing was performed"
-        },
-        "language_detected": {
-          "$ref": "#/$defs/LanguageCode"
-        },
-        "ocr_engine": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "OCR engine used (if applicable)"
-        },
-        "ocr_quality_score": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Overall OCR quality assessment"
-        },
-        "pdf_producer": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Software that generated the PDF"
-        },
-        "page_count": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 1,
-          "description": "Total pages in document"
-        },
-        "sections_detected": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "type": "string"
-          },
-          "default": [],
-          "description": "Document sections automatically detected"
-        },
-        "parsing_warnings": {
-          "type": [
-            "array",
-            "null"
-          ],
-          "items": {
-            "type": "string"
-          },
-          "default": [],
-          "description": "Warnings encountered during parsing"
-        },
-        "ai_processing": {
-          "$ref": "#/$defs/AIProcessingMetadata"
+        "source": {
+          "$ref": "#/$defs/SourceRef"
         }
       }
     },
@@ -4384,6 +4164,109 @@
         }
       }
     },
+    "Registration": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Clinical trial or study registration information",
+      "properties": {
+        "registry": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "ClinicalTrials.gov",
+            "ISRCTN",
+            "EudraCT",
+            "EU-CTR",
+            "CTIS",
+            "ChiCTR",
+            "ANZCTR",
+            "UMIN-CTR",
+            "JPRN",
+            "PACTR",
+            "IRCT",
+            "DRKS",
+            "TCTR",
+            "SLCTR",
+            "RPCEC",
+            "REBEC",
+            "Other"
+          ],
+          "description": "Clinical trial registry (includes major international and regional registries)"
+        },
+        "identifier": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Registration identifier within the registry",
+          "examples": [
+            "NCT04123456",
+            "ISRCTN12345678",
+            "2020-001234-56",
+            "UMIN000012345"
+          ]
+        },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri",
+          "description": "Direct URL to the registration record"
+        }
+      },
+      "required": [
+        "identifier",
+        "registry",
+        "url"
+      ]
+    },
+    "BoundingBox": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "coordinate_system",
+        "height",
+        "width",
+        "x",
+        "y"
+      ],
+      "properties": {
+        "x": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Left coordinate (points from PDF origin)"
+        },
+        "y": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Bottom coordinate (points from PDF origin)"
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Width in points"
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Height in points"
+        },
+        "coordinate_system": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "pdf_points",
+            "screen_pixels"
+          ],
+          "description": "Coordinate system used for measurements"
+        }
+      }
+    },
     "Author": {
       "type": "object",
       "additionalProperties": false,
@@ -4436,7 +4319,6 @@
           "items": {
             "type": "string"
           },
-          "default": [],
           "description": "Author's institutional affiliations"
         },
         "corresponding": {
@@ -4444,11 +4326,102 @@
             "boolean",
             "null"
           ],
-          "default": false,
           "description": "Whether this author is the corresponding author"
         },
         "email": {
           "$ref": "#/$defs/EmailAddress"
+        }
+      }
+    },
+    "ParsingContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ai_processing",
+        "language_detected",
+        "ocr_engine",
+        "ocr_quality_score",
+        "page_count",
+        "parser_name",
+        "parser_version",
+        "parsing_timestamp",
+        "parsing_warnings",
+        "pdf_producer",
+        "sections_detected"
+      ],
+      "properties": {
+        "parser_name": {
+          "type": "string",
+          "description": "Name of the parsing tool/library used"
+        },
+        "parser_version": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Version of the parsing tool"
+        },
+        "parsing_timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When parsing was performed"
+        },
+        "language_detected": {
+          "$ref": "#/$defs/LanguageCode"
+        },
+        "ocr_engine": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "OCR engine used (if applicable)"
+        },
+        "ocr_quality_score": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Overall OCR quality assessment"
+        },
+        "pdf_producer": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Software that generated the PDF"
+        },
+        "page_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "description": "Total pages in document"
+        },
+        "sections_detected": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Document sections automatically detected"
+        },
+        "parsing_warnings": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Warnings encountered during parsing"
+        },
+        "ai_processing": {
+          "$ref": "#/$defs/AIProcessingMetadata"
         }
       }
     },
@@ -4876,7 +4849,6 @@
             95,
             99
           ],
-          "default": 95,
           "description": "Confidence level as percentage"
         },
         "lower": {
