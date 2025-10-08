@@ -404,6 +404,25 @@ class OpenAIProvider(BaseLLMProvider):
             f"Response output length: {len(response.output) if hasattr(response, 'output') else 'N/A'}"
         )
 
+        # Log token usage if available
+        if hasattr(response, "usage"):
+            usage = response.usage
+            logger.info("=== TOKEN USAGE ===")
+            logger.info(f"  Input tokens: {getattr(usage, 'input_tokens', 'N/A')}")
+            logger.info(f"  Output tokens: {getattr(usage, 'output_tokens', 'N/A')}")
+            logger.info(f"  Total tokens: {getattr(usage, 'total_tokens', 'N/A')}")
+
+            # Check for completion token details (reasoning tokens for GPT-5/o-series)
+            if hasattr(usage, "completion_tokens_details"):
+                details = usage.completion_tokens_details
+                logger.info(f"  Reasoning tokens: {getattr(details, 'reasoning_tokens', 'N/A')}")
+                logger.info(
+                    f"  Accepted prediction tokens: {getattr(details, 'accepted_prediction_tokens', 'N/A')}"
+                )
+            logger.info("===================")
+        else:
+            logger.warning("No usage information available in response")
+
         # Try convenience property first
         content = None
         if hasattr(response, "output_text") and response.output_text:

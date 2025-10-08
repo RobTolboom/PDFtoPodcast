@@ -96,7 +96,10 @@ class LLMSettings:
     # OpenAI configuration
     openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
     openai_model: str = os.getenv("OPENAI_MODEL", "gpt-4o")  # gpt-4o supports structured outputs
-    openai_max_tokens: int = int(os.getenv("OPENAI_MAX_TOKENS", "4096"))
+    # Set very high default (128K context window for gpt-4o)
+    # Actual output limit depends on model (typically 4K-16K for completion)
+    # OpenAI API will enforce model-specific limits automatically
+    openai_max_tokens: int = int(os.getenv("OPENAI_MAX_TOKENS", "128000"))
 
     # Anthropic Claude configuration
     anthropic_api_key: str = os.getenv("ANTHROPIC_API_KEY", "")
