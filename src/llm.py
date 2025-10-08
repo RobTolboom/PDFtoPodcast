@@ -405,32 +405,81 @@ class OpenAIProvider(BaseLLMProvider):
         )
 
         # Try convenience property first
-        content = response.output_text if hasattr(response, "output_text") else None
-        logger.info(f"Output text available: {content is not None}")
-        logger.info(f"Output text length: {len(content) if content else 0}")
-        logger.info(f"Output text preview: {content[:200] if content else 'EMPTY'}")
+        content = None
+        if hasattr(response, "output_text") and response.output_text:
+            content = response.output_text
+            logger.info(f"✓ Using response.output_text ({len(content)} chars)")
+            logger.info(f"Preview: {content[:200]}")
 
         # Fallback: extract from output array structure
         if not content:
             logger.warning("output_text is empty, trying to extract from output array")
             if response.output and len(response.output) > 0:
-                first_output = response.output[0]
-                logger.info(
-                    f"First output item type: {first_output.get('type') if isinstance(first_output, dict) else type(first_output)}"
-                )
-                if (
-                    isinstance(first_output, dict)
-                    and first_output.get("type") == "message"
-                    and "content" in first_output
-                ):
-                    for content_item in first_output["content"]:
-                        if content_item.get("type") == "output_text":
-                            content = content_item.get("text", "")
-                            logger.info(f"Extracted text from output array: {len(content)} chars")
+                # Try multiple extraction strategies
+                for i, output_item in enumerate(response.output):
+                    logger.info(f"Checking output item {i}: type={type(output_item)}")
+
+                    # Strategy 1: output_item is a dict with type="message" and content array
+                    if isinstance(output_item, dict):
+                        logger.info(f"  Dict keys: {list(output_item.keys())}")
+
+                        if output_item.get("type") == "message" and "content" in output_item:
+                            logger.info("  Found message with content array")
+                            for content_item in output_item["content"]:
+                                logger.info(f"    Content item type: {content_item.get('type')}")
+                                if content_item.get("type") == "output_text":
+                                    content = content_item.get("text", "")
+                                    logger.info(
+                                        f"✓ Extracted from content[].output_text: {len(content)} chars"
+                                    )
+                                    break
+                                elif content_item.get("type") == "text":
+                                    content = content_item.get("text", "")
+                                    logger.info(
+                                        f"✓ Extracted from content[].text: {len(content)} chars"
+                                    )
+                                    break
+
+                        # Strategy 2: Direct text field in output_item
+                        elif "text" in output_item:
+                            content = output_item["text"]
+                            logger.info(f"✓ Extracted from output[{i}].text: {len(content)} chars")
                             break
+
+                    # Strategy 3: output_item is an object with attributes
+                    elif hasattr(output_item, "text"):
+                        content = output_item.text
+                        logger.info(
+                            f"✓ Extracted from output[{i}].text attribute: {len(content)} chars"
+                        )
+                        break
+
+                    # Strategy 4: output_item has content attribute
+                    elif hasattr(output_item, "content"):
+                        if isinstance(output_item.content, str):
+                            content = output_item.content
+                            logger.info(
+                                f"✓ Extracted from output[{i}].content: {len(content)} chars"
+                            )
+                            break
+                        elif isinstance(output_item.content, list):
+                            for content_sub in output_item.content:
+                                if hasattr(content_sub, "text"):
+                                    content = content_sub.text
+                                    logger.info(
+                                        f"✓ Extracted from output[{i}].content[].text: {len(content)} chars"
+                                    )
+                                    break
+
+                    if content:
+                        break
 
         # Validate we got content
         if not content:
+            logger.error("Failed to extract any text content from response")
+            logger.error(f"Response attributes: {dir(response)}")
+            if hasattr(response, "output"):
+                logger.error(f"Output structure: {response.output}")
             raise LLMProviderError("No text output received from model")
 
         # Parse JSON
