@@ -159,7 +159,7 @@ def check_breakpoint(
 
 
 class PipelineFileManager:
-    """Manages DOI-based file naming and storage for pipeline intermediate and final outputs"""
+    """Manages filename-based file naming and storage for pipeline intermediate and final outputs"""
 
     def __init__(self, pdf_path: Path):
         self.pdf_path = pdf_path
@@ -169,18 +169,13 @@ class PipelineFileManager:
         self.tmp_dir = Path("tmp")
         self.tmp_dir.mkdir(exist_ok=True)
 
-        # File identifier will be set after classification
-        self.identifier: Optional[str] = None
-
-    def set_identifier_from_classification(self, classification_result: dict):
-        """Set file identifier preferring DOI over fallback"""
-        self.identifier = get_file_identifier(classification_result, self.pdf_path)
-        console.print(f"[blue]📁 Bestandsidentifier: {self.identifier}[/blue]")
+        # Use PDF filename as permanent identifier (no DOI renaming)
+        # This creates consistent naming: {pdf_filename}-{step}.json
+        self.identifier = pdf_path.stem
+        console.print(f"[blue]📁 File identifier: {self.identifier}[/blue]")
 
     def get_filename(self, step: str, status: str = "") -> Path:
         """Generate consistent filenames for pipeline steps"""
-        if not self.identifier:
-            raise ValueError("Identifier not set - call set_identifier_from_classification first")
 
         if status:
             filename = f"{self.identifier}-{step}-{status}.json"
@@ -417,10 +412,7 @@ def run_four_step_pipeline(
         console.print(f"[red]❌ Classificatie fout: {e}[/red]")
         raise
 
-    # Set file identifier based on DOI from classification
-    file_manager.set_identifier_from_classification(classification_result)
-
-    # Save classification result
+    # Save classification result (identifier already set in __init__)
     classification_file = file_manager.save_json(classification_result, "classification")
     console.print(f"[green]✅ Classificatie opgeslagen: {classification_file}[/green]")
     results["classification"] = classification_result

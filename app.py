@@ -43,6 +43,16 @@ if "highlighted_file" not in st.session_state:
     st.session_state.highlighted_file = None
 if "uploader_key" not in st.session_state:
     st.session_state.uploader_key = 0  # Counter to force file_uploader widget reset
+if "settings" not in st.session_state:
+    st.session_state.settings = {
+        "llm_provider": "openai",
+        "max_pages": None,
+        "steps_to_run": ["classification", "extraction", "validation", "correction"],
+        "force_rerun": False,
+        "cleanup_policy": "keep_forever",
+        "breakpoint": None,
+        "verbose_logging": False,
+    }
 
 
 # Upload directory and manifest
@@ -101,6 +111,62 @@ def get_uploaded_files() -> list[dict]:
         manifest["files"] = existing_files
         save_manifest(manifest)
     return existing_files
+
+
+def get_identifier_from_pdf_path(pdf_path: str) -> str | None:
+    """Extract identifier from PDF path for finding related result files."""
+    # For now, use the PDF filename as identifier
+    # Later this can be DOI-based after classification
+    if not pdf_path:
+        return None
+    return Path(pdf_path).stem
+
+
+def check_existing_results(identifier: str | None) -> dict:
+    """Check which pipeline steps have existing results."""
+    if not identifier:
+        return {
+            "classification": False,
+            "extraction": False,
+            "validation": False,
+            "correction": False,
+        }
+
+    tmp_dir = Path("tmp")
+    results = {
+        "classification": (tmp_dir / f"{identifier}-classification.json").exists(),
+        "extraction": (tmp_dir / f"{identifier}-extraction.json").exists(),
+        "validation": (tmp_dir / f"{identifier}-validation.json").exists(),
+        "correction": (tmp_dir / f"{identifier}-extraction-corrected.json").exists(),
+    }
+    return results
+
+
+def get_result_file_info(identifier: str, step: str) -> dict | None:
+    """Get metadata about a result file if it exists."""
+    tmp_dir = Path("tmp")
+
+    # Map step names to filenames
+    file_map = {
+        "classification": f"{identifier}-classification.json",
+        "extraction": f"{identifier}-extraction.json",
+        "validation": f"{identifier}-validation.json",
+        "correction": f"{identifier}-extraction-corrected.json",
+    }
+
+    if step not in file_map:
+        return None
+
+    file_path = tmp_dir / file_map[step]
+    if not file_path.exists():
+        return None
+
+    stat = file_path.stat()
+    return {
+        "path": str(file_path),
+        "size_kb": stat.st_size / 1024,
+        "modified": datetime.fromtimestamp(stat.st_mtime).strftime("%Y-%m-%d %H:%M:%S"),
+    }
 
 
 def show_intro_screen():
@@ -227,6 +293,262 @@ def show_intro_screen():
         """,
         unsafe_allow_html=True,
     )
+
+
+def show_settings_screen():
+    """Display settings configuration screen with pipeline control."""
+
+    st.markdown("## ⚙️ Configure Extraction Settings")
+    st.markdown("Configure how the pipeline should process your PDF document.")
+
+    st.markdown("---")
+
+    # Show selected file info
+    if st.session_state.pdf_path:
+        file_info = st.session_state.uploaded_file_info
+        filename = (
+            file_info.get("original_name")
+            or file_info.get("filename")
+            or Path(st.session_state.pdf_path).name
+        )
+        st.success(f"📄 **Selected PDF:** {filename}")
+    else:
+        st.error("⚠️ No PDF selected. Please go back and upload a file.")
+        if st.button("⬅️ Back to Upload"):
+            st.session_state.current_phase = "upload"
+            st.rerun()
+        return
+
+    # Tabs for Basic and Advanced settings
+    tab1, tab2 = st.tabs(["🔧 Basic Settings", "⚡ Advanced"])
+
+    with tab1:
+        st.markdown("### LLM Provider")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            openai_selected = st.radio(
+                "Select LLM provider",
+                ["OpenAI (GPT-4)", "Claude (Coming Soon)"],
+                index=0,
+                disabled=False,
+                label_visibility="collapsed",
+            )
+            if "Claude" in openai_selected:
+                st.info(
+                    "🚧 Claude integration is in development. Currently only OpenAI is available."
+                )
+                st.session_state.settings["llm_provider"] = "openai"
+            else:
+                st.session_state.settings["llm_provider"] = "openai"
+
+        with col2:
+            st.info(
+                """
+                **OpenAI (GPT-4)**
+                - Fast processing
+                - Cost-effective
+                - Reliable for most documents
+                """
+            )
+
+        st.markdown("---")
+        st.markdown("### Pages to Process")
+
+        process_all = st.checkbox(
+            "Process all pages", value=st.session_state.settings["max_pages"] is None
+        )
+
+        if not process_all:
+            max_pages = st.slider(
+                "Maximum pages to process",
+                min_value=1,
+                max_value=100,
+                value=20,
+                help="For quick tests, start with 10-20 pages",
+            )
+            st.session_state.settings["max_pages"] = max_pages
+        else:
+            st.session_state.settings["max_pages"] = None
+            st.caption("ℹ️ All pages will be processed (may take longer and cost more)")
+
+        st.markdown("---")
+        st.markdown("### Pipeline Control")
+
+        # Check for existing results
+        identifier = get_identifier_from_pdf_path(st.session_state.pdf_path)
+        existing = check_existing_results(identifier)
+
+        # Show existing results
+        if any(existing.values()):
+            st.markdown("#### 📊 Existing Results Detected")
+
+            for step, exists in existing.items():
+                if exists:
+                    file_info = get_result_file_info(identifier, step)
+                    if file_info:
+                        col1, col2, col3 = st.columns([3, 2, 1])
+
+                        with col1:
+                            st.markdown(f"✅ **{step.title()}**")
+
+                        with col2:
+                            st.caption(f"{file_info['modified']} • {file_info['size_kb']:.1f} KB")
+
+                        with col3:
+                            if st.button("🗑️", key=f"delete_{step}", help="Delete result"):
+                                # Delete the file
+                                Path(file_info["path"]).unlink()
+                                st.success(f"Deleted {step} results")
+                                st.rerun()
+
+            st.markdown("---")
+
+        # Step selection
+        st.markdown("#### ⚙️ Steps to Execute")
+
+        force_rerun = st.checkbox(
+            "🔄 Force rerun all steps (ignore existing results)",
+            value=st.session_state.settings["force_rerun"],
+            help="Check this to rerun steps even if results already exist",
+        )
+        st.session_state.settings["force_rerun"] = force_rerun
+
+        # Smart defaults based on existing results
+        default_steps = []
+        if force_rerun:
+            default_steps = ["classification", "extraction", "validation", "correction"]
+        else:
+            if not existing["classification"]:
+                default_steps.append("classification")
+            if not existing["extraction"]:
+                default_steps.append("extraction")
+            if not existing["validation"]:
+                default_steps.append("validation")
+            # Correction always optional
+            default_steps.append("correction")
+
+        # Step checkboxes
+        col1, col2 = st.columns(2)
+
+        with col1:
+            run_classification = st.checkbox(
+                "1. Classification",
+                value="classification" in default_steps,
+                disabled=existing["classification"] and not force_rerun,
+                help="Identify publication type and extract metadata"
+                + (" (already complete)" if existing["classification"] else ""),
+            )
+
+            run_extraction = st.checkbox(
+                "2. Extraction",
+                value="extraction" in default_steps,
+                disabled=existing["extraction"] and not force_rerun,
+                help="Extract structured data based on publication type"
+                + (" (already complete)" if existing["extraction"] else ""),
+            )
+
+        with col2:
+            run_validation = st.checkbox(
+                "3. Validation",
+                value="validation" in default_steps,
+                disabled=existing["validation"] and not force_rerun,
+                help="Validate quality and accuracy of extracted data"
+                + (" (already complete)" if existing["validation"] else ""),
+            )
+
+            run_correction = st.checkbox(
+                "4. Correction (if needed)",
+                value="correction" in default_steps,
+                help="Automatically fix issues identified during validation",
+            )
+
+        # Update settings
+        steps_to_run = []
+        if run_classification:
+            steps_to_run.append("classification")
+        if run_extraction:
+            steps_to_run.append("extraction")
+        if run_validation:
+            steps_to_run.append("validation")
+        if run_correction:
+            steps_to_run.append("correction")
+
+        st.session_state.settings["steps_to_run"] = steps_to_run
+
+        if not steps_to_run:
+            st.warning("⚠️ No steps selected. Please select at least one step to execute.")
+
+    with tab2:
+        st.markdown("### Advanced Settings")
+
+        # Cleanup policy
+        cleanup_options = {
+            "keep_forever": "Keep Forever",
+            "24h": "Delete after 24 hours",
+            "7days": "Delete after 7 days",
+            "after_session": "Delete after session ends",
+            "immediate": "Delete immediately after processing",
+        }
+
+        cleanup_policy = st.selectbox(
+            "PDF Cleanup Policy",
+            options=list(cleanup_options.keys()),
+            format_func=lambda x: cleanup_options[x],
+            index=0,
+            help="How long should uploaded PDFs be retained?",
+        )
+        st.session_state.settings["cleanup_policy"] = cleanup_policy
+
+        st.markdown("---")
+
+        # Breakpoint selector
+        breakpoint_options = {
+            None: "No breakpoint (run all steps)",
+            "classification": "Stop after Classification",
+            "extraction": "Stop after Extraction",
+            "validation": "Stop after Validation",
+        }
+
+        breakpoint = st.selectbox(
+            "Pipeline Breakpoint (for debugging)",
+            options=list(breakpoint_options.keys()),
+            format_func=lambda x: breakpoint_options[x],
+            index=0,
+            help="Stop the pipeline after a specific step for testing",
+        )
+        st.session_state.settings["breakpoint"] = breakpoint
+
+        st.markdown("---")
+
+        # Verbose logging
+        verbose = st.checkbox(
+            "Enable verbose logging",
+            value=st.session_state.settings["verbose_logging"],
+            help="Show detailed logs during processing",
+        )
+        st.session_state.settings["verbose_logging"] = verbose
+
+    # Navigation buttons
+    st.markdown("---")
+    col1, col2, col3 = st.columns([1, 1, 1])
+
+    with col1:
+        if st.button("⬅️ Back to Upload", use_container_width=True):
+            st.session_state.current_phase = "upload"
+            st.rerun()
+
+    with col3:
+        can_start = len(st.session_state.settings["steps_to_run"]) > 0
+        if st.button(
+            "▶️ Start Pipeline",
+            type="primary",
+            use_container_width=True,
+            disabled=not can_start,
+        ):
+            st.session_state.current_phase = "execution"
+            st.rerun()
 
 
 def show_upload_screen():
@@ -518,7 +840,7 @@ def main():
     elif st.session_state.current_phase == "upload":
         show_upload_screen()
     elif st.session_state.current_phase == "settings":
-        st.info("⚙️ Settings phase - coming in Phase 3")
+        show_settings_screen()
     elif st.session_state.current_phase == "execution":
         st.info("🔄 Execution phase - coming in Phase 4")
     elif st.session_state.current_phase == "results":
