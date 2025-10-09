@@ -25,6 +25,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Easier to add new LLM providers in the future
   - All existing imports remain functional (backward compatible)
 
+- Refactored `run_pipeline.py` (679 → 195 lines) by extracting to `src/pipeline/` package
+  - `src/pipeline/orchestrator.py` - Main pipeline coordination logic
+  - `src/pipeline/file_manager.py` - File naming and storage (PipelineFileManager)
+  - `src/pipeline/validation_runner.py` - Dual validation strategy
+  - `src/pipeline/utils.py` - Helper functions (DOI, breakpoints, etc.)
+  - `src/pipeline/__init__.py` - Backward-compatible public API
+  - Improved separation of concerns and testability
+  - Reduced file complexity (each file <300 lines)
+  - All existing imports remain functional (backward compatible)
+
 ### Deprecated
 - Nothing yet
 
