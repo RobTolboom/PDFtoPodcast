@@ -48,7 +48,6 @@ if "settings" not in st.session_state:
         "llm_provider": "openai",
         "max_pages": None,
         "steps_to_run": ["classification", "extraction", "validation", "correction"],
-        "force_rerun": False,
         "cleanup_policy": "keep_forever",
         "breakpoint": None,
         "verbose_logging": False,
@@ -365,16 +364,6 @@ def show_settings_screen():
         identifier = get_identifier_from_pdf_path(st.session_state.pdf_path)
         existing = check_existing_results(identifier)
 
-        # Force rerun checkbox at the top
-        force_rerun = st.checkbox(
-            "🔄 Force rerun all steps (ignore existing results)",
-            value=st.session_state.settings["force_rerun"],
-            help="Check this to rerun steps even if results already exist",
-        )
-        st.session_state.settings["force_rerun"] = force_rerun
-
-        st.markdown("")
-
         # Define all pipeline steps
         steps = [
             {
@@ -403,17 +392,14 @@ def show_settings_screen():
             },
         ]
 
-        # Smart defaults based on existing results
+        # Smart defaults: auto-select steps that don't have results yet
         default_steps = []
-        if force_rerun:
-            default_steps = ["classification", "extraction", "validation", "correction"]
-        else:
-            for step in steps:
-                if not existing[step["key"]]:
-                    default_steps.append(step["key"])
-            # Correction always included by default if validation will run
-            if "validation" in default_steps:
-                default_steps.append("correction")
+        for step in steps:
+            if not existing[step["key"]]:
+                default_steps.append(step["key"])
+        # Correction always included by default if validation will run
+        if "validation" in default_steps:
+            default_steps.append("correction")
 
         # Track selected steps
         steps_to_run = []
@@ -432,11 +418,10 @@ def show_settings_screen():
             col1, col2, col3 = st.columns([3, 4, 1.5])
 
             with col1:
-                # Execution checkbox
+                # Execution checkbox (always enabled - user has full control)
                 is_selected = st.checkbox(
                     f"{step['number']}. {step['name']}",
                     value=step_key in default_steps,
-                    disabled=step_exists and not force_rerun,
                     help=step["help"],
                     key=f"run_{step_key}",
                 )
