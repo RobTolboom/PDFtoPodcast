@@ -140,7 +140,8 @@ def run_four_step_pipeline(
 
     if classification_result["publication_type"] == "overig":
         console.print(
-            "[yellow]⚠️ Publicatietype 'overig' - geen gespecialiseerde extractie beschikbaar[/yellow]"
+            "[yellow]⚠️ Publicatietype 'overig' - "
+            "geen gespecialiseerde extractie beschikbaar[/yellow]"
         )
         return results
 
@@ -227,7 +228,8 @@ ORIGINAL_EXTRACTION: {json.dumps(extraction_result, indent=2)}
 
 VALIDATION_REPORT: {json.dumps(validation_result, indent=2)}
 
-Systematically address all identified issues and produce corrected, complete, schema-compliant JSON extraction.
+Systematically address all identified issues and produce corrected, complete,\
+ schema-compliant JSON extraction.
 """
 
             # Run correction with PDF upload for direct reference
