@@ -389,49 +389,33 @@ def run_four_step_pipeline(
     console.print("[bold cyan]📋 Stap 1: Classificatie[/bold cyan]")
 
     if not HAVE_LLM_SUPPORT:
-        console.print("[red]❌ LLM support niet beschikbaar - gebruik mock data[/red]")
-        classification_result = {
-            "metadata": {
-                "title": "Example Study Title",
-                "doi": "10.1186/s12871-025-02345-6",
-                "journal": "BMC Anesthesiology",
-            },
-            "publication_type": "interventional_trial",
-            "classification_confidence": 0.95,
-            "classification_reasoning": "Mock data - LLM support not available",
-        }
-    else:
-        try:
-            # Load classification prompt and schema
-            classification_prompt = load_classification_prompt()
-            classification_schema = load_schema("classification")
+        console.print("[red]❌ LLM support niet beschikbaar[/red]")
+        raise RuntimeError(
+            "LLM support is required for pipeline execution. "
+            "Please install required dependencies: pip install openai anthropic"
+        )
 
-            # Get LLM provider
-            llm = get_llm_provider(llm_provider)
+    try:
+        # Load classification prompt and schema
+        classification_prompt = load_classification_prompt()
+        classification_schema = load_schema("classification")
 
-            # Run classification with direct PDF upload
-            console.print("[dim]Uploading PDF for classification...[/dim]")
-            classification_result = llm.generate_json_with_pdf(
-                pdf_path=pdf_path,
-                schema=classification_schema,
-                system_prompt=classification_prompt,
-                max_pages=max_pages,
-                schema_name="classification",
-            )
+        # Get LLM provider
+        llm = get_llm_provider(llm_provider)
 
-        except (PromptLoadError, LLMError, SchemaLoadError) as e:
-            console.print(f"[red]❌ Classificatie fout: {e}[/red]")
-            console.print("[yellow]Gebruik mock data voor demonstratie[/yellow]")
-            classification_result = {
-                "metadata": {
-                    "title": "Fallback Study Title",
-                    "doi": "10.1186/s12871-025-02345-6",
-                    "journal": "BMC Anesthesiology",
-                },
-                "publication_type": "interventional_trial",
-                "classification_confidence": 0.5,
-                "classification_reasoning": f"Error in classification: {e}",
-            }
+        # Run classification with direct PDF upload
+        console.print("[dim]Uploading PDF for classification...[/dim]")
+        classification_result = llm.generate_json_with_pdf(
+            pdf_path=pdf_path,
+            schema=classification_schema,
+            system_prompt=classification_prompt,
+            max_pages=max_pages,
+            schema_name="classification",
+        )
+
+    except (PromptLoadError, LLMError, SchemaLoadError) as e:
+        console.print(f"[red]❌ Classificatie fout: {e}[/red]")
+        raise
 
     # Set file identifier based on DOI from classification
     file_manager.set_identifier_from_classification(classification_result)
@@ -453,81 +437,48 @@ def run_four_step_pipeline(
 
     console.print("[bold cyan]📊 Stap 2: Data Extractie (Schema-based)[/bold cyan]")
 
-    if not HAVE_LLM_SUPPORT:
-        console.print("[red]❌ LLM support niet beschikbaar - gebruik mock data[/red]")
-        extraction_result = {
-            "schema_version": "v2.0",
-            "study_design": {"type": "RCT"},
-            "metadata": classification_result["metadata"],
-            "placeholder": "mock_extraction_data",
-        }
-    else:
-        try:
-            publication_type = classification_result.get("publication_type")
+    try:
+        publication_type = classification_result.get("publication_type")
 
-            if publication_type == "overig":
-                console.print(
-                    "[yellow]⚠️ Publicatietype 'overig' - geen gespecialiseerde extractie beschikbaar[/yellow]"
-                )
-                extraction_result = {
-                    "error": "No specialized extraction available for publication type 'overig'",
-                    "metadata": classification_result["metadata"],
-                }
-            else:
-                # Load appropriate extraction prompt and schema
-                extraction_prompt = load_extraction_prompt(publication_type)
-                extraction_schema = load_schema(publication_type)
-
-                # Check schema compatibility with OpenAI
-                compatibility = validate_schema_compatibility(extraction_schema)
-                if compatibility["warnings"]:
-                    console.print("[yellow]⚠️  Schema compatibility warnings:[/yellow]")
-                    for warning in compatibility["warnings"][:3]:
-                        console.print(f"[dim]  • {warning}[/dim]")
-
-                console.print(
-                    f"[dim]Running schema-based {publication_type} extraction with PDF upload..."
-                )
-                console.print(f"[dim]Schema: ~{compatibility['estimated_tokens']} tokens[/dim]")
-
-                # Run schema-based extraction with direct PDF upload
-                extraction_result = llm.generate_json_with_pdf(
-                    pdf_path=pdf_path,
-                    schema=extraction_schema,
-                    system_prompt=extraction_prompt,
-                    max_pages=max_pages,
-                    schema_name=f"{publication_type}_extraction",
-                )
-
-                console.print("[green]✅ Schema-conforming extraction completed[/green]")
-
-        except SchemaLoadError as e:
-            console.print(f"[red]❌ Schema loading fout: {e}[/red]")
-            console.print("[yellow]Cannot proceed without schema - skipping extraction[/yellow]")
-            try:
-                # Without schema, we can't use PDF upload effectively
-                # This should rarely happen in production
-                extraction_result = {
-                    "schema_version": "v2.0",
-                    "metadata": classification_result["metadata"],
-                    "error": f"Schema loading error: {e}",
-                }
-            except (PromptLoadError, LLMError) as e2:
-                extraction_result = {
-                    "schema_version": "v2.0",
-                    "metadata": classification_result["metadata"],
-                    "error": f"Extraction error: {e2}",
-                }
-
-        except (PromptLoadError, LLMError) as e:
-            console.print(f"[red]❌ Extractie fout: {e}[/red]")
-            console.print("[yellow]Gebruik mock data voor demonstratie[/yellow]")
+        if publication_type == "overig":
+            console.print(
+                "[yellow]⚠️ Publicatietype 'overig' - geen gespecialiseerde extractie beschikbaar[/yellow]"
+            )
             extraction_result = {
-                "schema_version": "v2.0",
-                "study_design": {"type": "Unknown"},
+                "error": "No specialized extraction available for publication type 'overig'",
                 "metadata": classification_result["metadata"],
-                "error": f"Extraction error: {e}",
             }
+        else:
+            # Load appropriate extraction prompt and schema
+            extraction_prompt = load_extraction_prompt(publication_type)
+            extraction_schema = load_schema(publication_type)
+
+            # Check schema compatibility with OpenAI
+            compatibility = validate_schema_compatibility(extraction_schema)
+            if compatibility["warnings"]:
+                console.print("[yellow]⚠️  Schema compatibility warnings:[/yellow]")
+                for warning in compatibility["warnings"][:3]:
+                    console.print(f"[dim]  • {warning}[/dim]")
+
+            console.print(
+                f"[dim]Running schema-based {publication_type} extraction with PDF upload..."
+            )
+            console.print(f"[dim]Schema: ~{compatibility['estimated_tokens']} tokens[/dim]")
+
+            # Run schema-based extraction with direct PDF upload
+            extraction_result = llm.generate_json_with_pdf(
+                pdf_path=pdf_path,
+                schema=extraction_schema,
+                system_prompt=extraction_prompt,
+                max_pages=max_pages,
+                schema_name=f"{publication_type}_extraction",
+            )
+
+            console.print("[green]✅ Schema-conforming extraction completed[/green]")
+
+    except (SchemaLoadError, PromptLoadError, LLMError) as e:
+        console.print(f"[red]❌ Extractie fout: {e}[/red]")
+        raise
 
     extraction_file = file_manager.save_json(extraction_result, "extraction")
     console.print(f"[green]✅ Extractie opgeslagen: {extraction_file}[/green]")
@@ -539,29 +490,16 @@ def run_four_step_pipeline(
 
     console.print("[bold cyan]🔍 Stap 3: Validatie (Schema + LLM)[/bold cyan]")
 
-    if not HAVE_LLM_SUPPORT:
-        console.print("[red]❌ LLM support niet beschikbaar - gebruik mock data[/red]")
-        validation_result = {
-            "verification_summary": {
-                "overall_status": "passed",
-                "completeness_score": 0.92,
-                "accuracy_score": 0.95,
-                "schema_compliance": 1.0,
-            },
-            "quality_assessment": "Mock validation data",
-            "recommendations": [],
-        }
-    else:
-        # Run dual validation (schema + conditional LLM)
-        publication_type = classification_result.get("publication_type")
-        validation_result = run_dual_validation(
-            extraction_result=extraction_result,
-            pdf_path=pdf_path,
-            max_pages=max_pages,
-            publication_type=publication_type,
-            llm=llm,
-            console=console,
-        )
+    # Run dual validation (schema + conditional LLM)
+    publication_type = classification_result.get("publication_type")
+    validation_result = run_dual_validation(
+        extraction_result=extraction_result,
+        pdf_path=pdf_path,
+        max_pages=max_pages,
+        publication_type=publication_type,
+        llm=llm,
+        console=console,
+    )
 
     validation_file = file_manager.save_json(validation_result, "validation")
     console.print(f"[green]✅ Validatie opgeslagen: {validation_file}[/green]")
@@ -576,21 +514,13 @@ def run_four_step_pipeline(
     if validation_status != "passed":
         console.print("[bold cyan]🔧 Stap 4: Correctie[/bold cyan]")
 
-        if not HAVE_LLM_SUPPORT:
-            console.print("[red]❌ LLM support niet beschikbaar - gebruik mock correctie[/red]")
-            corrected_extraction = {
-                **extraction_result,
-                "corrected": True,
-                "correction_notes": "Mock correction - LLM support not available",
-            }
-        else:
-            try:
-                # Load correction prompt and extraction schema
-                correction_prompt = load_correction_prompt()
-                extraction_schema = load_schema(publication_type)
+        try:
+            # Load correction prompt and extraction schema
+            correction_prompt = load_correction_prompt()
+            extraction_schema = load_schema(publication_type)
 
-                # Prepare correction context with original extraction and validation feedback
-                correction_context = f"""
+            # Prepare correction context with original extraction and validation feedback
+            correction_context = f"""
 ORIGINAL_EXTRACTION: {json.dumps(extraction_result, indent=2)}
 
 VALIDATION_REPORT: {json.dumps(validation_result, indent=2)}
@@ -598,61 +528,41 @@ VALIDATION_REPORT: {json.dumps(validation_result, indent=2)}
 Systematically address all identified issues and produce corrected, complete, schema-compliant JSON extraction.
 """
 
-                # Run correction with PDF upload for direct reference
-                console.print("[dim]Running correction with PDF upload...[/dim]")
-                corrected_extraction = llm.generate_json_with_pdf(
-                    pdf_path=pdf_path,
-                    schema=extraction_schema,
-                    system_prompt=correction_prompt + "\n\n" + correction_context,
-                    max_pages=max_pages,
-                    schema_name=f"{publication_type}_extraction_corrected",
+            # Run correction with PDF upload for direct reference
+            console.print("[dim]Running correction with PDF upload...[/dim]")
+            corrected_extraction = llm.generate_json_with_pdf(
+                pdf_path=pdf_path,
+                schema=extraction_schema,
+                system_prompt=correction_prompt + "\n\n" + correction_context,
+                max_pages=max_pages,
+                schema_name=f"{publication_type}_extraction_corrected",
+            )
+
+            # Ensure correction metadata
+            if "correction_notes" not in corrected_extraction:
+                corrected_extraction["correction_notes"] = (
+                    "Corrections applied based on validation feedback"
                 )
 
-                # Ensure correction metadata
-                if "correction_notes" not in corrected_extraction:
-                    corrected_extraction["correction_notes"] = (
-                        "Corrections applied based on validation feedback"
-                    )
-
-            except (PromptLoadError, LLMError) as e:
-                console.print(f"[red]❌ Correctie fout: {e}[/red]")
-                console.print("[yellow]Gebruik fallback correctie[/yellow]")
-                corrected_extraction = {
-                    **extraction_result,
-                    "corrected": True,
-                    "correction_notes": f"Correction error: {e}",
-                    "error": "Automatic correction failed",
-                }
+        except (PromptLoadError, LLMError, SchemaLoadError) as e:
+            console.print(f"[red]❌ Correctie fout: {e}[/red]")
+            raise
 
         corrected_file = file_manager.save_json(corrected_extraction, "extraction", "corrected")
         console.print(f"[green]✅ Correctie opgeslagen: {corrected_file}[/green]")
 
         # Final validation of corrected extraction - use same dual validation approach
         console.print("[dim]Running final validation on corrected extraction...[/dim]")
-        if not HAVE_LLM_SUPPORT:
-            console.print(
-                "[red]❌ LLM support niet beschikbaar - gebruik mock finale validatie[/red]"
-            )
-            final_validation = {
-                "verification_summary": {
-                    "overall_status": "passed",
-                    "completeness_score": 0.96,
-                    "accuracy_score": 0.97,
-                    "schema_compliance": 1.0,
-                },
-                "quality_assessment": "Mock final validation",
-                "recommendations": [],
-            }
-        else:
-            # Re-run dual validation on corrected extraction
-            final_validation = run_dual_validation(
-                extraction_result=corrected_extraction,
-                pdf_path=pdf_path,
-                max_pages=max_pages,
-                publication_type=publication_type,
-                llm=llm,
-                console=console,
-            )
+
+        # Re-run dual validation on corrected extraction
+        final_validation = run_dual_validation(
+            extraction_result=corrected_extraction,
+            pdf_path=pdf_path,
+            max_pages=max_pages,
+            publication_type=publication_type,
+            llm=llm,
+            console=console,
+        )
 
         final_validation_file = file_manager.save_json(final_validation, "validation", "corrected")
         console.print(f"[green]✅ Finale validatie opgeslagen: {final_validation_file}[/green]")
