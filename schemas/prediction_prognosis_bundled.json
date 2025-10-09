@@ -73,7 +73,8 @@
           "type": "number"
         },
         "timestamp": {
-          "type": "string"
+          "type": "string",
+          "format": "date-time"
         }
       }
     },
@@ -193,7 +194,8 @@
                 "concerns": {
                   "type": "string"
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "predictors": {
               "type": "object",
@@ -217,7 +219,8 @@
                 "concerns": {
                   "type": "string"
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "outcome": {
               "type": "object",
@@ -241,7 +244,8 @@
                 "concerns": {
                   "type": "string"
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "analysis": {
               "type": "object",
@@ -257,14 +261,17 @@
                 "concerns": {
                   "type": "string"
                 }
-              }
+              },
+              "additionalProperties": false
             }
-          }
+          },
+          "additionalProperties": false
         },
         "notes": {
           "type": "string"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "sample_size_considerations": {
       "type": "object",
@@ -289,7 +296,8 @@
               "type": "boolean",
               "description": "Whether EPV meets recommended threshold (e.g., ≥10-20)"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "sample_size_justification": {
           "type": "string"
@@ -316,7 +324,8 @@
           "type": "number",
           "description": "Estimated optimism in performance from bootstrap/CV"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "protocol_deviations": {
       "type": "string"
@@ -417,48 +426,10 @@
             "type": "integer",
             "minimum": 0
           },
-          "auc_roc": {
-            "oneOf": [
-              {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 1
-              },
-              {
-                "$ref": "#/$defs/ValueWithRaw"
-              }
-            ]
-          },
-          "calibration_slope": {
-            "oneOf": [
-              {
-                "type": "number"
-              },
-              {
-                "$ref": "#/$defs/ValueWithRaw"
-              }
-            ]
-          },
-          "calibration_intercept": {
-            "oneOf": [
-              {
-                "type": "number"
-              },
-              {
-                "$ref": "#/$defs/ValueWithRaw"
-              }
-            ]
-          },
-          "o_e_ratio": {
-            "oneOf": [
-              {
-                "type": "number"
-              },
-              {
-                "$ref": "#/$defs/ValueWithRaw"
-              }
-            ]
-          },
+          "auc_roc": {},
+          "calibration_slope": {},
+          "calibration_intercept": {},
+          "o_e_ratio": {},
           "algorithmic_fairness": {
             "type": "object",
             "description": "Algorithmic fairness metrics",
@@ -485,7 +456,8 @@
               "fairness_threshold": {
                 "type": "number"
               }
-            }
+            },
+            "additionalProperties": false
           },
           "performance_disparity": {
             "type": "object",
@@ -500,7 +472,8 @@
               "clinically_meaningful": {
                 "type": "boolean"
               }
-            }
+            },
+            "additionalProperties": false
           },
           "bias_mitigation": {
             "type": "object",
@@ -523,7 +496,8 @@
               "effectiveness": {
                 "type": "string"
               }
-            }
+            },
+            "additionalProperties": false
           },
           "source": {
             "$ref": "#/$defs/SourceRef"
@@ -551,7 +525,8 @@
             "description": {
               "type": "string"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "feature_leakage": {
           "type": "object",
@@ -565,7 +540,8 @@
                 "type": "string"
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "label_leakage": {
           "type": "object",
@@ -576,7 +552,8 @@
             "description": {
               "type": "string"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "train_test_contamination": {
           "type": "object",
@@ -587,9 +564,11 @@
             "description": {
               "type": "string"
             }
-          }
+          },
+          "additionalProperties": false
         }
-      }
+      },
+      "additionalProperties": false
     },
     "model_deployment": {
       "type": "object",
@@ -599,7 +578,8 @@
           "type": "boolean"
         },
         "deployment_date": {
-          "type": "string"
+          "type": "string",
+          "format": "date"
         },
         "deployment_setting": {
           "type": "string"
@@ -631,7 +611,8 @@
             "gpu_required": {
               "type": "boolean"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "integration": {
           "type": "object",
@@ -646,9 +627,11 @@
               "type": "boolean"
             },
             "api_url": {
-              "type": "string"
+              "type": "string",
+              "format": "uri"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "monitoring_plan": {
           "type": "object",
@@ -671,7 +654,8 @@
             "ab_testing": {
               "type": "boolean"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "version_control": {
           "type": "object",
@@ -688,17 +672,21 @@
                     "type": "string"
                   },
                   "date": {
-                    "type": "string"
+                    "type": "string",
+                    "format": "date"
                   },
                   "changes": {
                     "type": "string"
                   }
-                }
+                },
+                "additionalProperties": false
               }
             }
-          }
+          },
+          "additionalProperties": false
         }
-      }
+      },
+      "additionalProperties": false
     },
     "extraction_warnings": {
       "type": "array",
@@ -789,39 +777,9 @@
           "minimum": 0,
           "description": "Number of outcome events in derivation cohort (if applicable)"
         },
-        "age_mean": {
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "$ref": "#/$defs/ValueWithRaw"
-            }
-          ]
-        },
-        "age_sd": {
-          "oneOf": [
-            {
-              "type": "number",
-              "minimum": 0
-            },
-            {
-              "$ref": "#/$defs/ValueWithRaw"
-            }
-          ]
-        },
-        "sex_female_pct": {
-          "oneOf": [
-            {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 100
-            },
-            {
-              "$ref": "#/$defs/ValueWithRaw"
-            }
-          ]
-        },
+        "age_mean": {},
+        "age_sd": {},
+        "sex_female_pct": {},
         "inclusion_criteria": {
           "type": "string"
         },
@@ -831,18 +789,7 @@
         "follow_up_duration_iso8601": {
           "$ref": "#/$defs/ISO8601Duration"
         },
-        "outcome_incidence_pct": {
-          "oneOf": [
-            {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 100
-            },
-            {
-              "$ref": "#/$defs/ValueWithRaw"
-            }
-          ]
-        },
+        "outcome_incidence_pct": {},
         "missing_data_overview": {
           "type": "string"
         },
@@ -902,18 +849,7 @@
           "type": "string",
           "description": "e.g., log, Box-Cox, restricted cubic spline"
         },
-        "missing_fraction_pct": {
-          "oneOf": [
-            {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 100
-            },
-            {
-              "$ref": "#/$defs/ValueWithRaw"
-            }
-          ]
-        },
+        "missing_fraction_pct": {},
         "imputation": {
           "type": "string",
           "description": "e.g., MICE, mean, indicator method"
@@ -1002,10 +938,12 @@
           "default": []
         },
         "start_date": {
-          "type": "string"
+          "type": "string",
+          "format": "date"
         },
         "end_date": {
-          "type": "string"
+          "type": "string",
+          "format": "date"
         },
         "n": {
           "type": "integer",
@@ -1106,40 +1044,13 @@
               "predictor": {
                 "type": "string"
               },
-              "beta": {
-                "oneOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "$ref": "#/$defs/ValueWithRaw"
-                  }
-                ]
-              },
-              "se": {
-                "oneOf": [
-                  {
-                    "type": "number",
-                    "minimum": 0
-                  },
-                  {
-                    "$ref": "#/$defs/ValueWithRaw"
-                  }
-                ]
-              }
+              "beta": {},
+              "se": {}
             }
           },
           "default": []
         },
         "intercept": {
-          "oneOf": [
-            {
-              "type": "number"
-            },
-            {
-              "$ref": "#/$defs/ValueWithRaw"
-            }
-          ],
           "description": "Regression intercept; for Cox, log-baseline hazard not used"
         },
         "baseline_hazard": {
@@ -1160,16 +1071,7 @@
               "predictor": {
                 "type": "string"
               },
-              "importance": {
-                "oneOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "$ref": "#/$defs/ValueWithRaw"
-                  }
-                ]
-              }
+              "importance": {}
             }
           },
           "default": []
@@ -1195,13 +1097,15 @@
                       "mean_abs_shap": {
                         "type": "number"
                       }
-                    }
+                    },
+                    "additionalProperties": false
                   }
                 },
                 "summary_plot_source": {
                   "$ref": "#/$defs/SourceRef"
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "lime": {
               "type": "object",
@@ -1215,7 +1119,8 @@
                 "explanation_source": {
                   "$ref": "#/$defs/SourceRef"
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "partial_dependence": {
               "type": "object",
@@ -1232,7 +1137,8 @@
                 "plot_source": {
                   "$ref": "#/$defs/SourceRef"
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "ice_plots": {
               "type": "object",
@@ -1243,7 +1149,8 @@
                 "plot_source": {
                   "$ref": "#/$defs/SourceRef"
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "feature_interactions": {
               "type": "array",
@@ -1262,7 +1169,8 @@
                   "h_statistic": {
                     "type": "number"
                   }
-                }
+                },
+                "additionalProperties": false
               }
             },
             "attention_weights": {
@@ -1275,9 +1183,11 @@
                 "visualization_source": {
                   "$ref": "#/$defs/SourceRef"
                 }
-              }
+              },
+              "additionalProperties": false
             }
-          }
+          },
+          "additionalProperties": false
         },
         "hyperparameters": {
           "type": "array",
@@ -1325,7 +1235,8 @@
           "description": "e.g., nomogram, score chart, web/mobile calculator"
         },
         "web_calculator_url": {
-          "type": "string"
+          "type": "string",
+          "format": "uri"
         },
         "source": {
           "$ref": "#/$defs/SourceRef"
@@ -1364,18 +1275,7 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {
-                "point": {
-                  "oneOf": [
-                    {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 1
-                    },
-                    {
-                      "$ref": "#/$defs/ValueWithRaw"
-                    }
-                  ]
-                },
+                "point": {},
                 "ci": {
                   "$ref": "#/$defs/EffectCI"
                 }
@@ -1385,18 +1285,7 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {
-                "point": {
-                  "oneOf": [
-                    {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 1
-                    },
-                    {
-                      "$ref": "#/$defs/ValueWithRaw"
-                    }
-                  ]
-                },
+                "point": {},
                 "ci": {
                   "$ref": "#/$defs/EffectCI"
                 }
@@ -1407,18 +1296,7 @@
               "type": "object",
               "additionalProperties": false,
               "properties": {
-                "point": {
-                  "oneOf": [
-                    {
-                      "type": "number",
-                      "minimum": 0,
-                      "maximum": 1
-                    },
-                    {
-                      "$ref": "#/$defs/ValueWithRaw"
-                    }
-                  ]
-                },
+                "point": {},
                 "ci": {
                   "$ref": "#/$defs/EffectCI"
                 }
@@ -1431,36 +1309,10 @@
           "additionalProperties": false,
           "properties": {
             "calibration_in_the_large": {
-              "oneOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "$ref": "#/$defs/ValueWithRaw"
-                }
-              ],
               "description": "Difference between mean predicted and observed risk"
             },
-            "intercept": {
-              "oneOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "$ref": "#/$defs/ValueWithRaw"
-                }
-              ]
-            },
-            "slope": {
-              "oneOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "$ref": "#/$defs/ValueWithRaw"
-                }
-              ]
-            },
+            "intercept": {},
+            "slope": {},
             "calibration_level": {
               "type": "string",
               "enum": [
@@ -1471,85 +1323,16 @@
               "description": "Weak=intercept, moderate=slope+intercept, strong=flexible"
             },
             "o_e_ratio": {
-              "oneOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "$ref": "#/$defs/ValueWithRaw"
-                }
-              ],
               "description": "Observed/Expected"
             },
-            "brier": {
-              "oneOf": [
-                {
-                  "type": "number",
-                  "minimum": 0
-                },
-                {
-                  "$ref": "#/$defs/ValueWithRaw"
-                }
-              ]
-            },
-            "scaled_brier": {
-              "oneOf": [
-                {
-                  "type": "number",
-                  "minimum": 0,
-                  "maximum": 1
-                },
-                {
-                  "$ref": "#/$defs/ValueWithRaw"
-                }
-              ]
-            },
-            "hl_test_p": {
-              "oneOf": [
-                {
-                  "type": "number",
-                  "minimum": 0,
-                  "maximum": 1
-                },
-                {
-                  "$ref": "#/$defs/ValueWithRaw"
-                }
-              ]
-            },
+            "brier": {},
+            "scaled_brier": {},
+            "hl_test_p": {},
             "ici": {
-              "oneOf": [
-                {
-                  "type": "number",
-                  "minimum": 0
-                },
-                {
-                  "$ref": "#/$defs/ValueWithRaw"
-                }
-              ],
               "description": "Integrated Calibration Index"
             },
-            "spiegelhalter_z": {
-              "oneOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "$ref": "#/$defs/ValueWithRaw"
-                }
-              ]
-            },
-            "spiegelhalter_p": {
-              "oneOf": [
-                {
-                  "type": "number",
-                  "minimum": 0,
-                  "maximum": 1
-                },
-                {
-                  "$ref": "#/$defs/ValueWithRaw"
-                }
-              ]
-            },
+            "spiegelhalter_z": {},
+            "spiegelhalter_p": {},
             "calibration_plot_source": {
               "$ref": "#/$defs/SourceRef"
             }
@@ -1581,7 +1364,8 @@
                         "type": "string"
                       }
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 },
                 "continuous": {
                   "type": "object",
@@ -1592,9 +1376,11 @@
                     "p_value": {
                       "type": "number"
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "idi": {
               "type": "object",
@@ -1614,7 +1400,8 @@
                   "type": "number",
                   "description": "Integrated specificity for non-events"
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "relative_utility": {
               "type": "array",
@@ -1627,10 +1414,12 @@
                   "relative_utility": {
                     "type": "number"
                   }
-                }
+                },
+                "additionalProperties": false
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "model_comparison": {
           "type": "object",
@@ -1665,10 +1454,12 @@
                       "p_value": {
                         "type": "number"
                       }
-                    }
+                    },
+                    "additionalProperties": false
                   }
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "likelihood_ratio_test": {
               "type": "object",
@@ -1685,7 +1476,8 @@
                 "p_value": {
                   "type": "number"
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "aic_bic": {
               "type": "object",
@@ -1699,9 +1491,11 @@
                 "best_model": {
                   "type": "string"
                 }
-              }
+              },
+              "additionalProperties": false
             }
-          }
+          },
+          "additionalProperties": false
         },
         "threshold_metrics": {
           "type": "array",
@@ -1713,98 +1507,14 @@
               "threshold"
             ],
             "properties": {
-              "threshold": {
-                "oneOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "$ref": "#/$defs/ValueWithRaw"
-                  }
-                ]
-              },
-              "sensitivity": {
-                "oneOf": [
-                  {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1
-                  },
-                  {
-                    "$ref": "#/$defs/ValueWithRaw"
-                  }
-                ]
-              },
-              "specificity": {
-                "oneOf": [
-                  {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1
-                  },
-                  {
-                    "$ref": "#/$defs/ValueWithRaw"
-                  }
-                ]
-              },
-              "ppv": {
-                "oneOf": [
-                  {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1
-                  },
-                  {
-                    "$ref": "#/$defs/ValueWithRaw"
-                  }
-                ]
-              },
-              "npv": {
-                "oneOf": [
-                  {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1
-                  },
-                  {
-                    "$ref": "#/$defs/ValueWithRaw"
-                  }
-                ]
-              },
-              "accuracy": {
-                "oneOf": [
-                  {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1
-                  },
-                  {
-                    "$ref": "#/$defs/ValueWithRaw"
-                  }
-                ]
-              },
-              "f1": {
-                "oneOf": [
-                  {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1
-                  },
-                  {
-                    "$ref": "#/$defs/ValueWithRaw"
-                  }
-                ]
-              },
-              "youden_j": {
-                "oneOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "$ref": "#/$defs/ValueWithRaw"
-                  }
-                ]
-              }
+              "threshold": {},
+              "sensitivity": {},
+              "specificity": {},
+              "ppv": {},
+              "npv": {},
+              "accuracy": {},
+              "f1": {},
+              "youden_j": {}
             }
           },
           "default": []
@@ -1813,26 +1523,8 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "intercept_adjustment": {
-              "oneOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "$ref": "#/$defs/ValueWithRaw"
-                }
-              ]
-            },
-            "slope_adjustment": {
-              "oneOf": [
-                {
-                  "type": "number"
-                },
-                {
-                  "$ref": "#/$defs/ValueWithRaw"
-                }
-              ]
-            },
+            "intercept_adjustment": {},
+            "slope_adjustment": {},
             "method": {
               "type": "string"
             },
@@ -1873,28 +1565,8 @@
               "net_benefit"
             ],
             "properties": {
-              "threshold": {
-                "oneOf": [
-                  {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1
-                  },
-                  {
-                    "$ref": "#/$defs/ValueWithRaw"
-                  }
-                ]
-              },
-              "net_benefit": {
-                "oneOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "$ref": "#/$defs/ValueWithRaw"
-                  }
-                ]
-              }
+              "threshold": {},
+              "net_benefit": {}
             }
           },
           "default": []
@@ -2047,7 +1719,8 @@
           "type": "string"
         },
         "published_date": {
-          "type": "string"
+          "type": "string",
+          "format": "date"
         },
         "published_date_precision": {
           "type": "string",
@@ -2606,42 +2279,6 @@
             "timeout",
             "other"
           ]
-        }
-      }
-    },
-    "ValueWithRaw": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "value": {
-          "type": [
-            "string",
-            "number",
-            "integer",
-            "boolean",
-            "null"
-          ],
-          "description": "Processed/normalized value"
-        },
-        "raw_text": {
-          "type": "string",
-          "description": "Original text as found in document"
-        },
-        "unit_ucum": {
-          "type": "string",
-          "description": "UCUM unit code if applicable"
-        },
-        "transformation_confidence": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Confidence in the raw→processed transformation"
-        },
-        "source": {
-          "$ref": "#/$defs/SourceRef"
-        },
-        "provenance": {
-          "$ref": "#/$defs/Provenance"
         }
       }
     }
