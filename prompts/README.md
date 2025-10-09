@@ -1,5 +1,8 @@
 # Extraction Prompts - Schema-Specific Versions
 
+> **📖 For system architecture and pipeline overview, see [ARCHITECTURE.md](../ARCHITECTURE.md)**
+> This document focuses on prompt engineering specifics, schema-prompt integration, and LLM optimization strategies.
+
 ## Overview
 
 Based on analysis of the 5 bundled JSON schemas, specialized extraction prompts have been created for each study type. The original single prompt was designed only for interventional trials and was incompatible with other schema structures. These optimized prompts provide schema-specific validation rules and are optimized for efficient language model processing.
@@ -564,3 +567,14 @@ For comprehensive integration patterns including microservice architectures, tok
 - **SourceRef precision**: Verify page/table/figure references are accurate
 - **Vancouver citations**: Ensure bibliographic information extracted correctly
 - **Field mapping**: Confirm schema field names match prompt expectations
+
+---
+
+## 🔗 Related Documentation
+
+- **[ARCHITECTURE.md](../ARCHITECTURE.md)** - System architecture and component design
+- **[CONTRIBUTING.md](../CONTRIBUTING.md)** - Developer contribution guidelines
+- **[DEVELOPMENT.md](../DEVELOPMENT.md)** - Development workflow and debugging
+- **[schemas/readme.md](../schemas/readme.md)** - Schema design and LLM integration patterns
+- **[src/README.md](../src/README.md)** - Core module API documentation
+- **[README.md](../README.md)** - Setup and usage instructions

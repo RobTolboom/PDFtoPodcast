@@ -1,5 +1,8 @@
 # Test Suite
 
+> **📖 For complete testing guidelines and contribution process, see [CONTRIBUTING.md](../CONTRIBUTING.md)**
+> This document provides quick reference for running and writing tests.
+
 Comprehensive test suite for PDFtoPodcast.
 
 ## Structure
@@ -161,3 +164,12 @@ make test-coverage
 - [ ] Add sample PDFs to fixtures
 - [ ] Add expected outputs for validation
 - [ ] Achieve >80% code coverage
+
+---
+
+## Related Documentation
+
+- **[CONTRIBUTING.md](../CONTRIBUTING.md)** - Complete testing guidelines and contribution process
+- **[DEVELOPMENT.md](../DEVELOPMENT.md)** - Development workflow and debugging strategies
+- **[ARCHITECTURE.md](../ARCHITECTURE.md)** - System architecture and component design
+- **[src/README.md](../src/README.md)** - Core module API documentation

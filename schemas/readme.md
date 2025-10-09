@@ -1,5 +1,8 @@
 # Medical Literature Data Extraction Schemas
 
+> **📖 For system architecture and pipeline overview, see [ARCHITECTURE.md](../ARCHITECTURE.md)**
+> This document focuses on schema design, LLM integration patterns, and technical implementation details.
+
 Een collectie van JSON Schema's voor gestructureerde data-extractie uit medisch-wetenschappelijke literatuur. Deze schema's ondersteunen alle belangrijke onderzoeksmethodologieën met volledige compliance aan internationale richtlijnen en zorgen voor consistente, gevalideerde extractie van klinische studies, systematische reviews, en predictiemodellen.
 
 ## 📑 Inhoudsopgave
@@ -1240,3 +1243,14 @@ Deze schema's zijn ontwikkeld voor medisch-wetenschappelijk onderzoek en data-ex
 **Auteur**: Rob Tolboom
 **Schema Coverage**: 5 core domains + bundled variants
 **International Standards**: CONSORT 2010, PRISMA 2020, TRIPOD, STROBE, PROBAST
+
+---
+
+## 🔗 Related Documentation
+
+- **[ARCHITECTURE.md](../ARCHITECTURE.md)** - System architecture and design decisions
+- **[CONTRIBUTING.md](../CONTRIBUTING.md)** - Developer contribution guidelines
+- **[DEVELOPMENT.md](../DEVELOPMENT.md)** - Development workflow and debugging
+- **[prompts/README.md](../prompts/README.md)** - Prompt engineering and schema-prompt integration
+- **[src/README.md](../src/README.md)** - Core module API documentation
+- **[README.md](../README.md)** - Setup and usage instructions

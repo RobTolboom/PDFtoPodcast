@@ -1,18 +1,8 @@
 # 📁 src/ — Core Module Documentation
 
-This directory contains the core modules for the **PDFtoPodcast** medical literature extraction pipeline. The pipeline uses direct PDF upload to LLMs (no text extraction) to preserve tables, images, charts, and formatting.
+This directory contains the core modules for the **PDFtoPodcast** medical literature extraction pipeline.
 
----
-
-## 🏗️ Architecture Overview
-
-The pipeline follows a **four-step extraction workflow**:
-1. **Classification** - Identify publication type and extract metadata
-2. **Extraction** - Schema-based structured data extraction
-3. **Validation** - Dual validation (schema + LLM semantic)
-4. **Correction** - Fix issues identified during validation
-
-All steps use **direct PDF upload** (OpenAI vision API / Claude document API) to ensure complete data fidelity.
+> **📖 For system architecture and design decisions, see [ARCHITECTURE.md](../ARCHITECTURE.md)**
 
 ---
 
@@ -230,20 +220,20 @@ PDF File (≤100 pages, ≤32 MB)
 
 ## 📂 Output Structure
 
-Pipeline outputs are saved in `tmp/` directory with DOI-based naming:
+Pipeline outputs are saved in `tmp/` directory with PDF filename-based naming:
 
 ```
 tmp/
-├── {doi}-classification.json          # Step 1 output
-├── {doi}-extraction.json               # Step 2 output
-├── {doi}-validation.json               # Step 3 output
-├── {doi}-extraction-corrected.json     # Step 4 output (if needed)
-└── {doi}-validation-corrected.json     # Final validation (if corrected)
+├── {pdf_stem}-classification.json          # Step 1 output
+├── {pdf_stem}-extraction.json              # Step 2 output
+├── {pdf_stem}-validation.json              # Step 3 output
+├── {pdf_stem}-extraction-corrected.json    # Step 4 output (if needed)
+└── {pdf_stem}-validation-corrected.json    # Final validation (if corrected)
 ```
 
-**DOI-based naming example:**
-- DOI: `10.1186/s12871-025-02345-6`
-- Files: `10-1186-s12871-025-02345-6-classification.json`
+**PDF filename-based naming example:**
+- PDF file: `sample_paper.pdf`
+- Files: `sample_paper-classification.json`, `sample_paper-extraction.json`, etc.
 
 ---
 
@@ -289,7 +279,10 @@ python -c "from src.schemas_loader import get_all_available_schemas; \
 
 ## 🔗 Related Documentation
 
-- `../VALIDATION_STRATEGY.md` - Dual validation approach explained
-- `../prompts/README.md` - Prompt engineering guidelines
-- `../schemas/readme.md` - Schema design and bundling
-- Project root README - Setup and usage instructions
+- **[ARCHITECTURE.md](../ARCHITECTURE.md)** - System architecture and design decisions
+- **[CONTRIBUTING.md](../CONTRIBUTING.md)** - Developer contribution guide
+- **[DEVELOPMENT.md](../DEVELOPMENT.md)** - Development workflow and debugging
+- **[VALIDATION_STRATEGY.md](../VALIDATION_STRATEGY.md)** - Dual validation approach explained
+- **[prompts/README.md](../prompts/README.md)** - Prompt engineering guidelines
+- **[schemas/readme.md](../schemas/readme.md)** - Schema design and bundling
+- **[README.md](../README.md)** - Setup and usage instructions
