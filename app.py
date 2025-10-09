@@ -323,7 +323,165 @@ def show_settings_screen():
     tab1, tab2 = st.tabs(["🔧 Basic Settings", "⚡ Advanced"])
 
     with tab1:
-        st.markdown("### LLM Provider")
+        st.markdown("### Pipeline Control")
+
+        # Check for existing results
+        identifier = get_identifier_from_pdf_path(st.session_state.pdf_path)
+        existing = check_existing_results(identifier)
+
+        # Force rerun checkbox at the top
+        force_rerun = st.checkbox(
+            "🔄 Force rerun all steps (ignore existing results)",
+            value=st.session_state.settings["force_rerun"],
+            help="Check this to rerun steps even if results already exist",
+        )
+        st.session_state.settings["force_rerun"] = force_rerun
+
+        st.markdown("")
+
+        # Define all pipeline steps
+        steps = [
+            {
+                "key": "classification",
+                "number": "1",
+                "name": "Classification",
+                "help": "Identify publication type and extract metadata",
+            },
+            {
+                "key": "extraction",
+                "number": "2",
+                "name": "Extraction",
+                "help": "Extract structured data based on publication type",
+            },
+            {
+                "key": "validation",
+                "number": "3",
+                "name": "Validation",
+                "help": "Validate quality and accuracy of extracted data",
+            },
+            {
+                "key": "correction",
+                "number": "4",
+                "name": "Correction",
+                "help": "Automatically fix issues identified during validation",
+            },
+        ]
+
+        # Smart defaults based on existing results
+        default_steps = []
+        if force_rerun:
+            default_steps = ["classification", "extraction", "validation", "correction"]
+        else:
+            for step in steps:
+                if not existing[step["key"]]:
+                    default_steps.append(step["key"])
+            # Correction always included by default if validation will run
+            if "validation" in default_steps:
+                default_steps.append("correction")
+
+        # Track selected steps
+        steps_to_run = []
+
+        # Display each step in unified format
+        for step in steps:
+            step_key = step["key"]
+            step_exists = existing[step_key]
+
+            # Get file info if exists
+            file_info = None
+            if step_exists:
+                file_info = get_result_file_info(identifier, step_key)
+
+            # Create columns: [checkbox + name] [status] [actions]
+            col1, col2, col3 = st.columns([3, 4, 1.5])
+
+            with col1:
+                # Execution checkbox
+                is_selected = st.checkbox(
+                    f"{step['number']}. {step['name']}",
+                    value=step_key in default_steps,
+                    disabled=step_exists and not force_rerun,
+                    help=step["help"],
+                    key=f"run_{step_key}",
+                )
+                if is_selected:
+                    steps_to_run.append(step_key)
+
+            with col2:
+                # Status display
+                if file_info:
+                    st.markdown(
+                        f"✅ **Done** • {file_info['modified']} • {file_info['size_kb']:.1f} KB"
+                    )
+                else:
+                    st.markdown("⏸️ *Not yet processed*")
+
+            with col3:
+                # Action buttons (only if file exists)
+                if file_info:
+                    # Place buttons side-by-side with minimal spacing
+                    btn1, btn2 = st.columns([1, 1])
+                    with btn1:
+                        if st.button("👁️", key=f"view_{step_key}", help="View results"):
+                            st.session_state.view_step = step_key
+                            st.rerun()
+                    with btn2:
+                        if st.button("🗑️", key=f"delete_{step_key}", help="Delete result"):
+                            Path(file_info["path"]).unlink()
+                            st.success(f"Deleted {step['name']} results")
+                            st.rerun()
+
+            # Display inline JSON viewer if this step is being viewed
+            if (
+                "view_step" in st.session_state
+                and st.session_state.view_step == step_key
+                and file_info
+            ):
+                st.markdown("---")
+
+                # Header with close button
+                header_col1, header_col2 = st.columns([6, 1])
+                with header_col1:
+                    st.markdown(f"### 📋 {step['name']} Results")
+                with header_col2:
+                    if st.button("✖️", key=f"close_viewer_{step_key}", help="Close viewer"):
+                        st.session_state.view_step = None
+                        st.rerun()
+
+                # Read and display JSON content
+                try:
+                    with open(file_info["path"], "r") as f:
+                        json_content = json.load(f)
+
+                    # Display JSON
+                    st.json(json_content)
+
+                    # Show file metadata
+                    st.caption(
+                        f"📁 File: `{Path(file_info['path']).name}` • "
+                        f"Modified: {file_info['modified']} • "
+                        f"Size: {file_info['size_kb']:.1f} KB"
+                    )
+
+                except Exception as e:
+                    st.error(f"❌ Error reading file: {e}")
+
+                st.markdown("---")
+
+        # Update settings
+        st.session_state.settings["steps_to_run"] = steps_to_run
+
+        if not steps_to_run:
+            st.warning("⚠️ No steps selected. Please select at least one step to execute.")
+
+    with tab2:
+        st.markdown("### Advanced Settings")
+
+        # ==================== PROCESSING CONFIGURATION ====================
+        st.markdown("#### 📊 Processing Configuration")
+
+        # LLM Provider
+        st.markdown("**LLM Provider**")
 
         col1, col2 = st.columns(2)
 
@@ -353,8 +511,10 @@ def show_settings_screen():
                 """
             )
 
-        st.markdown("---")
-        st.markdown("### Pages to Process")
+        st.markdown("")
+
+        # Pages to Process
+        st.markdown("**Pages to Process**")
 
         process_all = st.checkbox(
             "Process all pages", value=st.session_state.settings["max_pages"] is None
@@ -374,114 +534,41 @@ def show_settings_screen():
             st.caption("ℹ️ All pages will be processed (may take longer and cost more)")
 
         st.markdown("---")
-        st.markdown("### Pipeline Control")
 
-        # Check for existing results
-        identifier = get_identifier_from_pdf_path(st.session_state.pdf_path)
-        existing = check_existing_results(identifier)
+        # ==================== DEBUGGING & DEVELOPMENT ====================
+        st.markdown("#### 🔧 Debugging & Development")
 
-        # Show existing results
-        if any(existing.values()):
-            st.markdown("#### 📊 Existing Results Detected")
+        # Pipeline Breakpoint
+        breakpoint_options = {
+            None: "No breakpoint (run all steps)",
+            "classification": "Stop after Classification",
+            "extraction": "Stop after Extraction",
+            "validation": "Stop after Validation",
+        }
 
-            for step, exists in existing.items():
-                if exists:
-                    file_info = get_result_file_info(identifier, step)
-                    if file_info:
-                        col1, col2, col3 = st.columns([3, 2, 1])
-
-                        with col1:
-                            st.markdown(f"✅ **{step.title()}**")
-
-                        with col2:
-                            st.caption(f"{file_info['modified']} • {file_info['size_kb']:.1f} KB")
-
-                        with col3:
-                            if st.button("🗑️", key=f"delete_{step}", help="Delete result"):
-                                # Delete the file
-                                Path(file_info["path"]).unlink()
-                                st.success(f"Deleted {step} results")
-                                st.rerun()
-
-            st.markdown("---")
-
-        # Step selection
-        st.markdown("#### ⚙️ Steps to Execute")
-
-        force_rerun = st.checkbox(
-            "🔄 Force rerun all steps (ignore existing results)",
-            value=st.session_state.settings["force_rerun"],
-            help="Check this to rerun steps even if results already exist",
+        breakpoint = st.selectbox(
+            "Pipeline Breakpoint",
+            options=list(breakpoint_options.keys()),
+            format_func=lambda x: breakpoint_options[x],
+            index=0,
+            help="Stop the pipeline after a specific step for testing",
         )
-        st.session_state.settings["force_rerun"] = force_rerun
+        st.session_state.settings["breakpoint"] = breakpoint
 
-        # Smart defaults based on existing results
-        default_steps = []
-        if force_rerun:
-            default_steps = ["classification", "extraction", "validation", "correction"]
-        else:
-            if not existing["classification"]:
-                default_steps.append("classification")
-            if not existing["extraction"]:
-                default_steps.append("extraction")
-            if not existing["validation"]:
-                default_steps.append("validation")
-            # Correction always optional
-            default_steps.append("correction")
+        st.markdown("")
 
-        # Step checkboxes
-        col1, col2 = st.columns(2)
+        # Verbose logging
+        verbose = st.checkbox(
+            "Enable verbose logging",
+            value=st.session_state.settings["verbose_logging"],
+            help="Show detailed logs during processing",
+        )
+        st.session_state.settings["verbose_logging"] = verbose
 
-        with col1:
-            run_classification = st.checkbox(
-                "1. Classification",
-                value="classification" in default_steps,
-                disabled=existing["classification"] and not force_rerun,
-                help="Identify publication type and extract metadata"
-                + (" (already complete)" if existing["classification"] else ""),
-            )
+        st.markdown("---")
 
-            run_extraction = st.checkbox(
-                "2. Extraction",
-                value="extraction" in default_steps,
-                disabled=existing["extraction"] and not force_rerun,
-                help="Extract structured data based on publication type"
-                + (" (already complete)" if existing["extraction"] else ""),
-            )
-
-        with col2:
-            run_validation = st.checkbox(
-                "3. Validation",
-                value="validation" in default_steps,
-                disabled=existing["validation"] and not force_rerun,
-                help="Validate quality and accuracy of extracted data"
-                + (" (already complete)" if existing["validation"] else ""),
-            )
-
-            run_correction = st.checkbox(
-                "4. Correction (if needed)",
-                value="correction" in default_steps,
-                help="Automatically fix issues identified during validation",
-            )
-
-        # Update settings
-        steps_to_run = []
-        if run_classification:
-            steps_to_run.append("classification")
-        if run_extraction:
-            steps_to_run.append("extraction")
-        if run_validation:
-            steps_to_run.append("validation")
-        if run_correction:
-            steps_to_run.append("correction")
-
-        st.session_state.settings["steps_to_run"] = steps_to_run
-
-        if not steps_to_run:
-            st.warning("⚠️ No steps selected. Please select at least one step to execute.")
-
-    with tab2:
-        st.markdown("### Advanced Settings")
+        # ==================== FILE MANAGEMENT ====================
+        st.markdown("#### 🗂️ File Management")
 
         # Cleanup policy
         cleanup_options = {
@@ -500,35 +587,6 @@ def show_settings_screen():
             help="How long should uploaded PDFs be retained?",
         )
         st.session_state.settings["cleanup_policy"] = cleanup_policy
-
-        st.markdown("---")
-
-        # Breakpoint selector
-        breakpoint_options = {
-            None: "No breakpoint (run all steps)",
-            "classification": "Stop after Classification",
-            "extraction": "Stop after Extraction",
-            "validation": "Stop after Validation",
-        }
-
-        breakpoint = st.selectbox(
-            "Pipeline Breakpoint (for debugging)",
-            options=list(breakpoint_options.keys()),
-            format_func=lambda x: breakpoint_options[x],
-            index=0,
-            help="Stop the pipeline after a specific step for testing",
-        )
-        st.session_state.settings["breakpoint"] = breakpoint
-
-        st.markdown("---")
-
-        # Verbose logging
-        verbose = st.checkbox(
-            "Enable verbose logging",
-            value=st.session_state.settings["verbose_logging"],
-            help="Show detailed logs during processing",
-        )
-        st.session_state.settings["verbose_logging"] = verbose
 
     # Navigation buttons
     st.markdown("---")
@@ -812,7 +870,15 @@ def main():
         st.markdown("### Navigation")
 
         if st.button("Back to Start"):
+            # Reset to intro phase
             st.session_state.current_phase = "intro"
+
+            # Clear file selection state
+            st.session_state.pdf_path = None
+            st.session_state.uploaded_file_info = None
+            st.session_state.highlighted_file = None
+            st.session_state.uploader_key += 1  # Force file_uploader widget reset
+
             st.rerun()
 
         st.markdown("---")
