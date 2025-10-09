@@ -595,7 +595,7 @@ def show_settings_screen():
 def show_upload_screen():
     """Display PDF upload screen with file validation, duplicate detection, and file selection."""
 
-    st.markdown("## 📤 Upload PDF Document")
+    st.markdown("## 📤 Select PDF document")
     st.markdown("Upload a new PDF or select a previously uploaded file.")
 
     st.markdown("---")
@@ -613,7 +613,7 @@ def show_upload_screen():
         uploaded_file = st.file_uploader(
             "Choose a PDF file",
             type=["pdf"],
-            help="Maximum file size: 32 MB (OpenAI/Claude API limit)",
+            help="Maximum file size: 10 MB (OpenAI/Claude API limit)",
             key=f"new_file_uploader_{st.session_state.uploader_key}",
         )
 
@@ -621,9 +621,9 @@ def show_upload_screen():
             # Validate file size (32 MB limit for most LLM APIs)
             file_size_mb = len(uploaded_file.getvalue()) / (1024 * 1024)
 
-            if file_size_mb > 32:
+            if file_size_mb > 10:
                 st.error(
-                    f"❌ File too large: {file_size_mb:.1f} MB. Maximum allowed: 32 MB.\n\n"
+                    f"❌ File too large: {file_size_mb:.1f} MB. Maximum allowed: 10 MB.\n\n"
                     "Please reduce the file size or select a different file."
                 )
             else:
@@ -726,7 +726,7 @@ def show_upload_screen():
                 **📋 Requirements:**
 
                 - File format: PDF only
-                - Maximum size: 32 MB
+                - Maximum size: 10 MB
                 - Recommended: Scientific medical publications (research articles, trials, reviews)
 
                 **💡 Tips:**
@@ -850,27 +850,12 @@ def main():
 
     # Sidebar navigation
     with st.sidebar:
-        st.markdown("### Navigation")
-
-        if st.button("Back to Start"):
-            # Reset to intro phase
-            st.session_state.current_phase = "intro"
-
-            # Clear file selection state
-            st.session_state.pdf_path = None
-            st.session_state.uploaded_file_info = None
-            st.session_state.highlighted_file = None
-            st.session_state.uploader_key += 1  # Force file_uploader widget reset
-
-            st.rerun()
-
-        st.markdown("---")
         st.markdown("### Pipeline Steps")
 
         # Show pipeline progress indicators
         phases = {
             "intro": "Introduction",
-            "upload": "Upload PDF",
+            "upload": "Select PDF",
             "settings": "Settings",
             "execution": "Execution",
             "results": "Results",
@@ -882,6 +867,18 @@ def main():
                 st.markdown(f"**→ {phase_name}** ✓")
             else:
                 st.markdown(f"   {phase_name}")
+        st.markdown("---")
+        if st.button("Back to Start"):
+            # Reset to intro phase
+            st.session_state.current_phase = "intro"
+
+            # Clear file selection state
+            st.session_state.pdf_path = None
+            st.session_state.uploaded_file_info = None
+            st.session_state.highlighted_file = None
+            st.session_state.uploader_key += 1  # Force file_uploader widget reset
+
+            st.rerun()
 
     # Route to appropriate screen based on current phase
     if st.session_state.current_phase == "intro":
