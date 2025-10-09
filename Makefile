@@ -38,6 +38,14 @@ fmt:
 check: lint fmt
 
 # --------------------------------------
+# Schema management
+# --------------------------------------
+
+# Bundle schemas (combine with common.schema.json)
+bundle:
+	cd schemas && $(PYTHON) json-bundler.py && cd .. && make commit
+
+# --------------------------------------
 # Pipeline runnen
 # --------------------------------------
 
