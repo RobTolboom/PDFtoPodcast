@@ -78,7 +78,8 @@
           "type": "number"
         },
         "timestamp": {
-          "type": "string"
+          "type": "string",
+          "format": "date-time"
         }
       }
     },
@@ -133,7 +134,8 @@
         },
         "required": [
           "is_primary"
-        ]
+        ],
+        "additionalProperties": false
       }
     },
     "results": {
@@ -254,10 +256,12 @@
               "location": {
                 "type": "string"
               }
-            }
+            },
+            "additionalProperties": false
           }
         }
-      }
+      },
+      "additionalProperties": false
     },
     "sensitivity_analyses": {
       "type": "array",
@@ -284,162 +288,6 @@
       "$ref": "#/$defs/TruncationInfo"
     }
   },
-  "allOf": [
-    {
-      "if": {
-        "properties": {
-          "study_design": {
-            "properties": {
-              "label": {
-                "enum": [
-                  "RCT",
-                  "Cluster-RCT",
-                  "Crossover-RCT",
-                  "Factorial-RCT"
-                ]
-              }
-            }
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "study_design": {
-            "properties": {
-              "randomisation": {
-                "not": {
-                  "const": "none"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "study_design": {
-            "properties": {
-              "label": {
-                "const": "Cluster-RCT"
-              }
-            }
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "study_design": {
-            "required": [
-              "cluster_unit",
-              "clusters_per_arm"
-            ]
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "study_design": {
-            "properties": {
-              "label": {
-                "const": "Crossover-RCT"
-              }
-            }
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "study_design": {
-            "required": [
-              "periods"
-            ],
-            "properties": {
-              "periods": {
-                "minimum": 2
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "study_design": {
-            "properties": {
-              "label": {
-                "const": "Factorial-RCT"
-              }
-            }
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "study_design": {
-            "required": [
-              "factors"
-            ],
-            "properties": {
-              "factors": {
-                "minItems": 1
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "study_design": {
-            "properties": {
-              "label": {
-                "const": "Stepped-wedge"
-              }
-            }
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "study_design": {
-            "required": [
-              "steps",
-              "rollout_schedule_iso8601"
-            ]
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "study_design": {
-            "properties": {
-              "label": {
-                "enum": [
-                  "Single-arm",
-                  "Before-after"
-                ]
-              }
-            }
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "arms": {
-            "minItems": 1
-          }
-        }
-      }
-    }
-  ],
   "$defs": {
     "StudyDesign": {
       "type": "object",
@@ -550,7 +398,8 @@
                   "type": "string"
                 }
               }
-            }
+            },
+            "additionalProperties": false
           },
           "default": []
         },
@@ -571,7 +420,8 @@
             "random": {
               "type": "boolean"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "allocation_concealment": {
           "type": "string",
@@ -626,7 +476,8 @@
               "type": "integer",
               "minimum": 0
             }
-          }
+          },
+          "additionalProperties": false
         },
         "analysis_population": {
           "type": "string",
@@ -761,7 +612,8 @@
                 "alpha_spending_function": {
                   "type": "string"
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "interim_analysis_results": {
               "type": "array",
@@ -794,10 +646,12 @@
                   "boundary_crossed": {
                     "type": "boolean"
                   }
-                }
+                },
+                "additionalProperties": false
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "response_adaptive_randomisation": {
           "type": "boolean",
@@ -836,7 +690,8 @@
             "borrowing_across_comparisons": {
               "type": "boolean"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "master_protocol_details": {
           "type": "object",
@@ -873,10 +728,12 @@
                   "target": {
                     "type": "string"
                   }
-                }
+                },
+                "additionalProperties": false
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "mams_details": {
           "type": "object",
@@ -898,7 +755,8 @@
             "arm_dropping_criteria": {
               "type": "string"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "sample_size_calculation": {
           "type": "object",
@@ -953,7 +811,8 @@
                   "minimum": 0,
                   "maximum": 1
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "notes": {
               "type": "string"
@@ -1057,7 +916,8 @@
                     "minimum": 0,
                     "maximum": 100
                   }
-                }
+                },
+                "additionalProperties": false
               }
             },
             "dropout_reasons": {
@@ -1075,14 +935,16 @@
                   "arm_id": {
                     "type": "string"
                   }
-                }
+                },
+                "additionalProperties": false
               }
             },
             "differential_dropout": {
               "type": "boolean",
               "description": "Whether dropout differs significantly between arms"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "missing_data": {
           "type": "object",
@@ -1126,7 +988,8 @@
                     "type": "string"
                   }
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "sensitivity_to_missing": {
               "type": "object",
@@ -1140,7 +1003,8 @@
                 "conclusion_robust": {
                   "type": "boolean"
                 }
-              }
+              },
+              "additionalProperties": false
             }
           }
         },
@@ -1461,85 +1325,7 @@
         "source": {
           "$ref": "#/$defs/SourceRef"
         }
-      },
-      "oneOf": [
-        {
-          "required": [
-            "mean",
-            "sd"
-          ],
-          "not": {
-            "anyOf": [
-              {
-                "required": [
-                  "median"
-                ]
-              },
-              {
-                "required": [
-                  "iqr"
-                ]
-              },
-              {
-                "required": [
-                  "events"
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "required": [
-            "median",
-            "iqr"
-          ],
-          "not": {
-            "anyOf": [
-              {
-                "required": [
-                  "mean"
-                ]
-              },
-              {
-                "required": [
-                  "sd"
-                ]
-              },
-              {
-                "required": [
-                  "events"
-                ]
-              }
-            ]
-          },
-          "properties": {
-            "iqr": {
-              "required": [
-                "p25",
-                "p75"
-              ]
-            }
-          }
-        },
-        {
-          "description": "Binaire uitkomst per arm",
-          "required": [
-            "events"
-          ],
-          "anyOf": [
-            {
-              "required": [
-                "n"
-              ]
-            },
-            {
-              "required": [
-                "total"
-              ]
-            }
-          ]
-        }
-      ]
+      }
     },
     "ContrastEffect": {
       "$ref": "#/$defs/ContrastEffect"
@@ -2036,7 +1822,8 @@
               "description": {
                 "type": "string"
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "sensitivity_estimands": {
@@ -2051,7 +1838,8 @@
               "description": {
                 "type": "string"
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "source": {
@@ -2100,7 +1888,8 @@
             "differential_by_arm": {
               "type": "boolean"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "minimally_important_difference": {
           "type": "object",
@@ -2117,7 +1906,8 @@
             "source": {
               "type": "string"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "scoring": {
           "type": "object",
@@ -2131,7 +1921,8 @@
                 "max": {
                   "type": "number"
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "direction": {
               "type": "string",
@@ -2146,7 +1937,8 @@
                 "type": "string"
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "pro_ctcae": {
           "type": "boolean",
@@ -2181,9 +1973,11 @@
                   "p75": {
                     "type": "number"
                   }
-                }
+                },
+                "additionalProperties": false
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "source": {
@@ -2227,7 +2021,8 @@
                 "minimum": 0,
                 "maximum": 100
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "hierarchical": {
@@ -2261,7 +2056,8 @@
               "minimum": 0,
               "maximum": 1
             }
-          }
+          },
+          "additionalProperties": false
         },
         "component_specific_effects": {
           "type": "array",
@@ -2274,7 +2070,8 @@
               "effect": {
                 "$ref": "#/$defs/ContrastEffect"
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "source": {
@@ -2333,6 +2130,7 @@
         },
         "url": {
           "type": "string",
+          "format": "uri",
           "description": "Optional direct URL to the external resource"
         },
         "version": {
@@ -2487,7 +2285,8 @@
           "type": "string"
         },
         "published_date": {
-          "type": "string"
+          "type": "string",
+          "format": "date"
         },
         "published_date_precision": {
           "type": "string",
@@ -2864,6 +2663,7 @@
         },
         "timestamp": {
           "type": "string",
+          "format": "date-time",
           "description": "When extraction was performed"
         },
         "transformation_notes": {
