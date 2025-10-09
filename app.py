@@ -113,7 +113,6 @@ def get_uploaded_files() -> list[dict]:
     return existing_files
 
 
-@st.dialog("Results", width="large")
 def show_json_viewer(file_path: str, step_name: str, file_info: dict):
     """Display JSON content in a modal dialog."""
     # Icon mapping for each step type
@@ -125,24 +124,29 @@ def show_json_viewer(file_path: str, step_name: str, file_info: dict):
     }
 
     icon = step_icons.get(step_name, "📋")
-    st.markdown(f"## {icon} {step_name}")
 
-    try:
-        with open(file_path, "r") as f:
-            json_content = json.load(f)
+    # Create dialog with dynamic title
+    @st.dialog(f"{icon} {step_name}", width="large")
+    def dialog_content():
+        try:
+            with open(file_path, "r") as f:
+                json_content = json.load(f)
 
-        # Display JSON
-        st.json(json_content)
+            # Display JSON
+            st.json(json_content)
 
-        # Show file metadata
-        st.caption(
-            f"📁 File: `{Path(file_path).name}` • "
-            f"Modified: {file_info['modified']} • "
-            f"Size: {file_info['size_kb']:.1f} KB"
-        )
+            # Show file metadata
+            st.caption(
+                f"📁 File: `{Path(file_path).name}` • "
+                f"Modified: {file_info['modified']} • "
+                f"Size: {file_info['size_kb']:.1f} KB"
+            )
 
-    except Exception as e:
-        st.error(f"❌ Error reading file: {e}")
+        except Exception as e:
+            st.error(f"❌ Error reading file: {e}")
+
+    # Call the dialog
+    dialog_content()
 
 
 def get_identifier_from_pdf_path(pdf_path: str) -> str | None:
