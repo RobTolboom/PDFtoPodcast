@@ -739,7 +739,7 @@ Het schema ondersteunt nu geavanceerde cross-referencing tussen argumenten en ex
 These schemas are optimized for use with Large Language Models (LLMs) for automated data extraction:
 
 #### Supported LLM Providers
-- **OpenAI GPT**: GPT-4, GPT-3.5-turbo with JSON mode
+- **OpenAI GPT**: GPT-5 with JSON mode
 - **Anthropic Claude**: Claude-3.5 Sonnet, Claude-3 Opus
 - **Google**: Gemini Pro with structured output
 - **Open Source**: Llama, Mistral, Code Llama models
@@ -772,9 +772,9 @@ import json, jsonschema
 prompt = open('prompts/Extraction-prompt-interventional.txt').read()
 schema = json.load(open('interventional_trial_bundled.json'))
 
-# Extract with GPT-4
+# Extract with GPT-5
 response = openai.ChatCompletion.create(
-    model="gpt-4-turbo",
+    model="gpt-5",
     messages=[
         {"role": "system", "content": prompt},
         {"role": "user", "content": pdf_text}

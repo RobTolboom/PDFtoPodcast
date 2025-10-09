@@ -15,7 +15,7 @@ Supported Providers:
     OpenAI:
         - Uses Responses API with Structured Outputs (strict mode)
         - Guarantees output conforms to JSON schema at generation time
-        - Requires models with structured output support (e.g., gpt-4o, gpt-5)
+        - Requires models with structured output support (e.g., gpt-5)
         - All schemas must be OpenAI Strict Mode compliant
 
     Claude:
@@ -353,7 +353,7 @@ class OpenAIProvider(BaseLLMProvider):
     to the provided schema at generation time, eliminating the need for
     post-generation validation.
 
-    Supported models: gpt-4o, gpt-4o-mini, and other models with structured output support
+    Supported models: gpt-5, and other models with structured output support
 
     Attributes:
         client: OpenAI client instance
@@ -671,7 +671,7 @@ class OpenAIProvider(BaseLLMProvider):
         """
         Generate structured JSON from PDF using OpenAI Responses API with Structured Outputs.
 
-        Uses GPT-4o/GPT-4o-mini vision capabilities to analyze PDF including tables,
+        Uses GPT-5 vision capabilities to analyze PDF including tables,
         images, and charts. PDF is sent as base64-encoded file for direct processing.
         """
         try:

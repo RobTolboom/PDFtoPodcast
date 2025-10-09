@@ -330,7 +330,7 @@ def show_settings_screen():
         with col1:
             openai_selected = st.radio(
                 "Select LLM provider",
-                ["OpenAI (GPT-4)", "Claude (Coming Soon)"],
+                ["OpenAI (GPT-5)", "Claude (Coming Soon)"],
                 index=0,
                 disabled=False,
                 label_visibility="collapsed",
@@ -346,7 +346,7 @@ def show_settings_screen():
         with col2:
             st.info(
                 """
-                **OpenAI (GPT-4)**
+                **OpenAI (GPT-5)**
                 - Fast processing
                 - Cost-effective
                 - Reliable for most documents

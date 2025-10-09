@@ -16,7 +16,7 @@ Environment Variables:
 
     # OpenAI Configuration
     OPENAI_API_KEY: OpenAI API key
-    OPENAI_MODEL: Model name (default: gpt-4o, supports structured outputs)
+    OPENAI_MODEL: Model name (default: gpt-5, supports structured outputs)
     OPENAI_MAX_TOKENS: Maximum output tokens (default: 4096)
 
     # Anthropic Configuration
@@ -34,7 +34,7 @@ Environment Variables:
 
 Example .env file:
     OPENAI_API_KEY=sk-...
-    OPENAI_MODEL=gpt-4o
+    OPENAI_MODEL=gpt-5
     ANTHROPIC_API_KEY=sk-ant-...
     LLM_TEMPERATURE=0.0
     LLM_TIMEOUT=120
@@ -42,7 +42,7 @@ Example .env file:
 Usage:
     >>> from src.config import llm_settings
     >>> llm_settings.openai_model
-    'gpt-4o'
+    'gpt-5'
 """
 
 import os
@@ -79,7 +79,7 @@ class LLMSettings:
     Attributes:
         default_provider: Which LLM provider to use by default
         openai_api_key: OpenAI API key from OPENAI_API_KEY env var
-        openai_model: Model name (default: gpt-4o, supports structured outputs)
+        openai_model: Model name (default: gpt-5, supports structured outputs)
         openai_max_tokens: Max output tokens for OpenAI (default: 4096)
         anthropic_api_key: Anthropic API key from ANTHROPIC_API_KEY env var
         anthropic_model: Claude model name (default: claude-3-5-sonnet-20241022)
@@ -95,8 +95,8 @@ class LLMSettings:
 
     # OpenAI configuration
     openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
-    openai_model: str = os.getenv("OPENAI_MODEL", "gpt-4o")  # gpt-4o supports structured outputs
-    # Set very high default (128K context window for gpt-4o)
+    openai_model: str = os.getenv("OPENAI_MODEL", "gpt-5")  # gpt-5 supports structured outputs
+    # Set very high default (128K context window for gpt-5)
     # Actual output limit depends on model (typically 4K-16K for completion)
     # OpenAI API will enforce model-specific limits automatically
     openai_max_tokens: int = int(os.getenv("OPENAI_MAX_TOKENS", "128000"))
@@ -125,7 +125,7 @@ class Settings:
     """
 
     api_key: str = os.getenv("OPENAI_API_KEY", "")
-    model: str = os.getenv("OPENAI_MODEL", "gpt-4o")  # Updated from gpt-4.1 to valid model
+    model: str = os.getenv("OPENAI_MODEL", "gpt-5")  # Updated from gpt-4.1 to valid model
     max_tokens: int = int(os.getenv("MAX_TOKENS", "4096"))
 
 

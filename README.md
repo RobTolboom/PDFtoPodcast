@@ -16,7 +16,7 @@ This pipeline extracts structured data from medical research PDFs with a focus o
 - **🏥 Medical Literature Focused** - Optimized for clinical trials, systematic reviews, observational studies
 - **🔄 Four-Step Pipeline** - Classification → Extraction → Validation → Correction
 - **✅ Dual Validation** - Schema validation + LLM semantic validation for quality assurance
-- **🤖 Multi-Provider** - Supports both OpenAI (GPT-4o) and Claude (Opus/Sonnet)
+- **🤖 Multi-Provider** - Supports both OpenAI (GPT-5) and Claude (Opus/Sonnet)
 - **📐 Schema-Based** - JSON Schema enforcement for structured outputs
 - **💾 DOI-Based Storage** - Automatic file naming using publication DOI
 
@@ -97,7 +97,7 @@ This pipeline extracts structured data from medical research PDFs with a focus o
 
 ### Requirements
 - Python 3.10+
-- OpenAI API key (for GPT-4o) or Anthropic API key (for Claude)
+- OpenAI API key (for GPT-5) or Anthropic API key (for Claude)
 
 ### Setup
 
@@ -124,7 +124,7 @@ OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-ant-...
 
 # Optional: Model selection
-OPENAI_MODEL=gpt-4o           # Default: gpt-4o (vision support)
+OPENAI_MODEL=gpt-5           # Default: gpt-5 (vision support)
 ANTHROPIC_MODEL=claude-3-5-sonnet-20241022  # Default: Sonnet 4.5
 
 # Optional: Token limits
@@ -279,7 +279,7 @@ Each JSON file contains structured data conforming to its schema:
 
 ### Cost Example (20-page paper)
 
-**OpenAI GPT-4o:**
+**OpenAI GPT-5:**
 - Input: 20 pages × 2,000 tokens = 40,000 tokens ($0.20)
 - Output: ~4,000 tokens ($0.60)
 - **Total per paper: ~$0.80**
@@ -383,7 +383,7 @@ python run_pipeline.py samples/sample_trial.pdf --max-pages 5
 ### OpenAI API Limits
 - **Max pages:** 100 per PDF
 - **Max file size:** 32 MB
-- **Models:** gpt-4o, gpt-4o-mini, o1 (vision-capable models)
+- **Models:** gpt-5 (vision-capable model)
 - **Format:** Base64-encoded PDF
 
 ### Claude API Limits

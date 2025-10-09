@@ -22,7 +22,7 @@ PDF Upload Strategy:
     Cost: ~1,500-3,000 tokens per page (3-6x more than text extraction)
     Benefit: Complete data fidelity - no loss of tables, images, or formatting
 
-    Both OpenAI (GPT-4o vision) and Claude (document API) support PDF upload:
+    Both OpenAI (GPT-5 vision) and Claude (document API) support PDF upload:
     - 100 page limit, 32 MB file size limit
     - Base64-encoded PDFs sent directly to LLM
     - Vision models analyze both text and visual content

@@ -30,7 +30,7 @@ All steps use **direct PDF upload** (OpenAI vision API / Claude document API) to
 **Usage:**
 ```python
 from src.config import llm_settings
-print(llm_settings.openai_model)  # 'gpt-4o'
+print(llm_settings.openai_model)  # 'gpt-5'
 print(llm_settings.max_pdf_pages)  # 100
 ```
 
@@ -41,7 +41,7 @@ print(llm_settings.max_pdf_pages)  # 100
 
 **Key features:**
 - Abstract `BaseLLMProvider` interface
-- OpenAI provider (GPT-4o vision API)
+- OpenAI provider (GPT-5 vision API)
 - Claude provider (document API)
 - Three generation modes:
   - `generate_text()` - Free-form text
