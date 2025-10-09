@@ -78,7 +78,8 @@
           "type": "number"
         },
         "timestamp": {
-          "type": "string"
+          "type": "string",
+          "format": "date-time"
         }
       }
     },
@@ -177,7 +178,8 @@
                   "selection"
                 ]
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "backdoor_paths": {
@@ -201,7 +203,8 @@
               "sufficient": {
                 "type": "boolean"
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "collider_bias_risk": {
@@ -216,7 +219,8 @@
                 "type": "string"
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "selection_bias_risk": {
           "type": "object",
@@ -230,7 +234,8 @@
             "bias_direction": {
               "type": "string"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "mediation_paths": {
           "type": "array",
@@ -246,10 +251,12 @@
               "indirect_effect_estimable": {
                 "type": "boolean"
               }
-            }
+            },
+            "additionalProperties": false
           }
         }
-      }
+      },
+      "additionalProperties": false
     },
     "time_varying_confounding": {
       "type": "object",
@@ -290,7 +297,8 @@
                 "upper_percentile": {
                   "type": "number"
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "denominator_model": {
               "type": "string"
@@ -301,7 +309,8 @@
             "positivity_violations": {
               "type": "boolean"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "g_formula_details": {
           "type": "object",
@@ -324,12 +333,14 @@
             "monte_carlo_samples": {
               "type": "integer"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "sequential_exchangeability_assumption": {
           "type": "string"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "extraction_quality": {
       "type": "object",
@@ -432,12 +443,14 @@
                 "very_high"
               ]
             }
-          }
+          },
+          "additionalProperties": false
         },
         "notes": {
           "type": "string"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "strobe_reporting": {
       "type": "object",
@@ -465,7 +478,8 @@
           "minimum": 0,
           "maximum": 100
         }
-      }
+      },
+      "additionalProperties": false
     },
     "protocol_deviations": {
       "type": "string"
@@ -481,147 +495,6 @@
       "$ref": "#/$defs/TruncationInfo"
     }
   },
-  "allOf": [
-    {
-      "if": {
-        "properties": {
-          "study_design": {
-            "properties": {
-              "label": {
-                "const": "Cohort"
-              }
-            }
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "study_design": {
-            "required": [
-              "cohort_direction"
-            ]
-          },
-          "population": {
-            "required": [
-              "n_total"
-            ]
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "study_design": {
-            "properties": {
-              "label": {
-                "const": "Case-control"
-              }
-            }
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "population": {
-            "required": [
-              "n_cases",
-              "n_controls"
-            ]
-          },
-          "study_design": {
-            "properties": {
-              "matching": {
-                "default": "none"
-              }
-            }
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "study_design": {
-            "properties": {
-              "label": {
-                "const": "Cross-sectional"
-              }
-            }
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "study_design": {
-            "required": [
-              "sampling_frame"
-            ]
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "study_design": {
-            "properties": {
-              "label": {
-                "const": "Ecological"
-              }
-            }
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "study_design": {
-            "required": [
-              "ecological_level"
-            ]
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "study_design": {
-            "properties": {
-              "label": {
-                "const": "Case-control"
-              }
-            }
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "study_design": {
-            "allOf": [
-              {
-                "if": {
-                  "properties": {
-                    "matching": {
-                      "enum": [
-                        "individual",
-                        "frequency"
-                      ]
-                    }
-                  }
-                },
-                "then": {
-                  "required": [
-                    "matching_variables"
-                  ]
-                }
-              }
-            ]
-          }
-        }
-      }
-    }
-  ],
   "$defs": {
     "StudyDesign": {
       "type": "object",
@@ -719,7 +592,8 @@
                 "as_treated"
               ]
             }
-          }
+          },
+          "additionalProperties": false
         },
         "new_user_design": {
           "type": "boolean",
@@ -840,7 +714,8 @@
             "seasonality_adjustment": {
               "type": "boolean"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "case_crossover_details": {
           "type": "object",
@@ -863,7 +738,8 @@
             "bidirectional": {
               "type": "boolean"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "rdd_details": {
           "type": "object",
@@ -900,12 +776,14 @@
                 "p_value": {
                   "type": "number"
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "covariate_balance_at_cutoff": {
               "type": "boolean"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "did_details": {
           "type": "object",
@@ -938,7 +816,8 @@
                 "event_study_performed": {
                   "type": "boolean"
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "staggered_adoption": {
               "type": "boolean"
@@ -946,7 +825,8 @@
             "triple_difference": {
               "type": "boolean"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "design_notes": {
           "type": "string"
@@ -1109,28 +989,7 @@
         "source": {
           "$ref": "#/$defs/SourceRef"
         }
-      },
-      "allOf": [
-        {
-          "if": {
-            "properties": {
-              "type": {
-                "const": "categorical"
-              }
-            }
-          },
-          "then": {
-            "required": [
-              "categories"
-            ],
-            "properties": {
-              "categories": {
-                "minItems": 2
-              }
-            }
-          }
-        }
-      ]
+      }
     },
     "Group": {
       "type": "object",
@@ -1401,85 +1260,7 @@
         "source": {
           "$ref": "#/$defs/SourceRef"
         }
-      },
-      "oneOf": [
-        {
-          "required": [
-            "mean",
-            "sd"
-          ],
-          "not": {
-            "anyOf": [
-              {
-                "required": [
-                  "median"
-                ]
-              },
-              {
-                "required": [
-                  "iqr"
-                ]
-              },
-              {
-                "required": [
-                  "events"
-                ]
-              }
-            ]
-          }
-        },
-        {
-          "required": [
-            "median",
-            "iqr"
-          ],
-          "not": {
-            "anyOf": [
-              {
-                "required": [
-                  "mean"
-                ]
-              },
-              {
-                "required": [
-                  "sd"
-                ]
-              },
-              {
-                "required": [
-                  "events"
-                ]
-              }
-            ]
-          },
-          "properties": {
-            "iqr": {
-              "required": [
-                "p25",
-                "p75"
-              ]
-            }
-          }
-        },
-        {
-          "description": "Binary outcome per group",
-          "required": [
-            "events"
-          ],
-          "anyOf": [
-            {
-              "required": [
-                "n"
-              ]
-            },
-            {
-              "required": [
-                "total"
-              ]
-            }
-          ]
-        }
-      ]
+      }
     },
     "ContrastEffect": {
       "$ref": "#/$defs/ContrastEffect"
@@ -1502,7 +1283,8 @@
             "interpretation": {
               "type": "string"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "negative_controls": {
           "type": "object",
@@ -1528,7 +1310,8 @@
                   "residual_confounding_suggested": {
                     "type": "boolean"
                   }
-                }
+                },
+                "additionalProperties": false
               }
             },
             "negative_control_exposures": {
@@ -1548,10 +1331,12 @@
                   "null_hypothesis_rejected": {
                     "type": "boolean"
                   }
-                }
+                },
+                "additionalProperties": false
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "quantitative_bias_analysis": {
           "type": "object",
@@ -1586,10 +1371,12 @@
                   "bias_corrected_estimate": {
                     "$ref": "#/$defs/ContrastEffect"
                   }
-                }
+                },
+                "additionalProperties": false
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "rule_out_approach": {
           "type": "object",
@@ -1601,7 +1388,8 @@
             "robust_to": {
               "type": "string"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "notes": {
           "type": "string"
@@ -1722,7 +1510,8 @@
                     "type": "string"
                   }
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "positivity": {
               "type": "object",
@@ -1742,7 +1531,8 @@
                 "trimming_threshold": {
                   "type": "number"
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "weight_diagnostics": {
               "type": "object",
@@ -1762,7 +1552,8 @@
                     "upper": {
                       "type": "number"
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 },
                 "effective_sample_size": {
                   "type": "number"
@@ -1773,7 +1564,8 @@
                 "weight_variance": {
                   "type": "number"
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "doubly_robust_details": {
               "type": "object",
@@ -1797,7 +1589,8 @@
                     "type": "string"
                   }
                 }
-              }
+              },
+              "additionalProperties": false
             }
           }
         },
@@ -2024,7 +1817,8 @@
                 "no_interaction"
               ]
             }
-          }
+          },
+          "additionalProperties": false
         },
         "causal_vs_statistical": {
           "type": "string",
@@ -2084,7 +1878,8 @@
                 "weak_instrument": {
                   "type": "boolean"
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "exclusion_restriction": {
               "type": "object",
@@ -2098,7 +1893,8 @@
                 "testable_implications": {
                   "type": "string"
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "exchangeability": {
               "type": "object",
@@ -2109,9 +1905,11 @@
                 "balance_check": {
                   "type": "string"
                 }
-              }
+              },
+              "additionalProperties": false
             }
-          }
+          },
+          "additionalProperties": false
         },
         "estimation_method": {
           "type": "string",
@@ -2138,7 +1936,8 @@
             "interpretation": {
               "type": "string"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "mendelian_randomization": {
           "type": "object",
@@ -2165,9 +1964,11 @@
                 "q_statistic_p": {
                   "type": "number"
                 }
-              }
+              },
+              "additionalProperties": false
             }
-          }
+          },
+          "additionalProperties": false
         },
         "sensitivity_analyses": {
           "type": "array",
@@ -2225,6 +2026,7 @@
         },
         "url": {
           "type": "string",
+          "format": "uri",
           "description": "Optional direct URL to the external resource"
         },
         "version": {
@@ -2379,7 +2181,8 @@
           "type": "string"
         },
         "published_date": {
-          "type": "string"
+          "type": "string",
+          "format": "date"
         },
         "published_date_precision": {
           "type": "string",
@@ -2701,6 +2504,7 @@
         },
         "timestamp": {
           "type": "string",
+          "format": "date-time",
           "description": "When extraction was performed"
         },
         "transformation_notes": {
