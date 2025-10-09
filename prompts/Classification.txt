@@ -119,23 +119,15 @@ EXPLICIETE VALIDATIEREGELS
 5. Vancouver citatie format:
    [Eerste auteur] [et al]. [Titel]. [Journal]. [Jaar];[Volume]([Issue]):[Pages]. doi:[DOI]
 
-JSON OUTPUT
+OUTPUT FORMAT
 
-Het JSON output formaat wordt automatisch afgedwongen via JSON Schema validation met strict mode.
-Alle velden moeten correct gevuld worden volgens de schema definities in classification.schema.json.
-
-VERPLICHTE VELDEN:
-- metadata (met minimaal title, journal, vancouver_citation)
-- publication_type (exact één van de 6 categorieën)
+Return a JSON object conforming to the classification schema with:
+- metadata (title, journal, authors, vancouver_citation, etc.)
+- publication_type (one of 6 categories)
 - classification_confidence (0.0-1.0)
 - classification_reasoning
-- alternative_classifications (array, kan leeg zijn of null)
-- extraction_warnings (array, kan leeg zijn of null)
-
-OPTIONELE METADATA VELDEN (gebruik null als niet beschikbaar):
-- journal_abbrev, published_date, volume, issue, pages, doi, pmid, authors, source
-
-Het schema garandeert correcte structuur - focus op nauwkeurige data extractie uit de PDF.
+- alternative_classifications (if confidence < 0.9)
+- extraction_warnings (for uncertainties/ambiguities)
 
 SPECIALE INSTRUCTIES ANESTHESIOLOGIE
 
