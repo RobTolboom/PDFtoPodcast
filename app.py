@@ -113,6 +113,29 @@ def get_uploaded_files() -> list[dict]:
     return existing_files
 
 
+@st.dialog("📋 View Results", width="large")
+def show_json_viewer(file_path: str, step_name: str, file_info: dict):
+    """Display JSON content in a modal dialog."""
+    st.markdown(f"### {step_name}")
+
+    try:
+        with open(file_path, "r") as f:
+            json_content = json.load(f)
+
+        # Display JSON
+        st.json(json_content)
+
+        # Show file metadata
+        st.caption(
+            f"📁 File: `{Path(file_path).name}` • "
+            f"Modified: {file_info['modified']} • "
+            f"Size: {file_info['size_kb']:.1f} KB"
+        )
+
+    except Exception as e:
+        st.error(f"❌ Error reading file: {e}")
+
+
 def get_identifier_from_pdf_path(pdf_path: str) -> str | None:
     """Extract identifier from PDF path for finding related result files."""
     # For now, use the PDF filename as identifier
@@ -423,50 +446,12 @@ def show_settings_screen():
                     btn1, btn2 = st.columns([1, 1])
                     with btn1:
                         if st.button("👁️", key=f"view_{step_key}", help="View results"):
-                            st.session_state.view_step = step_key
-                            st.rerun()
+                            show_json_viewer(file_info["path"], step["name"], file_info)
                     with btn2:
                         if st.button("🗑️", key=f"delete_{step_key}", help="Delete result"):
                             Path(file_info["path"]).unlink()
                             st.success(f"Deleted {step['name']} results")
                             st.rerun()
-
-            # Display inline JSON viewer if this step is being viewed
-            if (
-                "view_step" in st.session_state
-                and st.session_state.view_step == step_key
-                and file_info
-            ):
-                st.markdown("---")
-
-                # Header with close button
-                header_col1, header_col2 = st.columns([6, 1])
-                with header_col1:
-                    st.markdown(f"### 📋 {step['name']} Results")
-                with header_col2:
-                    if st.button("✖️", key=f"close_viewer_{step_key}", help="Close viewer"):
-                        st.session_state.view_step = None
-                        st.rerun()
-
-                # Read and display JSON content
-                try:
-                    with open(file_info["path"], "r") as f:
-                        json_content = json.load(f)
-
-                    # Display JSON
-                    st.json(json_content)
-
-                    # Show file metadata
-                    st.caption(
-                        f"📁 File: `{Path(file_info['path']).name}` • "
-                        f"Modified: {file_info['modified']} • "
-                        f"Size: {file_info['size_kb']:.1f} KB"
-                    )
-
-                except Exception as e:
-                    st.error(f"❌ Error reading file: {e}")
-
-                st.markdown("---")
 
         # Update settings
         st.session_state.settings["steps_to_run"] = steps_to_run
