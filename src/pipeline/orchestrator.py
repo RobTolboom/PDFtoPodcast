@@ -150,41 +150,32 @@ def run_four_step_pipeline(
     try:
         publication_type = classification_result.get("publication_type")
 
-        if publication_type == "overig":
-            console.print(
-                "[yellow]⚠️ Publicatietype 'overig' - geen gespecialiseerde extractie beschikbaar[/yellow]"
-            )
-            extraction_result = {
-                "error": "No specialized extraction available for publication type 'overig'",
-                "metadata": classification_result["metadata"],
-            }
-        else:
-            # Load appropriate extraction prompt and schema
-            extraction_prompt = load_extraction_prompt(publication_type)
-            extraction_schema = load_schema(publication_type)
+        # Load appropriate extraction prompt and schema
+        extraction_prompt = load_extraction_prompt(publication_type)
+        extraction_schema = load_schema(publication_type)
 
-            # Check schema compatibility with OpenAI
-            compatibility = validate_schema_compatibility(extraction_schema)
-            if compatibility["warnings"]:
-                console.print("[yellow]⚠️  Schema compatibility warnings:[/yellow]")
-                for warning in compatibility["warnings"][:3]:
-                    console.print(f"[dim]  • {warning}[/dim]")
+        # Check schema compatibility with OpenAI
+        compatibility = validate_schema_compatibility(extraction_schema)
+        if compatibility["warnings"]:
+            console.print("[yellow]⚠️  Schema compatibility warnings:[/yellow]")
+            for warning in compatibility["warnings"][:3]:
+                console.print(f"[dim]  • {warning}[/dim]")
 
-            console.print(
-                f"[dim]Running schema-based {publication_type} extraction with PDF upload..."
-            )
-            console.print(f"[dim]Schema: ~{compatibility['estimated_tokens']} tokens[/dim]")
+        console.print(
+            f"[dim]Running schema-based {publication_type} extraction with PDF upload..."
+        )
+        console.print(f"[dim]Schema: ~{compatibility['estimated_tokens']} tokens[/dim]")
 
-            # Run schema-based extraction with direct PDF upload
-            extraction_result = llm.generate_json_with_pdf(
-                pdf_path=pdf_path,
-                schema=extraction_schema,
-                system_prompt=extraction_prompt,
-                max_pages=max_pages,
-                schema_name=f"{publication_type}_extraction",
-            )
+        # Run schema-based extraction with direct PDF upload
+        extraction_result = llm.generate_json_with_pdf(
+            pdf_path=pdf_path,
+            schema=extraction_schema,
+            system_prompt=extraction_prompt,
+            max_pages=max_pages,
+            schema_name=f"{publication_type}_extraction",
+        )
 
-            console.print("[green]✅ Schema-conforming extraction completed[/green]")
+        console.print("[green]✅ Schema-conforming extraction completed[/green]")
 
     except (SchemaLoadError, PromptLoadError, LLMError) as e:
         console.print(f"[red]❌ Extractie fout: {e}[/red]")

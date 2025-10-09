@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, Any
 
 from rich.console import Console
 
+from ..llm import LLMError
 from ..prompts import PromptLoadError, load_validation_prompt
 from ..schemas_loader import SchemaLoadError, load_schema
 from ..validation import ValidationError, validate_extraction_quality
@@ -196,7 +197,7 @@ Verify the extracted data against the original PDF document. Check for hallucina
         }
         return validation_result
 
-    except (PromptLoadError, ValidationError) as e:
+    except (PromptLoadError, ValidationError, LLMError) as e:
         console.print(f"[red]❌ Validatie fout: {e}[/red]")
         return {
             "verification_summary": {
