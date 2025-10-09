@@ -17,40 +17,69 @@
       "pattern": "^v\\d+\\.\\d+(\\.\\d+)?$",
       "description": "Semantic-like version tag, e.g. v1.0 or v1.2.3"
     },
-
     "document": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["filename", "page_count"],
+      "required": [
+        "filename",
+        "page_count"
+      ],
       "properties": {
-        "filename": { "type": "string" },
-        "content_type": { "type": "string", "enum": ["application/pdf"], "default": "application/pdf" },
-        "size_bytes": { "type": "integer", "minimum": 0 },
-        "page_count": { "type": "integer", "minimum": 1 }
+        "filename": {
+          "type": "string"
+        },
+        "content_type": {
+          "type": "string",
+          "enum": [
+            "application/pdf"
+          ],
+          "default": "application/pdf"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "page_count": {
+          "type": "integer",
+          "minimum": 1
+        }
       }
     },
-
     "study_id": {
       "type": "string",
       "pattern": "^[A-Za-z0-9._-]+$",
       "description": "Internal opaque ID for this article"
     },
-
     "generator": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "model", "timestamp"],
+      "required": [
+        "name",
+        "model",
+        "timestamp"
+      ],
       "properties": {
-        "name": { "type": "string" },
-        "model": { "type": "string" },
-        "temperature": { "type": "number" },
-        "timestamp": { "type": "string", "format": "date-time" }
+        "name": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "temperature": {
+          "type": "number"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
       }
     },
-
-    "language": { "$ref": "common.schema.json#/$defs/LanguageCode" },
-    "metadata": { "$ref": "common.schema.json#/$defs/Metadata" },
-
+    "language": {
+      "$ref": "common.schema.json#/$defs/LanguageCode"
+    },
+    "metadata": {
+      "$ref": "common.schema.json#/$defs/Metadata"
+    },
     "article_type": {
       "type": "string",
       "enum": [
@@ -66,108 +95,135 @@
         "Other"
       ]
     },
-
     "peer_review_status": {
       "type": "string",
-      "enum": ["peer_reviewed", "not_peer_reviewed", "unknown"],
+      "enum": [
+        "peer_reviewed",
+        "not_peer_reviewed",
+        "unknown"
+      ],
       "default": "unknown"
     },
-
-    "invited": { "type": "boolean", "default": false },
-
-    "editorial_context": { "$ref": "#/$defs/EditorialContext" },
-
+    "invited": {
+      "type": "boolean",
+      "default": false
+    },
+    "editorial_context": {
+      "$ref": "#/$defs/EditorialContext"
+    },
     "target_article": {
       "$ref": "#/$defs/TargetArticle"
     },
-
     "topic_keywords": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "default": []
     },
-
     "stance_overall": {
       "type": "string",
-      "enum": ["supportive", "critical", "mixed", "neutral", "unclear"]
+      "enum": [
+        "supportive",
+        "critical",
+        "mixed",
+        "neutral",
+        "unclear"
+      ]
     },
-
     "thesis_statement": {
       "type": "string",
       "description": "One-sentence summary of the main thesis/position"
     },
-
     "key_points": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "default": []
     },
-
     "arguments": {
       "type": "array",
-      "items": { "$ref": "#/$defs/Argument" },
+      "items": {
+        "$ref": "#/$defs/Argument"
+      },
       "minItems": 1
     },
-
     "recommendations": {
       "type": "array",
       "description": "Practice/policy/research recommendations, if any.",
-      "items": { "$ref": "#/$defs/Recommendation" },
+      "items": {
+        "$ref": "#/$defs/Recommendation"
+      },
       "default": []
     },
-
     "notable_quotes": {
       "type": "array",
       "description": "Salient quotes from the piece.",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["text"],
+        "required": [
+          "text"
+        ],
         "properties": {
-          "text": { "type": "string" },
-          "context": { "type": "string" },
-          "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+          "text": {
+            "type": "string"
+          },
+          "context": {
+            "type": "string"
+          },
+          "source": {
+            "$ref": "common.schema.json#/$defs/SourceRef"
+          }
         }
       },
       "default": []
     },
-
     "limitations_or_bias": {
       "type": "string",
       "description": "Any stated limitations or potential biases acknowledged by the authors"
     },
-
-    "conflict_of_interest": { "$ref": "#/$defs/ConflictOfInterest" },
-
-    "response_chain": { "$ref": "#/$defs/ResponseChain" },
-
-    "impact_metrics": { "$ref": "#/$defs/ImpactMetrics" },
-
-    "quality_assessment": { "$ref": "#/$defs/QualityAssessment" },
-
-    "digital_features": { "$ref": "#/$defs/DigitalFeatures" },
-
+    "conflict_of_interest": {
+      "$ref": "#/$defs/ConflictOfInterest"
+    },
+    "response_chain": {
+      "$ref": "#/$defs/ResponseChain"
+    },
+    "impact_metrics": {
+      "$ref": "#/$defs/ImpactMetrics"
+    },
+    "quality_assessment": {
+      "$ref": "#/$defs/QualityAssessment"
+    },
+    "digital_features": {
+      "$ref": "#/$defs/DigitalFeatures"
+    },
     "tables_parsed": {
       "type": "array",
-      "items": { "$ref": "common.schema.json#/$defs/ParsedTable" },
+      "items": {
+        "$ref": "common.schema.json#/$defs/ParsedTable"
+      },
       "default": []
     },
-
     "figures_summary": {
       "type": "array",
-      "items": { "$ref": "common.schema.json#/$defs/FigureSummary" },
+      "items": {
+        "$ref": "common.schema.json#/$defs/FigureSummary"
+      },
       "default": []
     },
-
     "extraction_warnings": {
       "type": "array",
-      "items": { "$ref": "common.schema.json#/$defs/ExtractionWarning" },
+      "items": {
+        "$ref": "common.schema.json#/$defs/ExtractionWarning"
+      },
       "default": []
     },
-
-    "truncated": { "$ref": "common.schema.json#/$defs/TruncationInfo" }
+    "truncated": {
+      "$ref": "common.schema.json#/$defs/TruncationInfo"
+    }
   },
-
   "$defs": {
     "EditorialContext": {
       "type": "object",
@@ -188,30 +244,58 @@
         },
         "editorial_type": {
           "type": "string",
-          "enum": ["accompanying", "standalone", "response", "invited", "unsolicited"],
+          "enum": [
+            "accompanying",
+            "standalone",
+            "response",
+            "invited",
+            "unsolicited"
+          ],
           "description": "Type of editorial in relation to other content"
         },
         "publication_timeline": {
           "type": "object",
           "properties": {
-            "submitted": { "type": "string", "format": "date" },
-            "accepted": { "type": "string", "format": "date" },
-            "published_online": { "type": "string", "format": "date" },
-            "published_print": { "type": "string", "format": "date" }
-          }
+            "submitted": {
+              "type": "string",
+              "format": "date"
+            },
+            "accepted": {
+              "type": "string",
+              "format": "date"
+            },
+            "published_online": {
+              "type": "string",
+              "format": "date"
+            },
+            "published_print": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          "additionalProperties": false
         },
         "editorial_process": {
           "type": "object",
           "properties": {
-            "peer_reviewed": { "type": "boolean" },
-            "editor_reviewed": { "type": "boolean" },
-            "fast_tracked": { "type": "boolean" },
-            "revision_count": { "type": "integer", "minimum": 0 }
-          }
+            "peer_reviewed": {
+              "type": "boolean"
+            },
+            "editor_reviewed": {
+              "type": "boolean"
+            },
+            "fast_tracked": {
+              "type": "boolean"
+            },
+            "revision_count": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
         }
       }
     },
-
     "ConflictOfInterest": {
       "type": "object",
       "additionalProperties": false,
@@ -232,20 +316,48 @@
             "properties": {
               "type": {
                 "type": "string",
-                "enum": ["consultant", "speaker", "advisory_board", "stock_ownership", "employment", "grants", "patents", "royalties", "other"]
+                "enum": [
+                  "consultant",
+                  "speaker",
+                  "advisory_board",
+                  "stock_ownership",
+                  "employment",
+                  "grants",
+                  "patents",
+                  "royalties",
+                  "other"
+                ]
               },
-              "entity": { "type": "string", "description": "Company or organization name" },
+              "entity": {
+                "type": "string",
+                "description": "Company or organization name"
+              },
               "amount_range": {
                 "type": "string",
-                "enum": ["<$1000", "$1000-$5000", "$5000-$10000", "$10000-$50000", ">$50000", "undisclosed"]
+                "enum": [
+                  "<$1000",
+                  "$1000-$5000",
+                  "$5000-$10000",
+                  "$10000-$50000",
+                  ">$50000",
+                  "undisclosed"
+                ]
               },
-              "timeframe": { "type": "string", "description": "Time period of the relationship" },
+              "timeframe": {
+                "type": "string",
+                "description": "Time period of the relationship"
+              },
               "relevance": {
                 "type": "string",
-                "enum": ["directly_relevant", "potentially_relevant", "not_relevant"],
+                "enum": [
+                  "directly_relevant",
+                  "potentially_relevant",
+                  "not_relevant"
+                ],
                 "description": "Relevance to the editorial topic"
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "institutional_affiliations": {
@@ -253,10 +365,17 @@
           "items": {
             "type": "object",
             "properties": {
-              "institution": { "type": "string" },
-              "role": { "type": "string" },
-              "potential_bias": { "type": "string" }
-            }
+              "institution": {
+                "type": "string"
+              },
+              "role": {
+                "type": "string"
+              },
+              "potential_bias": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
           }
         },
         "personal_relationships": {
@@ -266,14 +385,29 @@
             "properties": {
               "relationship_type": {
                 "type": "string",
-                "enum": ["family", "close_friend", "collaborator", "mentor", "former_colleague"]
+                "enum": [
+                  "family",
+                  "close_friend",
+                  "collaborator",
+                  "mentor",
+                  "former_colleague"
+                ]
               },
-              "person_role": { "type": "string", "description": "Role of the person in relation to editorial topic" },
+              "person_role": {
+                "type": "string",
+                "description": "Role of the person in relation to editorial topic"
+              },
               "impact_assessment": {
                 "type": "string",
-                "enum": ["high", "moderate", "low", "none"]
+                "enum": [
+                  "high",
+                  "moderate",
+                  "low",
+                  "none"
+                ]
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "intellectual_interests": {
@@ -281,18 +415,30 @@
           "items": {
             "type": "object",
             "properties": {
-              "theory_or_position": { "type": "string" },
-              "publications": { "type": "array", "items": { "type": "string" } },
+              "theory_or_position": {
+                "type": "string"
+              },
+              "publications": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
               "strength_of_position": {
                 "type": "string",
-                "enum": ["strong_advocate", "moderate_support", "neutral", "skeptical"]
+                "enum": [
+                  "strong_advocate",
+                  "moderate_support",
+                  "neutral",
+                  "skeptical"
+                ]
               }
-            }
+            },
+            "additionalProperties": false
           }
         }
       }
     },
-
     "ResponseChain": {
       "type": "object",
       "additionalProperties": false,
@@ -307,16 +453,37 @@
           "items": {
             "type": "object",
             "properties": {
-              "title": { "type": "string" },
-              "authors": { "type": "array", "items": { "type": "string" } },
-              "doi": { "type": "string" },
-              "pmid": { "type": "string" },
-              "publication_date": { "type": "string", "format": "date" },
+              "title": {
+                "type": "string"
+              },
+              "authors": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "doi": {
+                "type": "string"
+              },
+              "pmid": {
+                "type": "string"
+              },
+              "publication_date": {
+                "type": "string",
+                "format": "date"
+              },
               "response_type": {
                 "type": "string",
-                "enum": ["direct_response", "counter_argument", "clarification", "extension", "rebuttal"]
+                "enum": [
+                  "direct_response",
+                  "counter_argument",
+                  "clarification",
+                  "extension",
+                  "rebuttal"
+                ]
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "has_responses": {
@@ -324,20 +491,47 @@
           "items": {
             "type": "object",
             "properties": {
-              "title": { "type": "string" },
-              "authors": { "type": "array", "items": { "type": "string" } },
-              "doi": { "type": "string" },
-              "pmid": { "type": "string" },
-              "publication_date": { "type": "string", "format": "date" },
+              "title": {
+                "type": "string"
+              },
+              "authors": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "doi": {
+                "type": "string"
+              },
+              "pmid": {
+                "type": "string"
+              },
+              "publication_date": {
+                "type": "string",
+                "format": "date"
+              },
               "response_type": {
                 "type": "string",
-                "enum": ["support", "criticism", "clarification", "extension", "rebuttal"]
+                "enum": [
+                  "support",
+                  "criticism",
+                  "clarification",
+                  "extension",
+                  "rebuttal"
+                ]
               },
               "tone": {
                 "type": "string",
-                "enum": ["supportive", "critical", "neutral", "hostile", "constructive"]
+                "enum": [
+                  "supportive",
+                  "critical",
+                  "neutral",
+                  "hostile",
+                  "constructive"
+                ]
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "thread_position": {
@@ -351,7 +545,6 @@
         }
       }
     },
-
     "DigitalFeatures": {
       "type": "object",
       "additionalProperties": false,
@@ -365,12 +558,25 @@
               "items": {
                 "type": "object",
                 "properties": {
-                  "url": { "type": "string", "format": "uri" },
-                  "title": { "type": "string" },
-                  "duration": { "type": "string", "pattern": "^PT\\d+M\\d+S$" },
-                  "description": { "type": "string" },
-                  "transcript_available": { "type": "boolean" }
-                }
+                  "url": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "duration": {
+                    "type": "string",
+                    "pattern": "^PT\\d+M\\d+S$"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "transcript_available": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "interactive_graphics": {
@@ -380,11 +586,23 @@
                 "properties": {
                   "type": {
                     "type": "string",
-                    "enum": ["interactive_chart", "data_visualization", "simulation", "calculator", "quiz"]
+                    "enum": [
+                      "interactive_chart",
+                      "data_visualization",
+                      "simulation",
+                      "calculator",
+                      "quiz"
+                    ]
                   },
-                  "url": { "type": "string", "format": "uri" },
-                  "description": { "type": "string" }
-                }
+                  "url": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "description": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "audio_content": {
@@ -394,15 +612,30 @@
                 "properties": {
                   "type": {
                     "type": "string",
-                    "enum": ["podcast_episode", "audio_summary", "interview", "commentary"]
+                    "enum": [
+                      "podcast_episode",
+                      "audio_summary",
+                      "interview",
+                      "commentary"
+                    ]
                   },
-                  "url": { "type": "string", "format": "uri" },
-                  "duration": { "type": "string" },
-                  "transcript_url": { "type": "string", "format": "uri" }
-                }
+                  "url": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "duration": {
+                    "type": "string"
+                  },
+                  "transcript_url": {
+                    "type": "string",
+                    "format": "uri"
+                  }
+                },
+                "additionalProperties": false
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "social_media_integration": {
           "type": "object",
@@ -414,45 +647,84 @@
                 "properties": {
                   "platform": {
                     "type": "string",
-                    "enum": ["twitter", "linkedin", "mastodon", "bluesky"]
+                    "enum": [
+                      "twitter",
+                      "linkedin",
+                      "mastodon",
+                      "bluesky"
+                    ]
                   },
-                  "thread_url": { "type": "string", "format": "uri" },
-                  "author_handle": { "type": "string" },
+                  "thread_url": {
+                    "type": "string",
+                    "format": "uri"
+                  },
+                  "author_handle": {
+                    "type": "string"
+                  },
                   "engagement_metrics": {
                     "type": "object",
                     "properties": {
-                      "likes": { "type": "integer", "minimum": 0 },
-                      "shares": { "type": "integer", "minimum": 0 },
-                      "comments": { "type": "integer", "minimum": 0 }
-                    }
+                      "likes": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "shares": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "comments": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    },
+                    "additionalProperties": false
                   }
-                }
+                },
+                "additionalProperties": false
               }
             },
             "hashtags": {
               "type": "array",
-              "items": { "type": "string" },
+              "items": {
+                "type": "string"
+              },
               "description": "Relevant hashtags for social media promotion"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "version_control": {
           "type": "object",
           "properties": {
-            "is_living_document": { "type": "boolean" },
+            "is_living_document": {
+              "type": "boolean"
+            },
             "version_history": {
               "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
-                  "version": { "type": "string" },
-                  "date": { "type": "string", "format": "date-time" },
-                  "changes": { "type": "string" },
+                  "version": {
+                    "type": "string"
+                  },
+                  "date": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "changes": {
+                    "type": "string"
+                  },
                   "change_type": {
                     "type": "string",
-                    "enum": ["minor_edit", "content_update", "correction", "major_revision"]
+                    "enum": [
+                      "minor_edit",
+                      "content_update",
+                      "correction",
+                      "major_revision"
+                    ]
                   }
-                }
+                },
+                "additionalProperties": false
               }
             },
             "preprint_versions": {
@@ -462,34 +734,66 @@
                 "properties": {
                   "platform": {
                     "type": "string",
-                    "enum": ["medRxiv", "bioRxiv", "arXiv", "SSRN", "other"]
+                    "enum": [
+                      "medRxiv",
+                      "bioRxiv",
+                      "arXiv",
+                      "SSRN",
+                      "other"
+                    ]
                   },
-                  "preprint_doi": { "type": "string" },
-                  "posted_date": { "type": "string", "format": "date" },
-                  "version": { "type": "string" }
-                }
+                  "preprint_doi": {
+                    "type": "string"
+                  },
+                  "posted_date": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "version": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "peer_commentary": {
           "type": "object",
           "properties": {
-            "open_peer_review": { "type": "boolean" },
+            "open_peer_review": {
+              "type": "boolean"
+            },
             "public_comments": {
               "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
-                  "commenter_name": { "type": "string" },
-                  "commenter_credentials": { "type": "string" },
-                  "comment_text": { "type": "string" },
-                  "comment_date": { "type": "string", "format": "date-time" },
+                  "commenter_name": {
+                    "type": "string"
+                  },
+                  "commenter_credentials": {
+                    "type": "string"
+                  },
+                  "comment_text": {
+                    "type": "string"
+                  },
+                  "comment_date": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
                   "moderation_status": {
                     "type": "string",
-                    "enum": ["approved", "pending", "rejected", "flagged"]
+                    "enum": [
+                      "approved",
+                      "pending",
+                      "rejected",
+                      "flagged"
+                    ]
                   }
-                }
+                },
+                "additionalProperties": false
               }
             },
             "expert_annotations": {
@@ -497,65 +801,120 @@
               "items": {
                 "type": "object",
                 "properties": {
-                  "annotator": { "type": "string" },
-                  "section": { "type": "string" },
+                  "annotator": {
+                    "type": "string"
+                  },
+                  "section": {
+                    "type": "string"
+                  },
                   "annotation_type": {
                     "type": "string",
-                    "enum": ["clarification", "disagreement", "supporting_evidence", "methodological_note"]
+                    "enum": [
+                      "clarification",
+                      "disagreement",
+                      "supporting_evidence",
+                      "methodological_note"
+                    ]
                   },
-                  "annotation_text": { "type": "string" }
-                }
+                  "annotation_text": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "accessibility": {
           "type": "object",
           "properties": {
-            "screen_reader_compatible": { "type": "boolean" },
-            "alt_text_provided": { "type": "boolean" },
-            "high_contrast_available": { "type": "boolean" },
-            "font_size_adjustable": { "type": "boolean" },
+            "screen_reader_compatible": {
+              "type": "boolean"
+            },
+            "alt_text_provided": {
+              "type": "boolean"
+            },
+            "high_contrast_available": {
+              "type": "boolean"
+            },
+            "font_size_adjustable": {
+              "type": "boolean"
+            },
             "translations": {
               "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
-                  "language": { "$ref": "common.schema.json#/$defs/LanguageCode" },
+                  "language": {
+                    "$ref": "common.schema.json#/$defs/LanguageCode"
+                  },
                   "translation_type": {
                     "type": "string",
-                    "enum": ["human", "machine", "hybrid"]
+                    "enum": [
+                      "human",
+                      "machine",
+                      "hybrid"
+                    ]
                   },
-                  "quality_score": { "type": "number", "minimum": 0, "maximum": 1 },
-                  "url": { "type": "string", "format": "uri" }
-                }
+                  "quality_score": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "url": {
+                    "type": "string",
+                    "format": "uri"
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "plain_language_version": {
               "type": "object",
               "properties": {
-                "available": { "type": "boolean" },
-                "url": { "type": "string", "format": "uri" },
-                "reading_level": { "type": "string" }
-              }
+                "available": {
+                  "type": "boolean"
+                },
+                "url": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "reading_level": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
             }
-          }
+          },
+          "additionalProperties": false
         },
         "real_time_updates": {
           "type": "object",
           "properties": {
-            "update_notifications": { "type": "boolean" },
-            "rss_feed": { "type": "string", "format": "uri" },
+            "update_notifications": {
+              "type": "boolean"
+            },
+            "rss_feed": {
+              "type": "string",
+              "format": "uri"
+            },
             "webhook_endpoints": {
               "type": "array",
-              "items": { "type": "string", "format": "uri" }
+              "items": {
+                "type": "string",
+                "format": "uri"
+              }
             },
-            "last_updated": { "type": "string", "format": "date-time" }
-          }
+            "last_updated": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "additionalProperties": false
         }
       }
     },
-
     "QualityAssessment": {
       "type": "object",
       "additionalProperties": false,
@@ -566,19 +925,43 @@
           "properties": {
             "domain_expertise": {
               "type": "string",
-              "enum": ["recognized_expert", "established_researcher", "emerging_expert", "limited_expertise", "outside_domain"],
+              "enum": [
+                "recognized_expert",
+                "established_researcher",
+                "emerging_expert",
+                "limited_expertise",
+                "outside_domain"
+              ],
               "description": "Assessment of author expertise in the editorial topic area"
             },
-            "h_index": { "type": "integer", "minimum": 0 },
-            "years_experience": { "type": "integer", "minimum": 0 },
-            "relevant_publications": { "type": "integer", "minimum": 0 },
+            "h_index": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "years_experience": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "relevant_publications": {
+              "type": "integer",
+              "minimum": 0
+            },
             "institutional_affiliation_quality": {
               "type": "string",
-              "enum": ["tier_1", "tier_2", "tier_3", "unranked", "non_academic"],
+              "enum": [
+                "tier_1",
+                "tier_2",
+                "tier_3",
+                "unranked",
+                "non_academic"
+              ],
               "description": "Quality tier of author's institutional affiliation"
             },
-            "previous_editorial_experience": { "type": "boolean" }
-          }
+            "previous_editorial_experience": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
         },
         "source_credibility": {
           "type": "object",
@@ -588,8 +971,16 @@
               "items": {
                 "type": "string",
                 "enum": [
-                  "peer_reviewed_journal", "systematic_review", "meta_analysis", "clinical_guideline",
-                  "government_report", "white_paper", "news_article", "blog_post", "personal_communication", "other"
+                  "peer_reviewed_journal",
+                  "systematic_review",
+                  "meta_analysis",
+                  "clinical_guideline",
+                  "government_report",
+                  "white_paper",
+                  "news_article",
+                  "blog_post",
+                  "personal_communication",
+                  "other"
                 ]
               }
             },
@@ -613,10 +1004,16 @@
             },
             "source_independence": {
               "type": "string",
-              "enum": ["independent", "some_conflicts", "significant_conflicts", "undisclosed"],
+              "enum": [
+                "independent",
+                "some_conflicts",
+                "significant_conflicts",
+                "undisclosed"
+              ],
               "description": "Independence of cited sources from potential conflicts"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "fact_checking": {
           "type": "object",
@@ -629,21 +1026,38 @@
             },
             "verification_method": {
               "type": "string",
-              "enum": ["automated", "manual", "crowd_sourced", "expert_review", "not_verified"]
+              "enum": [
+                "automated",
+                "manual",
+                "crowd_sourced",
+                "expert_review",
+                "not_verified"
+              ]
             },
             "disputed_claims": {
               "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
-                  "claim": { "type": "string" },
-                  "dispute_source": { "type": "string" },
-                  "dispute_reasoning": { "type": "string" },
+                  "claim": {
+                    "type": "string"
+                  },
+                  "dispute_source": {
+                    "type": "string"
+                  },
+                  "dispute_reasoning": {
+                    "type": "string"
+                  },
                   "resolution_status": {
                     "type": "string",
-                    "enum": ["resolved", "ongoing", "unresolved"]
+                    "enum": [
+                      "resolved",
+                      "ongoing",
+                      "unresolved"
+                    ]
                   }
-                }
+                },
+                "additionalProperties": false
               }
             },
             "corrections_issued": {
@@ -653,57 +1067,117 @@
                 "properties": {
                   "correction_type": {
                     "type": "string",
-                    "enum": ["factual_error", "interpretation_error", "citation_error", "methodological_error"]
+                    "enum": [
+                      "factual_error",
+                      "interpretation_error",
+                      "citation_error",
+                      "methodological_error"
+                    ]
                   },
-                  "correction_date": { "type": "string", "format": "date" },
-                  "correction_text": { "type": "string" }
-                }
+                  "correction_date": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "correction_text": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "transparency": {
           "type": "object",
           "properties": {
-            "methodology_disclosed": { "type": "boolean" },
+            "methodology_disclosed": {
+              "type": "boolean"
+            },
             "data_availability": {
               "type": "string",
-              "enum": ["fully_available", "partially_available", "available_on_request", "not_available"],
+              "enum": [
+                "fully_available",
+                "partially_available",
+                "available_on_request",
+                "not_available"
+              ],
               "description": "Availability of underlying data"
             },
-            "funding_disclosed": { "type": "boolean" },
-            "conflicts_disclosed": { "type": "boolean" },
+            "funding_disclosed": {
+              "type": "boolean"
+            },
+            "conflicts_disclosed": {
+              "type": "boolean"
+            },
             "peer_review_process": {
               "type": "string",
-              "enum": ["open_peer_review", "single_blind", "double_blind", "editorial_review", "not_peer_reviewed"]
+              "enum": [
+                "open_peer_review",
+                "single_blind",
+                "double_blind",
+                "editorial_review",
+                "not_peer_reviewed"
+              ]
             },
             "editorial_independence": {
               "type": "string",
-              "enum": ["fully_independent", "mostly_independent", "some_influence", "significant_influence", "unclear"]
+              "enum": [
+                "fully_independent",
+                "mostly_independent",
+                "some_influence",
+                "significant_influence",
+                "unclear"
+              ]
             }
-          }
+          },
+          "additionalProperties": false
         },
         "readability": {
           "type": "object",
           "properties": {
-            "flesch_reading_ease": { "type": "number", "minimum": 0, "maximum": 100 },
-            "flesch_kincaid_grade": { "type": "number", "minimum": 0 },
+            "flesch_reading_ease": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "flesch_kincaid_grade": {
+              "type": "number",
+              "minimum": 0
+            },
             "target_audience_appropriateness": {
               "type": "string",
-              "enum": ["general_public", "healthcare_professionals", "researchers", "specialists", "mixed"]
+              "enum": [
+                "general_public",
+                "healthcare_professionals",
+                "researchers",
+                "specialists",
+                "mixed"
+              ]
             },
             "technical_jargon_level": {
               "type": "string",
-              "enum": ["minimal", "moderate", "high", "excessive"]
+              "enum": [
+                "minimal",
+                "moderate",
+                "high",
+                "excessive"
+              ]
             },
             "accessibility_features": {
               "type": "array",
               "items": {
                 "type": "string",
-                "enum": ["plain_language_summary", "visual_aids", "glossary", "translation_available"]
+                "enum": [
+                  "plain_language_summary",
+                  "visual_aids",
+                  "glossary",
+                  "translation_available"
+                ]
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "overall_quality_score": {
           "type": "object",
@@ -720,19 +1194,31 @@
             },
             "quality_tier": {
               "type": "string",
-              "enum": ["exceptional", "high", "moderate", "low", "poor"],
+              "enum": [
+                "exceptional",
+                "high",
+                "moderate",
+                "low",
+                "poor"
+              ],
               "description": "Categorical quality assessment"
             },
             "reliability_confidence": {
               "type": "string",
-              "enum": ["very_high", "high", "moderate", "low", "very_low"],
+              "enum": [
+                "very_high",
+                "high",
+                "moderate",
+                "low",
+                "very_low"
+              ],
               "description": "Confidence in the reliability of this assessment"
             }
-          }
+          },
+          "additionalProperties": false
         }
       }
     },
-
     "ImpactMetrics": {
       "type": "object",
       "additionalProperties": false,
@@ -741,74 +1227,153 @@
         "citation_metrics": {
           "type": "object",
           "properties": {
-            "citation_count": { "type": "integer", "minimum": 0 },
-            "h_index_contribution": { "type": "number", "minimum": 0 },
-            "field_weighted_citation_impact": { "type": "number", "minimum": 0 },
-            "relative_citation_ratio": { "type": "number", "minimum": 0 },
+            "citation_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "h_index_contribution": {
+              "type": "number",
+              "minimum": 0
+            },
+            "field_weighted_citation_impact": {
+              "type": "number",
+              "minimum": 0
+            },
+            "relative_citation_ratio": {
+              "type": "number",
+              "minimum": 0
+            },
             "citing_papers": {
               "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
-                  "doi": { "type": "string" },
-                  "title": { "type": "string" },
-                  "publication_date": { "type": "string", "format": "date" },
+                  "doi": {
+                    "type": "string"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "publication_date": {
+                    "type": "string",
+                    "format": "date"
+                  },
                   "citation_context": {
                     "type": "string",
-                    "enum": ["supportive", "critical", "neutral", "methodological"]
+                    "enum": [
+                      "supportive",
+                      "critical",
+                      "neutral",
+                      "methodological"
+                    ]
                   }
-                }
+                },
+                "additionalProperties": false
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "altmetrics": {
           "type": "object",
           "properties": {
-            "altmetric_score": { "type": "number", "minimum": 0 },
+            "altmetric_score": {
+              "type": "number",
+              "minimum": 0
+            },
             "social_media": {
               "type": "object",
               "properties": {
-                "twitter_mentions": { "type": "integer", "minimum": 0 },
-                "facebook_shares": { "type": "integer", "minimum": 0 },
-                "linkedin_shares": { "type": "integer", "minimum": 0 },
-                "reddit_mentions": { "type": "integer", "minimum": 0 },
+                "twitter_mentions": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "facebook_shares": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "linkedin_shares": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "reddit_mentions": {
+                  "type": "integer",
+                  "minimum": 0
+                },
                 "sentiment_analysis": {
                   "type": "object",
                   "properties": {
-                    "positive": { "type": "number", "minimum": 0, "maximum": 1 },
-                    "negative": { "type": "number", "minimum": 0, "maximum": 1 },
-                    "neutral": { "type": "number", "minimum": 0, "maximum": 1 }
-                  }
+                    "positive": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "negative": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    },
+                    "neutral": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 1
+                    }
+                  },
+                  "additionalProperties": false
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "news_mentions": {
               "type": "object",
               "properties": {
-                "mainstream_media": { "type": "integer", "minimum": 0 },
-                "science_blogs": { "type": "integer", "minimum": 0 },
-                "policy_documents": { "type": "integer", "minimum": 0 }
-              }
+                "mainstream_media": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "science_blogs": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "policy_documents": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "additionalProperties": false
             },
             "downloads": {
               "type": "object",
               "properties": {
-                "total_downloads": { "type": "integer", "minimum": 0 },
-                "unique_users": { "type": "integer", "minimum": 0 },
+                "total_downloads": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "unique_users": {
+                  "type": "integer",
+                  "minimum": 0
+                },
                 "geographic_distribution": {
                   "type": "array",
                   "items": {
                     "type": "object",
                     "properties": {
-                      "country": { "type": "string" },
-                      "download_count": { "type": "integer", "minimum": 0 }
-                    }
+                      "country": {
+                        "type": "string"
+                      },
+                      "download_count": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    },
+                    "additionalProperties": false
                   }
                 }
-              }
+              },
+              "additionalProperties": false
             }
-          }
+          },
+          "additionalProperties": false
         },
         "policy_impact": {
           "type": "object",
@@ -818,18 +1383,37 @@
               "items": {
                 "type": "object",
                 "properties": {
-                  "policy_document": { "type": "string" },
-                  "issuing_organization": { "type": "string" },
+                  "policy_document": {
+                    "type": "string"
+                  },
+                  "issuing_organization": {
+                    "type": "string"
+                  },
                   "policy_type": {
                     "type": "string",
-                    "enum": ["guideline", "regulation", "position_statement", "recommendation", "legislation"]
+                    "enum": [
+                      "guideline",
+                      "regulation",
+                      "position_statement",
+                      "recommendation",
+                      "legislation"
+                    ]
                   },
-                  "citation_date": { "type": "string", "format": "date" },
+                  "citation_date": {
+                    "type": "string",
+                    "format": "date"
+                  },
                   "influence_level": {
                     "type": "string",
-                    "enum": ["major_influence", "moderate_influence", "minor_mention", "background_citation"]
+                    "enum": [
+                      "major_influence",
+                      "moderate_influence",
+                      "minor_mention",
+                      "background_citation"
+                    ]
                   }
-                }
+                },
+                "additionalProperties": false
               }
             },
             "healthcare_practice_changes": {
@@ -837,17 +1421,30 @@
               "items": {
                 "type": "object",
                 "properties": {
-                  "practice_area": { "type": "string" },
-                  "change_description": { "type": "string" },
-                  "evidence_of_change": { "type": "string" },
+                  "practice_area": {
+                    "type": "string"
+                  },
+                  "change_description": {
+                    "type": "string"
+                  },
+                  "evidence_of_change": {
+                    "type": "string"
+                  },
                   "scale_of_impact": {
                     "type": "string",
-                    "enum": ["international", "national", "regional", "institutional"]
+                    "enum": [
+                      "international",
+                      "national",
+                      "regional",
+                      "institutional"
+                    ]
                   }
-                }
+                },
+                "additionalProperties": false
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "expert_reception": {
           "type": "object",
@@ -857,18 +1454,39 @@
               "items": {
                 "type": "object",
                 "properties": {
-                  "expert_name": { "type": "string" },
-                  "expertise_area": { "type": "string" },
+                  "expert_name": {
+                    "type": "string"
+                  },
+                  "expertise_area": {
+                    "type": "string"
+                  },
                   "response_type": {
                     "type": "string",
-                    "enum": ["endorsement", "criticism", "clarification", "extension", "rebuttal"]
+                    "enum": [
+                      "endorsement",
+                      "criticism",
+                      "clarification",
+                      "extension",
+                      "rebuttal"
+                    ]
                   },
                   "response_venue": {
                     "type": "string",
-                    "enum": ["peer_reviewed_response", "blog_post", "social_media", "conference", "interview"]
+                    "enum": [
+                      "peer_reviewed_response",
+                      "blog_post",
+                      "social_media",
+                      "conference",
+                      "interview"
+                    ]
                   },
-                  "influence_score": { "type": "number", "minimum": 0, "maximum": 10 }
-                }
+                  "influence_score": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 10
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "professional_society_reactions": {
@@ -876,17 +1494,31 @@
               "items": {
                 "type": "object",
                 "properties": {
-                  "society_name": { "type": "string" },
+                  "society_name": {
+                    "type": "string"
+                  },
                   "reaction_type": {
                     "type": "string",
-                    "enum": ["formal_endorsement", "position_statement", "public_disagreement", "neutral_acknowledgment"]
+                    "enum": [
+                      "formal_endorsement",
+                      "position_statement",
+                      "public_disagreement",
+                      "neutral_acknowledgment"
+                    ]
                   },
-                  "statement_text": { "type": "string" },
-                  "statement_date": { "type": "string", "format": "date" }
-                }
+                  "statement_text": {
+                    "type": "string"
+                  },
+                  "statement_date": {
+                    "type": "string",
+                    "format": "date"
+                  }
+                },
+                "additionalProperties": false
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "longitudinal_impact": {
           "type": "object",
@@ -898,76 +1530,148 @@
                 "properties": {
                   "time_period": {
                     "type": "string",
-                    "enum": ["1_month", "3_months", "6_months", "1_year", "2_years", "5_years"]
+                    "enum": [
+                      "1_month",
+                      "3_months",
+                      "6_months",
+                      "1_year",
+                      "2_years",
+                      "5_years"
+                    ]
                   },
-                  "citation_count": { "type": "integer", "minimum": 0 },
-                  "altmetric_score": { "type": "number", "minimum": 0 },
-                  "policy_mentions": { "type": "integer", "minimum": 0 }
-                }
+                  "citation_count": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "altmetric_score": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "policy_mentions": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "additionalProperties": false
               }
             },
             "sustained_influence": {
               "type": "string",
-              "enum": ["lasting_impact", "moderate_longevity", "short_term_interest", "minimal_impact"],
+              "enum": [
+                "lasting_impact",
+                "moderate_longevity",
+                "short_term_interest",
+                "minimal_impact"
+              ],
               "description": "Assessment of long-term influence sustainability"
             }
-          }
+          },
+          "additionalProperties": false
         }
       }
     },
-
     "CitedRef": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "citation_text": { "type": "string" },
-        "pmid": { "type": "string", "pattern": "^\\d{1,8}$" },
+        "citation_text": {
+          "type": "string"
+        },
+        "pmid": {
+          "type": "string",
+          "pattern": "^\\d{1,8}$"
+        },
         "doi": {
           "type": "string",
           "pattern": "^10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+$",
           "description": "DOI; pattern accepts upper- and lowercase letters"
         },
-        "url": { "type": "string", "format": "uri" },
-        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/SourceRef"
+        }
       }
     },
-
     "TargetArticle": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "title": { "type": "string" },
-        "pmid": { "type": "string", "pattern": "^\\d{1,8}$" },
+        "title": {
+          "type": "string"
+        },
+        "pmid": {
+          "type": "string",
+          "pattern": "^\\d{1,8}$"
+        },
         "doi": {
           "type": "string",
           "pattern": "^10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+$",
           "description": "DOI; pattern accepts upper- and lowercase letters"
         },
-        "citation_text": { "type": "string" },
-        "url": { "type": "string", "format": "uri" },
-        "type": { "type": "string", "enum": ["primary_study", "review", "guideline", "policy", "other"] },
-        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+        "citation_text": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "primary_study",
+            "review",
+            "guideline",
+            "policy",
+            "other"
+          ]
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/SourceRef"
+        }
       }
     },
-
     "LinkedEvidence": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "external_id": { "$ref": "common.schema.json#/$defs/ExternalId" },
-        "passage": { "$ref": "common.schema.json#/$defs/Passage" },
-        "notes": { "type": "string" }
+        "external_id": {
+          "$ref": "common.schema.json#/$defs/ExternalId"
+        },
+        "passage": {
+          "$ref": "common.schema.json#/$defs/Passage"
+        },
+        "notes": {
+          "type": "string"
+        }
       }
     },
-
     "Argument": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["claim_id", "text"],
+      "required": [
+        "claim_id",
+        "text"
+      ],
       "properties": {
-        "claim_id": { "type": "string" },
-        "text": { "type": "string" },
-        "stance": { "type": "string", "enum": ["pro", "con", "neutral", "unclear"], "default": "neutral" },
+        "claim_id": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "stance": {
+          "type": "string",
+          "enum": [
+            "pro",
+            "con",
+            "neutral",
+            "unclear"
+          ],
+          "default": "neutral"
+        },
         "evidence_type": {
           "type": "string",
           "enum": [
@@ -984,12 +1688,16 @@
         },
         "cited_refs": {
           "type": "array",
-          "items": { "$ref": "#/$defs/CitedRef" },
+          "items": {
+            "$ref": "#/$defs/CitedRef"
+          },
           "default": []
         },
         "evidence_links": {
           "type": "array",
-          "items": { "$ref": "#/$defs/LinkedEvidence" },
+          "items": {
+            "$ref": "#/$defs/LinkedEvidence"
+          },
           "default": []
         },
         "support_strength": {
@@ -998,16 +1706,25 @@
         },
         "counterarguments": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "default": []
         },
-        "rhetorical_analysis": { "$ref": "#/$defs/RhetoricalAnalysis" },
-        "bias_indicators": { "$ref": "#/$defs/BiasIndicators" },
-        "logical_structure": { "$ref": "#/$defs/LogicalStructure" },
-        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+        "rhetorical_analysis": {
+          "$ref": "#/$defs/RhetoricalAnalysis"
+        },
+        "bias_indicators": {
+          "$ref": "#/$defs/BiasIndicators"
+        },
+        "logical_structure": {
+          "$ref": "#/$defs/LogicalStructure"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/SourceRef"
+        }
       }
     },
-
     "RhetoricalAnalysis": {
       "type": "object",
       "additionalProperties": false,
@@ -1018,9 +1735,20 @@
           "items": {
             "type": "string",
             "enum": [
-              "ethos", "pathos", "logos", "metaphor", "analogy", "repetition",
-              "rhetorical_question", "appeal_to_authority", "appeal_to_emotion",
-              "appeal_to_fear", "bandwagon", "strawman", "false_dilemma", "slippery_slope"
+              "ethos",
+              "pathos",
+              "logos",
+              "metaphor",
+              "analogy",
+              "repetition",
+              "rhetorical_question",
+              "appeal_to_authority",
+              "appeal_to_emotion",
+              "appeal_to_fear",
+              "bandwagon",
+              "strawman",
+              "false_dilemma",
+              "slippery_slope"
             ]
           }
         },
@@ -1029,14 +1757,26 @@
           "items": {
             "type": "object",
             "properties": {
-              "technique": { "type": "string" },
-              "description": { "type": "string" },
+              "technique": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
               "effectiveness_assessment": {
                 "type": "string",
-                "enum": ["highly_effective", "moderately_effective", "less_effective", "ineffective"]
+                "enum": [
+                  "highly_effective",
+                  "moderately_effective",
+                  "less_effective",
+                  "ineffective"
+                ]
               },
-              "target_audience": { "type": "string" }
-            }
+              "target_audience": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
           }
         },
         "tone_analysis": {
@@ -1044,21 +1784,40 @@
           "properties": {
             "overall_tone": {
               "type": "string",
-              "enum": ["authoritative", "persuasive", "neutral", "critical", "supportive", "emotional", "analytical"]
+              "enum": [
+                "authoritative",
+                "persuasive",
+                "neutral",
+                "critical",
+                "supportive",
+                "emotional",
+                "analytical"
+              ]
             },
             "emotional_appeal": {
               "type": "string",
-              "enum": ["high", "moderate", "low", "none"]
+              "enum": [
+                "high",
+                "moderate",
+                "low",
+                "none"
+              ]
             },
             "formality_level": {
               "type": "string",
-              "enum": ["very_formal", "formal", "semi_formal", "informal", "conversational"]
+              "enum": [
+                "very_formal",
+                "formal",
+                "semi_formal",
+                "informal",
+                "conversational"
+              ]
             }
-          }
+          },
+          "additionalProperties": false
         }
       }
     },
-
     "BiasIndicators": {
       "type": "object",
       "additionalProperties": false,
@@ -1073,15 +1832,23 @@
             },
             "omitted_evidence": {
               "type": "array",
-              "items": { "type": "string" },
+              "items": {
+                "type": "string"
+              },
               "description": "Key evidence or perspectives that are notably absent"
             },
             "source_diversity": {
               "type": "string",
-              "enum": ["diverse", "limited", "narrow", "single_perspective"],
+              "enum": [
+                "diverse",
+                "limited",
+                "narrow",
+                "single_perspective"
+              ],
               "description": "Diversity of sources and viewpoints presented"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "confirmation_bias": {
           "type": "object",
@@ -1096,17 +1863,22 @@
             },
             "dismissal_of_contradictory_evidence": {
               "type": "array",
-              "items": { "type": "string" },
+              "items": {
+                "type": "string"
+              },
               "description": "Contradictory evidence that is dismissed without adequate justification"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "framing_bias": {
           "type": "object",
           "properties": {
             "loaded_language": {
               "type": "array",
-              "items": { "type": "string" },
+              "items": {
+                "type": "string"
+              },
               "description": "Emotionally charged or biased language used"
             },
             "false_dichotomy": {
@@ -1115,31 +1887,42 @@
             },
             "contextualization": {
               "type": "string",
-              "enum": ["balanced", "one_sided", "misleading", "incomplete"],
+              "enum": [
+                "balanced",
+                "one_sided",
+                "misleading",
+                "incomplete"
+              ],
               "description": "How information is contextualized"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "authority_bias": {
           "type": "object",
           "properties": {
             "inappropriate_appeals_to_authority": {
               "type": "array",
-              "items": { "type": "string" },
+              "items": {
+                "type": "string"
+              },
               "description": "Appeals to authority outside their expertise"
             },
             "argument_from_position": {
               "type": "boolean",
               "description": "Arguments based on author's position rather than evidence"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "statistical_bias": {
           "type": "object",
           "properties": {
             "misrepresentation_of_data": {
               "type": "array",
-              "items": { "type": "string" },
+              "items": {
+                "type": "string"
+              },
               "description": "Ways in which data is misrepresented"
             },
             "correlation_causation_confusion": {
@@ -1150,11 +1933,11 @@
               "type": "boolean",
               "description": "Inappropriate generalizations from small samples"
             }
-          }
+          },
+          "additionalProperties": false
         }
       }
     },
-
     "LogicalStructure": {
       "type": "object",
       "additionalProperties": false,
@@ -1162,7 +1945,14 @@
       "properties": {
         "argument_type": {
           "type": "string",
-          "enum": ["deductive", "inductive", "abductive", "analogical", "causal", "mixed"],
+          "enum": [
+            "deductive",
+            "inductive",
+            "abductive",
+            "analogical",
+            "causal",
+            "mixed"
+          ],
           "description": "Primary type of logical reasoning used"
         },
         "logical_fallacies": {
@@ -1173,19 +1963,38 @@
               "fallacy_type": {
                 "type": "string",
                 "enum": [
-                  "ad_hominem", "straw_man", "false_dilemma", "slippery_slope",
-                  "appeal_to_ignorance", "bandwagon", "hasty_generalization",
-                  "circular_reasoning", "false_cause", "appeal_to_emotion",
-                  "appeal_to_authority", "red_herring", "tu_quoque"
+                  "ad_hominem",
+                  "straw_man",
+                  "false_dilemma",
+                  "slippery_slope",
+                  "appeal_to_ignorance",
+                  "bandwagon",
+                  "hasty_generalization",
+                  "circular_reasoning",
+                  "false_cause",
+                  "appeal_to_emotion",
+                  "appeal_to_authority",
+                  "red_herring",
+                  "tu_quoque"
                 ]
               },
-              "description": { "type": "string" },
+              "description": {
+                "type": "string"
+              },
               "severity": {
                 "type": "string",
-                "enum": ["critical", "major", "minor", "negligible"]
+                "enum": [
+                  "critical",
+                  "major",
+                  "minor",
+                  "negligible"
+                ]
               },
-              "location": { "$ref": "common.schema.json#/$defs/SourceRef" }
-            }
+              "location": {
+                "$ref": "common.schema.json#/$defs/SourceRef"
+              }
+            },
+            "additionalProperties": false
           }
         },
         "argument_strength": {
@@ -1193,46 +2002,102 @@
           "properties": {
             "premise_validity": {
               "type": "string",
-              "enum": ["strong", "moderate", "weak", "invalid"]
+              "enum": [
+                "strong",
+                "moderate",
+                "weak",
+                "invalid"
+              ]
             },
             "logical_coherence": {
               "type": "string",
-              "enum": ["coherent", "mostly_coherent", "some_gaps", "incoherent"]
+              "enum": [
+                "coherent",
+                "mostly_coherent",
+                "some_gaps",
+                "incoherent"
+              ]
             },
             "evidence_quality": {
               "type": "string",
-              "enum": ["high_quality", "moderate_quality", "low_quality", "insufficient"]
+              "enum": [
+                "high_quality",
+                "moderate_quality",
+                "low_quality",
+                "insufficient"
+              ]
             },
             "conclusion_support": {
               "type": "string",
-              "enum": ["strongly_supported", "moderately_supported", "weakly_supported", "unsupported"]
+              "enum": [
+                "strongly_supported",
+                "moderately_supported",
+                "weakly_supported",
+                "unsupported"
+              ]
             }
-          }
+          },
+          "additionalProperties": false
         },
         "counterargument_consideration": {
           "type": "object",
           "properties": {
-            "acknowledges_counterarguments": { "type": "boolean" },
-            "addresses_counterarguments": { "type": "boolean" },
+            "acknowledges_counterarguments": {
+              "type": "boolean"
+            },
+            "addresses_counterarguments": {
+              "type": "boolean"
+            },
             "strength_of_rebuttal": {
               "type": "string",
-              "enum": ["convincing", "partial", "weak", "none"]
+              "enum": [
+                "convincing",
+                "partial",
+                "weak",
+                "none"
+              ]
             }
-          }
+          },
+          "additionalProperties": false
         }
       }
     },
-
     "Recommendation": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["area", "statement"],
+      "required": [
+        "area",
+        "statement"
+      ],
       "properties": {
-        "area": { "type": "string", "enum": ["clinical_practice", "policy", "research", "education", "other"] },
-        "statement": { "type": "string" },
-        "urgency": { "type": "string", "enum": ["low", "moderate", "high"], "default": "moderate" },
-        "target_audience": { "type": "string" },
-        "source": { "$ref": "common.schema.json#/$defs/SourceRef" }
+        "area": {
+          "type": "string",
+          "enum": [
+            "clinical_practice",
+            "policy",
+            "research",
+            "education",
+            "other"
+          ]
+        },
+        "statement": {
+          "type": "string"
+        },
+        "urgency": {
+          "type": "string",
+          "enum": [
+            "low",
+            "moderate",
+            "high"
+          ],
+          "default": "moderate"
+        },
+        "target_audience": {
+          "type": "string"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/SourceRef"
+        }
       }
     }
   }

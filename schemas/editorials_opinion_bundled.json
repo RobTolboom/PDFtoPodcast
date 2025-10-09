@@ -69,7 +69,8 @@
           "type": "number"
         },
         "timestamp": {
-          "type": "string"
+          "type": "string",
+          "format": "date-time"
         }
       }
     },
@@ -256,18 +257,23 @@
           "type": "object",
           "properties": {
             "submitted": {
-              "type": "string"
+              "type": "string",
+              "format": "date"
             },
             "accepted": {
-              "type": "string"
+              "type": "string",
+              "format": "date"
             },
             "published_online": {
-              "type": "string"
+              "type": "string",
+              "format": "date"
             },
             "published_print": {
-              "type": "string"
+              "type": "string",
+              "format": "date"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "editorial_process": {
           "type": "object",
@@ -285,7 +291,8 @@
               "type": "integer",
               "minimum": 0
             }
-          }
+          },
+          "additionalProperties": false
         }
       }
     },
@@ -349,7 +356,8 @@
                 ],
                 "description": "Relevance to the editorial topic"
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "institutional_affiliations": {
@@ -366,7 +374,8 @@
               "potential_bias": {
                 "type": "string"
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "personal_relationships": {
@@ -397,7 +406,8 @@
                   "none"
                 ]
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "intellectual_interests": {
@@ -423,7 +433,8 @@
                   "skeptical"
                 ]
               }
-            }
+            },
+            "additionalProperties": false
           }
         }
       }
@@ -458,7 +469,8 @@
                 "type": "string"
               },
               "publication_date": {
-                "type": "string"
+                "type": "string",
+                "format": "date"
               },
               "response_type": {
                 "type": "string",
@@ -470,7 +482,8 @@
                   "rebuttal"
                 ]
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "has_responses": {
@@ -494,7 +507,8 @@
                 "type": "string"
               },
               "publication_date": {
-                "type": "string"
+                "type": "string",
+                "format": "date"
               },
               "response_type": {
                 "type": "string",
@@ -516,7 +530,8 @@
                   "constructive"
                 ]
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "thread_position": {
@@ -544,7 +559,8 @@
                 "type": "object",
                 "properties": {
                   "url": {
-                    "type": "string"
+                    "type": "string",
+                    "format": "uri"
                   },
                   "title": {
                     "type": "string"
@@ -559,7 +575,8 @@
                   "transcript_available": {
                     "type": "boolean"
                   }
-                }
+                },
+                "additionalProperties": false
               }
             },
             "interactive_graphics": {
@@ -578,12 +595,14 @@
                     ]
                   },
                   "url": {
-                    "type": "string"
+                    "type": "string",
+                    "format": "uri"
                   },
                   "description": {
                     "type": "string"
                   }
-                }
+                },
+                "additionalProperties": false
               }
             },
             "audio_content": {
@@ -601,18 +620,22 @@
                     ]
                   },
                   "url": {
-                    "type": "string"
+                    "type": "string",
+                    "format": "uri"
                   },
                   "duration": {
                     "type": "string"
                   },
                   "transcript_url": {
-                    "type": "string"
+                    "type": "string",
+                    "format": "uri"
                   }
-                }
+                },
+                "additionalProperties": false
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "social_media_integration": {
           "type": "object",
@@ -632,7 +655,8 @@
                     ]
                   },
                   "thread_url": {
-                    "type": "string"
+                    "type": "string",
+                    "format": "uri"
                   },
                   "author_handle": {
                     "type": "string"
@@ -652,9 +676,11 @@
                         "type": "integer",
                         "minimum": 0
                       }
-                    }
+                    },
+                    "additionalProperties": false
                   }
-                }
+                },
+                "additionalProperties": false
               }
             },
             "hashtags": {
@@ -664,7 +690,8 @@
               },
               "description": "Relevant hashtags for social media promotion"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "version_control": {
           "type": "object",
@@ -681,7 +708,8 @@
                     "type": "string"
                   },
                   "date": {
-                    "type": "string"
+                    "type": "string",
+                    "format": "date-time"
                   },
                   "changes": {
                     "type": "string"
@@ -695,7 +723,8 @@
                       "major_revision"
                     ]
                   }
-                }
+                },
+                "additionalProperties": false
               }
             },
             "preprint_versions": {
@@ -717,15 +746,18 @@
                     "type": "string"
                   },
                   "posted_date": {
-                    "type": "string"
+                    "type": "string",
+                    "format": "date"
                   },
                   "version": {
                     "type": "string"
                   }
-                }
+                },
+                "additionalProperties": false
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "peer_commentary": {
           "type": "object",
@@ -748,7 +780,8 @@
                     "type": "string"
                   },
                   "comment_date": {
-                    "type": "string"
+                    "type": "string",
+                    "format": "date-time"
                   },
                   "moderation_status": {
                     "type": "string",
@@ -759,7 +792,8 @@
                       "flagged"
                     ]
                   }
-                }
+                },
+                "additionalProperties": false
               }
             },
             "expert_annotations": {
@@ -785,10 +819,12 @@
                   "annotation_text": {
                     "type": "string"
                   }
-                }
+                },
+                "additionalProperties": false
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "accessibility": {
           "type": "object",
@@ -827,9 +863,11 @@
                     "maximum": 1
                   },
                   "url": {
-                    "type": "string"
+                    "type": "string",
+                    "format": "uri"
                   }
-                }
+                },
+                "additionalProperties": false
               }
             },
             "plain_language_version": {
@@ -839,14 +877,17 @@
                   "type": "boolean"
                 },
                 "url": {
-                  "type": "string"
+                  "type": "string",
+                  "format": "uri"
                 },
                 "reading_level": {
                   "type": "string"
                 }
-              }
+              },
+              "additionalProperties": false
             }
-          }
+          },
+          "additionalProperties": false
         },
         "real_time_updates": {
           "type": "object",
@@ -855,18 +896,22 @@
               "type": "boolean"
             },
             "rss_feed": {
-              "type": "string"
+              "type": "string",
+              "format": "uri"
             },
             "webhook_endpoints": {
               "type": "array",
               "items": {
-                "type": "string"
+                "type": "string",
+                "format": "uri"
               }
             },
             "last_updated": {
-              "type": "string"
+              "type": "string",
+              "format": "date-time"
             }
-          }
+          },
+          "additionalProperties": false
         }
       }
     },
@@ -915,7 +960,8 @@
             "previous_editorial_experience": {
               "type": "boolean"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "source_credibility": {
           "type": "object",
@@ -966,7 +1012,8 @@
               ],
               "description": "Independence of cited sources from potential conflicts"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "fact_checking": {
           "type": "object",
@@ -1009,7 +1056,8 @@
                       "unresolved"
                     ]
                   }
-                }
+                },
+                "additionalProperties": false
               }
             },
             "corrections_issued": {
@@ -1027,15 +1075,18 @@
                     ]
                   },
                   "correction_date": {
-                    "type": "string"
+                    "type": "string",
+                    "format": "date"
                   },
                   "correction_text": {
                     "type": "string"
                   }
-                }
+                },
+                "additionalProperties": false
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "transparency": {
           "type": "object",
@@ -1079,7 +1130,8 @@
                 "unclear"
               ]
             }
-          }
+          },
+          "additionalProperties": false
         },
         "readability": {
           "type": "object",
@@ -1124,7 +1176,8 @@
                 ]
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "overall_quality_score": {
           "type": "object",
@@ -1161,7 +1214,8 @@
               ],
               "description": "Confidence in the reliability of this assessment"
             }
-          }
+          },
+          "additionalProperties": false
         }
       }
     },
@@ -1201,7 +1255,8 @@
                     "type": "string"
                   },
                   "publication_date": {
-                    "type": "string"
+                    "type": "string",
+                    "format": "date"
                   },
                   "citation_context": {
                     "type": "string",
@@ -1212,10 +1267,12 @@
                       "methodological"
                     ]
                   }
-                }
+                },
+                "additionalProperties": false
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "altmetrics": {
           "type": "object",
@@ -1261,9 +1318,11 @@
                       "minimum": 0,
                       "maximum": 1
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "news_mentions": {
               "type": "object",
@@ -1280,7 +1339,8 @@
                   "type": "integer",
                   "minimum": 0
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "downloads": {
               "type": "object",
@@ -1305,12 +1365,15 @@
                         "type": "integer",
                         "minimum": 0
                       }
-                    }
+                    },
+                    "additionalProperties": false
                   }
                 }
-              }
+              },
+              "additionalProperties": false
             }
-          }
+          },
+          "additionalProperties": false
         },
         "policy_impact": {
           "type": "object",
@@ -1337,7 +1400,8 @@
                     ]
                   },
                   "citation_date": {
-                    "type": "string"
+                    "type": "string",
+                    "format": "date"
                   },
                   "influence_level": {
                     "type": "string",
@@ -1348,7 +1412,8 @@
                       "background_citation"
                     ]
                   }
-                }
+                },
+                "additionalProperties": false
               }
             },
             "healthcare_practice_changes": {
@@ -1374,10 +1439,12 @@
                       "institutional"
                     ]
                   }
-                }
+                },
+                "additionalProperties": false
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "expert_reception": {
           "type": "object",
@@ -1418,7 +1485,8 @@
                     "minimum": 0,
                     "maximum": 10
                   }
-                }
+                },
+                "additionalProperties": false
               }
             },
             "professional_society_reactions": {
@@ -1442,12 +1510,15 @@
                     "type": "string"
                   },
                   "statement_date": {
-                    "type": "string"
+                    "type": "string",
+                    "format": "date"
                   }
-                }
+                },
+                "additionalProperties": false
               }
             }
-          }
+          },
+          "additionalProperties": false
         },
         "longitudinal_impact": {
           "type": "object",
@@ -1480,7 +1551,8 @@
                     "type": "integer",
                     "minimum": 0
                   }
-                }
+                },
+                "additionalProperties": false
               }
             },
             "sustained_influence": {
@@ -1493,7 +1565,8 @@
               ],
               "description": "Assessment of long-term influence sustainability"
             }
-          }
+          },
+          "additionalProperties": false
         }
       }
     },
@@ -1514,7 +1587,8 @@
           "description": "DOI; pattern accepts upper- and lowercase letters"
         },
         "url": {
-          "type": "string"
+          "type": "string",
+          "format": "uri"
         },
         "source": {
           "$ref": "#/$defs/SourceRef"
@@ -1541,7 +1615,8 @@
           "type": "string"
         },
         "url": {
-          "type": "string"
+          "type": "string",
+          "format": "uri"
         },
         "type": {
           "type": "string",
@@ -1700,7 +1775,8 @@
               "target_audience": {
                 "type": "string"
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "tone_analysis": {
@@ -1737,7 +1813,8 @@
                 "conversational"
               ]
             }
-          }
+          },
+          "additionalProperties": false
         }
       }
     },
@@ -1770,7 +1847,8 @@
               ],
               "description": "Diversity of sources and viewpoints presented"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "confirmation_bias": {
           "type": "object",
@@ -1790,7 +1868,8 @@
               },
               "description": "Contradictory evidence that is dismissed without adequate justification"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "framing_bias": {
           "type": "object",
@@ -1816,7 +1895,8 @@
               ],
               "description": "How information is contextualized"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "authority_bias": {
           "type": "object",
@@ -1832,7 +1912,8 @@
               "type": "boolean",
               "description": "Arguments based on author's position rather than evidence"
             }
-          }
+          },
+          "additionalProperties": false
         },
         "statistical_bias": {
           "type": "object",
@@ -1852,7 +1933,8 @@
               "type": "boolean",
               "description": "Inappropriate generalizations from small samples"
             }
-          }
+          },
+          "additionalProperties": false
         }
       }
     },
@@ -1911,7 +1993,8 @@
               "location": {
                 "$ref": "#/$defs/SourceRef"
               }
-            }
+            },
+            "additionalProperties": false
           }
         },
         "argument_strength": {
@@ -1953,7 +2036,8 @@
                 "unsupported"
               ]
             }
-          }
+          },
+          "additionalProperties": false
         },
         "counterargument_consideration": {
           "type": "object",
@@ -1973,7 +2057,8 @@
                 "none"
               ]
             }
-          }
+          },
+          "additionalProperties": false
         }
       }
     },
@@ -2063,6 +2148,7 @@
         },
         "url": {
           "type": "string",
+          "format": "uri",
           "description": "Optional direct URL to the external resource"
         },
         "version": {
@@ -2202,7 +2288,8 @@
           "type": "string"
         },
         "published_date": {
-          "type": "string"
+          "type": "string",
+          "format": "date"
         },
         "published_date_precision": {
           "type": "string",
