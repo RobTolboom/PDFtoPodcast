@@ -220,8 +220,13 @@ def discover_schema_files(directory: str = ".") -> List[Path]:
     schema_files = []
 
     # Find all schema files using glob pattern
+    excluded_schemas = {
+        "common.schema.json",
+        "classification.schema.json",
+        "validation.schema.json",
+    }
     for file_path in schema_dir.glob("*.schema.json"):
-        if file_path.name != "common.schema.json":  # Exclude common schema
+        if file_path.name not in excluded_schemas:  # Exclude schemas that don't need bundling
             schema_files.append(file_path)
 
     return sorted(schema_files)  # Sort for consistent processing order
