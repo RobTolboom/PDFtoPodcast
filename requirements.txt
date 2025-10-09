@@ -11,3 +11,6 @@ tenacity>=8.2			# retry/backoff bij API errors
 # --- Output ---
 structlog				# voor structured logging
 rich					# mooiere console-output
+
+# --- Web Interface ---
+streamlit>=1.28.0		# web interface voor pipeline
