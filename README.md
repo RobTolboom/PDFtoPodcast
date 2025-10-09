@@ -249,15 +249,15 @@ Each type has a specialized extraction schema optimized for its data structure.
 
 ## 📂 Output Structure
 
-All outputs are saved in `tmp/` directory with DOI-based naming:
+All outputs are saved in `tmp/` directory with PDF filename-based naming:
 
 ```
 tmp/
-├── 10-1186-s12871-025-02345-6-classification.json
-├── 10-1186-s12871-025-02345-6-extraction.json
-├── 10-1186-s12871-025-02345-6-validation.json
-├── 10-1186-s12871-025-02345-6-extraction-corrected.json  # If correction needed
-└── 10-1186-s12871-025-02345-6-validation-corrected.json  # Final validation
+├── sample_paper-classification.json
+├── sample_paper-extraction.json
+├── sample_paper-validation.json
+├── sample_paper-extraction-corrected.json  # If correction needed
+└── sample_paper-validation-corrected.json  # Final validation
 ```
 
 ### Output Format
