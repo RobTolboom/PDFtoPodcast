@@ -1,24 +1,41 @@
-repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.5.0
-    hooks:
-      - id: ruff
-      - id: ruff-format
+# Pre-commit hooks configuration
+# Install: pre-commit install
+# Run manually: pre-commit run --all-files
 
+repos:
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: ['--maxkb=10000']  # 10MB limit
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: detect-private-key
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+
+  # Python code formatting with Black
   - repo: https://github.com/psf/black
     rev: 24.10.0
     hooks:
       - id: black
+        language_version: python3
+        args: ['--line-length=100']
 
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
+  # Python linting with Ruff
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.5.0
     hooks:
-      - id: check-yaml
-      - id: check-json
-      - id: end-of-file-fixer
-      - id: trailing-whitespace
-      - id: detect-private-key
+      - id: ruff
+        args: ['--fix', '--exit-non-zero-on-fix']
+      - id: ruff-format
 
+  # Prevent committing sensitive files
   - repo: local
     hooks:
       - id: forbid-env
@@ -26,3 +43,42 @@ repos:
         entry: bash -c 'if git diff --cached --name-only | grep -qE "(.env$|.env\.)"; then echo "❌ .env in commit!"; exit 1; fi'
         language: system
         types: [file]
+
+  # JSON Schema validation (optional - enable if validate_schemas.py exists)
+  # - repo: local
+  #   hooks:
+  #     - id: validate-schemas
+  #       name: Validate JSON schemas
+  #       entry: python validate_schemas.py
+  #       language: system
+  #       files: '^schemas/.*\.json$'
+  #       pass_filenames: false
+
+  # Prevent committing to main branch (optional)
+  # - repo: https://github.com/pre-commit/pre-commit-hooks
+  #   rev: v6.0.0
+  #   hooks:
+  #     - id: no-commit-to-branch
+  #       args: ['--branch', 'main', '--branch', 'master']
+  #       stages: [commit]
+
+# Configuration
+default_language_version:
+  python: python3.13
+
+# Which files to exclude
+exclude: |
+  (?x)^(
+    \.venv/|
+    \.direnv/|
+    tmp/|
+    out/|
+    __pycache__/|
+    .*\.egg-info/|
+    \.mypy_cache/|
+    \.pytest_cache/|
+    \.ruff_cache/
+  )
+
+# Run pre-commit on all files when config changes
+fail_fast: false
