@@ -382,7 +382,7 @@ def show_settings_screen():
         # Track selected steps
         steps_to_run = []
 
-        # Display each step - expander if results exist, simple row otherwise
+        # Display each step in unified format
         for step in steps:
             step_key = step["key"]
             step_exists = existing[step_key]
@@ -392,84 +392,81 @@ def show_settings_screen():
             if step_exists:
                 file_info = get_result_file_info(identifier, step_key)
 
-            # Check if this step is being viewed
-            is_viewing = "view_step" in st.session_state and st.session_state.view_step == step_key
+            # Create columns: [checkbox + name] [status] [actions]
+            col1, col2, col3 = st.columns([3, 4, 1.5])
 
-            if file_info:
-                # Step WITH results -> Use expander
-                with st.expander(f"{step['number']}. {step['name']}", expanded=is_viewing):
-                    # Row with controls
-                    col1, col2, col3 = st.columns([3, 4, 1.5])
+            with col1:
+                # Execution checkbox
+                is_selected = st.checkbox(
+                    f"{step['number']}. {step['name']}",
+                    value=step_key in default_steps,
+                    disabled=step_exists and not force_rerun,
+                    help=step["help"],
+                    key=f"run_{step_key}",
+                )
+                if is_selected:
+                    steps_to_run.append(step_key)
 
-                    with col1:
-                        # Execution checkbox
-                        is_selected = st.checkbox(
-                            "Run this step",
-                            value=step_key in default_steps,
-                            disabled=step_exists and not force_rerun,
-                            help=step["help"],
-                            key=f"run_{step_key}",
-                        )
-                        if is_selected:
-                            steps_to_run.append(step_key)
+            with col2:
+                # Status display
+                if file_info:
+                    st.markdown(
+                        f"✅ **Done** • {file_info['modified']} • {file_info['size_kb']:.1f} KB"
+                    )
+                else:
+                    st.markdown("⏸️ *Not yet processed*")
 
-                    with col2:
-                        # Status display
-                        st.markdown(
-                            f"✅ **Done** • {file_info['modified']} • {file_info['size_kb']:.1f} KB"
-                        )
-
-                    with col3:
-                        # Delete button
+            with col3:
+                # Action buttons (only if file exists)
+                if file_info:
+                    # Place buttons side-by-side with minimal spacing
+                    btn1, btn2 = st.columns([1, 1])
+                    with btn1:
+                        if st.button("👁️", key=f"view_{step_key}", help="View results"):
+                            st.session_state.view_step = step_key
+                            st.rerun()
+                    with btn2:
                         if st.button("🗑️", key=f"delete_{step_key}", help="Delete result"):
                             Path(file_info["path"]).unlink()
                             st.success(f"Deleted {step['name']} results")
                             st.rerun()
 
-                    # JSON content section
-                    st.markdown("---")
-                    st.markdown("**JSON Content:**")
+            # Display inline JSON viewer if this step is being viewed
+            if (
+                "view_step" in st.session_state
+                and st.session_state.view_step == step_key
+                and file_info
+            ):
+                st.markdown("---")
 
-                    try:
-                        with open(file_info["path"], "r") as f:
-                            json_content = json.load(f)
+                # Header with close button
+                header_col1, header_col2 = st.columns([6, 1])
+                with header_col1:
+                    st.markdown(f"### 📋 {step['name']} Results")
+                with header_col2:
+                    if st.button("✖️", key=f"close_viewer_{step_key}", help="Close viewer"):
+                        st.session_state.view_step = None
+                        st.rerun()
 
-                        # Display JSON
-                        st.json(json_content)
+                # Read and display JSON content
+                try:
+                    with open(file_info["path"], "r") as f:
+                        json_content = json.load(f)
 
-                        # Show file metadata
-                        st.caption(
-                            f"📁 File: `{Path(file_info['path']).name}` • "
-                            f"Modified: {file_info['modified']} • "
-                            f"Size: {file_info['size_kb']:.1f} KB"
-                        )
+                    # Display JSON
+                    st.json(json_content)
 
-                    except Exception as e:
-                        st.error(f"❌ Error reading file: {e}")
-
-            else:
-                # Step WITHOUT results -> Simple container (no expander)
-                st.markdown(f"**{step['number']}. {step['name']}**")
-
-                # Row with controls (no delete button, no JSON)
-                col1, col2 = st.columns([3, 4])
-
-                with col1:
-                    # Execution checkbox
-                    is_selected = st.checkbox(
-                        "Run this step",
-                        value=step_key in default_steps,
-                        help=step["help"],
-                        key=f"run_{step_key}",
+                    # Show file metadata
+                    st.caption(
+                        f"📁 File: `{Path(file_info['path']).name}` • "
+                        f"Modified: {file_info['modified']} • "
+                        f"Size: {file_info['size_kb']:.1f} KB"
                     )
-                    if is_selected:
-                        steps_to_run.append(step_key)
 
-                with col2:
-                    # Status display
-                    st.markdown("⏸️ *Not yet processed*")
+                except Exception as e:
+                    st.error(f"❌ Error reading file: {e}")
 
-                st.markdown("")  # Add spacing between steps
+                st.markdown("---")
 
         # Update settings
         st.session_state.settings["steps_to_run"] = steps_to_run
