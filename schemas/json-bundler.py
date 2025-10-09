@@ -44,12 +44,13 @@ Version: 2.0 - Enhanced for batch processing
 import json
 import re
 import sys
+from collections.abc import Iterator
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Dict, Iterator, List
+from typing import Any
 
 
-def get_common_id(common_schema: Dict[str, Any]) -> str:
+def get_common_id(common_schema: dict[str, Any]) -> str:
     """
     Extract the $id from the common schema file.
 
@@ -144,8 +145,8 @@ def rewrite_refs_to_local(node: Any, common_ref_rx: re.Pattern) -> Any:
 
 
 def bundle_schema(
-    schema: Dict[str, Any], common_schema: Dict[str, Any], common_ref_rx: re.Pattern
-) -> Dict[str, Any]:
+    schema: dict[str, Any], common_schema: dict[str, Any], common_ref_rx: re.Pattern
+) -> dict[str, Any]:
     """
     Bundle a schema with its common dependencies into a self-contained schema.
 
@@ -197,7 +198,7 @@ def bundle_schema(
     return bundled
 
 
-def discover_schema_files(directory: str = ".") -> List[Path]:
+def discover_schema_files(directory: str = ".") -> list[Path]:
     """
     Discover all schema files in a directory except common.schema.json.
 
@@ -275,7 +276,7 @@ def bundle_all_schemas(directory: str = ".") -> bool:
 
         print(f"Using common schema ID: {common_id}")
 
-    except (json.JSONDecodeError, IOError) as e:
+    except (OSError, json.JSONDecodeError) as e:
         print(f"Error loading common schema: {e}")
         return False
 
@@ -314,7 +315,7 @@ def bundle_all_schemas(directory: str = ".") -> bool:
             print(f"  ✅ Created: {output_path.name}")
             success_count += 1
 
-        except (json.JSONDecodeError, IOError, KeyError) as e:
+        except (OSError, json.JSONDecodeError, KeyError) as e:
             print(f"  ❌ Error processing {schema_path.name}: {e}")
             continue  # Continue with next schema despite this failure
 

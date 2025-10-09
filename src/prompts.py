@@ -15,7 +15,6 @@ for the four-step extraction pipeline:
 """
 
 from pathlib import Path
-from typing import Dict
 
 # Base directory for prompts
 PROMPTS_DIR = Path(__file__).parent.parent / "prompts"
@@ -37,7 +36,7 @@ def load_classification_prompt() -> str:
     try:
         return prompt_file.read_text(encoding="utf-8").strip()
     except Exception as e:
-        raise PromptLoadError(f"Error reading classification prompt: {e}")
+        raise PromptLoadError(f"Error reading classification prompt: {e}") from e
 
 
 def load_extraction_prompt(publication_type: str) -> str:
@@ -70,7 +69,7 @@ def load_extraction_prompt(publication_type: str) -> str:
     try:
         return prompt_file.read_text(encoding="utf-8").strip()
     except Exception as e:
-        raise PromptLoadError(f"Error reading extraction prompt: {e}")
+        raise PromptLoadError(f"Error reading extraction prompt: {e}") from e
 
 
 def load_validation_prompt() -> str:
@@ -83,7 +82,7 @@ def load_validation_prompt() -> str:
     try:
         return prompt_file.read_text(encoding="utf-8").strip()
     except Exception as e:
-        raise PromptLoadError(f"Error reading validation prompt: {e}")
+        raise PromptLoadError(f"Error reading validation prompt: {e}") from e
 
 
 def load_correction_prompt() -> str:
@@ -96,10 +95,10 @@ def load_correction_prompt() -> str:
     try:
         return prompt_file.read_text(encoding="utf-8").strip()
     except Exception as e:
-        raise PromptLoadError(f"Error reading correction prompt: {e}")
+        raise PromptLoadError(f"Error reading correction prompt: {e}") from e
 
 
-def get_all_available_prompts() -> Dict[str, str]:
+def get_all_available_prompts() -> dict[str, str]:
     """
     Get a dictionary of all available prompts with their descriptions.
 
@@ -149,7 +148,7 @@ def get_all_available_prompts() -> Dict[str, str]:
     return prompts
 
 
-def validate_prompt_directory() -> Dict[str, bool]:
+def validate_prompt_directory() -> dict[str, bool]:
     """
     Validate that all expected prompt files are present in the prompts directory.
 

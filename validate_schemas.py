@@ -129,7 +129,7 @@ def validate_schema(schema_file):
 
     # 1. Check JSON syntax
     try:
-        with open(schema_file, "r", encoding="utf-8") as f:
+        with open(schema_file, encoding="utf-8") as f:
             schema = json.load(f)
         print("✓ JSON syntax valid")
     except json.JSONDecodeError as e:

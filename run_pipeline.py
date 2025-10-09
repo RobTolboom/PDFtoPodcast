@@ -58,7 +58,7 @@ import argparse
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import TYPE_CHECKING, Any
 
 from rich import box
 from rich.console import Console
@@ -138,7 +138,7 @@ def get_next_step(current_step: str) -> str:
 
 
 def check_breakpoint(
-    step_name: str, results: Dict[str, Any], file_manager: "PipelineFileManager"
+    step_name: str, results: dict[str, Any], file_manager: "PipelineFileManager"
 ) -> bool:
     """
     Check if pipeline should stop at this step for testing.
@@ -184,7 +184,7 @@ class PipelineFileManager:
 
         return self.tmp_dir / filename
 
-    def save_json(self, data: Dict[Any, Any], step: str, status: str = "") -> Path:
+    def save_json(self, data: dict[Any, Any], step: str, status: str = "") -> Path:
         """Save JSON data with consistent DOI-based naming"""
         filepath = self.get_filename(step, status)
         with open(filepath, "w", encoding="utf-8") as f:
@@ -193,13 +193,13 @@ class PipelineFileManager:
 
 
 def run_dual_validation(
-    extraction_result: Dict[str, Any],
+    extraction_result: dict[str, Any],
     pdf_path: Path,
-    max_pages: Optional[int],
+    max_pages: int | None,
     publication_type: str,
     llm: "BaseLLMProvider",
     console: Console,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Run dual validation: schema validation + conditional LLM validation.
 
@@ -368,8 +368,8 @@ Verify the extracted data against the original PDF document. Check for hallucina
 
 
 def run_four_step_pipeline(
-    pdf_path: Path, max_pages: Optional[int] = None, llm_provider: str = "openai"
-) -> Dict[str, Any]:
+    pdf_path: Path, max_pages: int | None = None, llm_provider: str = "openai"
+) -> dict[str, Any]:
     """
     Four-step extraction pipeline with DOI-based file management:
     1. Classification (identify publication type + extract metadata)

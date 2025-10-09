@@ -68,7 +68,7 @@ import json
 import logging
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Union
 
 import anthropic
 import openai
@@ -234,7 +234,7 @@ class BaseLLMProvider(ABC):
         self.settings = settings
 
     @abstractmethod
-    def generate_text(self, prompt: str, system_prompt: Optional[str] = None, **kwargs) -> str:
+    def generate_text(self, prompt: str, system_prompt: str | None = None, **kwargs) -> str:
         """
         Generate free-form text response from prompt.
 
@@ -262,11 +262,11 @@ class BaseLLMProvider(ABC):
     def generate_json_with_schema(
         self,
         prompt: str,
-        schema: Dict[str, Any],
-        system_prompt: Optional[str] = None,
-        schema_name: Optional[str] = None,
+        schema: dict[str, Any],
+        system_prompt: str | None = None,
+        schema_name: str | None = None,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Generate structured JSON response conforming to a specific JSON schema.
 
@@ -289,12 +289,12 @@ class BaseLLMProvider(ABC):
     def generate_json_with_pdf(
         self,
         pdf_path: Union["Path", str],
-        schema: Dict[str, Any],
-        system_prompt: Optional[str] = None,
-        max_pages: Optional[int] = None,
-        schema_name: Optional[str] = None,
+        schema: dict[str, Any],
+        system_prompt: str | None = None,
+        max_pages: int | None = None,
+        schema_name: str | None = None,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Generate structured JSON from PDF file using vision capabilities.
 
@@ -380,7 +380,7 @@ class OpenAIProvider(BaseLLMProvider):
         self.client = openai.OpenAI(api_key=settings.openai_api_key, timeout=settings.timeout)
         logger.info(f"Initialized OpenAI provider with model: {settings.openai_model}")
 
-    def _parse_response_output(self, response) -> Dict[str, Any]:
+    def _parse_response_output(self, response) -> dict[str, Any]:
         """
         Extract and parse JSON from OpenAI Responses API response.
 
@@ -570,14 +570,14 @@ class OpenAIProvider(BaseLLMProvider):
                 raise LLMProviderError(
                     f"Invalid JSON response at position {e.pos if hasattr(e, 'pos') else 'unknown'}: {e}. "
                     f"Repair attempt also failed. This may be an OpenAI API bug with strict mode."
-                )
+                ) from repair_error
 
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=4, max=10),
         retry=retry_if_exception_type((openai.RateLimitError, openai.APITimeoutError)),
     )
-    def generate_text(self, prompt: str, system_prompt: Optional[str] = None, **kwargs) -> str:
+    def generate_text(self, prompt: str, system_prompt: str | None = None, **kwargs) -> str:
         """Generate text using OpenAI Responses API"""
         try:
             response = self.client.responses.create(
@@ -596,7 +596,7 @@ class OpenAIProvider(BaseLLMProvider):
 
         except openai.OpenAIError as e:
             logger.error(f"OpenAI API error: {e}")
-            raise LLMProviderError(f"OpenAI API error: {e}")
+            raise LLMProviderError(f"OpenAI API error: {e}") from e
 
     @retry(
         stop=stop_after_attempt(3),
@@ -606,11 +606,11 @@ class OpenAIProvider(BaseLLMProvider):
     def generate_json_with_schema(
         self,
         prompt: str,
-        schema: Dict[str, Any],
-        system_prompt: Optional[str] = None,
-        schema_name: Optional[str] = None,
+        schema: dict[str, Any],
+        system_prompt: str | None = None,
+        schema_name: str | None = None,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Generate structured JSON using OpenAI Responses API with Structured Outputs.
 
@@ -652,7 +652,7 @@ class OpenAIProvider(BaseLLMProvider):
             # Log schema size for debugging
             schema_size = len(json.dumps(schema))
             logger.error(f"Schema size: {schema_size} bytes (~{schema_size//4} tokens)")
-            raise LLMProviderError(f"OpenAI schema-based generation failed: {e}")
+            raise LLMProviderError(f"OpenAI schema-based generation failed: {e}") from e
 
     @retry(
         stop=stop_after_attempt(3),
@@ -661,13 +661,13 @@ class OpenAIProvider(BaseLLMProvider):
     )
     def generate_json_with_pdf(
         self,
-        pdf_path: Union[Path, str],
-        schema: Dict[str, Any],
-        system_prompt: Optional[str] = None,
-        max_pages: Optional[int] = None,
-        schema_name: Optional[str] = None,
+        pdf_path: Path | str,
+        schema: dict[str, Any],
+        system_prompt: str | None = None,
+        max_pages: int | None = None,
+        schema_name: str | None = None,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Generate structured JSON from PDF using OpenAI Responses API with Structured Outputs.
 
@@ -745,10 +745,10 @@ class OpenAIProvider(BaseLLMProvider):
 
         except FileNotFoundError as e:
             logger.error(f"PDF file not found: {pdf_path}")
-            raise LLMProviderError(f"PDF file not found: {e}")
+            raise LLMProviderError(f"PDF file not found: {e}") from e
         except openai.OpenAIError as e:
             logger.error(f"OpenAI API error with PDF upload: {e}")
-            raise LLMProviderError(f"OpenAI PDF processing failed: {e}")
+            raise LLMProviderError(f"OpenAI PDF processing failed: {e}") from e
 
 
 class ClaudeProvider(BaseLLMProvider):
@@ -805,7 +805,7 @@ class ClaudeProvider(BaseLLMProvider):
         wait=wait_exponential(multiplier=1, min=4, max=10),
         retry=retry_if_exception_type((anthropic.RateLimitError, anthropic.APITimeoutError)),
     )
-    def generate_text(self, prompt: str, system_prompt: Optional[str] = None, **kwargs) -> str:
+    def generate_text(self, prompt: str, system_prompt: str | None = None, **kwargs) -> str:
         """Generate text using Claude API"""
         try:
             response = self.client.messages.create(
@@ -823,7 +823,7 @@ class ClaudeProvider(BaseLLMProvider):
 
         except anthropic.AnthropicError as e:
             logger.error(f"Claude API error: {e}")
-            raise LLMProviderError(f"Claude API error: {e}")
+            raise LLMProviderError(f"Claude API error: {e}") from e
 
     @retry(
         stop=stop_after_attempt(3),
@@ -833,11 +833,11 @@ class ClaudeProvider(BaseLLMProvider):
     def generate_json_with_schema(
         self,
         prompt: str,
-        schema: Dict[str, Any],
-        system_prompt: Optional[str] = None,
-        schema_name: Optional[str] = None,
+        schema: dict[str, Any],
+        system_prompt: str | None = None,
+        schema_name: str | None = None,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Generate structured JSON using Claude API with schema guidance.
 
@@ -881,7 +881,7 @@ class ClaudeProvider(BaseLLMProvider):
                     logger.error(f"Schema validation failed: {e.message}")
                     raise LLMProviderError(
                         f"Generated JSON does not conform to schema: {e.message}"
-                    )
+                    ) from e
             else:
                 logger.warning(
                     "jsonschema library not available - skipping schema validation. "
@@ -892,13 +892,13 @@ class ClaudeProvider(BaseLLMProvider):
 
         except anthropic.AnthropicError as e:
             logger.error(f"Claude API error with schema-based generation: {e}")
-            raise LLMProviderError(f"Claude schema-based generation failed: {e}")
+            raise LLMProviderError(f"Claude schema-based generation failed: {e}") from e
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse JSON response: {e}")
             # Truncate long responses to avoid logging sensitive data
             content_preview = content[:200] + "..." if len(content) > 200 else content
             logger.error(f"Raw response preview: {content_preview}")
-            raise LLMProviderError(f"Invalid JSON response: {e}")
+            raise LLMProviderError(f"Invalid JSON response: {e}") from e
 
     @retry(
         stop=stop_after_attempt(3),
@@ -907,13 +907,13 @@ class ClaudeProvider(BaseLLMProvider):
     )
     def generate_json_with_pdf(
         self,
-        pdf_path: Union[Path, str],
-        schema: Dict[str, Any],
-        system_prompt: Optional[str] = None,
-        max_pages: Optional[int] = None,
-        schema_name: Optional[str] = None,
+        pdf_path: Path | str,
+        schema: dict[str, Any],
+        system_prompt: str | None = None,
+        max_pages: int | None = None,
+        schema_name: str | None = None,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Generate structured JSON from PDF using Claude API with vision capabilities.
 
@@ -997,7 +997,7 @@ class ClaudeProvider(BaseLLMProvider):
                     logger.error(f"Schema validation failed: {e.message}")
                     raise LLMProviderError(
                         f"Generated JSON does not conform to schema: {e.message}"
-                    )
+                    ) from e
             else:
                 logger.warning(
                     "jsonschema library not available - skipping schema validation. "
@@ -1008,20 +1008,20 @@ class ClaudeProvider(BaseLLMProvider):
 
         except FileNotFoundError as e:
             logger.error(f"PDF file not found: {pdf_path}")
-            raise LLMProviderError(f"PDF file not found: {e}")
+            raise LLMProviderError(f"PDF file not found: {e}") from e
         except anthropic.AnthropicError as e:
             logger.error(f"Claude API error with PDF upload: {e}")
-            raise LLMProviderError(f"Claude PDF processing failed: {e}")
+            raise LLMProviderError(f"Claude PDF processing failed: {e}") from e
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse JSON response: {e}")
             # Truncate long responses to avoid logging sensitive data
             content_preview = content[:200] + "..." if len(content) > 200 else content
             logger.error(f"Raw response preview: {content_preview}")
-            raise LLMProviderError(f"Invalid JSON response: {e}")
+            raise LLMProviderError(f"Invalid JSON response: {e}") from e
 
 
 def get_llm_provider(
-    provider: Union[str, LLMProvider], settings: Optional[LLMSettings] = None
+    provider: str | LLMProvider, settings: LLMSettings | None = None
 ) -> BaseLLMProvider:
     """
     Factory function to instantiate LLM provider.
@@ -1055,10 +1055,10 @@ def get_llm_provider(
     if isinstance(provider, str):
         try:
             provider = LLMProvider(provider.lower())
-        except ValueError:
+        except ValueError as e:
             raise LLMError(
                 f"Unsupported provider: {provider}. Supported: {[p.value for p in LLMProvider]}"
-            )
+            ) from e
 
     if provider == LLMProvider.OPENAI:
         return OpenAIProvider(settings)
@@ -1071,8 +1071,8 @@ def get_llm_provider(
 # Convenience functions for backward compatibility and easy usage
 def generate_text(
     prompt: str,
-    provider: Union[str, LLMProvider] = None,
-    system_prompt: Optional[str] = None,
+    provider: str | LLMProvider = None,
+    system_prompt: str | None = None,
     **kwargs,
 ) -> str:
     """
@@ -1107,12 +1107,12 @@ def generate_text(
 
 def generate_json_with_schema(
     prompt: str,
-    schema: Dict[str, Any],
-    provider: Union[str, LLMProvider] = None,
-    system_prompt: Optional[str] = None,
-    schema_name: Optional[str] = None,
+    schema: dict[str, Any],
+    provider: str | LLMProvider = None,
+    system_prompt: str | None = None,
+    schema_name: str | None = None,
     **kwargs,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Generate schema-conforming JSON using specified or default provider.
 

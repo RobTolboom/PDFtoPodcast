@@ -23,7 +23,7 @@ Example:
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -50,10 +50,10 @@ class SchemaLoadError(Exception):
 
 
 # Cache for loaded schemas to avoid repeated file I/O
-_SCHEMA_CACHE: Dict[str, Dict[str, Any]] = {}
+_SCHEMA_CACHE: dict[str, dict[str, Any]] = {}
 
 
-def load_schema(publication_type: str) -> Dict[str, Any]:
+def load_schema(publication_type: str) -> dict[str, Any]:
     """
     Load the bundled JSON schema for a specific publication type.
 
@@ -94,7 +94,7 @@ def load_schema(publication_type: str) -> Dict[str, Any]:
         raise SchemaLoadError(f"Schema file not found: {schema_file}")
 
     try:
-        with open(schema_file, "r", encoding="utf-8") as f:
+        with open(schema_file, encoding="utf-8") as f:
             schema = json.load(f)
 
         # Cache the schema
@@ -104,12 +104,12 @@ def load_schema(publication_type: str) -> Dict[str, Any]:
         return schema
 
     except json.JSONDecodeError as e:
-        raise SchemaLoadError(f"Invalid JSON in schema file {schema_file}: {e}")
+        raise SchemaLoadError(f"Invalid JSON in schema file {schema_file}: {e}") from e
     except Exception as e:
-        raise SchemaLoadError(f"Error reading schema file {schema_file}: {e}")
+        raise SchemaLoadError(f"Error reading schema file {schema_file}: {e}") from e
 
 
-def get_schema_info(publication_type: str) -> Dict[str, Any]:
+def get_schema_info(publication_type: str) -> dict[str, Any]:
     """
     Get metadata about a schema without loading the full schema.
 
@@ -129,7 +129,7 @@ def get_schema_info(publication_type: str) -> Dict[str, Any]:
     }
 
 
-def validate_schema_compatibility(schema: Dict[str, Any]) -> Dict[str, Any]:
+def validate_schema_compatibility(schema: dict[str, Any]) -> dict[str, Any]:
     """
     Check if a schema is compatible with OpenAI structured outputs.
 
@@ -201,7 +201,7 @@ def validate_schema_compatibility(schema: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def get_all_available_schemas() -> Dict[str, Dict[str, Any]]:
+def get_all_available_schemas() -> dict[str, dict[str, Any]]:
     """
     Get information about all available schemas.
 

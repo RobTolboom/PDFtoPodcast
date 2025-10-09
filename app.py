@@ -68,7 +68,7 @@ def load_manifest() -> dict:
     """Load manifest file containing metadata of all uploaded files."""
     if MANIFEST_FILE.exists():
         try:
-            with open(MANIFEST_FILE, "r") as f:
+            with open(MANIFEST_FILE) as f:
                 return json.load(f)
         except Exception:
             return {"files": []}
@@ -128,7 +128,7 @@ def show_json_viewer(file_path: str, step_name: str, file_info: dict):
     @st.dialog(f"{icon} {step_name}", width="large")
     def dialog_content():
         try:
-            with open(file_path, "r") as f:
+            with open(file_path) as f:
                 json_content = json.load(f)
 
             # Display JSON

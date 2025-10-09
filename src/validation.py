@@ -35,7 +35,7 @@ Note:
 """
 
 import logging
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -47,8 +47,8 @@ class ValidationError(Exception):
 
 
 def validate_with_schema(
-    data: Dict[str, Any], schema: Dict[str, Any], strict: bool = True
-) -> Tuple[bool, List[str]]:
+    data: dict[str, Any], schema: dict[str, Any], strict: bool = True
+) -> tuple[bool, list[str]]:
     """
     Validate extracted data against a JSON schema.
 
@@ -82,10 +82,10 @@ def validate_with_schema(
     try:
         import jsonschema
         from jsonschema import Draft202012Validator
-    except ImportError:
+    except ImportError as e:
         logger.error("jsonschema library not installed. Install with: pip install jsonschema")
         if strict:
-            raise ValidationError("jsonschema library required for validation")
+            raise ValidationError("jsonschema library required for validation") from e
         return False, ["jsonschema library not available"]
 
     errors = []
@@ -119,13 +119,13 @@ def validate_with_schema(
         error_msg = f"Invalid schema: {e.message}"
         logger.error(error_msg)
         if strict:
-            raise ValidationError(error_msg)
+            raise ValidationError(error_msg) from e
         return False, [error_msg]
 
 
 def check_required_fields(
-    data: Dict[str, Any], required_fields: List[str]
-) -> Tuple[bool, List[str]]:
+    data: dict[str, Any], required_fields: list[str]
+) -> tuple[bool, list[str]]:
     """
     Check if all required fields are present in the data.
 
@@ -151,7 +151,7 @@ def check_required_fields(
     return len(missing) == 0, missing
 
 
-def check_data_completeness(data: Dict[str, Any], schema: Dict[str, Any]) -> Dict[str, Any]:
+def check_data_completeness(data: dict[str, Any], schema: dict[str, Any]) -> dict[str, Any]:
     """
     Analyze data completeness based on schema.
 
@@ -218,8 +218,8 @@ def check_data_completeness(data: Dict[str, Any], schema: Dict[str, Any]) -> Dic
 
 
 def validate_extraction_quality(
-    data: Dict[str, Any], schema: Dict[str, Any], strict: bool = False
-) -> Dict[str, Any]:
+    data: dict[str, Any], schema: dict[str, Any], strict: bool = False
+) -> dict[str, Any]:
     """
     Comprehensive quality validation of extracted data.
 
@@ -298,7 +298,7 @@ def validate_extraction_quality(
     return results
 
 
-def create_validation_report(validation_results: Dict[str, Any]) -> str:
+def create_validation_report(validation_results: dict[str, Any]) -> str:
     """
     Create a human-readable validation report.
 
