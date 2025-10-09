@@ -25,6 +25,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Easier to add new LLM providers in the future
   - All existing imports remain functional (backward compatible)
 
+- Refactored `app.py` (897 → 86 lines) by extracting to `src/streamlit_app/` package
+  - `src/streamlit_app/file_management.py` - Upload handling, manifest, duplicate detection
+  - `src/streamlit_app/result_checker.py` - Check existing pipeline results
+  - `src/streamlit_app/json_viewer.py` - Display JSON results in modal dialogs
+  - `src/streamlit_app/session_state.py` - Session state initialization
+  - `src/streamlit_app/screens/intro.py` - Introduction/welcome screen
+  - `src/streamlit_app/screens/upload.py` - PDF upload and file selection screen
+  - `src/streamlit_app/screens/settings.py` - Pipeline configuration screen
+  - `src/streamlit_app/__init__.py` - Backward-compatible public API
+  - Improved separation of concerns and testability
+  - Reduced main file complexity (897 → 86 lines, 90% reduction)
+  - Each screen module <300 lines for better maintainability
+  - All existing functionality preserved (backward compatible)
+
 ### Deprecated
 - Nothing yet
 
