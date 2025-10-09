@@ -146,7 +146,32 @@ MAX_PDF_SIZE_MB=32            # Default: 32 (API limit)
 
 ## 🚀 Usage
 
-### Basic Usage
+### Web Interface (Recommended)
+
+The easiest way to use PDFtoPodcast is through the **Streamlit web interface**:
+
+```bash
+streamlit run app.py
+```
+
+**Features:**
+- 📤 **Drag-and-drop PDF upload** with duplicate detection
+- ⚙️ **Interactive pipeline configuration** (select steps, LLM provider, page limits)
+- 👁️ **View results** for each pipeline step with JSON syntax highlighting
+- 🔄 **Re-run individual steps** without full pipeline execution
+- 📁 **Previously uploaded files library** for easy file selection
+
+**Perfect for:**
+- First-time users
+- Testing and experimentation
+- Reviewing results interactively
+- Non-technical users
+
+---
+
+### Command-Line Interface
+
+For automation and batch processing, use the CLI:
 
 ```bash
 # Run with OpenAI (default)

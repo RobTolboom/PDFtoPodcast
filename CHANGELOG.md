@@ -68,10 +68,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Compatibility validation for OpenAI structured outputs
 
 - **File Management**
-  - DOI-based filename generation
+  - PDF filename-based file naming
   - Consistent naming across pipeline steps
   - Automatic `tmp/` directory management
   - JSON output for all intermediate and final results
+
+- **Web Interface**
+  - Streamlit-based web UI for easy interaction
+  - Drag-and-drop PDF upload with duplicate detection
+  - Interactive pipeline configuration
+  - View and download results for each step
+  - Previously uploaded files library
 
 - **Development Features**
   - Breakpoint system for step-by-step testing

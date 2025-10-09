@@ -49,7 +49,7 @@ PDFtoPodcast is a **medical literature data extraction pipeline** that uses LLM 
                             ▼
                   ┌──────────────────┐
                   │  File Manager    │
-                  │  (DOI-based)     │
+                  │  (PDF-based)     │
                   └──────────────────┘
                             │
                             ▼
@@ -79,7 +79,7 @@ PDFtoPodcast is a **medical literature data extraction pipeline** that uses LLM 
 **Design Decisions:**
 - **Why 4 steps?** Separation of concerns: classify → extract → validate → correct
 - **Why breakpoints?** Enable step-by-step testing without full pipeline runs
-- **Why DOI-based naming?** Consistent file tracking across pipeline stages
+- **Why PDF filename-based naming?** Consistent file tracking across pipeline stages, works without DOI
 
 ---
 
@@ -227,7 +227,7 @@ prompts/
 ### 6. File Management (`PipelineFileManager`)
 
 **Responsibilities:**
-- DOI-based filename generation
+- PDF filename-based file naming
 - Consistent file naming across steps
 - Automatic `tmp/` directory management
 
@@ -248,6 +248,46 @@ sample_paper-validation-corrected.json
 - **Why PDF stem instead of DOI?** Not all papers have DOIs, consistent naming
 - **Why tmp/ directory?** Clear separation of intermediate vs final outputs
 - **Why JSON?** Human-readable, schema-validatable, widely supported
+
+---
+
+### 7. Web Interface (`app.py`)
+
+**Platform:** Streamlit web application
+
+**Responsibilities:**
+- User-friendly PDF upload interface
+- Pipeline configuration UI
+- Real-time progress tracking
+- Results visualization and download
+
+**Key Features:**
+- **Upload Management**:
+  - Drag-and-drop PDF upload
+  - Duplicate detection via file hashing
+  - Previously uploaded files library
+  - File size validation (10 MB limit)
+
+- **Pipeline Control**:
+  - Select which steps to run
+  - View existing results per step
+  - Delete and re-run individual steps
+  - Configure LLM provider and page limits
+
+- **Results Viewing**:
+  - JSON viewer with syntax highlighting
+  - Step-by-step result inspection
+  - File metadata display
+
+**Design Decisions:**
+- **Why Streamlit?** Rapid prototyping, Python-native, easy deployment
+- **Why local file storage?** Privacy, no cloud dependencies, user control
+- **Why manifest system?** Track uploads, enable duplicate detection
+
+**Usage:**
+```bash
+streamlit run app.py
+```
 
 ---
 
