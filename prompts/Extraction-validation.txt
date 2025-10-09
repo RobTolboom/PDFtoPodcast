@@ -40,22 +40,15 @@ VERIFICATION METHODOLOGY:
 - Check data types align with schema specifications
 - Validate relational consistency (e.g., group_id references, outcome_id links)
 
-OUTPUT SCHEMA:
+OUTPUT REQUIREMENTS:
 
-The output format is enforced via JSON Schema validation with strict mode.
-All fields must be correctly populated according to validation.schema.json.
-
-REQUIRED TOP-LEVEL FIELDS:
-- verification_summary (with overall_status, completeness_score, accuracy_score, schema_compliance_score, total_issues, critical_issues)
-- issues (array of identified problems - can be empty array if no issues found)
-- field_validation (boolean checks: required_fields_complete, schema_compliance, source_references_valid, data_types_correct)
-- completeness_analysis (coverage metrics: tables_captured, figures_captured, outcomes_captured, missing_sections)
-- recommendations (array of actionable improvements - can be empty if extraction is perfect)
-
-OPTIONAL FIELD:
-- verification_metadata (pdf_pages_reviewed, extraction_schema_type, verification_timestamp, verification_warnings)
-
-Focus on accurate quality assessment based on PDF verification.
+Provide a structured JSON verification report conforming to the validation schema with:
+- verification_summary (overall_status, completeness_score, accuracy_score, etc.)
+- issues array (hallucinations, missing_data, accuracy_errors, etc.)
+- field_validation (required fields, schema compliance, source references)
+- completeness_analysis (tables, figures, outcomes captured)
+- recommendations
+- verification_metadata
 
 SCORING METHODOLOGY:
 
