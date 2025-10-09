@@ -113,10 +113,19 @@ def get_uploaded_files() -> list[dict]:
     return existing_files
 
 
-@st.dialog("📋 View Results", width="large")
+@st.dialog("Results", width="large")
 def show_json_viewer(file_path: str, step_name: str, file_info: dict):
     """Display JSON content in a modal dialog."""
-    st.markdown(f"### {step_name}")
+    # Icon mapping for each step type
+    step_icons = {
+        "Classification": "🏷️",
+        "Extraction": "📊",
+        "Validation": "✅",
+        "Correction": "🔧",
+    }
+
+    icon = step_icons.get(step_name, "📋")
+    st.markdown(f"## {icon} {step_name}")
 
     try:
         with open(file_path, "r") as f:
