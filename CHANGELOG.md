@@ -16,7 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - TESTING.md - Testing strategy and guidelines
 
 ### Changed
-- Nothing yet
+- Refactored `src/llm.py` (1,152 lines) into modular package structure
+  - `src/llm/base.py` - Abstract base class and exceptions
+  - `src/llm/openai_provider.py` - OpenAI provider implementation
+  - `src/llm/claude_provider.py` - Claude provider implementation
+  - `src/llm/__init__.py` - Backward-compatible public API
+  - Improved code organization and maintainability
+  - Easier to add new LLM providers in the future
+  - All existing imports remain functional (backward compatible)
 
 ### Deprecated
 - Nothing yet
