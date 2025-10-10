@@ -83,7 +83,7 @@ PDFtoPodcast is a **medical literature data extraction pipeline** that uses LLM 
 
 ---
 
-### 2. LLM Provider Layer (`src/llm.py`)
+### 2. LLM Provider Layer (`src/llm/`)
 
 **Architecture Pattern:** Abstract Base Class + Concrete Implementations
 
