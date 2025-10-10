@@ -162,9 +162,7 @@ def run_four_step_pipeline(
             for warning in compatibility["warnings"][:3]:
                 console.print(f"[dim]  • {warning}[/dim]")
 
-        console.print(
-            f"[dim]Running schema-based {publication_type} extraction with PDF upload..."
-        )
+        console.print(f"[dim]Running schema-based {publication_type} extraction with PDF upload...")
         console.print(f"[dim]Schema: ~{compatibility['estimated_tokens']} tokens[/dim]")
 
         # Run schema-based extraction with direct PDF upload
