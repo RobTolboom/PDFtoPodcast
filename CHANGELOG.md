@@ -97,6 +97,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Anesthesiology Domain Specialization
     - Fulfills promises made in prompts/README.md and schemas/readme.md relocations
     - Increased from 575 to 1018 lines (comprehensive technical reference)
+    - Fixed LLM Provider Layer header to reference src/llm/ package
+
+- Fixed remaining references to old monolithic structure
+  - **CONTRIBUTING.md** - Updated llm.py reference to llm/__init__.py
+  - **DEVELOPMENT.md** - Updated project structure diagram with all modular packages
 
 ### Deprecated
 - Nothing yet
