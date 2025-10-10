@@ -77,6 +77,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Better troubleshooting section with common issues and solutions
     - Compacted version history for better readability
     - Reduced from 581 to 337 lines (42% reduction)
+  - **schemas/readme.md** - Major reorganization for clarity
+    - Added Quick Start with schema selection table
+    - Clear separation of Modular vs Bundled deployment options
+    - Concise schema type descriptions without excessive JSON examples
+    - Focused usage examples (validation, LLM integration, batch processing)
+    - Compact json-bundler.py tool documentation
+    - Streamlined troubleshooting and international standards sections
+    - Moved detailed compliance information to ARCHITECTURE.md
+    - Reduced from 1257 to 440 lines (65% reduction!)
 
 ### Deprecated
 - Nothing yet
