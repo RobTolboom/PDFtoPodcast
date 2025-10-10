@@ -86,6 +86,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Streamlined troubleshooting and international standards sections
     - Moved detailed compliance information to ARCHITECTURE.md
     - Reduced from 1257 to 440 lines (65% reduction!)
+  - **ARCHITECTURE.md** - Added comprehensive Medical Standards & Compliance section
+    - International Reporting Standards (CONSORT, PRISMA, TRIPOD, STROBE)
+    - Quality Assessment Tools (RoB 2.0, ROBINS-I, PROBAST, AMSTAR-2)
+    - Advanced Methodological Support (target trial emulation, causal inference)
+    - Data Source Prioritization Strategy documentation
+    - Document Processing & PDF Strategy details
+    - Evidence-Locked Extraction principles
+    - International Trial Registry Support (9 registries)
+    - Anesthesiology Domain Specialization
+    - Fulfills promises made in prompts/README.md and schemas/readme.md relocations
+    - Increased from 575 to 1018 lines (comprehensive technical reference)
 
 ### Deprecated
 - Nothing yet
