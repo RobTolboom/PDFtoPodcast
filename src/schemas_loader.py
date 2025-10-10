@@ -23,7 +23,7 @@ Example:
 import json
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +95,7 @@ def load_schema(publication_type: str) -> dict[str, Any]:
 
     try:
         with open(schema_file, encoding="utf-8") as f:
-            schema = json.load(f)
+            schema = cast(dict[str, Any], json.load(f))
 
         # Cache the schema
         _SCHEMA_CACHE[publication_type] = schema

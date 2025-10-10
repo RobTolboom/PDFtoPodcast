@@ -13,7 +13,7 @@ import json
 import logging
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import openai
 from tenacity import (
@@ -271,7 +271,7 @@ class OpenAIProvider(BaseLLMProvider):
             )
 
         try:
-            return json.loads(content)
+            return cast(dict[str, Any], json.loads(content))
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse JSON response: {e}")
             logger.error(f"Full content length: {len(content)} characters")
@@ -295,7 +295,7 @@ class OpenAIProvider(BaseLLMProvider):
             )
             try:
                 repaired_content = _repair_json_quotes(content)
-                result = json.loads(repaired_content)
+                result = cast(dict[str, Any], json.loads(repaired_content))
                 logger.warning(
                     "✓ JSON repair successful! This is a workaround for OpenAI Responses API bug. "
                     "Consider reporting to OpenAI that strict mode doesn't escape quotes properly."
@@ -326,7 +326,7 @@ class OpenAIProvider(BaseLLMProvider):
             )
 
             # Use SDK convenience property for aggregated text output
-            result = response.output_text.strip()
+            result = str(response.output_text).strip()
             logger.info("Successfully generated text with OpenAI Responses API")
             return result
 
@@ -455,7 +455,7 @@ class OpenAIProvider(BaseLLMProvider):
             # Use OpenAI Responses API with structured outputs
             # strict=False allows flexible schema guidance while maintaining prompt control
             # Validation happens post-generation via dual-validation strategy
-            response = self.client.responses.create(
+            response = self.client.responses.create(  # type: ignore[call-overload]
                 model=self.settings.openai_model,
                 input=input_content,
                 instructions=system_prompt,
