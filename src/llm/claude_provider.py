@@ -32,7 +32,7 @@ import base64
 import json
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import anthropic
 from tenacity import (
@@ -172,7 +172,7 @@ class ClaudeProvider(BaseLLMProvider):
                 **kwargs,
             )
 
-            result = response.content[0].text.strip()
+            result = str(response.content[0].text).strip()
             logger.info("Successfully generated text with Claude")
             return result
 
@@ -223,7 +223,7 @@ class ClaudeProvider(BaseLLMProvider):
             # Extract JSON from markdown code blocks if present
             content = _extract_json_from_markdown(content)
 
-            result = json.loads(content)
+            result = cast(dict[str, Any], json.loads(content))
 
             # Validate against schema using jsonschema library
             if HAVE_JSONSCHEMA:
@@ -339,7 +339,7 @@ class ClaudeProvider(BaseLLMProvider):
             # Extract JSON from markdown code blocks if present
             content = _extract_json_from_markdown(content)
 
-            result = json.loads(content)
+            result = cast(dict[str, Any], json.loads(content))
 
             # Validate against schema using jsonschema library
             if HAVE_JSONSCHEMA:
