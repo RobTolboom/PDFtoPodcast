@@ -48,6 +48,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Each screen module <300 lines for better maintainability
   - All existing functionality preserved (backward compatible)
 
+- Updated and reorganized README documentation
+  - **src/README.md** - Updated for new modular package structure
+    - Updated module overview to reflect llm/, pipeline/, and streamlit_app/ packages
+    - Replaced references to monolithic llm.py with current package structure
+    - Added pipeline/ package documentation (orchestrator, validation_runner, file_manager)
+    - Added streamlit_app/ package overview
+    - Improved API examples with current imports
+    - Better organization with clear section headers
+  - **README.md** - Improved organization and navigation
+    - Added Quick Links table at top for easy navigation
+    - Converted cost considerations to tables for better readability
+    - Added app.py to project structure documentation
+    - Consolidated development section with clear doc references
+    - Improved programmatic usage examples with current API
+    - Better documentation navigation table
+  - **tests/README.md** - Enhanced test documentation
+    - Added Quick Start section with common make commands
+    - Better structure separating "running tests" from "writing tests"
+    - Added Test Markers section with @pytest.mark examples
+    - Improved Mocking section with complete code examples
+    - Added Development Workflow section
+    - Removed TODO section (moved to GitHub Issues)
+
 ### Deprecated
 - Nothing yet
 
