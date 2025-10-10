@@ -70,6 +70,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Improved Mocking section with complete code examples
     - Added Development Workflow section
     - Removed TODO section (moved to GitHub Issues)
+  - **prompts/README.md** - Reorganized for better navigation
+    - Added Quick Start section with prompt-schema mapping table
+    - Reorganized into clear sections (Overview, Types, Integration, Principles)
+    - Consolidated complete pipeline example with all four steps
+    - Better troubleshooting section with common issues and solutions
+    - Compacted version history for better readability
+    - Reduced from 581 to 337 lines (42% reduction)
 
 ### Deprecated
 - Nothing yet
