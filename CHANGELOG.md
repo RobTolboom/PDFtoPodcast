@@ -110,7 +110,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Nothing yet
 
 ### Fixed
-- Nothing yet
+- **schemas/json-bundler.py** - Fixed critical bug in schema bundling that caused unresolved $refs
+  - Problem: Bundler only copied first-level definitions from common.schema.json, but didn't recursively resolve nested $refs within those definitions
+  - Example: When bundling `Metadata` definition, it didn't also copy `Author`, `Registration`, `SupplementFile`, etc. that Metadata references
+  - Impact: All 5 bundled schemas had 5-7 unresolved $refs each, causing validation failures
+  - Solution: Implemented recursive definition collection using a worklist algorithm
+    - Added `include_local` parameter to `find_common_refs()` to detect local #/$defs/Name references
+    - Modified `bundle_schema()` to recursively process nested dependencies until all are resolved
+    - Each embedded definition is now scanned for additional references, which are added to the processing queue
+  - Result: All 5 schemas now pass validation with 0 unresolved $refs
+  - Files affected: All *_bundled.json schemas now correctly include all transitive dependencies
 
 ### Security
 - Nothing yet
