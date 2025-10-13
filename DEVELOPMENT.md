@@ -271,8 +271,8 @@ pytest tests/integration/ -v
 ### Working with Schemas
 
 ```bash
-# Validate a schema file
-python validate_schemas.py schemas/interventional_trial.schema.json
+# Validate bundled schemas (all schemas in schemas/ directory)
+python tests/validate_schemas.py
 
 # Bundle schemas (inline all $ref)
 cd schemas

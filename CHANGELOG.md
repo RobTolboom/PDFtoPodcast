@@ -103,11 +103,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **CONTRIBUTING.md** - Updated llm.py reference to llm/__init__.py
   - **DEVELOPMENT.md** - Updated project structure diagram with all modular packages
 
+- Improved project organization by relocating test utilities
+  - **validate_schemas.py** - Moved from project root to `tests/` directory
+  - Updated references in DEVELOPMENT.md and Makefile
+  - `make validate-schemas` target updated to use new location
+  - Removed temporary `test.py` file (exploratory scratch file)
+
 ### Deprecated
 - Nothing yet
 
 ### Removed
-- Nothing yet
+- **test.py** - Removed temporary exploratory test file from project root
 
 ### Fixed
 - **schemas/json-bundler.py** - Fixed critical bug in schema bundling that caused unresolved $refs

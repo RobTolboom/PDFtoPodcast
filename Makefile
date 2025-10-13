@@ -176,11 +176,11 @@ bundle: bundle-schemas
 
 validate-schemas:
 	@echo "Validating schemas..."
-	@if [ -f validate_schemas.py ]; then \
-		$(PYTHON) validate_schemas.py; \
+	@if [ -f tests/validate_schemas.py ]; then \
+		$(PYTHON) tests/validate_schemas.py; \
 		echo "✅ Schemas validated"; \
 	else \
-		echo "⚠️  validate_schemas.py not found"; \
+		echo "⚠️  tests/validate_schemas.py not found"; \
 	fi
 
 # Cleaning
