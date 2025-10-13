@@ -8,49 +8,71 @@ This directory contains the core modules for the **PDFtoPodcast** medical litera
 
 ## 📦 Module Overview
 
-### ⚙️ `config.py`
-**Purpose:** Configuration management for LLM providers
+### Package Structure
 
-**Key features:**
-- Multi-provider support (OpenAI & Claude)
-- Environment variable configuration via `.env`
-- PDF processing limits (100 pages, 32 MB)
-- Timeout and token limit settings
-
-**Usage:**
-```python
-from src.config import llm_settings
-print(llm_settings.openai_model)  # 'gpt-5'
-print(llm_settings.max_pdf_pages)  # 100
+```
+src/
+├── config.py                # Configuration management
+├── prompts.py              # Prompt template loading
+├── schemas_loader.py       # JSON schema management
+├── validation.py           # Validation utilities
+├── llm/                    # LLM provider package
+│   ├── __init__.py        # Provider factory and exports
+│   ├── base.py            # Base provider interface
+│   ├── openai_provider.py # OpenAI GPT implementation
+│   └── claude_provider.py # Anthropic Claude implementation
+├── pipeline/              # Pipeline orchestration package
+│   ├── __init__.py       # Pipeline exports
+│   ├── orchestrator.py   # Main pipeline logic
+│   ├── validation_runner.py # Validation execution
+│   ├── file_manager.py   # File I/O management
+│   └── utils.py          # Pipeline utilities
+└── streamlit_app/        # Web UI package
+    ├── __init__.py
+    ├── screens/          # UI screens
+    ├── session_state.py  # State management
+    ├── file_management.py
+    ├── json_viewer.py
+    └── result_checker.py
 ```
 
 ---
 
-### 🤖 `llm.py`
-**Purpose:** Multi-provider LLM abstraction layer with PDF upload support
+## Core Modules
 
-**Key features:**
-- Abstract `BaseLLMProvider` interface
-- OpenAI provider (GPT-5 vision API)
-- Claude provider (document API)
-- Three generation modes:
-  - `generate_text()` - Free-form text
-  - `generate_json()` - Generic JSON (no schema)
-  - `generate_json_with_schema()` - Schema-enforced JSON
-  - `generate_json_with_pdf()` - PDF upload with structured output ⭐ NEW
-- Automatic retry logic with exponential backoff
-- Base64 PDF encoding and upload
-- 32 MB file size validation
+### ⚙️ `config.py`
+**Configuration management for LLM providers and pipeline settings**
 
-**Usage:**
 ```python
-from src.llm import get_llm_provider
+from src.config import llm_settings
+
+print(llm_settings.openai_model)     # 'gpt-5'
+print(llm_settings.max_pdf_pages)    # 100
+print(llm_settings.max_pdf_size_mb)  # 32
+```
+
+**Key Features:**
+- Multi-provider support (OpenAI & Claude)
+- Environment variable configuration via `.env`
+- PDF processing limits validation
+- Timeout and token limit settings
+
+---
+
+### 🤖 `llm/` Package
+**Multi-provider LLM abstraction with PDF upload support**
+
+```python
+from src.llm import get_llm_provider, LLMError
 from src.schemas_loader import load_schema
 
-llm = get_llm_provider("openai")
+# Get provider instance
+llm = get_llm_provider("openai")  # or "claude"
+
+# Load schema
 schema = load_schema("interventional_trial")
 
-# Direct PDF upload with structured output
+# Extract from PDF with structured output
 data = llm.generate_json_with_pdf(
     pdf_path="paper.pdf",
     schema=schema,
@@ -59,77 +81,91 @@ data = llm.generate_json_with_pdf(
 )
 ```
 
+**Providers:**
+- `OpenAIProvider` - GPT-5 with Responses API
+- `ClaudeProvider` - Claude 3.5 Sonnet with Messages API
+
+**API Methods:**
+- `generate_text()` - Free-form text generation
+- `generate_json_with_schema()` - Schema-enforced JSON with prompt
+- `generate_json_with_pdf()` - PDF upload with structured output
+
+**Features:**
+- Automatic retry with exponential backoff
+- Base64 PDF encoding and validation
+- 32 MB file size checking
+- Unified error handling via `LLMError`
+
 ---
 
 ### 📄 `prompts.py`
-**Purpose:** Prompt template loading from `prompts/` directory
+**Prompt template loading from `prompts/` directory**
 
-**Key features:**
-- Load classification prompt (`Classification.txt`)
-- Load type-specific extraction prompts (5 publication types)
-- Load validation prompt (`Extraction-validation.txt`)
-- Load correction prompt (`Extraction-correction.txt`)
-- Error handling with `PromptLoadError`
+```python
+from src.prompts import (
+    load_classification_prompt,
+    load_extraction_prompt,
+    load_validation_prompt,
+    load_correction_prompt
+)
 
-**Supported publication types:**
+# Load prompts by type
+classification_prompt = load_classification_prompt()
+extraction_prompt = load_extraction_prompt("interventional_trial")
+validation_prompt = load_validation_prompt()
+correction_prompt = load_correction_prompt()
+```
+
+**Supported Publication Types:**
 - `interventional_trial` - RCTs, clinical trials
 - `observational_analytic` - Cohort, case-control studies
 - `evidence_synthesis` - Meta-analyses, systematic reviews
 - `prediction_prognosis` - Prediction models, prognostic studies
 - `editorials_opinion` - Editorials, commentaries
 
-**Usage:**
-```python
-from src.prompts import load_classification_prompt, load_extraction_prompt
-
-classification_prompt = load_classification_prompt()
-extraction_prompt = load_extraction_prompt("interventional_trial")
-```
+**Error Handling:**
+- Raises `PromptLoadError` if prompt file not found
 
 ---
 
 ### 🗂️ `schemas_loader.py`
-**Purpose:** JSON Schema loading and management
+**JSON Schema loading and validation**
 
-**Key features:**
-- Load bundled JSON schemas (all $refs resolved)
-- Schema caching for performance
-- OpenAI compatibility validation
-- Support for 7 schema types:
-  - 5 extraction schemas (publication-type specific)
-  - 1 classification schema (metadata & type)
-  - 1 validation schema (quality report)
-
-**Usage:**
 ```python
-from src.schemas_loader import load_schema, validate_schema_compatibility
+from src.schemas_loader import (
+    load_schema,
+    validate_schema_compatibility,
+    get_supported_publication_types
+)
 
+# Load bundled schema
 schema = load_schema("interventional_trial")
+
+# Check OpenAI compatibility
 compatibility = validate_schema_compatibility(schema)
-print(f"Estimated tokens: {compatibility['estimated_tokens']}")
+print(f"Tokens: {compatibility['estimated_tokens']}")
+print(f"Compatible: {compatibility['compatible']}")
+
+# List available types
+types = get_supported_publication_types()
 ```
 
-**Schema mapping:**
-- `interventional_trial` → `interventional_trial_bundled.json`
-- `observational_analytic` → `observational_analytic_bundled.json`
-- `evidence_synthesis` → `evidence_synthesis_bundled.json`
-- `prediction_prognosis` → `prediction_prognosis_bundled.json`
-- `editorials_opinion` → `editorials_opinion_bundled.json`
-- `classification` → `classification.schema.json`
-- `validation` → `validation.schema.json`
+**Schema Types:**
+- 5 extraction schemas (publication-type specific)
+- 1 classification schema (metadata & type)
+- 1 validation schema (quality report)
+
+**Features:**
+- Schema caching for performance
+- Bundled schemas (all $refs resolved)
+- OpenAI/Claude compatibility validation
+- Error handling via `SchemaLoadError`
 
 ---
 
 ### ✅ `validation.py`
-**Purpose:** Schema-based validation utilities
+**Schema-based validation and quality scoring**
 
-**Key features:**
-- Schema validation using `jsonschema` library
-- Quality scoring (schema compliance + completeness)
-- Completeness analysis (required vs optional fields)
-- Validation reporting with detailed error messages
-
-**Usage:**
 ```python
 from src.validation import validate_extraction_quality
 from src.schemas_loader import load_schema
@@ -139,11 +175,95 @@ results = validate_extraction_quality(data, schema)
 
 print(f"Quality: {results['quality_score']:.1%}")
 print(f"Compliant: {results['schema_compliant']}")
+print(f"Completeness: {results['completeness_score']:.1%}")
 ```
 
-**Quality scoring:**
+**Quality Scoring:**
 - 50% weight: Schema compliance (pass/fail)
-- 50% weight: Completeness (weighted: required=2x, optional=1x)
+- 50% weight: Completeness (required=2x, optional=1x)
+
+**Features:**
+- Schema validation using `jsonschema` library
+- Completeness analysis (required vs optional fields)
+- Detailed error reporting
+- Quality thresholds for validation gating
+
+---
+
+## Pipeline Package
+
+### 🔄 `pipeline/orchestrator.py`
+**Main four-step pipeline orchestration**
+
+```python
+from src.pipeline import run_four_step_pipeline
+from pathlib import Path
+
+results = run_four_step_pipeline(
+    pdf_path=Path("paper.pdf"),
+    max_pages=20,
+    llm_provider="openai",
+    breakpoint_after_step=None  # or "classification", "extraction", etc.
+)
+```
+
+**Pipeline Steps:**
+1. Classification - Identify publication type
+2. Extraction - Schema-based data extraction
+3. Validation - Dual validation (schema + LLM)
+4. Correction - Fix issues (conditional)
+
+---
+
+### 🔍 `pipeline/validation_runner.py`
+**Dual validation strategy execution**
+
+```python
+from src.pipeline.validation_runner import run_dual_validation
+
+validation_result = run_dual_validation(
+    extraction_result=extracted_data,
+    pdf_path=Path("paper.pdf"),
+    max_pages=20,
+    publication_type="interventional_trial",
+    llm=llm_provider,
+    console=console
+)
+```
+
+**Validation Tiers:**
+1. **Schema Validation** (always) - Fast, local, free
+2. **LLM Validation** (conditional) - Only if quality ≥ 50%
+
+---
+
+### 📁 `pipeline/file_manager.py`
+**Pipeline file I/O management**
+
+```python
+from src.pipeline import PipelineFileManager
+
+file_manager = PipelineFileManager(pdf_path)
+classification_file = file_manager.save_json(data, "classification")
+extraction_file = file_manager.save_json(data, "extraction")
+```
+
+**File Naming:**
+- Pattern: `{pdf_stem}-{step}.json`
+- Example: `sample_paper-classification.json`
+
+---
+
+## Web UI Package
+
+### 🌐 `streamlit_app/`
+**Streamlit web interface components**
+
+- `screens/` - UI screens (intro, upload, settings)
+- `session_state.py` - State management
+- `file_management.py` - File operations
+- `json_viewer.py` - JSON result display
+- `result_checker.py` - Result validation UI
 
 ---
 
@@ -154,38 +274,31 @@ PDF File (≤100 pages, ≤32 MB)
     ↓
 ┌─────────────────────────────────────────────┐
 │ 1. Classification (PDF upload)              │
-│    - Identify publication type              │
-│    - Extract metadata (DOI, authors, etc)   │
-│    Output: classification.schema.json       │
+│    llm.generate_json_with_pdf()             │
+│    Output: classification.json              │
 └─────────────────────────────────────────────┘
     ↓
 ┌─────────────────────────────────────────────┐
 │ 2. Extraction (PDF upload)                  │
-│    - Type-specific schema                   │
-│    - Tables, figures, complete data         │
-│    Output: {type}_bundled.json              │
+│    llm.generate_json_with_pdf()             │
+│    Output: extraction.json                  │
 └─────────────────────────────────────────────┘
     ↓
 ┌─────────────────────────────────────────────┐
-│ 3a. Schema Validation (local, fast)         │
-│     - Structure check                       │
-│     - Type validation                       │
-│     - Quality score calculation             │
+│ 3a. Schema Validation (local)               │
+│     validate_extraction_quality()           │
 └─────────────────────────────────────────────┘
     ↓ (if quality ≥ 50%)
 ┌─────────────────────────────────────────────┐
-│ 3b. LLM Validation (PDF upload, conditional)│
-│     - Semantic accuracy check               │
-│     - Completeness assessment               │
-│     - Hallucination detection               │
-│     Output: validation.schema.json          │
+│ 3b. LLM Validation (PDF upload)             │
+│     llm.generate_json_with_pdf()            │
+│     Output: validation.json                 │
 └─────────────────────────────────────────────┘
     ↓ (if validation failed)
 ┌─────────────────────────────────────────────┐
-│ 4. Correction (PDF upload, optional)        │
-│    - Fix identified issues                  │
-│    - Re-extract missing data                │
-│    - Re-validate corrected output           │
+│ 4. Correction (PDF upload)                  │
+│    llm.generate_json_with_pdf()             │
+│    Output: extraction-corrected.json        │
 └─────────────────────────────────────────────┘
 ```
 
@@ -193,7 +306,8 @@ PDF File (≤100 pages, ≤32 MB)
 
 ## 💡 PDF Upload Strategy
 
-### Why PDF Upload?
+### Why Direct PDF Upload?
+
 **Previous approach:** Text extraction with PyMuPDF
 - ❌ Tables lost or mangled
 - ❌ Images and charts ignored
@@ -206,72 +320,39 @@ PDF File (≤100 pages, ≤32 MB)
 - ✅ Formatting and layout preserved
 - ⚠️ More expensive (~1,500-3,000 tokens/page)
 
-### Cost-Benefit Analysis
-- **Cost:** 3-6x more tokens per page
-- **Benefit:** Complete data fidelity
-- **Worth it for:** Medical research papers where tables contain critical trial results
-
-### API Limits (OpenAI & Claude)
-- Maximum 100 pages per PDF
-- Maximum 32 MB file size
-- Base64 encoding used for upload
+**Trade-off:** 3-6x cost increase for complete data fidelity, critical for medical research papers.
 
 ---
 
 ## 📂 Output Structure
 
-Pipeline outputs are saved in `tmp/` directory with PDF filename-based naming:
+Pipeline outputs saved in `tmp/` directory:
 
 ```
 tmp/
-├── {pdf_stem}-classification.json          # Step 1 output
-├── {pdf_stem}-extraction.json              # Step 2 output
-├── {pdf_stem}-validation.json              # Step 3 output
-├── {pdf_stem}-extraction-corrected.json    # Step 4 output (if needed)
-└── {pdf_stem}-validation-corrected.json    # Final validation (if corrected)
-```
-
-**PDF filename-based naming example:**
-- PDF file: `sample_paper.pdf`
-- Files: `sample_paper-classification.json`, `sample_paper-extraction.json`, etc.
-
----
-
-## 🛠️ Development
-
-### Adding a New Module
-
-1. Create module in `src/`
-2. Add comprehensive docstring
-3. Import in `run_pipeline.py` if needed
-4. Update this README
-
-### Testing Schemas
-
-```bash
-# Test schema loading
-python -c "from src.schemas_loader import load_schema; \
-           schema = load_schema('classification'); \
-           print('✓ Schema loaded')"
-
-# Validate all schemas
-python -c "from src.schemas_loader import get_all_available_schemas; \
-           schemas = get_all_available_schemas(); \
-           print(f'✓ {len(schemas)} schemas available')"
+├── {pdf_stem}-classification.json
+├── {pdf_stem}-extraction.json
+├── {pdf_stem}-validation.json
+├── {pdf_stem}-extraction-corrected.json    # If needed
+└── {pdf_stem}-validation-corrected.json    # Final validation
 ```
 
 ---
 
 ## 📚 Dependencies
 
-- `openai>=1.51.0` - OpenAI API client with vision support
-- `anthropic>=0.25.0` - Anthropic Claude API client
-- `jsonschema>=4.20` - JSON schema validation
-- `tenacity>=8.2` - Retry logic with backoff
-- `python-dotenv>=1.0` - Environment configuration
+**Core:**
+- `openai>=1.51.0` - OpenAI API with Responses API
+- `anthropic>=0.25.0` - Anthropic Claude API
 - `pydantic>=2.7` - Data validation
+- `python-dotenv>=1.0` - Environment configuration
+
+**Validation:**
+- `jsonschema>=4.20` - JSON schema validation
+
+**Utilities:**
+- `tenacity>=8.2` - Retry logic
 - `rich` - Console formatting
-- `structlog` - Structured logging
 
 **Note:** PyMuPDF removed - no longer using text extraction!
 
@@ -279,10 +360,10 @@ python -c "from src.schemas_loader import get_all_available_schemas; \
 
 ## 🔗 Related Documentation
 
-- **[ARCHITECTURE.md](../ARCHITECTURE.md)** - System architecture and design decisions
-- **[CONTRIBUTING.md](../CONTRIBUTING.md)** - Developer contribution guide
-- **[DEVELOPMENT.md](../DEVELOPMENT.md)** - Development workflow and debugging
-- **[VALIDATION_STRATEGY.md](../VALIDATION_STRATEGY.md)** - Dual validation approach explained
-- **[prompts/README.md](../prompts/README.md)** - Prompt engineering guidelines
-- **[schemas/readme.md](../schemas/readme.md)** - Schema design and bundling
-- **[README.md](../README.md)** - Setup and usage instructions
+- **[../ARCHITECTURE.md](../ARCHITECTURE.md)** - System architecture and design decisions
+- **[../CONTRIBUTING.md](../CONTRIBUTING.md)** - Development workflow and guidelines
+- **[../DEVELOPMENT.md](../DEVELOPMENT.md)** - Development and debugging
+- **[../VALIDATION_STRATEGY.md](../VALIDATION_STRATEGY.md)** - Dual validation approach
+- **[../prompts/README.md](../prompts/README.md)** - Prompt engineering guidelines
+- **[../schemas/readme.md](../schemas/readme.md)** - Schema design and bundling
+- **[../README.md](../README.md)** - Setup and usage instructions

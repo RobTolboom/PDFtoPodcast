@@ -111,10 +111,27 @@ PDFtoPodcast/
 ├── src/                         # Core source code
 │   ├── __init__.py
 │   ├── config.py                # Configuration management
-│   ├── llm.py                   # LLM provider abstraction
 │   ├── prompts.py               # Prompt loading utilities
 │   ├── schemas_loader.py        # Schema management
 │   ├── validation.py            # Validation logic
+│   ├── llm/                     # LLM provider package
+│   │   ├── __init__.py          # Provider factory
+│   │   ├── base.py              # Base provider class
+│   │   ├── openai_provider.py   # OpenAI implementation
+│   │   └── claude_provider.py   # Claude implementation
+│   ├── pipeline/                # Pipeline orchestration package
+│   │   ├── __init__.py          # Pipeline exports
+│   │   ├── orchestrator.py      # Main pipeline logic
+│   │   ├── validation_runner.py # Validation execution
+│   │   ├── file_manager.py      # File I/O management
+│   │   └── utils.py             # Pipeline utilities
+│   ├── streamlit_app/           # Web UI package
+│   │   ├── __init__.py
+│   │   ├── screens/             # UI screens
+│   │   ├── session_state.py     # State management
+│   │   ├── file_management.py
+│   │   ├── json_viewer.py
+│   │   └── result_checker.py
 │   └── README.md                # Module documentation
 │
 ├── prompts/                     # Prompt templates

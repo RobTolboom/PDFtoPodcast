@@ -1,11 +1,31 @@
 # Test Suite
 
-> **📖 For complete testing guidelines and contribution process, see [CONTRIBUTING.md](../CONTRIBUTING.md)**
+> **📖 For complete testing guidelines, see [CONTRIBUTING.md](../CONTRIBUTING.md)**
 > This document provides quick reference for running and writing tests.
 
-Comprehensive test suite for PDFtoPodcast.
+Comprehensive test suite for PDFtoPodcast medical literature extraction pipeline.
 
-## Structure
+---
+
+## Quick Start
+
+```bash
+# Run all tests
+make test
+
+# Fast unit tests only
+make test-unit
+
+# Integration tests
+make test-integration
+
+# With coverage report
+make test-coverage
+```
+
+---
+
+## Test Structure
 
 ```
 tests/
@@ -23,7 +43,11 @@ tests/
     └── expected_outputs/    # Expected extraction results
 ```
 
+---
+
 ## Running Tests
+
+### Using Make Commands
 
 ```bash
 # All tests
@@ -37,13 +61,38 @@ make test-integration
 
 # With coverage
 make test-coverage
+```
+
+### Using Pytest Directly
+
+```bash
+# All tests with verbose output
+pytest tests/ -v
 
 # Specific test file
 pytest tests/unit/test_schemas.py -v
 
-# Specific test
+# Specific test function
 pytest tests/unit/test_schemas.py::test_load_classification_schema -v
+
+# With output capture disabled
+pytest tests/ -v -s
 ```
+
+### Test Markers
+
+```bash
+# Skip slow tests
+pytest -m "not slow"
+
+# Only integration tests
+pytest -m integration
+
+# Only unit tests
+pytest -m unit
+```
+
+---
 
 ## Writing Tests
 
@@ -52,13 +101,21 @@ pytest tests/unit/test_schemas.py::test_load_classification_schema -v
 Fast, isolated tests for individual functions:
 
 ```python
-def test_load_schema():
-    """Test schema loading."""
-    from src.schemas_loader import load_schema
+import pytest
+from src.schemas_loader import load_schema, SchemaLoadError
 
+def test_load_classification_schema():
+    """Test loading classification schema."""
     schema = load_schema("classification")
+
     assert schema is not None
     assert "properties" in schema
+    assert schema["type"] == "object"
+
+def test_load_invalid_schema_raises_error():
+    """Test that loading invalid schema raises SchemaLoadError."""
+    with pytest.raises(SchemaLoadError):
+        load_schema("nonexistent_schema")
 ```
 
 ### Integration Tests
@@ -80,8 +137,17 @@ def test_classification_pipeline(sample_pdf, mock_openai_provider):
         system_prompt=prompt
     )
 
-    assert result["publication_type"] in ["interventional_trial", ...]
+    assert result["publication_type"] in [
+        "interventional_trial",
+        "observational_analytic",
+        "evidence_synthesis",
+        "prediction_prognosis",
+        "editorials_opinion",
+        "overig"
+    ]
 ```
+
+---
 
 ## Test Markers
 
@@ -90,36 +156,43 @@ Use markers to categorize tests:
 ```python
 @pytest.mark.slow
 def test_full_pipeline():
-    """This test is slow."""
+    """This test is slow - only run when needed."""
     pass
 
 @pytest.mark.integration
 def test_llm_integration():
-    """Integration test."""
+    """Integration test requiring LLM."""
+    pass
+
+@pytest.mark.unit
+def test_schema_loading():
+    """Fast unit test."""
     pass
 ```
 
-Run specific markers:
-```bash
-# Skip slow tests
-pytest -m "not slow"
+---
 
-# Only integration tests
-pytest -m integration
-```
+## Mocking LLM Calls
 
-## Mocking
-
-Mock LLM calls to avoid API costs:
+Mock LLM calls to avoid API costs during testing:
 
 ```python
 from unittest.mock import Mock, patch
 
 @patch('src.llm.OpenAIProvider.generate_json_with_pdf')
 def test_with_mock(mock_generate):
-    mock_generate.return_value = {"publication_type": "interventional_trial"}
-    # Test logic
+    """Test with mocked LLM response."""
+    mock_generate.return_value = {
+        "publication_type": "interventional_trial",
+        "metadata": {"doi": "10.1234/test"}
+    }
+
+    # Test logic here
+    result = run_classification(pdf_path)
+    assert result["publication_type"] == "interventional_trial"
 ```
+
+---
 
 ## Fixtures
 
@@ -128,48 +201,74 @@ Shared test data in `conftest.py`:
 ```python
 @pytest.fixture
 def sample_pdf():
+    """Provide path to sample PDF."""
     return Path("tests/fixtures/sample_pdfs/sample_trial.pdf")
+
+@pytest.fixture
+def mock_openai_provider():
+    """Provide mocked OpenAI provider."""
+    return Mock(spec=OpenAIProvider)
 ```
 
-Use in tests:
+Use fixtures in tests:
 
 ```python
-def test_something(sample_pdf):
-    # sample_pdf fixture automatically provided
+def test_something(sample_pdf, mock_openai_provider):
+    """Test using fixtures."""
+    # Fixtures automatically provided by pytest
     assert sample_pdf.exists()
+    assert mock_openai_provider is not None
 ```
+
+---
 
 ## Coverage
 
-Aim for >80% coverage:
+Aim for >80% code coverage:
 
 ```bash
+# Run tests with coverage
 make test-coverage
-# Opens htmlcov/index.html
+
+# Opens htmlcov/index.html in browser
 ```
+
+Coverage reports show:
+- Which lines are tested
+- Which branches are covered
+- Overall coverage percentage
+
+---
 
 ## Best Practices
 
-1. **Fast unit tests**: Mock external dependencies
-2. **Meaningful names**: `test_load_schema_raises_error_for_invalid_name`
-3. **One assertion focus**: Test one thing per test function
-4. **Use fixtures**: Share common test data
-5. **Mark slow tests**: Use `@pytest.mark.slow`
-6. **Test edge cases**: Empty inputs, malformed data, etc.
+1. **Fast unit tests** - Mock external dependencies (API calls, file I/O)
+2. **Meaningful names** - Use descriptive test names: `test_load_schema_raises_error_for_invalid_name`
+3. **One focus per test** - Each test should verify one specific behavior
+4. **Use fixtures** - Share common test data and setup
+5. **Mark slow tests** - Use `@pytest.mark.slow` for tests that take >1 second
+6. **Test edge cases** - Empty inputs, malformed data, boundary conditions
 
-## TODO
+---
 
-- [ ] Add unit tests for all src/ modules
-- [ ] Add integration tests for full pipeline
-- [ ] Add sample PDFs to fixtures
-- [ ] Add expected outputs for validation
-- [ ] Achieve >80% code coverage
+## Development Workflow
+
+```bash
+# Before committing
+make test-unit          # Quick feedback
+make format             # Format code
+make lint               # Check code quality
+make test               # Run all tests
+make commit             # Prepare for commit
+```
+
+**For complete testing guidelines and contribution process, see [CONTRIBUTING.md](../CONTRIBUTING.md)**
 
 ---
 
 ## Related Documentation
 
-- **[CONTRIBUTING.md](../CONTRIBUTING.md)** - Complete testing guidelines and contribution process
-- **[DEVELOPMENT.md](../DEVELOPMENT.md)** - Development workflow and debugging strategies
-- **[ARCHITECTURE.md](../ARCHITECTURE.md)** - System architecture and component design
-- **[src/README.md](../src/README.md)** - Core module API documentation
+- **[CONTRIBUTING.md](../CONTRIBUTING.md)** - Complete testing guidelines
+- **[DEVELOPMENT.md](../DEVELOPMENT.md)** - Development workflow
+- **[src/README.md](../src/README.md)** - Module API documentation
+- **[README.md](../README.md)** - Project overview

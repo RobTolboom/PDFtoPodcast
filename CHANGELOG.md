@@ -48,6 +48,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Each screen module <300 lines for better maintainability
   - All existing functionality preserved (backward compatible)
 
+- Updated and reorganized README documentation
+  - **src/README.md** - Updated for new modular package structure
+    - Updated module overview to reflect llm/, pipeline/, and streamlit_app/ packages
+    - Replaced references to monolithic llm.py with current package structure
+    - Added pipeline/ package documentation (orchestrator, validation_runner, file_manager)
+    - Added streamlit_app/ package overview
+    - Improved API examples with current imports
+    - Better organization with clear section headers
+  - **README.md** - Improved organization and navigation
+    - Added Quick Links table at top for easy navigation
+    - Converted cost considerations to tables for better readability
+    - Added app.py to project structure documentation
+    - Consolidated development section with clear doc references
+    - Improved programmatic usage examples with current API
+    - Better documentation navigation table
+  - **tests/README.md** - Enhanced test documentation
+    - Added Quick Start section with common make commands
+    - Better structure separating "running tests" from "writing tests"
+    - Added Test Markers section with @pytest.mark examples
+    - Improved Mocking section with complete code examples
+    - Added Development Workflow section
+    - Removed TODO section (moved to GitHub Issues)
+  - **prompts/README.md** - Reorganized for better navigation
+    - Added Quick Start section with prompt-schema mapping table
+    - Reorganized into clear sections (Overview, Types, Integration, Principles)
+    - Consolidated complete pipeline example with all four steps
+    - Better troubleshooting section with common issues and solutions
+    - Compacted version history for better readability
+    - Reduced from 581 to 337 lines (42% reduction)
+  - **schemas/readme.md** - Major reorganization for clarity
+    - Added Quick Start with schema selection table
+    - Clear separation of Modular vs Bundled deployment options
+    - Concise schema type descriptions without excessive JSON examples
+    - Focused usage examples (validation, LLM integration, batch processing)
+    - Compact json-bundler.py tool documentation
+    - Streamlined troubleshooting and international standards sections
+    - Moved detailed compliance information to ARCHITECTURE.md
+    - Reduced from 1257 to 440 lines (65% reduction!)
+  - **ARCHITECTURE.md** - Added comprehensive Medical Standards & Compliance section
+    - International Reporting Standards (CONSORT, PRISMA, TRIPOD, STROBE)
+    - Quality Assessment Tools (RoB 2.0, ROBINS-I, PROBAST, AMSTAR-2)
+    - Advanced Methodological Support (target trial emulation, causal inference)
+    - Data Source Prioritization Strategy documentation
+    - Document Processing & PDF Strategy details
+    - Evidence-Locked Extraction principles
+    - International Trial Registry Support (9 registries)
+    - Anesthesiology Domain Specialization
+    - Fulfills promises made in prompts/README.md and schemas/readme.md relocations
+    - Increased from 575 to 1018 lines (comprehensive technical reference)
+    - Fixed LLM Provider Layer header to reference src/llm/ package
+
+- Fixed remaining references to old monolithic structure
+  - **CONTRIBUTING.md** - Updated llm.py reference to llm/__init__.py
+  - **DEVELOPMENT.md** - Updated project structure diagram with all modular packages
+
 ### Deprecated
 - Nothing yet
 

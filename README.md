@@ -9,6 +9,18 @@ This pipeline extracts structured data from medical research PDFs with a focus o
 
 ---
 
+## 🔗 Quick Links
+
+| Documentation | Description |
+|---------------|-------------|
+| **[Installation](#-installation)** | Get started in 5 minutes |
+| **[Usage Guide](#-usage)** | Web UI and CLI instructions |
+| **[Architecture](#️-architecture)** | Pipeline design and flow |
+| **[Contributing](CONTRIBUTING.md)** | Development guidelines |
+| **[API Reference](src/README.md)** | Module documentation |
+
+---
+
 ## ✨ Key Features
 
 - **🎯 Direct PDF Upload** - No text extraction, LLMs analyze PDFs directly using vision capabilities
@@ -18,7 +30,7 @@ This pipeline extracts structured data from medical research PDFs with a focus o
 - **✅ Dual Validation** - Schema validation + LLM semantic validation for quality assurance
 - **🤖 Multi-Provider** - Supports both OpenAI (GPT-5) and Claude (Opus/Sonnet)
 - **📐 Schema-Based** - JSON Schema enforcement for structured outputs
-- **💾 DOI-Based Storage** - Automatic file naming using publication DOI
+- **💾 Smart File Management** - Automatic file naming using PDF filename
 
 ---
 
@@ -90,6 +102,8 @@ This pipeline extracts structured data from medical research PDFs with a focus o
 │  └────────────────────────────────────────────────────────┘ │
 └──────────────────────────────────────────────────────────────┘
 ```
+
+**For detailed architecture and design decisions, see [ARCHITECTURE.md](ARCHITECTURE.md)**
 
 ---
 
@@ -208,25 +222,22 @@ optional arguments:
 
 ```python
 from pathlib import Path
-from src.llm import get_llm_provider
-from src.schemas_loader import load_schema
+from src.pipeline import run_four_step_pipeline
 
-# Initialize LLM provider
-llm = get_llm_provider("openai")  # or "claude"
-
-# Load schema for extraction
-schema = load_schema("interventional_trial")
-
-# Extract data from PDF with vision
-data = llm.generate_json_with_pdf(
+# Run complete pipeline
+results = run_four_step_pipeline(
     pdf_path=Path("paper.pdf"),
-    schema=schema,
-    system_prompt="Extract clinical trial data including all tables and figures",
-    max_pages=20  # Optional: limit pages
+    max_pages=20,  # Optional: limit pages
+    llm_provider="openai",  # or "claude"
+    breakpoint_after_step=None  # Optional: "classification", "extraction", etc.
 )
 
-print(f"Extracted {len(data)} fields")
+# Access results
+print(f"Type: {results['classification']['publication_type']}")
+print(f"Extracted fields: {len(results['extraction'])}")
 ```
+
+**For detailed API documentation, see [src/README.md](src/README.md)**
 
 ---
 
@@ -304,15 +315,10 @@ Each JSON file contains structured data conforming to its schema:
 
 ### Cost Example (20-page paper)
 
-**OpenAI GPT-5:**
-- Input: 20 pages × 2,000 tokens = 40,000 tokens ($0.20)
-- Output: ~4,000 tokens ($0.60)
-- **Total per paper: ~$0.80**
-
-**Claude Opus 4.1:**
-- Input: 20 pages × 2,000 tokens = 40,000 tokens ($0.60)
-- Output: ~4,000 tokens ($2.40)
-- **Total per paper: ~$3.00**
+| Provider | Input Cost | Output Cost | Total per Paper |
+|----------|------------|-------------|-----------------|
+| **OpenAI GPT-5** | $0.20 (40k tokens) | $0.60 (4k tokens) | **~$0.80** |
+| **Claude Opus 4.1** | $0.60 (40k tokens) | $2.40 (4k tokens) | **~$3.00** |
 
 **Full pipeline (4 steps):** ~$3-12 per paper depending on provider and corrections needed.
 
@@ -336,7 +342,7 @@ The pipeline uses a **two-tier validation approach** for cost-effectiveness:
 
 **Threshold:** `SCHEMA_QUALITY_THRESHOLD = 0.5` (configurable in `run_pipeline.py`)
 
-See `VALIDATION_STRATEGY.md` for detailed explanation.
+**For detailed validation strategy, see [VALIDATION_STRATEGY.md](VALIDATION_STRATEGY.md)**
 
 ---
 
@@ -346,60 +352,47 @@ See `VALIDATION_STRATEGY.md` for detailed explanation.
 
 ```
 PDFtoPodcast/
-├── run_pipeline.py              # Main entry point
+├── run_pipeline.py              # Main CLI entry point
+├── app.py                       # Streamlit web UI entry point
 ├── requirements.txt             # Dependencies
 ├── .env                         # Configuration (create from .env.example)
 ├── src/                         # Core modules
 │   ├── config.py                # Settings & configuration
-│   ├── llm.py                   # LLM providers (OpenAI, Claude)
 │   ├── prompts.py               # Prompt loading
 │   ├── schemas_loader.py        # Schema management
 │   ├── validation.py            # Validation utilities
-│   └── README.md                # Module documentation
+│   ├── llm/                     # LLM provider package
+│   ├── pipeline/                # Pipeline orchestration
+│   └── streamlit_app/           # Web UI components
 ├── prompts/                     # Prompt templates
-│   ├── Classification.txt       # Step 1 prompt
-│   ├── Extraction-prompt-*.txt  # Step 2 prompts (5 types)
-│   ├── Extraction-validation.txt# Step 3 prompt
-│   ├── Extraction-correction.txt# Step 4 prompt
-│   └── README.md                # Prompt guidelines
 ├── schemas/                     # JSON schemas
-│   ├── classification.schema.json
-│   ├── validation.schema.json
-│   ├── interventional_trial_bundled.json
-│   ├── observational_analytic_bundled.json
-│   ├── evidence_synthesis_bundled.json
-│   ├── prediction_prognosis_bundled.json
-│   ├── editorials_opinion_bundled.json
-│   └── readme.md                # Schema documentation
-├── tmp/                         # Output directory (auto-created)
-└── VALIDATION_STRATEGY.md       # Validation design doc
+├── tests/                       # Test suite
+└── tmp/                         # Output directory (auto-created)
 ```
 
-### Adding a New Publication Type
+**For complete module documentation, see [src/README.md](src/README.md)**
 
-1. Create extraction prompt: `prompts/Extraction-prompt-{type}.txt`
-2. Create schema: `schemas/{type}.schema.json`
-3. Bundle schema: `schemas/{type}_bundled.json`
-4. Update `src/schemas_loader.py` SCHEMA_MAPPING
-5. Update `src/prompts.py` prompt_mapping
-6. Test with sample PDF
-
-### Running Tests
+### Quick Development Commands
 
 ```bash
-# Test schema loading
-python -c "from src.schemas_loader import load_schema; \
-           schema = load_schema('classification'); \
-           print('✓ Classification schema loaded')"
+# Development workflow
+make format       # Format code
+make lint         # Check for issues
+make typecheck    # Type checking
+make check        # All checks
 
-# Test LLM connection
-python -c "from src.llm import get_llm_provider; \
-           llm = get_llm_provider('openai'); \
-           print('✓ OpenAI provider initialized')"
+# Testing
+make test         # Run all tests
+make test-fast    # Quick tests
+make test-coverage # With coverage
 
-# Run on sample PDF
-python run_pipeline.py samples/sample_trial.pdf --max-pages 5
+# Git workflow
+make commit       # Prepare for commit
+git commit -m "type: description"
+git push
 ```
+
+**For complete development guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md)**
 
 ---
 
@@ -421,10 +414,17 @@ python run_pipeline.py samples/sample_trial.pdf --max-pages 5
 
 ## 📚 Documentation
 
-- **`src/README.md`** - Core module documentation
-- **`VALIDATION_STRATEGY.md`** - Dual validation approach
-- **`prompts/README.md`** - Prompt engineering guidelines
-- **`schemas/readme.md`** - Schema design and bundling
+| Document | Purpose |
+|----------|---------|
+| **[README.md](README.md)** (this file) | Quick start and overview |
+| **[src/README.md](src/README.md)** | Module API reference |
+| **[ARCHITECTURE.md](ARCHITECTURE.md)** | System design and decisions |
+| **[CONTRIBUTING.md](CONTRIBUTING.md)** | Development guidelines |
+| **[DEVELOPMENT.md](DEVELOPMENT.md)** | Development workflow |
+| **[VALIDATION_STRATEGY.md](VALIDATION_STRATEGY.md)** | Dual validation approach |
+| **[prompts/README.md](prompts/README.md)** | Prompt engineering |
+| **[schemas/readme.md](schemas/readme.md)** | Schema design |
+| **[CHANGELOG.md](CHANGELOG.md)** | Version history |
 
 ---
 
@@ -432,11 +432,12 @@ python run_pipeline.py samples/sample_trial.pdf --max-pages 5
 
 Contributions welcome! Please:
 
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new features
-4. Update documentation
-5. Submit pull request
+1. Read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines
+2. Fork the repository
+3. Create a feature branch
+4. Add tests for new features
+5. Update documentation
+6. Submit pull request
 
 ---
 

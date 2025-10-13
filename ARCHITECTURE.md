@@ -14,6 +14,23 @@ PDFtoPodcast is a **medical literature data extraction pipeline** that uses LLM 
 
 ---
 
+## 🔗 Quick Navigation
+
+| Section | Description |
+|---------|-------------|
+| [High-Level Architecture](#high-level-architecture) | System overview and component diagram |
+| [Component Architecture](#component-architecture) | Detailed module descriptions |
+| [Data Flow](#data-flow) | Four-step pipeline data flow |
+| [Medical Standards & Compliance](#medical-standards--compliance) | International reporting standards (CONSORT, PRISMA, TRIPOD, STROBE) |
+| [Configuration Management](#configuration-management) | Environment variables and settings |
+| [Error Handling Strategy](#error-handling-strategy) | Exception hierarchy and recovery |
+| [Performance Considerations](#performance-considerations) | Token optimization and caching |
+| [Security Architecture](#security-architecture) | Data handling and PDF security |
+| [Extensibility Points](#extensibility-points) | Adding providers, types, validation |
+| [Testing Architecture](#testing-architecture) | Test pyramid and mocking strategy |
+
+---
+
 ## High-Level Architecture
 
 ```
@@ -83,7 +100,7 @@ PDFtoPodcast is a **medical literature data extraction pipeline** that uses LLM 
 
 ---
 
-### 2. LLM Provider Layer (`src/llm.py`)
+### 2. LLM Provider Layer (`src/llm/`)
 
 **Architecture Pattern:** Abstract Base Class + Concrete Implementations
 
@@ -368,6 +385,450 @@ If validation.overall_status == "failed":
 ```
 
 **Purpose:** Fix identified issues and re-validate
+
+---
+
+## Medical Standards & Compliance
+
+### International Reporting Standards
+
+PDFtoPodcast schemas and prompts are designed to comply with major international reporting guidelines:
+
+#### CONSORT 2010 (Interventional Trials)
+
+**Coverage in Schema:**
+- Complete 25-item checklist support
+- Randomization sequence generation
+- Allocation concealment mechanism
+- Blinding implementation
+- Sample size calculation
+- CONSORT flow diagram structure
+- Protocol deviations tracking
+
+**Key Features:**
+```json
+{
+  "consort_reporting": {
+    "version": "CONSORT 2010",
+    "claimed": true,
+    "items": [
+      {"item_id": "1a", "reported": "yes", "location": "Page 3"},
+      {"item_id": "6a", "reported": "partial", "location": "Methods"}
+    ]
+  }
+}
+```
+
+#### PRISMA 2020 (Systematic Reviews)
+
+**Coverage in Schema:**
+- 27-item PRISMA checklist
+- PRISMA flow diagram (identification, screening, eligibility, included)
+- Search strategy documentation
+- Study selection criteria
+- Risk of bias assessment
+- Certainty of evidence (GRADE)
+
+**PRISMA Flow Structure:**
+```json
+{
+  "prisma_flow": {
+    "identification": {
+      "database_results": 1543,
+      "register_results": 23,
+      "other_sources": 5
+    },
+    "screening": {"records_screened": 1571, "excluded": 1432},
+    "eligibility": {"full_text_assessed": 139, "excluded": 98},
+    "included": {"studies_included": 41}
+  }
+}
+```
+
+#### TRIPOD (Prediction Models)
+
+**Coverage in Schema:**
+- 22-item TRIPOD checklist
+- TRIPOD-AI extensions for ML/AI models
+- Model development documentation
+- Internal/external validation
+- Performance metrics (discrimination, calibration)
+- Clinical utility assessment
+
+**Key Sections:**
+- Predictor definitions with measurement methods
+- Missing data handling
+- Model specification (equation, algorithm)
+- C-statistic, AUC-ROC with confidence intervals
+- Calibration plots and Brier scores
+- Decision curve analysis
+
+#### STROBE (Observational Studies)
+
+**Coverage in Schema:**
+- 22-item STROBE checklist
+- Study design specification
+- Setting and participants
+- Variables and data sources
+- Bias assessment
+- Quantitative variables handling
+
+**Extensions:**
+- STROBE-ME (Molecular Epidemiology)
+- STROBE-RDS (Respondent-Driven Sampling)
+- STROBE-Vet (Veterinary research)
+
+---
+
+### Quality Assessment & Risk of Bias Tools
+
+#### RoB 2.0 (Cochrane Risk of Bias for RCTs)
+
+**Five Domains Supported:**
+1. Randomization process
+2. Deviations from intended interventions
+3. Missing outcome data
+4. Measurement of the outcome
+5. Selection of reported result
+
+**Schema Structure:**
+```json
+{
+  "risk_of_bias": {
+    "tool": "RoB_2.0",
+    "domains": [
+      {
+        "domain": "randomization_process",
+        "judgment": "low|some_concerns|high",
+        "rationale": "Adequate sequence generation and allocation concealment"
+      }
+    ],
+    "overall": "low"
+  }
+}
+```
+
+#### ROBINS-I (Risk of Bias for Non-Randomized Studies)
+
+**Seven Domains:**
+1. Confounding
+2. Selection of participants
+3. Classification of interventions
+4. Deviations from intended interventions
+5. Missing data
+6. Measurement of outcomes
+7. Selection of reported result
+
+**Advanced Features:**
+- Pre-intervention confounding assessment
+- Post-intervention confounding (time-varying)
+- Target trial framework alignment
+
+#### PROBAST (Prediction Model Risk of Bias)
+
+**Four Domains:**
+1. Participants
+2. Predictors
+3. Outcome
+4. Analysis
+
+**Applicability Assessment:**
+- Target population representativeness
+- Predictor definitions consistency
+- Outcome definitions appropriateness
+
+#### AMSTAR-2 (Systematic Review Quality)
+
+**16 Items with Critical Domains:**
+- Protocol registration (#2)
+- Comprehensive search (#4)
+- Study selection justification (#7)
+- Risk of bias assessment (#9)
+- Appropriate meta-analysis methods (#11)
+- Publication bias assessment (#15)
+
+**Rating Scale:**
+- High quality
+- Moderate quality
+- Low quality
+- Critically low quality
+
+---
+
+### Advanced Methodological Support
+
+#### Target Trial Emulation (Observational Studies)
+
+**Framework Support:**
+```json
+{
+  "study_design": {
+    "target_trial_emulation": true,
+    "new_user_design": true,
+    "prevalent_user_bias_risk": "low",
+    "grace_period_days": 30,
+    "immortal_time_handling": "time-varying_exposure"
+  }
+}
+```
+
+**Key Concepts:**
+- New user design (vs prevalent user)
+- Grace periods for exposure ascertainment
+- Immortal time bias mitigation
+- Time-zero alignment
+- Active comparator selection
+
+#### Causal Inference Methods
+
+**Supported Approaches:**
+- Propensity score matching/weighting (IPTW, SMR)
+- Instrumental variable analysis
+- Regression discontinuity designs
+- Difference-in-differences
+- Marginal structural models (MSMs)
+- G-methods (g-formula, g-estimation)
+
+**Schema Example:**
+```json
+{
+  "propensity_score": {
+    "method": "IPTW",
+    "matching_ratio": 1.0,
+    "caliper": 0.2,
+    "variables": ["age", "sex", "baseline_severity"],
+    "balance_assessment": "standardized_differences",
+    "ps_overlap_ok": true
+  }
+}
+```
+
+#### Competing Risks Analysis
+
+**Methods Supported:**
+- Cause-specific hazards
+- Subdistribution hazards (Fine-Gray)
+- Cumulative incidence functions
+
+**Schema Structure:**
+```json
+{
+  "outcomes": [
+    {
+      "outcome_id": "mortality",
+      "event_competing_risks_present": true,
+      "competing_events": ["cardiovascular_death", "non_cardiovascular_death"]
+    }
+  ],
+  "competing_risks_method": "Fine-Gray"
+}
+```
+
+---
+
+### Data Source Prioritization Strategy
+
+#### Main Text Priority Over Abstract
+
+**Rationale:**
+- Abstracts have word limits (~250-350 words)
+- Critical details often only in full text
+- Tables/figures not summarized in abstracts
+- Complete methodology in Methods sections
+
+**Extraction Priority Order:**
+
+1. **Methods Section** (Highest Priority)
+   - Complete study design
+   - Inclusion/exclusion criteria
+   - Sample size calculations
+   - Statistical analysis plans
+   - Randomization procedures
+
+2. **Results Section**
+   - Complete numerical data
+   - Tables with all outcomes
+   - CONSORT/PRISMA flow diagrams
+   - Adverse events tables
+   - Sensitivity analyses
+
+3. **Tables and Figures**
+   - Baseline characteristics (complete)
+   - Primary outcome results with CIs
+   - Secondary outcomes
+   - Subgroup analyses
+   - Forest plots (meta-analyses)
+
+4. **Discussion Section**
+   - Limitations
+   - Clinical implications
+   - Generalizability
+   - Comparison with other studies
+
+5. **Abstract** (Lowest Priority)
+   - Use for verification only
+   - Cross-check key numbers
+   - Identify discrepancies
+
+**Implementation in Prompts:**
+All extraction prompts (v2.3+) explicitly instruct:
+> "Prioritize Methods/Results sections over Abstract. Only use Abstract to verify or when main text is unclear."
+
+---
+
+### Document Processing & PDF Strategy
+
+#### Direct PDF Upload Approach
+
+**Architecture Decision:**
+Instead of text extraction (PyMuPDF, pdfplumber), upload PDFs directly to vision-capable LLMs.
+
+**Trade-offs:**
+
+| Aspect | Text Extraction | PDF Upload (Current) |
+|--------|----------------|----------------------|
+| **Token Cost** | ~500/page | ~1,500-3,000/page |
+| **Tables** | Often mangled | Perfect preservation |
+| **Figures** | Lost | Analyzed visually |
+| **Formatting** | Lost | Preserved |
+| **Use Case** | Simple docs | Medical research |
+
+**Cost Analysis:**
+- 3-6x more expensive per page
+- BUT: 100% data fidelity for medical research
+- Critical for clinical trials (tables = results)
+
+#### PDF Processing Limits
+
+**API Constraints (OpenAI & Claude):**
+- Maximum 100 pages per PDF
+- Maximum 32 MB file size
+- Base64 encoding required
+- ~2MB increase post-encoding
+
+**Handling Large Documents:**
+```python
+# Automatic validation
+if pdf_size_mb > 32:
+    raise ValueError("PDF exceeds 32MB limit")
+if page_count > 100:
+    raise ValueError("PDF exceeds 100 pages")
+```
+
+**Workarounds:**
+- Use `--max-pages` flag to process subset
+- Split large PDFs manually
+- Prioritize key sections (Methods, Results)
+
+#### Source Reference Tracking
+
+**SourceRef Structure:**
+Every extracted field includes provenance:
+
+```json
+{
+  "n_randomised": {
+    "value": 342,
+    "source": {
+      "page": 5,
+      "anchor": "CONSORT Flow Diagram, Figure 1",
+      "bbox": {"x": 120, "y": 450, "width": 300, "height": 18}
+    }
+  }
+}
+```
+
+**Components:**
+- `page`: PDF page number (1-indexed)
+- `anchor`: Human-readable location description
+- `bbox`: Bounding box coordinates (optional, for precise location)
+
+**Benefits:**
+- Verify extraction accuracy
+- Audit trail for medical data
+- Enable manual review workflow
+- Support disagreement resolution
+
+---
+
+### Evidence-Locked Extraction
+
+**Principle:** Extract ONLY from PDF content, no external knowledge.
+
+**Implementation:**
+All prompts include explicit instructions:
+> "Do NOT use external medical knowledge. Extract only what is explicitly stated in the PDF."
+
+**Why Important for Medical Research:**
+- Ensure reproducibility
+- Prevent hallucinations
+- Enable systematic reviews (no cherry-picking)
+- Support regulatory submissions (FDA/EMA)
+
+**Verification:**
+The validation prompt cross-checks extracted data against PDF to detect:
+- Hallucinated numbers
+- External knowledge injection
+- Misinterpretations
+- Out-of-scope inferences
+
+---
+
+### International Trial Registry Support
+
+**Global Coverage:**
+
+| Registry | Region | Identifier Format | Example |
+|----------|--------|-------------------|---------|
+| ClinicalTrials.gov | USA | NCT + 8 digits | NCT02345678 |
+| EudraCT | EU (legacy) | YYYY-NNNNNN-NN | 2019-123456-42 |
+| EU-CTR | EU (new) | EUCTR + YYYY-NNNNNN-NN | EUCTR2019-123456-42 |
+| CTIS | EU (latest) | CT + numeric | CT12345678 |
+| UMIN-CTR | Japan | UMIN + 9 digits | UMIN000012345 |
+| JPRN | Japan | jRCT + numeric | jRCT1234567890 |
+| PACTR | Africa | PACTR + YMN | PACTR202301123456789 |
+| IRCT | Iran | IRCT + YMN | IRCT20230112123456N1 |
+| ANZCTR | Australia/NZ | ACTRN + N | ACTRN12345678901234 |
+
+**Schema Support:**
+```json
+{
+  "registration": {
+    "registry": "UMIN-CTR",
+    "identifier": "UMIN000012345",
+    "url": "https://center.umin.ac.jp/...",
+    "registration_date": "2023-01-15"
+  }
+}
+```
+
+---
+
+### Anesthesiology Domain Specialization
+
+**Classification Prompt Rules:**
+The classification prompt includes domain-specific logic:
+
+- Perioperative care studies → `interventional_trial`
+- Pain management cohorts → `observational_analytic`
+- Anesthesia technique comparisons → `interventional_trial`
+- Outcome prediction models → `prediction_prognosis`
+- Practice guideline commentaries → `editorials_opinion`
+- Case series of complications → `overig`
+
+**Domain-Specific Fields:**
+```json
+{
+  "anesthesia_specific": {
+    "asa_physical_status": ["I", "II", "III"],
+    "procedures": ["general_anesthesia", "regional_anesthesia"],
+    "outcomes": {
+      "ponv": {"measured": true},
+      "acute_pain": {"measured": true, "scale": "NRS"}
+    }
+  }
+}
+```
 
 ---
 

@@ -1,580 +1,336 @@
-# Extraction Prompts - Schema-Specific Versions
+# Extraction Prompts - Medical Literature Data Extraction
 
-> **📖 For system architecture and pipeline overview, see [ARCHITECTURE.md](../ARCHITECTURE.md)**
-> This document focuses on prompt engineering specifics, schema-prompt integration, and LLM optimization strategies.
+> **📖 For system architecture and design decisions, see [ARCHITECTURE.md](../ARCHITECTURE.md)**
 
-## Overview
+This directory contains LLM prompts for extracting structured data from medical research PDFs. Each prompt is optimized for a specific publication type and works together with its corresponding JSON schema.
 
-Based on analysis of the 5 bundled JSON schemas, specialized extraction prompts have been created for each study type. The original single prompt was designed only for interventional trials and was incompatible with other schema structures. These optimized prompts provide schema-specific validation rules and are optimized for efficient language model processing.
+---
 
-Additionally, a universal quality assurance prompt (`Extraction-validation.txt`) systematically verifies extracted data against PDF sources for accuracy and completeness.
+## 🚀 Quick Start
 
-## 🔗 Schema-Prompt Integration
+### Which Prompt for Which Study?
 
-These extraction prompts are part of a **four-component system** that works together with classification, JSON schemas and quality verification:
+| Study Type | Prompt File | Schema File | Use For |
+|------------|-------------|-------------|---------|
+| **RCT/Clinical Trial** | `Extraction-prompt-interventional.txt` | `interventional_trial_bundled.json` | Randomized trials, clinical studies |
+| **Cohort/Case-Control** | `Extraction-prompt-observational.txt` | `observational_analytic_bundled.json` | Observational studies |
+| **Meta-analysis/Review** | `Extraction-prompt-evidence-synthesis.txt` | `evidence_synthesis_bundled.json` | Systematic reviews |
+| **Prediction Model** | `Extraction-prompt-prediction.txt` | `prediction_prognosis_bundled.json` | Risk models, prognostic studies |
+| **Editorial/Opinion** | `Extraction-prompt-editorials.txt` | `editorials_opinion_bundled.json` | Commentaries, editorials |
 
-### Four-Component Framework
+### Basic Usage
 
-| Component | Location | Purpose | Use |
-|-----------|----------|---------|-----|
-| **Classification** | `Classification.txt` | Identify publication type & extract metadata | Pre-process PDF to select appropriate extraction approach |
-| **Extraction Prompts** | `prompts/` folder (HERE) | Guide LLMs to extract structured data | Feed to language models with PDFs |
-| **JSON Schemas** | `schemas/` folder | Define structure and validation rules | Validate extracted JSON output |
-| **Quality Verification** | `Extraction-validation.txt` | Verify accuracy and completeness | Cross-check extraction against PDF source |
+```python
+# 1. Load prompt and schema
+prompt = open('prompts/Extraction-prompt-interventional.txt').read()
+schema = json.load(open('schemas/interventional_trial_bundled.json'))
 
-### How They Work Together
+# 2. Extract with LLM
+result = llm.generate(prompt + "\n\n" + pdf_text)
 
-```mermaid
-graph LR
-    A[PDF Document] --> B[LLM + Classification Prompt]
-    B --> C[Publication Type + Metadata]
-    C --> D[Select Prompt/Schema Pair]
-    D --> E[LLM + Specific Extraction Prompt]
-    A --> E
-    E --> F[Raw JSON Output]
-    F --> G[Schema Validation]
-    G --> H[Validated JSON]
-    H --> I[LLM + Validation Prompt]
-    A --> I
-    I --> J[Quality Report]
-    J --> K[✅ Verified Structured Data]
-
-    L[Classification.txt] --> B
-    M[extraction prompts/] --> E
-    N[schemas/] --> G
-    O[Extraction-validation.txt] --> I
+# 3. Validate
+jsonschema.validate(json.loads(result), schema)
 ```
 
-### Critical Integration Points
+---
 
-- **Schema Compatibility**: Each prompt is designed for its corresponding bundled schema
-- **Field Alignment**: Prompts enforce exact schema field names and structures
-- **Validation Requirements**: Prompts include schema-specific validation rules
-- **Output Format**: Prompts ensure JSON output matches schema expectations
+## 📋 Prompt System Overview
 
-**⚠️ Important**: Always use prompts WITH their corresponding schemas. Using prompts alone without validation can result in unreliable data extraction.
+### Complete Four-Component Framework
 
-### 📁 Project Context
+This extraction system consists of **four prompt types** that work together:
 
-This prompts folder is part of a larger medical literature extraction framework:
+| Component | File | Purpose | When Used |
+|-----------|------|---------|-----------|
+| **Classification** | `Classification.txt` | Identify publication type & extract metadata | First step (always) |
+| **Extraction** | `Extraction-prompt-{type}.txt` | Extract structured data from PDF | After classification |
+| **Validation** | `Extraction-validation.txt` | Verify accuracy and completeness | After extraction |
+| **Correction** | `Extraction-correction.txt` | Fix identified issues | Only if validation fails |
+
+### Pipeline Flow
 
 ```
-PDFtoPodcast/
-├── prompts/                          # ← YOU ARE HERE
-│   ├── Classification.txt                      # Publication type classifier
-│   ├── Extraction-prompt-interventional.txt    # LLM extraction prompts
-│   ├── Extraction-prompt-observational.txt     # (5 specialized prompts)
-│   ├── Extraction-prompt-evidence-synthesis.txt
-│   ├── Extraction-prompt-prediction.txt
-│   ├── Extraction-prompt-editorials.txt
-│   ├── Extraction-validation.txt               # Quality verification prompt
-│   └── README.md                               # This guide
-│
-├── schemas/                          # ← COMPANION FOLDER
-│   ├── *_bundled.json              # Production validation schemas
-│   ├── *.schema.json              # Development schemas
-│   └── README.md                   # Schema documentation & integration guide
-│
-└── json-bundler.py                  # Tool to create standalone schemas
+PDF → Classification Prompt → Type Identified
+                                     ↓
+                      Select Extraction Prompt + Schema
+                                     ↓
+                      Extraction Prompt → Structured JSON
+                                     ↓
+                      Validation Prompt → Quality Report
+                                     ↓
+                      (if failed) → Correction Prompt
 ```
 
-**🔗 For complete integration guidance**: See the comprehensive [`schemas/README.md`](../schemas/README.md) which includes:
-- LLM integration patterns and code examples
-- Token optimization metrics and best practices
-- Production deployment guidelines
-- Microservice architecture patterns
+---
 
-## Classification System
+## 📝 Prompt Types
 
-### `Classification.txt` - Publication Type Identification
+### 1. Classification (`Classification.txt`)
 
-**Purpose**: Pre-processing step that automatically identifies publication type and extracts metadata to enable Python script selection of the appropriate extraction prompt/schema combination.
+**Purpose**: Pre-processing step to identify publication type and extract metadata.
 
-**Six Publication Categories**:
-1. **`interventional_trial`** - RCTs, cluster-RCTs, crossover trials, before-after studies
-2. **`observational_analytic`** - Cohort studies, case-control studies, cross-sectional analyses
-3. **`evidence_synthesis`** - Systematic reviews, meta-analyses, network meta-analyses
-4. **`prediction_prognosis`** - Prediction models, prognostic studies, ML/AI algorithms
-5. **`editorials_opinion`** - Editorials, commentaries, opinion pieces, letters
-6. **`overig`** - Case reports, case series, narrative reviews, guidelines, technical reports
+**Output**: Publication type selection + metadata (authors, DOI, journal, etc.)
 
-**Classification Algorithm**:
-1. **Explicit design search**: Look for study design labels in Methods section
-2. **Primary characteristics**: Identify intervention, systematic search, predictors, exposure-outcome relationships
-3. **Domain expertise**: Apply anesthesiology-specific rules (perioperative care → interventional, pain management cohorts → observational)
-4. **Confidence assessment**: Score based on clarity of design indicators (0.95-1.0 for clear labels, 0.4-0.59 for difficult classifications)
-5. **Alternative classification**: List potential alternatives when confidence < 0.9
+**Six Publication Categories:**
+1. `interventional_trial` - RCTs, clinical trials
+2. `observational_analytic` - Cohort, case-control studies
+3. `evidence_synthesis` - Systematic reviews, meta-analyses
+4. `prediction_prognosis` - Prediction models, ML algorithms
+5. `editorials_opinion` - Editorials, commentaries
+6. `overig` - Case reports, guidelines (no extraction prompt available)
 
-**Key Features**:
-- **Automated metadata extraction**: Title, authors, journal, DOI, PMID, Vancouver citation with complete bibliographic details
-- **Early publication handling**: Detects and handles online-first articles without volume/issue, adds appropriate warnings
-- **Evidence-locked extraction**: Only uses PDF content including main text, tables, figures; no external knowledge
-- **Confidence scoring**: 0.0-1.0 reliability score for classification decisions with detailed reasoning
-- **Error handling**: Structured warnings for PDF parsing issues, ambiguous designs, missing metadata
-- **Vancouver citations**: Full compliance with Vancouver referencing style including author formatting rules
-- **Python integration**: Clean JSON output enables automated prompt/schema selection
+**Key Features:**
+- Automated metadata extraction (title, authors, DOI, PMID)
+- Confidence scoring (0.0-1.0)
+- Vancouver citation formatting
+- Early publication handling
+- Anesthesiology domain specialization
 
-**Metadata Extraction Priority**:
-- **Main text first**: Title page/header > Methods > Results > References > Abstract
-- **Complete information**: Full author lists with affiliations, complete journal information
-- **Source tracking**: Page references and anchor descriptions for all extracted metadata
+---
 
-**Anesthesiology Specialization**:
-- Perioperative care studies → interventional_trial
-- Pain management cohorts → observational_analytic
-- Anesthesia technique comparisons → interventional_trial
-- Outcome prediction models → prediction_prognosis
-- Practice guideline commentaries → editorials_opinion
-- Case series of complications → overig
+### 2. Extraction Prompts (5 Type-Specific)
 
-**Output Format**:
+Each extraction prompt is tailored to its publication type's unique data structure.
+
+#### `Extraction-prompt-interventional.txt`
+- **For**: RCTs, cluster-RCTs, crossover trials
+- **Key Fields**: `arms`, `interventions`, `results.per_arm`, `results.contrasts`
+- **Standards**: CONSORT 2010, TIDieR, RoB 2.0
+- **Focus**: Randomization, sample sizes, primary outcomes
+
+#### `Extraction-prompt-observational.txt`
+- **For**: Cohort studies, case-control studies
+- **Key Fields**: `exposures`, `groups`, `results.per_group`, `results.contrasts`
+- **Standards**: STROBE, ROBINS-I
+- **Focus**: Exposure groups, confounding, causal inference
+
+#### `Extraction-prompt-evidence-synthesis.txt`
+- **For**: Systematic reviews, meta-analyses
+- **Key Fields**: `review_type`, `eligibility`, `search`, `prisma_flow`, `syntheses`
+- **Standards**: PRISMA 2020, AMSTAR-2, GRADE
+- **Focus**: Search strategy, PRISMA flow, meta-analysis results
+
+#### `Extraction-prompt-prediction.txt`
+- **For**: Prediction models, prognostic studies
+- **Key Fields**: `predictors`, `datasets`, `models`, `performance`
+- **Standards**: TRIPOD, PROBAST
+- **Focus**: Model development, validation, performance metrics
+
+#### `Extraction-prompt-editorials.txt`
+- **For**: Editorials, commentaries, opinion pieces
+- **Key Fields**: `article_type`, `stance_overall`, `arguments`
+- **Focus**: Argument structure, evidence linking, rhetorical analysis
+
+---
+
+### 3. Validation (`Extraction-validation.txt`)
+
+**Purpose**: Universal quality assurance for all extraction types.
+
+**Key Features:**
+- Hallucination detection
+- Completeness scoring
+- Accuracy verification
+- Structured quality report
+
+**Output Format:**
 ```json
 {
-  "metadata": {
-    "title": "string (required)",
-    "journal": "string (required)",
-    "authors": [{"given_name": "", "family_name": "", "initials": ""}],
-    "vancouver_citation": "string (required)",
-    "published_date": "YYYY-MM-DD",
-    "volume": "string", "issue": "string", "pages": "string",
-    "doi": "string", "pmid": "string",
-    "source": {"page": "number", "anchor": "location description"}
+  "verification_summary": {
+    "overall_status": "passed|warning|failed",
+    "completeness_score": 0.95,
+    "accuracy_score": 0.98
   },
-  "publication_type": "interventional_trial|observational_analytic|evidence_synthesis|prediction_prognosis|editorials_opinion|overig",
-  "classification_confidence": 0.95,
-  "classification_reasoning": "Clear RCT design with randomization mentioned in Methods",
-  "alternative_classifications": ["array if confidence < 0.9"],
-  "extraction_warnings": [
-    {
-      "warning": "Early online publication - volume/issue not yet assigned",
-      "source": {"page": 1, "anchor": "Article header"}
-    }
-  ]
+  "issues": [...],
+  "recommendations": [...]
 }
 ```
 
-## Created Files
+---
 
-### 1. `Extraction-prompt-interventional.txt`
-- **Schema**: `interventional_trial_bundled.json`
-- **Key Fields**: `arms`, `interventions`, `results.per_arm`, `results.contrasts`
-- **Validation**: Focuses on randomization, n_randomised, primary outcomes
-- **Use Case**: RCTs, cluster-RCTs, crossover trials, factorial designs
+### 4. Correction (`Extraction-correction.txt`)
 
-### 2. `Extraction-prompt-observational.txt`
-- **Schema**: `observational_analytic_bundled.json`
-- **Key Fields**: `exposures`, `groups`, `results.per_group`, `results.contrasts`
-- **Validation**: Exposure groups, confounding assessment, causal inference
-- **Use Case**: Cohort studies, case-control studies, cross-sectional analyses
+**Purpose**: Fix issues identified by validation prompt.
 
-### 3. `Extraction-prompt-evidence-synthesis.txt`
-- **Schema**: `evidence_synthesis_bundled.json`
-- **Key Fields**: `review_type`, `eligibility`, `search`, `prisma_flow`, `syntheses`
-- **Validation**: PICO criteria, search strategy, meta-analysis results
-- **Use Case**: Systematic reviews, meta-analyses, network meta-analyses, umbrella reviews
+**When Used**: Only when validation fails or returns warnings.
 
-### 4. `Extraction-prompt-prediction.txt`
-- **Schema**: `prediction_prognosis_bundled.json`
-- **Key Fields**: `predictors`, `datasets`, `models`, `performance`
-- **Validation**: Model development vs validation, EPV, discrimination metrics
-- **Use Case**: Prediction models, prognostic studies, ML/AI algorithms
+**Process:**
+1. Takes original extraction + validation report
+2. Re-extracts missing data
+3. Fixes identified inaccuracies
+4. Re-validates corrected output
 
-### 5. `Extraction-prompt-editorials.txt`
-- **Schema**: `editorials_opinion_bundled.json`
-- **Key Fields**: `article_type`, `stance_overall`, `arguments`
-- **Validation**: Argument structure, stakeholder analysis, rhetorical assessment
-- **Use Case**: Editorials, commentaries, opinion pieces, letters, perspectives
+---
 
-### 6. `Extraction-validation.txt`
-- **Purpose**: Universal quality assurance for all extraction types
-- **Input**: Extracted JSON + PDF content + Schema
-- **Output**: Structured quality report with scores and recommendations
-- **Key Features**: Hallucination detection, completeness scoring, accuracy verification
-- **Use Case**: Quality control for all extracted data regardless of study type
+## 💻 Integration Examples
 
-## Shared Elements
+### Complete Pipeline Example
 
-All prompts maintain these common standards:
-- **Evidence-locked rules**: Only extract from PDF content, no external knowledge
-- **Data Source Prioritering**: Main text (Methods/Results/Discussion) prioriteit boven abstract voor completere extractie
-- **SourceRef requirements**: Precise page/table/figure references with anchor context
-- **Vancouver citation**: Consistent bibliographic formatting with source attribution
-- **Token fallback**: Graceful handling of large documents with truncation warnings
-- **Anesthesiology focus**: Domain-specific details when present (ASA, procedures, PONV, etc.)
-- **Schema validation**: Strict adherence to required fields per schema type
-- **Plain text format**: Optimized for LLM processing (markdown formatting removed)
-
-## Data Source Prioritering (v2.3 Update)
-
-### Hoofdtekst Eerst Strategie
-Alle 5 extractie prompts zijn geüpdatet met expliciete instructies om data bij voorkeur uit de hoofdtekst te halen:
-
-#### Prioriteitsrangorde
-1. **Results secties** - Primaire bron voor numerieke data, effect sizes, sample sizes
-2. **Methods secties** - Voor complete metodologie, inclusie/exclusie criteria
-3. **Discussion secties** - Voor context, limitations, clinical implications
-4. **Tables/Figures** - Voor gedetailleerde resultaten en baseline characteristics
-5. **Abstract** - Alleen voor verificatie of als hoofdtekst onduidelijk is
-
-#### Probleem Opgelost
-**Voor**: Extracties focusten vaak te veel op abstract, misten details uit volledige Results tabellen
-**Na**: Systematische prioritering van volledige Methods/Results secties verbetert completeness scores
-
-### Sectie-Specifieke Instructies per Prompt Type
-
-#### Interventional Studies
-- CONSORT flow uit figuren/Methods, niet abstract N-vermeldingen
-- Sample sizes uit Methods "Participants" of Results "Flow diagram"
-- Effect sizes uit results tabellen met CI's en p-waarden
-- Adverse events uit dedicated safety tabellen/Results subsecties
-
-#### Observational Studies
-- Exposure groups uit Methods "Exposure definition" en Results tabellen
-- Confounding adjustment uit statistical methods sectie
-- Follow-up details uit Methods "Data collection" sectie
-- Complete baseline characteristics uit tabellen
-
-#### Evidence Synthesis
-- Search strategy uit Methods "Literature Search" sectie
-- PRISMA flow uit dedicated flow diagram en Methods
-- Study characteristics uit results tabellen en appendices
-- Quality of evidence uit GRADE tabellen en assessment details
-
-#### Prediction Studies
-- Model performance uit Results "Model Performance" tabellen
-- Predictors uit Methods "Variable Selection" en Results coefficient tabellen
-- C-statistics/AUC uit Results performance tabellen met confidence intervals
-- Validation uit Results "External Validation" secties
-
-#### Editorials
-- Arguments uit hoofdtekst paragrafen met specifieke claims
-- Evidence citations uit Discussion met volledige referenties
-- Recommendations uit dedicated Recommendations/Conclusion secties
-- Counterarguments uit Discussion nuance en limitations
-
-## Key Structural Differences
-
-| Schema Type | Primary Structure | Results Format | Special Features |
-|-------------|------------------|----------------|------------------|
-| Interventional | Arms → Outcomes | per_arm + contrasts | Randomization, harms |
-| Observational | Exposures → Groups | per_group + contrasts | Confounding, DAGs |
-| Evidence Synthesis | Studies → Syntheses | pooled + per_study | PRISMA, heterogeneity |
-| Prediction | Predictors → Models | performance metrics | C-statistic, calibration |
-| Editorials | Arguments → Stance | narrative analysis | Rhetorical structure |
-
-## Prompt Optimization
-
-### Language Model Efficiency
-All prompts have been optimized for efficient language model processing:
-
-- **Markdown cleanup**: Removed all `**bold**`, `*bullet*` formatting for ~15-25% token reduction
-- **Plain text structure**: Clean hierarchical organization with line breaks and numbered lists
-- **Code preservation**: Maintained `` `backticks` `` for JSON field names and technical terms
-- **Content integrity**: All instructions and validation rules preserved without information loss
-
-### Trade-offs
-- **LLM processing**: Optimized for language model efficiency and focus
-- **Human readability**: Reduced visual formatting but maintained logical structure
-- **Token cost**: Significant reduction in API token usage
-- **Maintenance**: Simpler text format for easier updates and version control
-
-## Usage Recommendations
-
-### Study Type Identification
-Select the appropriate prompt based on study type identification:
-1. **Identify study design** from title/abstract/methods section
-2. **Match to schema type** using the structural differences table
-3. **Use corresponding prompt** for extraction
-4. **Validate output** against the specific bundled schema
-
-### Performance Guidelines
-- **Token limits**: Each prompt ~2000-3000 tokens (post-optimization)
-- **Fallback handling**: Prompts include truncation warnings for large documents
-- **Error handling**: Built-in extraction warnings for ambiguous content
-- **Quality assurance**: Schema-specific validation rules prevent common errors
-
-## Implementation Notes
-
-### Schema Compatibility
-- **Validation mapping**: Each prompt validated against its corresponding bundled schema
-- **Required fields**: Schema-specific required fields enforced (e.g., `arms` for trials, `exposures` for observational)
-- **Field constraints**: Type-specific validation (e.g., `n_randomised` only for interventional studies)
-- **Output format**: Single valid JSON objects without additional text or explanations
-
-### Methodological Frameworks
-- **Interventional**: RoB 2.0, CONSORT, TIDieR guidelines integration
-- **Observational**: ROBINS-I, ROBINS-E, STROBE extensions, DAG methodology
-- **Evidence Synthesis**: AMSTAR 2, ROBIS, CINeMA, GRADE assessment
-- **Prediction**: PROBAST, TRIPOD-AI, CHARMS checklist compliance
-- **Editorials**: Rhetorical analysis, stakeholder identification, bias assessment
-
-### Technical Specifications
-- **Evidence-locked**: Strict PDF-only extraction, no external knowledge injection
-- **SourceRef consistency**: Page, table, figure references with contextual anchors
-- **Vancouver citations**: Automated bibliographic string generation with source tracking
-- **Error handling**: Structured `extraction_warnings[]` for ambiguous content
-
-## Quality Assurance Framework
-
-### Extraction-validation.txt Features
-- **Universal compatibility**: Works with all 5 study types and schemas
-- **Systematic verification**: Hallucination detection, completeness scoring, accuracy assessment
-- **Structured output**: JSON format with severity levels and actionable recommendations
-- **Python integration**: Machine-readable quality reports for automated pipelines
-- **Evidence-based scoring**: Completeness, accuracy, and schema compliance metrics
-
-### Quality Metrics
-- **Completeness Score**: (Extracted relevant data / Total available PDF data)
-- **Accuracy Score**: (Correctly extracted values / Total extracted values)
-- **Schema Compliance**: (Valid fields / Total schema-required fields)
-- **Overall Status**: Passed/Warning/Failed based on combined thresholds
-
-### Automated Quality Gates
-```python
-# Example quality thresholds for production use
-QUALITY_THRESHOLDS = {
-    'passed': {'completeness': 0.90, 'accuracy': 0.95, 'compliance': 1.0},
-    'warning': {'completeness': 0.80, 'accuracy': 0.90, 'compliance': 0.95},
-    'failed': 'below_warning_thresholds'
-}
-```
-
-## Version History
-
-### v2.3 (Current) - September 2025
-- **Data Source Prioritering**: Hoofdtekst prioriteit toegevoegd aan alle 5 extractie prompts
-- **Sectie-specifieke instructies**: Methods/Results/Tables prioriteit boven abstract
-- **Completeness verbetering**: Verwachte verbetering van completeness scores door volledige sectie extractie
-- **Evidence-locked enhancement**: Uitgebreide instructies voor systematische hoofdtekst extractie
-
-### v2.2 - September 2025
-- **Quality assurance**: Added Extraction-validation.txt for systematic verification
-- **Three-component system**: Extract → Validate → Verify pipeline
-- **Python integration**: Complete quality control examples and batch processing
-
-### v2.1 - September 2025
-- **Markdown cleanup**: Removed formatting for LLM optimization
-- **Token reduction**: 15-25% efficiency improvement
-- **Content preservation**: All functionality maintained
-
-### v2.0 - September 2025
-- **Schema specialization**: Created 5 schema-specific prompts
-- **Original assessment**: Single prompt incompatible with 4/5 schemas
-- **Validation rules**: Adapted per study type requirements
-- **Structural alignment**: Matched prompt structure to schema requirements
-
-### v1.0 - Previous
-- **Original prompt**: Single interventional trial focused prompt
-- **Limited scope**: Only compatible with interventional_trial schema
-
-## 🚀 Quick Start - Complete Extraction Pipeline
-
-### Essential Four-Step Process
-**Step 1**: Classify publication type → **Step 2**: Extract with prompt → **Step 3**: Validate with schema → **Step 4**: Verify with validation prompt
-
-### Complete Workflow
-```
-1. Classify: Use Classification.txt to identify publication type and extract metadata
-   - Input: PDF document
-   - Output: Publication type + metadata + confidence score
-   - Handle: Early publications, PDF parsing issues, ambiguous designs
-
-2. Select: Python script chooses appropriate prompt/schema pair based on classification
-   - Skip extraction if classification type is "overig" (no specialized schema available)
-   - Load corresponding extraction prompt and bundled schema
-   - Load universal validation prompt
-
-3. Get FOUR components:
-   Classification: Classification.txt                    (from prompts/ folder)
-   Extraction: Extraction-prompt-[type].txt            (from prompts/ folder)
-   Schema: [type]_bundled.json                         (from schemas/ folder)
-   Validation: Extraction-validation.txt               (from prompts/ folder)
-
-4. Extract: Use specific extraction prompt with PDF input in your LLM
-   - Apply evidence-locked rules (PDF content only)
-   - Prioritize main text over abstract for completeness
-   - Include source references for all extracted data
-
-5. Validate: ALWAYS validate JSON output against bundled schema
-   - Catch structural errors and missing required fields
-   - Ensure type compatibility and field constraints
-   - 80%+ of extraction errors caught at this stage
-
-6. Verify: Use validation prompt with JSON + PDF + Schema for quality check
-   - Detect hallucinations and inaccuracies
-   - Score completeness and accuracy
-   - Generate structured quality report with recommendations
-
-7. ✅ Result: Verified, high-quality structured medical literature data
-   - Passed quality gates with measurable metrics
-   - Ready for critical appraisal (CASP/RoB 2.0/ROBINS-I/AMSTAR 2)
-   - Suitable for systematic reviews and meta-analyses
-```
-
-### Schema-Prompt Pairs (MUST use together)
-| Study Type | Extraction Prompt | Validation Schema | Required |
-|------------|-------------------|------------------|----------|
-| **RCT/Trial** | `Extraction-prompt-interventional.txt` | `interventional_trial_bundled.json` | ✅ |
-| **Cohort/Case-control** | `Extraction-prompt-observational.txt` | `observational_analytic_bundled.json` | ✅ |
-| **Meta-analysis/Review** | `Extraction-prompt-evidence-synthesis.txt` | `evidence_synthesis_bundled.json` | ✅ |
-| **Prediction model** | `Extraction-prompt-prediction.txt` | `prediction_prognosis_bundled.json` | ✅ |
-| **Editorial/Opinion** | `Extraction-prompt-editorials.txt` | `editorials_opinion_bundled.json` | ✅ |
-
-### 💡 Why All Four Components Are Required
-- **Classification alone**: Can identify type and metadata, but no detailed extraction
-- **Extraction prompt alone**: Can extract data, but no guarantee of structure or completeness
-- **Schema alone**: Can validate structure, but can't extract from PDFs
-- **Validation prompt alone**: Can verify quality, but needs extracted data first
-- **Together**: Complete pipeline with classification, extraction, validation, and quality assurance
-
-### 💻 Integration Examples
-
-#### Python Example: Complete 4-Step Extraction Pipeline
 ```python
 import json
 import jsonschema
+from pathlib import Path
 
-# 1. Classify publication type
+# Step 1: Classify
 classification_prompt = open('prompts/Classification.txt').read()
-pdf_text = extract_text_from_pdf('study.pdf')
-classification_input = classification_prompt + "\n\n" + pdf_text
-classification_output = your_llm.generate(classification_input)
-classification_data = json.loads(classification_output)
+classification = llm.generate(classification_prompt + "\n\n" + pdf_text)
+pub_type = json.loads(classification)['publication_type']
 
-publication_type = classification_data['publication_type']
-if publication_type == 'overig':
-    print("❌ Publication type 'overig' - no extraction prompt available")
-    return None
-
-# 2. Load appropriate components based on classification
-prompt_mapping = {
-    'interventional_trial': ('Extraction-prompt-interventional.txt', 'interventional_trial_bundled.json'),
-    'observational_analytic': ('Extraction-prompt-observational.txt', 'observational_analytic_bundled.json'),
-    'evidence_synthesis': ('Extraction-prompt-evidence-synthesis.txt', 'evidence_synthesis_bundled.json'),
-    'prediction_prognosis': ('Extraction-prompt-prediction.txt', 'prediction_prognosis_bundled.json'),
-    'editorials_opinion': ('Extraction-prompt-editorials.txt', 'editorials_opinion_bundled.json')
+# Step 2: Select appropriate extraction prompt and schema
+prompt_map = {
+    'interventional_trial': ('Extraction-prompt-interventional.txt',
+                            'interventional_trial_bundled.json'),
+    'observational_analytic': ('Extraction-prompt-observational.txt',
+                               'observational_analytic_bundled.json'),
+    # ... other types
 }
 
-prompt_file, schema_file = prompt_mapping[publication_type]
+if pub_type == 'overig':
+    print("No extraction prompt for 'overig' type")
+    exit()
+
+prompt_file, schema_file = prompt_map[pub_type]
 extraction_prompt = open(f'prompts/{prompt_file}').read()
-validation_prompt = open('prompts/Extraction-validation.txt').read()
 schema = json.load(open(f'schemas/{schema_file}'))
 
-# 3. Extract with LLM using selected prompt
-llm_input = extraction_prompt + "\n\n" + pdf_text
-json_output = your_llm.generate(llm_input)
+# Step 3: Extract
+extraction = llm.generate(extraction_prompt + "\n\n" + pdf_text)
+extracted_data = json.loads(extraction)
 
-# 3. Parse and validate schema
+# Step 4: Validate against schema
 try:
-    extracted_data = json.loads(json_output)
     jsonschema.validate(extracted_data, schema)
-    print("✅ Extraction successful and schema validated!")
-except (json.JSONDecodeError, jsonschema.ValidationError) as e:
-    print(f"❌ Schema validation error: {e}")
-    return None
+    print("✅ Schema validation passed")
+except jsonschema.ValidationError as e:
+    print(f"❌ Schema validation failed: {e.message}")
+    exit()
 
-# 4. Quality verification
-verification_input = f"""
+# Step 5: LLM validation (optional but recommended)
+validation_prompt = open('prompts/Extraction-validation.txt').read()
+validation_input = f"""
 EXTRACTED_JSON: {json.dumps(extracted_data, indent=2)}
-
 PDF_CONTENT: {pdf_text}
-
 SCHEMA: {json.dumps(schema, indent=2)}
 """
-quality_report = your_llm.generate(validation_prompt + "\n\n" + verification_input)
-quality_data = json.loads(quality_report)
+quality_report = llm.generate(validation_prompt + "\n\n" + validation_input)
+quality = json.loads(quality_report)
 
-# 5. Quality assessment with improved main text extraction
-if quality_data['verification_summary']['overall_status'] == 'passed':
-    print("✅ Quality verification passed with main text priority!")
-    # Higher completeness scores now achievable with main text extraction
-    if quality_data['verification_summary']['completeness_score'] >= 0.95:
-        print("🎯 Excellent completeness achieved through systematic main text extraction")
-    return extracted_data
-elif quality_data['verification_summary']['overall_status'] == 'warning':
-    print("⚠️ Quality verification has warnings - review recommendations")
-    return extracted_data, quality_data['recommendations']
+if quality['verification_summary']['overall_status'] == 'passed':
+    print("✅ Quality verification passed")
 else:
-    print("❌ Quality verification failed - extraction requires correction")
-    return None, quality_data['issues']
+    print("⚠️ Quality verification has issues")
+    # Optionally: run correction step
 ```
 
-#### Batch Processing Example with Quality Control
+### Batch Processing Example
+
 ```python
-def process_literature_batch(pdf_files, study_type, quality_threshold=0.9):
-    # Schema-prompt mapping
-    pairs = {
-        'interventional': ('Extraction-prompt-interventional.txt',
-                          'interventional_trial_bundled.json'),
-        'observational': ('Extraction-prompt-observational.txt',
-                         'observational_analytic_bundled.json'),
-        'synthesis': ('Extraction-prompt-evidence-synthesis.txt',
-                     'evidence_synthesis_bundled.json')
-    }
-
-    extraction_file, schema_file = pairs[study_type]
-    extraction_prompt = open(f'prompts/{extraction_file}').read()
-    validation_prompt = open('prompts/Extraction-validation.txt').read()
-    schema = json.load(open(f'schemas/{schema_file}'))
-
+def process_literature_batch(pdf_files):
+    """Process multiple PDFs with appropriate prompts."""
     results = []
-    quality_reports = []
 
     for pdf_file in pdf_files:
-        # Extract, validate, and verify each PDF
-        data, quality = extract_validate_verify(pdf_file, extraction_prompt,
-                                               schema, validation_prompt)
+        # Classify
+        pub_type = classify_pdf(pdf_file)
 
-        # Apply quality gate
-        if quality['verification_summary']['accuracy_score'] >= quality_threshold:
-            results.append(data)
-        else:
-            print(f"Quality gate failed for {pdf_file}: {quality['issues']}")
+        if pub_type == 'overig':
+            continue
 
-        quality_reports.append(quality)
+        # Extract with appropriate prompt
+        extracted = extract_with_prompt(pdf_file, pub_type)
 
-    return results, quality_reports
+        # Validate
+        if validate_extraction(extracted, pub_type):
+            results.append(extracted)
+
+    return results
 ```
 
-### Integration Tips
-- **API efficiency**: Use optimized prompts to reduce token costs
-- **Schema validation**: ALWAYS validate against bundled schemas - this catches 80%+ of extraction errors
-- **Quality verification**: Use validation prompt to catch hallucinations and missing data
-- **Error handling**: Check both `extraction_warnings[]` and quality report issues
-- **Prompt-schema pairing**: Never mix prompts and schemas from different study types
-- **Quality gates**: Set minimum accuracy/completeness scores for automated pipelines
-- **Fallback**: Handle `truncated: true` cases for large documents
+---
 
-### 🔗 Advanced Integration
-For comprehensive integration patterns including microservice architectures, token optimization strategies, and production deployment guides, see the [`schemas/README.md`](../schemas/README.md) which provides detailed LLM integration documentation.
+## 🎯 Prompt Design Principles
 
-## Troubleshooting
+### 1. Evidence-Locked Extraction
+- **Only extract from PDF content** - No external knowledge
+- **Main text priority** - Methods/Results/Discussion over Abstract
+- **Source references required** - Page, table, figure citations
+
+### 2. Data Source Prioritization (v2.3)
+All prompts prioritize main text over abstracts:
+
+**Priority Order:**
+1. Results sections - Primary source for numerical data
+2. Methods sections - Complete methodology
+3. Discussion sections - Context, limitations
+4. Tables/Figures - Detailed results
+5. Abstract - Only for verification
+
+### 3. Schema Alignment
+- Each prompt matches its corresponding schema structure
+- Field names identical between prompt and schema
+- Validation rules embedded in prompts
+
+### 4. Token Optimization (v2.1)
+- Markdown formatting removed for 15-25% token reduction
+- Plain text structure maintained
+- All instructions preserved
+
+---
+
+## 🔧 Troubleshooting
 
 ### Common Issues
-- **Schema validation errors**: Ensure using correct prompt for study type
-- **Missing required fields**: Check PDF contains necessary information sections
-- **Token limits**: Use fallback handling for large documents
-- **Extraction warnings**: Review PDF quality and completeness
 
-### Data Source Issues (v2.3)
-- **Low completeness scores**: Ensure PDF has full Methods/Results sections accessible (not just abstract)
-- **Missing secondary outcomes**: Check if Results tables are properly parsed vs abstract-only extraction
-- **Incomplete baseline data**: Verify baseline characteristics tables are available in main text
-- **Missing effect sizes**: Confirm Results section contains detailed statistical analyses beyond abstract summaries
-- **Incomplete adverse events**: Ensure safety data is extracted from dedicated tables rather than brief abstract mentions
+**Problem**: Schema validation fails
+- **Solution**: Ensure using correct prompt for study type
+- **Check**: Prompt-schema pairing is correct
 
-### Output Quality
-- **SourceRef precision**: Verify page/table/figure references are accurate
-- **Vancouver citations**: Ensure bibliographic information extracted correctly
-- **Field mapping**: Confirm schema field names match prompt expectations
+**Problem**: Low completeness scores
+- **Solution**: Verify PDF has full Methods/Results sections (not just abstract)
+- **Check**: PDF quality and OCR accuracy
+
+**Problem**: Missing required fields
+- **Solution**: Check if PDF contains necessary information
+- **Check**: Prompt is extracting from main text, not just abstract
+
+**Problem**: Extraction warnings
+- **Solution**: Review PDF quality and completeness
+- **Check**: Parsing warnings in validation output
+
+---
+
+## 📚 Version History
+
+### v2.3 (Current) - September 2025
+- **Data Source Prioritization** - Main text priority over abstract
+- **Completeness improvements** - Systematic section extraction
+- **Section-specific instructions** - Methods/Results/Tables priority
+
+### v2.2 - September 2025
+- **Quality assurance** - Added Extraction-validation.txt
+- **Correction prompt** - Added Extraction-correction.txt
+- **Three-component system** → Four-component system
+
+### v2.1 - September 2025
+- **Token optimization** - Removed markdown formatting
+- **15-25% efficiency** - Reduced API costs
+- **Content preservation** - All functionality maintained
+
+### v2.0 - September 2025
+- **Schema specialization** - Created 5 type-specific prompts
+- **Structural alignment** - Matched schema requirements
+- **Validation rules** - Type-specific validation
+
+### v1.0 - Previous
+- **Single prompt** - Interventional trial focus only
+- **Limited scope** - Not compatible with other types
 
 ---
 
 ## 🔗 Related Documentation
 
-- **[ARCHITECTURE.md](../ARCHITECTURE.md)** - System architecture and component design
-- **[CONTRIBUTING.md](../CONTRIBUTING.md)** - Developer contribution guidelines
-- **[DEVELOPMENT.md](../DEVELOPMENT.md)** - Development workflow and debugging
-- **[schemas/readme.md](../schemas/readme.md)** - Schema design and LLM integration patterns
-- **[src/README.md](../src/README.md)** - Core module API documentation
-- **[README.md](../README.md)** - Setup and usage instructions
+- **[../schemas/readme.md](../schemas/readme.md)** - Schema design and LLM integration
+- **[../ARCHITECTURE.md](../ARCHITECTURE.md)** - System architecture
+- **[../src/README.md](../src/README.md)** - Module API documentation
+- **[../CONTRIBUTING.md](../CONTRIBUTING.md)** - Development guidelines
+- **[../README.md](../README.md)** - Project overview

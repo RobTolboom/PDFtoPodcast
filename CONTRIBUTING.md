@@ -438,7 +438,7 @@ pytest tests/ -v -s
 
 - [ ] Create provider class inheriting from `BaseLLMProvider`
 - [ ] Implement `generate_json_with_pdf()` method
-- [ ] Add to `get_llm_provider()` factory in `src/llm.py`
+- [ ] Add to `get_llm_provider()` factory in `src/llm/__init__.py`
 - [ ] Add environment variables to `src/config.py`
 - [ ] Add to `.env.example`
 - [ ] Write unit tests for provider
