@@ -1,0 +1,54 @@
+{
+  "$id": "test_common.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Test fixture for common schema with nested references",
+  "$defs": {
+    "Author": {
+      "type": "object",
+      "properties": {
+        "name": {"type": "string"},
+        "email": {"type": "string", "format": "email"}
+      },
+      "required": ["name"]
+    },
+    "Registry": {
+      "type": "object",
+      "properties": {
+        "name": {"type": "string"},
+        "url": {"type": "string", "format": "uri"}
+      },
+      "required": ["name"]
+    },
+    "Registration": {
+      "type": "object",
+      "properties": {
+        "id": {"type": "string"},
+        "registry": {"$ref": "#/$defs/Registry"}
+      },
+      "required": ["id"]
+    },
+    "SupplementFile": {
+      "type": "object",
+      "properties": {
+        "filename": {"type": "string"},
+        "url": {"type": "string", "format": "uri"}
+      }
+    },
+    "Metadata": {
+      "type": "object",
+      "properties": {
+        "title": {"type": "string"},
+        "authors": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/Author"}
+        },
+        "registration": {"$ref": "#/$defs/Registration"},
+        "supplements": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/SupplementFile"}
+        }
+      },
+      "required": ["title"]
+    }
+  }
+}

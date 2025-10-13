@@ -130,6 +130,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Each embedded definition is now scanned for additional references, which are added to the processing queue
   - Result: All 5 schemas now pass validation with 0 unresolved $refs
   - Files affected: All *_bundled.json schemas now correctly include all transitive dependencies
+  - **Tests added**: Comprehensive test coverage following @CONTRIBUTING.md requirements
+    - 12 unit tests in `tests/unit/test_json_bundler.py`
+    - 5 integration tests in `tests/integration/test_schema_bundling.py`
+    - Test fixtures: `tests/fixtures/schemas/` with nested reference examples
+    - Regression test ensures nested refs (Metadata→Author, Registration→Registry) are all resolved
+    - All 17 tests pass ✅
 
 ### Security
 - Nothing yet
