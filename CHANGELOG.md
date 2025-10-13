@@ -103,14 +103,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **CONTRIBUTING.md** - Updated llm.py reference to llm/__init__.py
   - **DEVELOPMENT.md** - Updated project structure diagram with all modular packages
 
+- Improved project organization by relocating test utilities
+  - **validate_schemas.py** - Moved from project root to `tests/` directory
+  - Updated references in DEVELOPMENT.md and Makefile
+  - `make validate-schemas` target updated to use new location
+  - Removed temporary `test.py` file (exploratory scratch file)
+
 ### Deprecated
 - Nothing yet
 
 ### Removed
-- Nothing yet
+- **test.py** - Removed temporary exploratory test file from project root
+- **SETUP_COMPLETE.md** - Removed redundant setup announcement file
+  - Content already covered in DEVELOPMENT.md, CONTRIBUTING.md, and README.md
+  - Was a one-time setup summary, not ongoing documentation
+  - No references from other documentation files
 
 ### Fixed
-- Nothing yet
+- **schemas/json-bundler.py** - Fixed critical bug in schema bundling that caused unresolved $refs
+  - Problem: Bundler only copied first-level definitions from common.schema.json, but didn't recursively resolve nested $refs within those definitions
+  - Example: When bundling `Metadata` definition, it didn't also copy `Author`, `Registration`, `SupplementFile`, etc. that Metadata references
+  - Impact: All 5 bundled schemas had 5-7 unresolved $refs each, causing validation failures
+  - Solution: Implemented recursive definition collection using a worklist algorithm
+    - Added `include_local` parameter to `find_common_refs()` to detect local #/$defs/Name references
+    - Modified `bundle_schema()` to recursively process nested dependencies until all are resolved
+    - Each embedded definition is now scanned for additional references, which are added to the processing queue
+  - Result: All 5 schemas now pass validation with 0 unresolved $refs
+  - Files affected: All *_bundled.json schemas now correctly include all transitive dependencies
+  - **Tests added**: Comprehensive test coverage following @CONTRIBUTING.md requirements
+    - 12 unit tests in `tests/unit/test_json_bundler.py`
+    - 5 integration tests in `tests/integration/test_schema_bundling.py`
+    - Test fixtures: `tests/fixtures/schemas/` with nested reference examples
+    - Regression test ensures nested refs (Metadata→Author, Registration→Registry) are all resolved
+    - All 17 tests pass ✅
 
 ### Security
 - Nothing yet
