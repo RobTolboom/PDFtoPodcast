@@ -109,6 +109,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `make validate-schemas` target updated to use new location
   - Removed temporary `test.py` file (exploratory scratch file)
 
+### Added
+- **Comprehensive unit test coverage for core modules** - Significantly improved test coverage (0% → 22%)
+  - **tests/unit/test_schemas_loader.py** - 16 tests for schema loading, caching, error handling
+  - **tests/unit/test_prompts.py** - 24 tests for prompt loading utilities
+  - **tests/unit/test_validation.py** - 12 tests for validation logic and quality checks
+  - **tests/unit/test_llm_base.py** - 9 tests for LLM base classes and exceptions
+  - **tests/unit/test_file_manager.py** - 9 tests for PipelineFileManager
+  - **tests/unit/test_pipeline_utils.py** - 12 tests for pipeline utility functions
+  - All 82 new unit tests passing (99 total with existing integration tests)
+  - Module coverage highlights:
+    - `src/config.py`: 100% coverage
+    - `src/pipeline/file_manager.py`: 100% coverage
+    - `src/pipeline/__init__.py`: 100% coverage
+    - `src/llm/base.py`: 85% coverage
+    - `src/pipeline/utils.py`: 76% coverage
+  - Comprehensive mocking and error handling tests
+  - Follows CONTRIBUTING.md testing guidelines with proper markers
+
 ### Deprecated
 - Nothing yet
 
