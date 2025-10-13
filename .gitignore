@@ -23,6 +23,13 @@ env.bak/
 out/
 *.log
 
+# ---- Coverage reports ----
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+
 # ---- Jupyter / notebooks ----
 .ipynb_checkpoints/
 *.ipynb
