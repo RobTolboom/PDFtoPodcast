@@ -12,6 +12,8 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = pytest.mark.integration
+
 # Import bundler functions by direct file import
 schema_dir = Path(__file__).parent.parent.parent / "schemas"
 json_bundler_path = schema_dir / "json-bundler.py"

@@ -249,8 +249,24 @@ make check
 # All tests
 make test
 
+# Quick feedback - unit tests only
+make test-unit
+
+# Integration tests only
+make test-integration
+
+# Fast tests (unit, excluding slow)
+make test-fast
+
 # With coverage report
 make test-coverage
+
+# Using pytest directly with markers
+pytest tests/ -v -m "unit"              # Only unit tests
+pytest tests/ -v -m "integration"       # Only integration tests
+pytest tests/ -v -m "not slow"          # Skip slow tests
+pytest tests/ -v -m "not llm"           # Skip expensive LLM API tests
+pytest tests/ -v -m "unit and not slow" # Fast unit tests
 
 # Specific test file
 pytest tests/unit/test_schemas.py -v
@@ -260,13 +276,15 @@ pytest tests/unit/test_schemas.py::test_load_classification_schema -v
 
 # Run with verbose output
 pytest tests/ -v -s
-
-# Run only fast tests (skip integration)
-pytest tests/unit/ -v
-
-# Run only integration tests
-pytest tests/integration/ -v
 ```
+
+**Test Markers:**
+- `@pytest.mark.unit` - Fast, isolated unit tests
+- `@pytest.mark.integration` - Integration tests (multiple components)
+- `@pytest.mark.slow` - Slow tests (>1 second)
+- `@pytest.mark.llm` - Tests making real LLM API calls (expensive)
+
+See [tests/README.md](tests/README.md) for complete testing documentation.
 
 ### Working with Schemas
 

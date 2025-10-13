@@ -107,18 +107,18 @@ test:
 
 test-unit:
 	@echo "Running unit tests..."
-	@if [ -d tests/unit ]; then \
-		pytest tests/unit/ -v; \
+	@if [ -d tests ]; then \
+		pytest tests/ -v -m "unit"; \
 	else \
-		echo "⚠️  Unit tests directory not found"; \
+		echo "⚠️  Tests directory not found"; \
 	fi
 
 test-integration:
 	@echo "Running integration tests..."
-	@if [ -d tests/integration ]; then \
-		pytest tests/integration/ -v; \
+	@if [ -d tests ]; then \
+		pytest tests/ -v -m "integration"; \
 	else \
-		echo "⚠️  Integration tests directory not found"; \
+		echo "⚠️  Tests directory not found"; \
 	fi
 
 test-coverage:
@@ -131,11 +131,11 @@ test-coverage:
 	fi
 
 test-fast:
-	@echo "Running fast tests..."
-	@if [ -d tests/unit ]; then \
-		pytest tests/unit/ -v -m "not slow"; \
+	@echo "Running fast tests (unit tests, excluding slow)..."
+	@if [ -d tests ]; then \
+		pytest tests/ -v -m "unit and not slow"; \
 	else \
-		echo "⚠️  Unit tests directory not found"; \
+		echo "⚠️  Tests directory not found"; \
 	fi
 
 # Pipeline Execution

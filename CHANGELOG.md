@@ -109,6 +109,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `make validate-schemas` target updated to use new location
   - Removed temporary `test.py` file (exploratory scratch file)
 
+- Enhanced testing infrastructure with pytest markers and coverage
+  - **pyproject.toml** - Added pytest marker registration: `@unit`, `@integration`, `@slow`, `@llm`
+  - **pyproject.toml** - Configured coverage settings (80% threshold, HTML/terminal reports)
+  - **tests/unit/test_json_bundler.py** - Added `@pytest.mark.unit` module marker
+  - **tests/integration/test_schema_bundling.py** - Added `@pytest.mark.integration` module marker
+  - **Makefile** - Updated test commands to use pytest markers:
+    - `make test-unit` - Run unit tests via `-m "unit"` marker
+    - `make test-integration` - Run integration tests via `-m "integration"` marker
+    - `make test-fast` - Run fast unit tests excluding slow tests
+  - Enables selective test execution and better test organization
+  - Improves development workflow with faster feedback loops
+
 ### Deprecated
 - Nothing yet
 
