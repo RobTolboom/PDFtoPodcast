@@ -307,17 +307,23 @@ __all__ = ["PublicClass", "public_function"]
 - [x] `src/streamlit_app/file_management.py` - **Alle 7 functies volledig gedocumenteerd, geen actie nodig**
 
 **Batch 1: Quick wins - Utility modules (5 bestanden):**
-- [ ] `src/streamlit_app/json_viewer.py` - Minor upgrade: Note over Streamlit dialogs
-- [ ] `src/streamlit_app/result_checker.py` - Minor upgrade: Notes over file conventions
-- [ ] `src/streamlit_app/session_state.py` - Minor upgrade: Note over best practices
-- [ ] `src/streamlit_app/screens/__init__.py` - Minor upgrade: Usage example
-- [ ] `src/streamlit_app/screens/intro.py` - Minor upgrade: Layout structure details
-- [ ] Commit: "docs(streamlit): improve utility modules documentation"
+- [x] `src/streamlit_app/json_viewer.py` - **Upgraded:** Streamlit dialog details toegevoegd
+- [x] `src/streamlit_app/result_checker.py` - **Upgraded:** File naming conventions gedocumenteerd
+- [x] `src/streamlit_app/session_state.py` - **Upgraded:** Best practices note toegevoegd
+- [x] `src/streamlit_app/screens/__init__.py` - **Upgraded:** Complete usage example
+- [x] `src/streamlit_app/screens/intro.py` - **Upgraded:** Layout structure gedetailleerd
+- [x] Commit: "docs(streamlit): improve utility modules documentation" (+123 regels, -28 regels)
 
 **Batch 2: Major upgrades - Screen modules (2 bestanden):**
-- [ ] `src/streamlit_app/screens/settings.py` - **Prioriteit HOOG** (299 regels, complexe UI)
-- [ ] `src/streamlit_app/screens/upload.py` - **Prioriteit HOOG** (291 regels, complexe logica)
-- [ ] Commit: "docs(streamlit): improve screen modules documentation"
+- [x] `src/streamlit_app/screens/settings.py` - **Upgraded:** Complete tab structure, state management, workflow docs
+- [x] `src/streamlit_app/screens/upload.py` - **Upgraded:** Duplicate detection, manifest management, validation flow
+- [x] Commit: "docs(streamlit): improve screen modules documentation" (+161 regels, -16 regels)
+
+**Fase 3 Resultaat:**
+- **7 bestanden geüpgraded** van ⭐⭐ naar ⭐⭐⭐
+- **2 bestanden** waren al ⭐⭐⭐ (geen actie nodig)
+- **Totaal: +284 regels documentatie, -44 regels oude docs**
+- **2 commits** met gestructureerde batch aanpak
 
 ### Fase 4: Test Modules (Prioriteit Medium)
 - [ ] Review en upgrade `tests/conftest.py` (indien nodig)
@@ -380,6 +386,9 @@ __all__ = ["PublicClass", "public_function"]
 | 2025-10-13 | **Fase 1 compleet** - Tooling check & feature branch aangemaakt | Claude Code |
 | 2025-10-13 | **Fase 2 compleet** - Core modules reviewed en openai_provider.py upgraded | Claude Code |
 | 2025-10-13 | Upgraded 5 functies in openai_provider.py met complete docstrings | Claude Code |
+| 2025-10-13 | **Fase 3 compleet** - Streamlit modules geanalyseerd en gedocumenteerd | Claude Code |
+| 2025-10-13 | Batch 1: 5 utility modules upgraded (+123/-28 regels) | Claude Code |
+| 2025-10-13 | Batch 2: 2 screen modules upgraded (+161/-16 regels) | Claude Code |
 
 ---
 
