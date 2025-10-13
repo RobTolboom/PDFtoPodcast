@@ -81,6 +81,8 @@ pytest tests/ -v -s
 
 ### Test Markers
 
+We use pytest markers to categorize and filter tests:
+
 ```bash
 # Skip slow tests
 pytest -m "not slow"
@@ -90,7 +92,19 @@ pytest -m integration
 
 # Only unit tests
 pytest -m unit
+
+# Skip expensive LLM API tests
+pytest -m "not llm"
+
+# Fast unit tests (excluding slow ones)
+pytest -m "unit and not slow"
 ```
+
+**Available markers:**
+- `@pytest.mark.unit` - Fast, isolated unit tests
+- `@pytest.mark.integration` - Integration tests (multiple components)
+- `@pytest.mark.slow` - Slow tests (>1 second)
+- `@pytest.mark.llm` - Tests making real LLM API calls (expensive)
 
 ---
 
@@ -151,7 +165,23 @@ def test_classification_pipeline(sample_pdf, mock_openai_provider):
 
 ## Test Markers
 
-Use markers to categorize tests:
+Use markers to categorize tests. You can apply markers at the module level (entire file) or individual test level:
+
+**Module-level markers** (apply to all tests in file):
+
+```python
+import pytest
+
+# Mark entire module as unit tests
+pytestmark = pytest.mark.unit
+
+class TestJsonBundler:
+    def test_bundle_schema(self):
+        """All tests in this file are marked as unit tests."""
+        pass
+```
+
+**Individual test markers**:
 
 ```python
 @pytest.mark.slow
@@ -167,6 +197,11 @@ def test_llm_integration():
 @pytest.mark.unit
 def test_schema_loading():
     """Fast unit test."""
+    pass
+
+@pytest.mark.llm
+def test_real_openai_call():
+    """Makes real API call - expensive."""
     pass
 ```
 
