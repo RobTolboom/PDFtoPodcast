@@ -14,15 +14,34 @@ import streamlit as st
 
 def show_intro_screen():
     """
-    Display the introduction/welcome screen with logo, description, and license info.
+    Display the introduction/welcome screen with project information and navigation.
 
-    Shows:
-        - Application title and description
-        - Feature overview
-        - How it works
-        - Supported publication types
-        - License information and usage terms
-        - "Get Started" button to proceed to upload screen
+    Renders a full-page welcome screen with:
+    - Application title and description
+    - Feature overview (4-step pipeline explanation)
+    - "How it works" guide
+    - Output format description
+    - Best practices tips (sidebar box)
+    - Supported publication types list (sidebar box)
+    - License information (Prosperity Public License 3.0.0)
+    - Usage warnings and disclaimers
+    - "Start Pipeline" button to navigate to upload screen
+
+    Layout Structure:
+        - Centered header with title and tagline (HTML markdown)
+        - Two-column main content (col1: 2/3 width, col2: 1/3 width)
+        - Two-column license section
+        - Centered navigation button
+        - Footer with copyright and version info
+
+    Navigation:
+        Sets st.session_state.current_phase = "upload" on button click,
+        then calls st.rerun() to refresh the UI and show upload screen.
+
+    Note:
+        This is the application entry point screen. Users must click
+        "Start Pipeline" to proceed - there's no automatic progression.
+        Uses st.markdown with unsafe_allow_html=True for custom styling.
     """
     # Main header with emoji logo (can replace with actual logo image later)
     st.markdown(

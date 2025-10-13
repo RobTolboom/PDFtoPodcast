@@ -299,15 +299,25 @@ __all__ = ["PublicClass", "public_function"]
 - [x] ~~Commit: "docs(pipeline): improve pipeline module documentation"~~ - **Niet nodig, al op target niveau**
 
 ### Fase 3: Streamlit App Modules (Prioriteit Medium)
-- [ ] Review en upgrade `src/streamlit_app/__init__.py`
-- [ ] Review en upgrade `src/streamlit_app/file_management.py`
-- [ ] Review en upgrade `src/streamlit_app/json_viewer.py`
-- [ ] Review en upgrade `src/streamlit_app/result_checker.py`
-- [ ] Review en upgrade `src/streamlit_app/session_state.py`
-- [ ] Review en upgrade `src/streamlit_app/screens/__init__.py`
-- [ ] Review en upgrade `src/streamlit_app/screens/intro.py`
-- [ ] Review en upgrade `src/streamlit_app/screens/settings.py`
-- [ ] Commit: "docs(streamlit): improve Streamlit app documentation"
+
+**Analyse compleet: 9 bestanden geïnventariseerd**
+
+**⭐⭐⭐ Al uitstekend (2 bestanden):**
+- [x] `src/streamlit_app/__init__.py` - **Complete package docs, geen actie nodig**
+- [x] `src/streamlit_app/file_management.py` - **Alle 7 functies volledig gedocumenteerd, geen actie nodig**
+
+**Batch 1: Quick wins - Utility modules (5 bestanden):**
+- [ ] `src/streamlit_app/json_viewer.py` - Minor upgrade: Note over Streamlit dialogs
+- [ ] `src/streamlit_app/result_checker.py` - Minor upgrade: Notes over file conventions
+- [ ] `src/streamlit_app/session_state.py` - Minor upgrade: Note over best practices
+- [ ] `src/streamlit_app/screens/__init__.py` - Minor upgrade: Usage example
+- [ ] `src/streamlit_app/screens/intro.py` - Minor upgrade: Layout structure details
+- [ ] Commit: "docs(streamlit): improve utility modules documentation"
+
+**Batch 2: Major upgrades - Screen modules (2 bestanden):**
+- [ ] `src/streamlit_app/screens/settings.py` - **Prioriteit HOOG** (299 regels, complexe UI)
+- [ ] `src/streamlit_app/screens/upload.py` - **Prioriteit HOOG** (291 regels, complexe logica)
+- [ ] Commit: "docs(streamlit): improve screen modules documentation"
 
 ### Fase 4: Test Modules (Prioriteit Medium)
 - [ ] Review en upgrade `tests/conftest.py` (indien nodig)
