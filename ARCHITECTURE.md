@@ -14,6 +14,23 @@ PDFtoPodcast is a **medical literature data extraction pipeline** that uses LLM 
 
 ---
 
+## 🔗 Quick Navigation
+
+| Section | Description |
+|---------|-------------|
+| [High-Level Architecture](#high-level-architecture) | System overview and component diagram |
+| [Component Architecture](#component-architecture) | Detailed module descriptions |
+| [Data Flow](#data-flow) | Four-step pipeline data flow |
+| [Medical Standards & Compliance](#medical-standards--compliance) | International reporting standards (CONSORT, PRISMA, TRIPOD, STROBE) |
+| [Configuration Management](#configuration-management) | Environment variables and settings |
+| [Error Handling Strategy](#error-handling-strategy) | Exception hierarchy and recovery |
+| [Performance Considerations](#performance-considerations) | Token optimization and caching |
+| [Security Architecture](#security-architecture) | Data handling and PDF security |
+| [Extensibility Points](#extensibility-points) | Adding providers, types, validation |
+| [Testing Architecture](#testing-architecture) | Test pyramid and mocking strategy |
+
+---
+
 ## High-Level Architecture
 
 ```
