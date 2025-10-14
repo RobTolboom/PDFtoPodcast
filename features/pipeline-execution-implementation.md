@@ -209,6 +209,77 @@ def run_pipeline_with_progress(
 - ❌ **Niet gekozen**: code duplication, maintenance burden
 - ✅ **Gekozen**: Refactor met backwards compatibility, single source of truth
 
+### Git Workflow During Development
+
+**⚠️ IMPORTANT: Follow @CLAUDE.md workflows for all code changes**
+
+This feature involves 11 development phases. Each phase requires proper git workflow compliance.
+
+**After every code change (per @CLAUDE.md):**
+
+```bash
+# 1. Format code
+make format
+
+# 2. Run linter
+make lint
+
+# 3. Run fast tests
+make test-fast
+```
+
+**Before every commit (per @CLAUDE.md):**
+
+```bash
+# 1. Pre-commit preparation (runs format + lint-fix + pre-commit hooks)
+make commit
+
+# 2. Commit with conventional commit message
+git commit -m "type(scope): beschrijving"
+```
+
+**Commit message types:**
+- `feat`: New functionality (e.g., "feat(streamlit): add execution screen")
+- `refactor`: Code restructuring (e.g., "refactor(pipeline): add callback support")
+- `docs`: Documentation only (e.g., "docs: update CHANGELOG for execution screen")
+- `test`: Adding/updating tests (e.g., "test(streamlit): add execution state tests")
+- `fix`: Bug fix (e.g., "fix(streamlit): prevent pipeline restart on rerun")
+
+**Before push (per @CLAUDE.md):**
+
+```bash
+# 1. Simulate CI locally (runs format + lint + typecheck + tests)
+make ci
+
+# 2. Push to remote
+git push
+```
+
+**Commit frequency strategy:**
+
+**Small, atomic commits** - één logische wijziging per commit:
+
+1. **After Fase 2 completion:** `refactor(pipeline): add callback support and step filtering to orchestrator`
+2. **After Fase 3 completion:** `feat(streamlit): add execution screen skeleton with state management`
+3. **After Fase 4 completion:** `feat(streamlit): implement progress callbacks and UI updates`
+4. **After Fase 5 completion:** `feat(streamlit): add status indicators and timing display`
+5. **After Fase 6 completion:** `feat(streamlit): implement verbose logging toggle`
+6. **After Fase 7 completion:** `feat(streamlit): add error handling and recovery logic`
+7. **After Fase 8 completion:** `feat(streamlit): implement navigation and auto-redirect`
+8. **After Fase 10 completion:** `docs: update documentation for execution screen feature`
+
+**Benefits of frequent commits:**
+- Easier code review (small diffs)
+- Easier to revert specific changes
+- Clear development history
+- Matches @CLAUDE.md workflow requirements
+
+**Rule violations to avoid:**
+- ❌ Don't skip `make commit` before committing
+- ❌ Don't skip `make ci` before pushing
+- ❌ Don't make giant commits at end of development
+- ❌ Don't commit without running format/lint/test-fast first
+
 ### Streamlit Rerun Prevention Strategy
 
 **🔴 CRITICAL: Streamlit herlaadt script bij elke interactie**
@@ -767,7 +838,66 @@ if verbose and "usage" in step_result:
   - [ ] Auto-redirect works correctly
   - [ ] Cancel redirect keeps user on Execution screen
 
-### Fase 9: Testing & Validation (Handmatig door gebruiker)
+### Fase 9: Testing & Validation (Unit Tests Required + Manual Testing)
+
+#### Testing Approach (per @CLAUDE.md)
+
+**@CLAUDE.md requirement:** "Voeg passende tests toe of werk bestaande tests bij."
+
+**Testing strategy for this feature:**
+
+**🔴 REQUIRED: Unit Tests**
+- Test session state initialization and reset
+- Test callback handler functions (mock pipeline calls)
+- Test progress status transitions (pending → running → completed/failed)
+- Test error handling paths (critical vs non-critical)
+- Test state cleanup logic
+- Mock `run_four_step_pipeline()` to test UI logic in isolation
+
+**Implementation:**
+```bash
+# Create test file
+tests/unit/test_execution_screen.py
+
+# Tests to write:
+- test_init_execution_state()
+- test_reset_execution_state()
+- test_progress_callback_starting()
+- test_progress_callback_completed()
+- test_progress_callback_failed()
+- test_critical_error_stops_pipeline()
+- test_non_critical_error_continues()
+```
+
+**✅ REQUIRED: Manual Testing (via Streamlit UI)**
+- User performs functional testing (step selection, execution, errors)
+- User validates UX (responsiveness, clarity, error messages)
+- User tests with real PDFs (small, medium, large)
+
+**❌ OUT OF SCOPE: Integration Tests**
+- Real API calls with test PDFs (too expensive, defer to future)
+- End-to-end Streamlit UI automation (complex setup, defer to future)
+
+**Rationale:**
+- Unit tests ensure code correctness (cheap, fast, @CLAUDE.md compliant)
+- Manual tests validate real-world UX and API integration
+- Integration tests deferred to reduce scope and cost
+
+#### Unit Test Tasks
+- [ ] **Create test file:** `tests/unit/test_execution_screen.py`
+- [ ] **Write state management tests:**
+  - [ ] test_init_execution_state() - Verify state initialization
+  - [ ] test_reset_execution_state() - Verify state cleanup
+- [ ] **Write callback tests:**
+  - [ ] test_progress_callback_starting() - Mock callback with "starting" status
+  - [ ] test_progress_callback_completed() - Mock callback with "completed" status
+  - [ ] test_progress_callback_failed() - Mock callback with "failed" status
+- [ ] **Write error handling tests:**
+  - [ ] test_critical_error_stops_pipeline() - Classification failure stops execution
+  - [ ] test_non_critical_error_continues() - Validation warning continues
+- [ ] **Run unit tests:** `make test-fast` - Verify all pass
+
+#### Manual Test Tasks
 - [ ] **Functional testing:**
   - [ ] Test: All 4 steps selected → verify all run
   - [ ] Test: Only classification+extraction → verify validation skipped
@@ -798,9 +928,12 @@ if verbose and "usage" in step_result:
   - [ ] Inline comments for complex logic
   - [ ] Type hints for all function signatures
 - [ ] **Update project documentation:**
-  - [ ] Update `CHANGELOG.md` onder "Unreleased"
+  - [ ] Update `CHANGELOG.md` onder "Unreleased" (zie template hieronder)
   - [ ] Update `README.md` indien nodig (execution screen beschrijving)
   - [ ] Update `ARCHITECTURE.md` indien nodig (execution flow diagram)
+  - [ ] Update `src/README.md` indien nodig (API reference voor execution.py)
+  - [ ] Check `API.md` - not applicable (internal UI only)
+  - [ ] Optional: Update `DEVELOPMENT.md` met troubleshooting tips
 - [ ] **Code quality checks:**
   - [ ] Run `make format` - Format code with Black
   - [ ] Run `make lint` - Run Ruff linter
@@ -808,9 +941,56 @@ if verbose and "usage" in step_result:
   - [ ] Run `make test-fast` - Run fast unit tests
   - [ ] Fix any warnings or errors
 - [ ] **Commit changes:**
-  - [ ] Commit: "feat(streamlit): implement execution screen with progress tracking"
+  - [ ] Commit: "docs: update documentation for execution screen feature"
   - [ ] Run `make commit` - Pre-commit checks
   - [ ] Verify commit message follows convention
+
+#### CHANGELOG.md Template (per @CLAUDE.md)
+
+Add the following entry onder `## [Unreleased]` in `CHANGELOG.md`:
+
+```markdown
+## [Unreleased]
+
+### Added
+- **Streamlit Execution Screen:** Real-time pipeline execution UI with progress tracking
+  - Live progress updates per step via callbacks (Classification → Extraction → Validation → Correction)
+  - Session state management with rerun prevention (prevents pipeline restart on UI interactions)
+  - Verbose logging toggle (configurable via Settings screen)
+  - Intelligent error handling with critical vs. non-critical error distinction
+  - Step selection support (run subset of pipeline steps via Settings)
+  - Auto-redirect to Settings after completion with countdown timer
+  - Error recovery with state cleanup and retry capability
+
+### Changed
+- **Pipeline Orchestrator (`src/pipeline/orchestrator.py`):** Refactored for Streamlit callback support
+  - Added `steps_to_run: list[str] | None` parameter for step filtering
+  - Added `progress_callback: Callable | None` parameter for real-time UI updates
+  - Maintained backwards compatibility with CLI interface (all existing parameters work)
+  - Step filtering validates dependencies (validation needs extraction, correction needs validation)
+  - Callback signature: `callback(step_name: str, status: str, data: dict)`
+
+### Performance
+- Streamlit execution adds < 5 seconds overhead compared to CLI pipeline
+- Session state and UI rendering contribute minimal latency
+- File I/O unchanged (uses existing PipelineFileManager)
+
+### Breaking Changes
+⚠️ **CLI output verbosity may be affected** during orchestrator refactoring phase.
+- CLI functionality remains intact (backwards compatible API)
+- Rich console output may be temporarily reduced
+- Full CLI output restoration planned for separate PR
+
+### Developer Notes
+- Follow @CLAUDE.md workflows: `make format && make lint && make test-fast` after each change
+- Unit tests required for state management and callback handlers
+- Manual testing via Streamlit UI for UX validation
+```
+
+**When to add this entry:**
+- Draft during Fase 10 (Documentation & Finalization)
+- Refine as implementation progresses (add specifics discovered during development)
+- Finalize before creating Pull Request
 
 ### Fase 11: Integration & Deployment
 - [ ] **Integration testing:**
@@ -921,6 +1101,13 @@ if verbose and "usage" in step_result:
 | 2025-10-14 | Updated: Takenlijst - Fase 2 nu orchestrator refactoring (11 fases totaal) | Claude Code |
 | 2025-10-14 | Updated: Risico's - Added orchestrator breaking CLI, rerun prevention | Claude Code |
 | 2025-10-14 | Updated: Performance - Realistic < 5s overhead (was < 1s) | Claude Code |
+| 2025-10-14 | **@CLAUDE.md COMPLIANCE UPDATE:** Added workflow and documentation requirements | Claude Code & Rob Tolboom |
+| 2025-10-14 | Added: Git Workflow During Development (format/lint/test-fast, make commit, make ci) | Claude Code |
+| 2025-10-14 | Added: CHANGELOG.md Template met complete entry voor feature | Claude Code |
+| 2025-10-14 | Added: Testing Approach - Unit tests REQUIRED (reconciled with @CLAUDE.md) | Claude Code |
+| 2025-10-14 | Updated: Documentation Checklist - 6 files (CHANGELOG, README, ARCHITECTURE, src/README, API.md, DEVELOPMENT) | Claude Code |
+| 2025-10-14 | Added: Commit frequency strategy (atomic commits per fase) | Claude Code |
+| 2025-10-14 | Updated: Fase 9 - Unit test tasks added (7 tests required) | Claude Code |
 
 ---
 
