@@ -126,6 +126,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `src/pipeline/utils.py`: 76% coverage
   - Comprehensive mocking and error handling tests
   - Follows CONTRIBUTING.md testing guidelines with proper markers
+
+- **Enhanced code documentation across core and UI modules** - Comprehensive documentation improvements (Fases 1-3)
+  - **Fase 1: Setup & Planning**
+    - Inventariseerd 36 Python bestanden en beoordeeld documentatie kwaliteit
+    - Gedefinieerd documentatie standaard gebaseerd op validation.py en json-bundler.py
+    - Feature planning document aangemaakt met 6-fase roadmap
+  - **Fase 2: Core Modules (4 bestanden)**
+    - `src/llm/openai_provider.py` - 5 functies upgraded met complete Args/Returns/Example sections
+      - `_repair_json_quotes()`: JSON repair heuristics documented
+      - `_parse_response_output()`: Multiple extraction strategies detailed
+      - `generate_text()`: Full docstring with retry behavior
+      - `generate_json_with_schema()`: Dual-validation strategy notes
+      - `generate_json_with_pdf()`: Multimodal capabilities documentation
+    - `src/pipeline/validation_runner.py`, `src/llm/__init__.py`, `src/pipeline/__init__.py` already at ⭐⭐⭐ level
+    - Added +176 lines of documentation
+  - **Fase 3: Streamlit Modules (9 bestanden)**
+    - Batch 1: 5 utility modules upgraded
+      - `src/streamlit_app/json_viewer.py`: Streamlit dialog behavior documented
+      - `src/streamlit_app/result_checker.py`: File naming conventions and storage location
+      - `src/streamlit_app/session_state.py`: Best practices notes and phase flow
+      - `src/streamlit_app/screens/__init__.py`: Complete usage examples
+      - `src/streamlit_app/screens/intro.py`: Layout structure details
+    - Batch 2: 2 complex screen modules (299 + 291 lines) upgraded
+      - `src/streamlit_app/screens/settings.py`: Tab structure, state management, workflow documentation
+      - `src/streamlit_app/screens/upload.py`: Duplicate detection, manifest management, validation flow
+    - `src/streamlit_app/__init__.py` and `src/streamlit_app/file_management.py` already at ⭐⭐⭐ level
+    - Added +284 lines of documentation across 7 upgraded modules
+  - **Overall Impact:**
+    - 13 modules now have comprehensive ⭐⭐⭐ documentation
+    - +460 lines of documentation added (+485 insertions, -65 deletions)
+    - All docstrings follow project standards with Args/Returns/Raises/Example sections
+    - Improved IDE tooltips and developer onboarding experience
+    - 7 logically structured commits with clear descriptions
+
 - Enhanced testing infrastructure with pytest markers and coverage
   - **pyproject.toml** - Added pytest marker registration: `@unit`, `@integration`, `@slow`, `@llm`
   - **pyproject.toml** - Configured coverage settings (80% threshold, HTML/terminal reports)
