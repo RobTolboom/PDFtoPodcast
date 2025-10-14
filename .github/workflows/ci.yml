@@ -76,6 +76,8 @@ jobs:
   coverage:
     name: Test Coverage
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     if: github.event_name == 'pull_request'
 
     steps:
