@@ -104,6 +104,8 @@ jobs:
   validate-schemas:
     name: Validate JSON Schemas
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
     - uses: actions/checkout@v4
