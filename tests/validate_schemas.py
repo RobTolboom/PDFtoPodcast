@@ -16,7 +16,32 @@ from pathlib import Path
 def get_nested_value(obj, path):
     """
     Get value from nested dict/list using JSON Pointer-like path.
-    Path format: #/$defs/TypeName or #/properties/field
+
+    Traverses a JSON schema structure using a JSON Pointer-style path to
+    retrieve a nested value. Supports both dictionary and list traversal.
+
+    Args:
+        obj: Root JSON schema dictionary to traverse
+        path: JSON Pointer-like path string (e.g., "#/$defs/TypeName", "#/properties/field")
+              Must start with "#/" prefix
+
+    Returns:
+        The value at the specified path, or None if path doesn't exist or is invalid
+
+    Example:
+        >>> schema = {"$defs": {"Author": {"type": "object", "properties": {"name": {"type": "string"}}}}}
+        >>> get_nested_value(schema, "#/$defs/Author")
+        {'type': 'object', 'properties': {'name': {'type': 'string'}}}
+        >>> get_nested_value(schema, "#/$defs/NonExistent")
+        None
+        >>> get_nested_value(schema, "invalid")  # Missing #/ prefix
+        None
+
+    Note:
+        - Path must start with "#/" (JSON Pointer internal reference format)
+        - Path components are split by "/" character
+        - For lists, path components must be valid integer indices
+        - Returns None for any traversal error (missing key, invalid index, type mismatch)
     """
     if not path.startswith("#/"):
         return None
@@ -43,7 +68,41 @@ def get_nested_value(obj, path):
 
 def check_refs_recursive(obj, root_schema, path="root", errors=None):
     """
-    Recursively check all $ref resolve correctly.
+    Recursively check that all $ref references resolve correctly in a JSON schema.
+
+    Traverses the entire schema structure and validates that every $ref can be
+    resolved using get_nested_value(). Detects both unresolved internal references
+    and external references (which shouldn't exist in bundled schemas).
+
+    Args:
+        obj: Current schema object/dict/list being checked
+        root_schema: Root schema dictionary for resolving references
+        path: Current path in schema (for error reporting), default "root"
+        errors: List to accumulate error messages, created if None
+
+    Returns:
+        List of error strings describing unresolved or invalid references.
+        Empty list if all references resolve correctly.
+
+    Example:
+        >>> schema = {
+        ...     "$defs": {"Person": {"type": "object"}},
+        ...     "properties": {"user": {"$ref": "#/$defs/Person"}}
+        ... }
+        >>> errors = check_refs_recursive(schema, schema)
+        >>> errors
+        []
+        >>> bad_schema = {"properties": {"user": {"$ref": "#/$defs/NonExistent"}}}
+        >>> errors = check_refs_recursive(bad_schema, bad_schema)
+        >>> len(errors) > 0
+        True
+
+    Note:
+        - Only checks internal references (starting with "#/")
+        - External references (not starting with "#") are flagged as errors in bundled schemas
+        - Recursively processes all nested dicts and lists
+        - Error messages include path for easy location of issues
+        - Mutates the errors list parameter (accumulator pattern)
     """
     if errors is None:
         errors = []
@@ -77,7 +136,49 @@ def check_refs_recursive(obj, root_schema, path="root", errors=None):
 
 def get_schema_stats(obj, stats=None, depth=0):
     """
-    Collect schema statistics.
+    Collect comprehensive statistics about a JSON schema structure.
+
+    Recursively traverses a schema to gather metrics about its complexity,
+    structure, and composition. Useful for assessing schema size and identifying
+    potential issues with overly complex schemas.
+
+    Args:
+        obj: Current schema object/dict/list being analyzed
+        stats: Dictionary to accumulate statistics, created with defaults if None
+        depth: Current recursion depth (for tracking max nesting), default 0
+
+    Returns:
+        Dictionary with schema statistics:
+        {
+            "max_depth": int,        # Maximum nesting depth
+            "object_count": int,     # Number of object type definitions
+            "property_count": int,   # Total number of properties across all objects
+            "ref_count": int,        # Number of $ref references
+            "array_count": int       # Number of array type definitions
+        }
+
+    Example:
+        >>> schema = {
+        ...     "type": "object",
+        ...     "properties": {
+        ...         "name": {"type": "string"},
+        ...         "tags": {"type": "array", "items": {"type": "string"}}
+        ...     }
+        ... }
+        >>> stats = get_schema_stats(schema)
+        >>> stats["object_count"]
+        1
+        >>> stats["property_count"]
+        2
+        >>> stats["array_count"]
+        1
+
+    Note:
+        - Handles both single type strings and type arrays (e.g., ["string", "null"])
+        - Counts nested objects and arrays at all depths
+        - Max depth helps identify deeply nested schemas that might hit parser limits
+        - Mutates the stats dict parameter (accumulator pattern)
+        - Used by validate_schema() to report schema complexity
     """
     if stats is None:
         stats = {
@@ -119,7 +220,54 @@ def get_schema_stats(obj, stats=None, depth=0):
 
 def validate_schema(schema_file):
     """
-    Comprehensive validation of a schema file.
+    Comprehensive validation of a JSON schema file for OpenAI compatibility.
+
+    Performs multiple validation checks on a schema file to ensure it's valid,
+    properly structured, and compatible with OpenAI's Structured Outputs API.
+    Prints detailed validation report to stdout.
+
+    Validation Checks:
+        1. JSON syntax validity
+        2. File size (warns if >100KB)
+        3. Schema statistics (depth, objects, properties, arrays, refs)
+        4. All $ref references resolve correctly
+        5. No external references in bundled schemas
+        6. Common OpenAI strict mode issues
+
+    Args:
+        schema_file: Path object pointing to JSON schema file to validate
+
+    Returns:
+        Boolean indicating validation success (True) or failure (False)
+
+    Example:
+        >>> from pathlib import Path
+        >>> schema_file = Path("schemas/interventional_trial_bundled.json")
+        >>> result = validate_schema(schema_file)
+        ======================================================================
+        Validating: interventional_trial_bundled.json
+        ======================================================================
+        ✓ JSON syntax valid
+        ✓ File size: 45.2 KB (46285 bytes)
+        ✓ Schema statistics:
+          - Max nesting depth: 8
+          - Object definitions: 42
+          - Total properties: 156
+          - Array definitions: 12
+          - $ref count: 0
+        ✓ All $refs resolve (0 checked)
+        ✓ No external refs in bundled schema
+        ======================================================================
+        ✅ VALIDATION PASSED
+        >>> result
+        True
+
+    Note:
+        - Validation output includes visual separators for readability
+        - Warnings are shown for large schemas (>100KB) and deep nesting (>50 levels)
+        - Bundled schemas must not contain external references (common.schema.json#)
+        - Only first 10 unresolved refs are displayed to avoid output overflow
+        - Used by main() function to validate all bundled schemas in batch
     """
     print(f"\n{'='*70}")
     print(f"Validating: {schema_file.name}")

@@ -10,6 +10,24 @@ and retrieve metadata about result files. Used by the Streamlit UI to:
 - Show which steps have already been completed
 - Allow viewing/deleting existing results
 - Skip already completed steps if desired
+
+File Naming Conventions:
+    All result files follow the pattern: {identifier}-{step}.json
+    - identifier: PDF filename stem (without .pdf extension)
+    - step: Pipeline step name (classification, extraction, validation, correction)
+
+    Special case for correction step: Uses -extraction-corrected.json suffix
+
+Storage Location:
+    All result files are stored in the tmp/ directory at project root.
+    This directory is typically .gitignored to avoid committing large JSON files.
+
+Example File Structure:
+    tmp/
+    ├── paper_2024-classification.json
+    ├── paper_2024-extraction.json
+    ├── paper_2024-validation.json
+    └── paper_2024-extraction-corrected.json
 """
 
 from datetime import datetime

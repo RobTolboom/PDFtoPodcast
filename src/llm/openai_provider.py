@@ -34,21 +34,39 @@ def _repair_json_quotes(json_str: str) -> str:
     Attempt to repair JSON with unescaped quotes in string values.
 
     This is a workaround for OpenAI Responses API bug where strict mode
-    doesn't properly escape quotes within string values.
+    doesn't properly escape quotes within string values. Uses regex-based
+    pattern matching to identify and escape unescaped quotes within JSON
+    string values while preserving already-escaped quotes.
 
     Strategy:
     - Find patterns like: "key": "value with "unescaped" quotes"
     - Escape the internal quotes: "key": "value with \"unescaped\" quotes"
+    - Preserve already escaped quotes: \" remains as \"
 
     Args:
-        json_str: Malformed JSON string with unescaped quotes
+        json_str: Malformed JSON string with unescaped quotes in string values
 
     Returns:
-        Repaired JSON string (best effort)
+        Repaired JSON string with escaped quotes (best effort). Returns original
+        string if repair process fails.
 
     Warning:
         This is heuristic-based and may not work for all cases.
         It's a workaround for API bugs, not a robust solution.
+        Should not be relied upon for production-critical validation.
+
+    Example:
+        >>> malformed = '{"title": "Study with "quotes" inside"}'
+        >>> repaired = _repair_json_quotes(malformed)
+        >>> repaired
+        '{"title": "Study with \\"quotes\\" inside"}'
+        >>> import json
+        >>> json.loads(repaired)
+        {'title': 'Study with "quotes" inside'}
+
+    Note:
+        This function is called automatically when JSON parsing fails.
+        Consider reporting cases to OpenAI if this workaround is frequently needed.
     """
 
     def escape_quotes_in_match(match):
@@ -122,16 +140,42 @@ class OpenAIProvider(BaseLLMProvider):
 
         Handles extraction from response.output_text with fallback to manual
         extraction from response.output array structure. Includes extensive
-        debug logging for troubleshooting response parsing issues.
+        debug logging for troubleshooting response parsing issues. Automatically
+        attempts JSON repair if initial parsing fails due to unescaped quotes.
+
+        The function tries multiple extraction strategies:
+        1. response.output_text convenience property (preferred)
+        2. response.output array with message.content[].output_text
+        3. response.output array with message.content[].text
+        4. Direct text field in output items
+        5. Object attributes (text, content)
 
         Args:
-            response: OpenAI Responses API response object
+            response: OpenAI Responses API response object with output field
 
         Returns:
-            Parsed JSON dictionary
+            Parsed JSON dictionary extracted from the response text content
 
         Raises:
-            LLMProviderError: If no text output found or JSON parsing fails
+            LLMProviderError: If no text output found in response
+            LLMProviderError: If JSON parsing fails even after repair attempt
+
+        Example:
+            >>> response = client.responses.create(model="gpt-5", ...)
+            >>> result = provider._parse_response_output(response)
+            >>> result["trial_name"]
+            'Clinical Study ABC'
+
+        Note:
+            This method includes extensive debug logging that outputs:
+            - Response status and structure
+            - Token usage statistics (input, output, reasoning tokens)
+            - Full response.output array for troubleshooting
+            - JSON parsing error context with position information
+
+            The automatic JSON repair is a workaround for OpenAI API bugs
+            where strict mode doesn't properly escape quotes. Consider
+            reporting persistent issues to OpenAI.
         """
         # Log response structure for debugging
         logger.info(f"Response status: {response.status if hasattr(response, 'status') else 'N/A'}")
@@ -314,7 +358,39 @@ class OpenAIProvider(BaseLLMProvider):
         retry=retry_if_exception_type((openai.RateLimitError, openai.APITimeoutError)),
     )
     def generate_text(self, prompt: str, system_prompt: str | None = None, **kwargs) -> str:
-        """Generate text using OpenAI Responses API"""
+        """
+        Generate free-form text using OpenAI Responses API.
+
+        Uses OpenAI's Responses API for text generation with automatic retry
+        logic for rate limits and timeouts. Supports reasoning models (GPT-5,
+        o-series) which do not support temperature parameter.
+
+        Args:
+            prompt: User prompt or content to process
+            system_prompt: Optional system-level instructions for the model
+            **kwargs: Additional OpenAI API parameters (e.g., max_output_tokens)
+
+        Returns:
+            Generated text response as a string, stripped of leading/trailing whitespace
+
+        Raises:
+            LLMProviderError: If OpenAI API call fails after retries
+
+        Example:
+            >>> provider = OpenAIProvider(settings)
+            >>> text = provider.generate_text(
+            ...     prompt="Explain photosynthesis in simple terms",
+            ...     system_prompt="You are a helpful science teacher"
+            ... )
+            >>> print(text)
+            'Photosynthesis is the process by which plants...'
+
+        Note:
+            - Automatically retries up to 3 times for rate limit and timeout errors
+            - Temperature parameter not supported for reasoning models (GPT-5, o-series)
+            - Uses max_output_tokens from settings.openai_max_tokens
+            - Result is aggregated from response.output_text convenience property
+        """
         try:
             response = self.client.responses.create(
                 model=self.settings.openai_model,
@@ -350,8 +426,48 @@ class OpenAIProvider(BaseLLMProvider):
         """
         Generate structured JSON using OpenAI Responses API with Structured Outputs.
 
-        This uses OpenAI's native schema validation which guarantees the output
-        conforms to the provided JSON schema.
+        Uses OpenAI's Responses API with JSON schema guidance (strict=False mode)
+        to generate structured JSON output. The schema guides the model's generation
+        but validation happens post-generation via the dual-validation strategy
+        (schema validation + conditional LLM semantic validation).
+
+        Args:
+            prompt: User prompt or text content to process
+            schema: JSON schema dictionary (Draft 2020-12 format) to guide output structure
+            system_prompt: Optional system-level extraction instructions
+            schema_name: Optional name for the schema (defaults to schema["title"] or "extraction_schema")
+            **kwargs: Additional OpenAI API parameters
+
+        Returns:
+            Dictionary containing structured JSON conforming to the provided schema.
+            The exact structure depends on the schema provided.
+
+        Raises:
+            LLMProviderError: If OpenAI API call fails after retries
+            LLMProviderError: If JSON parsing fails (includes schema size in error)
+
+        Example:
+            >>> from src.schemas_loader import load_schema
+            >>> schema = load_schema("interventional_trial")
+            >>> provider = OpenAIProvider(settings)
+            >>> result = provider.generate_json_with_schema(
+            ...     prompt=pdf_text,
+            ...     schema=schema,
+            ...     system_prompt="Extract trial data from research paper",
+            ...     schema_name="trial_extraction"
+            ... )
+            >>> result["trial_name"]
+            'ACME Clinical Trial 2024'
+            >>> result["trial_phase"]
+            'Phase III'
+
+        Note:
+            - Uses strict=False mode for flexible schema guidance
+            - Post-generation validation via dual-validation strategy is recommended
+            - Automatically retries up to 3 times for rate limits and timeouts
+            - Schema size is logged in bytes/tokens if generation fails
+            - Temperature not supported for reasoning models (GPT-5, o-series)
+            - Response parsing includes automatic JSON repair for unescaped quotes
         """
         try:
             # Prepare schema name
@@ -405,10 +521,57 @@ class OpenAIProvider(BaseLLMProvider):
         **kwargs,
     ) -> dict[str, Any]:
         """
-        Generate structured JSON from PDF using OpenAI Responses API with Structured Outputs.
+        Generate structured JSON from PDF using OpenAI Responses API with vision capabilities.
 
-        Uses GPT-5 vision capabilities to analyze PDF including tables,
-        images, and charts. PDF is sent as base64-encoded file for direct processing.
+        Uses GPT-5 multimodal capabilities to analyze PDF documents including text,
+        tables, images, charts, and diagrams. The PDF is base64-encoded and sent
+        directly to the API for processing. Supports schema-guided extraction with
+        optional page limits for cost control.
+
+        Args:
+            pdf_path: Path to PDF file (string or Path object)
+            schema: JSON schema dictionary (Draft 2020-12 format) to guide extraction
+            system_prompt: Optional system-level extraction instructions
+            max_pages: Optional limit on number of pages to process (for cost control)
+            schema_name: Optional name for the schema (defaults to schema["title"] or "extraction_schema")
+            **kwargs: Additional OpenAI API parameters
+
+        Returns:
+            Dictionary containing structured JSON extracted from the PDF,
+            conforming to the provided schema structure.
+
+        Raises:
+            LLMProviderError: If PDF file not found at specified path
+            LLMProviderError: If PDF file exceeds 32 MB size limit
+            LLMProviderError: If OpenAI API call fails after retries
+
+        Example:
+            >>> from pathlib import Path
+            >>> from src.schemas_loader import load_schema
+            >>> schema = load_schema("interventional_trial")
+            >>> provider = OpenAIProvider(settings)
+            >>> result = provider.generate_json_with_pdf(
+            ...     pdf_path=Path("research_paper.pdf"),
+            ...     schema=schema,
+            ...     system_prompt="Extract clinical trial data",
+            ...     max_pages=20,
+            ...     schema_name="trial_extraction"
+            ... )
+            >>> result["trial_name"]
+            'Multi-Center Clinical Study 2024'
+            >>> result["sample_size"]
+            450
+
+        Note:
+            - Supports multimodal content: text, tables, images, charts, diagrams
+            - PDF size limit: 32 MB (enforced by OpenAI API)
+            - Base64 encoding increases upload size by ~33%
+            - Uses strict=False mode for flexible schema guidance
+            - Validation via dual-validation strategy recommended post-generation
+            - Automatically retries up to 3 times for rate limits and timeouts
+            - Temperature not supported for reasoning models (GPT-5, o-series)
+            - File size is logged before upload for debugging
+            - max_pages parameter adds instruction to process only first N pages
         """
         try:
             # Normalize to Path object

@@ -40,6 +40,14 @@ def init_session_state():
         >>> init_session_state()
         >>> print(st.session_state.current_phase)
         'intro'
+
+    Note:
+        This function uses "if key not in st.session_state" checks to ensure
+        idempotent behavior - it can be called multiple times safely and will
+        only initialize missing keys. This is a Streamlit best practice to
+        avoid resetting state during reruns.
+
+        Phase flow: intro → upload → settings → execution → results
     """
     # Current UI phase
     if "current_phase" not in st.session_state:

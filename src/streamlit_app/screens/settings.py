@@ -27,17 +27,74 @@ from ..result_checker import (
 
 def show_settings_screen():
     """
-    Display settings configuration screen with pipeline control.
+    Display settings configuration screen with pipeline control and step management.
 
-    Provides two tabs:
-        1. Basic Settings - Step selection, existing results management
-        2. Advanced - LLM provider, page limits, debugging, file management
+    Renders a comprehensive settings UI with two tabs for pipeline configuration.
+    Checks for existing pipeline results and provides smart defaults for step
+    selection. Users can view/delete existing results, configure LLM settings,
+    and set debugging options.
 
-    Shows which pipeline steps have existing results and allows:
-    - Selective execution of steps
-    - Viewing existing results in modal dialogs
-    - Deleting individual result files
-    - Configuring processing options
+    Tab Structure:
+        **Basic Settings:**
+        - Pipeline Control section with 4-step checkboxes
+        - Each step shows: [Checkbox + Name] [Status] [View/Delete buttons]
+        - Status display: "✅ Done" with metadata or "⏸️ Not yet processed"
+        - Smart defaults: Auto-selects steps without existing results
+        - Action buttons (View/Delete) only shown if result file exists
+
+        **Advanced:**
+        - Processing Configuration:
+          - LLM Provider selection (OpenAI/Claude)
+          - Pages to Process (slider or "all pages" checkbox)
+        - Debugging & Development:
+          - Pipeline Breakpoint selector (stop after specific step)
+          - Verbose logging toggle
+        - File Management:
+          - PDF Cleanup Policy (keep forever, 24h, 7days, etc.)
+
+    State Management:
+        Reads from session state:
+        - current_phase: Current UI phase (should be "settings")
+        - pdf_path: Path to selected PDF file
+        - uploaded_file_info: Metadata dict for uploaded file
+        - settings: Dictionary with pipeline configuration
+
+        Writes to session state:
+        - settings["steps_to_run"]: List of selected step keys
+        - settings["llm_provider"]: Selected provider ("openai" or "claude")
+        - settings["max_pages"]: Max pages (int or None for all)
+        - settings["breakpoint"]: Pipeline stop point (str or None)
+        - settings["verbose_logging"]: Boolean flag
+        - settings["cleanup_policy"]: File retention policy string
+
+    Navigation:
+        - "Back to Upload" button: Sets current_phase = "upload"
+        - "Start Pipeline" button: Sets current_phase = "execution"
+        - Start button disabled if no steps selected
+
+    Existing Results Management:
+        Uses result_checker functions to:
+        1. Get identifier from PDF path (filename stem)
+        2. Check which steps have existing results
+        3. Get file metadata (size, modified timestamp)
+        4. Allow viewing JSON in modal dialog (via show_json_viewer)
+        5. Allow deletion of individual result files
+
+    Example Workflow:
+        1. User arrives from upload screen with pdf_path set
+        2. Screen checks for existing results (classification, extraction, etc.)
+        3. Steps without results are auto-selected by default
+        4. User can uncheck/check steps, view existing results, or delete them
+        5. User configures advanced options (LLM, pages, debugging)
+        6. User clicks "Start Pipeline" to proceed to execution phase
+
+    Note:
+        - If no PDF is selected (pdf_path is None), shows error and back button
+        - Correction step uses special filename: {identifier}-extraction-corrected.json
+        - All result files stored in tmp/ directory
+        - Modal dialogs opened via show_json_viewer() function
+        - File deletion triggers immediate st.rerun() to update UI
+        - Warning shown if no steps selected (Start button disabled)
     """
     st.markdown("## ⚙️ Configure Extraction Settings")
     st.markdown("Configure how the pipeline should process your PDF document.")

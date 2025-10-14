@@ -17,16 +17,21 @@ import streamlit as st
 
 def show_json_viewer(file_path: str, step_name: str, file_info: dict):
     """
-    Display JSON content in a modal dialog with metadata.
+    Display JSON content in a modal dialog with metadata and syntax highlighting.
+
+    Opens a Streamlit modal dialog (@st.dialog decorator) to display the contents
+    of a pipeline result JSON file. The dialog includes syntax-highlighted JSON
+    display using st.json() and file metadata footer.
 
     Args:
-        file_path: Path to JSON file to display
-        step_name: Name of pipeline step (e.g., "Classification", "Extraction")
-        file_info: Dictionary with file metadata:
-            - modified: Last modified timestamp string
-            - size_kb: File size in kilobytes
+        file_path: Path to JSON file to display (absolute or relative path)
+        step_name: Name of pipeline step for dialog title (e.g., "Classification", "Extraction")
+        file_info: Dictionary with file metadata containing:
+            - modified: Last modified timestamp string (YYYY-MM-DD HH:MM:SS format)
+            - size_kb: File size in kilobytes (float)
 
     Example:
+        >>> from src.streamlit_app import show_json_viewer
         >>> file_info = {
         ...     "path": "tmp/paper-classification.json",
         ...     "modified": "2025-01-09 12:00:00",
@@ -37,6 +42,14 @@ def show_json_viewer(file_path: str, step_name: str, file_info: dict):
         ...     step_name="Classification",
         ...     file_info=file_info
         ... )
+        # Opens modal dialog with JSON content and metadata
+
+    Note:
+        - Uses Streamlit's @st.dialog decorator for modal display
+        - Dialog width is set to "large" for better JSON readability
+        - Step-specific emoji icons are shown in dialog title
+        - JSON parsing errors are caught and displayed to user
+        - Modal is automatically closed when user clicks outside or presses ESC
     """
     # Icon mapping for each step type
     step_icons = {

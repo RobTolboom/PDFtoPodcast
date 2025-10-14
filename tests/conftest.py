@@ -1,5 +1,43 @@
 """
-Pytest configuration and shared fixtures.
+Pytest configuration and shared fixtures for PDFtoPodcast test suite.
+
+Provides reusable test fixtures for mocking LLM providers, sample data,
+and schemas. All fixtures are function-scoped by default and use
+unittest.mock for provider mocking.
+
+Fixture Categories:
+    **Test Data:**
+    - sample_pdf: Path to sample PDF file for testing
+
+    **Mock LLM Responses:**
+    - mock_classification_response: Sample classification result dict
+    - mock_extraction_response: Sample extraction result dict
+    - mock_validation_response: Sample validation result dict
+
+    **Mock Providers:**
+    - mock_openai_provider: Mock OpenAI provider with preconfigured responses
+    - mock_claude_provider: Mock Claude provider with preconfigured responses
+
+    **Schemas:**
+    - classification_schema: Sample classification JSON schema
+    - extraction_schema: Sample extraction JSON schema
+
+Usage Example:
+    >>> def test_classification(mock_classification_response):
+    ...     # Use mock response in test
+    ...     assert mock_classification_response["publication_type"] == "interventional_trial"
+    ...     assert mock_classification_response["classification_confidence"] == 0.95
+
+    >>> def test_with_provider(mock_openai_provider):
+    ...     # Mock provider is pre-configured to return classification response
+    ...     result = mock_openai_provider.generate_json_with_pdf(...)
+    ...     assert result["publication_type"] == "interventional_trial"
+
+Note:
+    - All fixtures are function-scoped (new instance per test)
+    - Mock providers use unittest.mock.Mock with return_value configured
+    - Sample responses match actual LLM output structure
+    - Schemas are minimal but valid JSON Schema Draft 2020-12
 """
 
 from pathlib import Path
