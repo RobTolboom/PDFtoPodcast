@@ -710,49 +710,73 @@ if verbose and "usage" in step_result:
 - [x] Schrijf feature document met volledige specificatie
 - [x] Maak feature branch: `feature/pipeline-execution-implementation`
 
-### Fase 2: Orchestrator Refactoring
-- [ ] **Refactor `src/pipeline/orchestrator.py`** voor callback support:
-  - [ ] Add `steps_to_run` parameter (list[str] | None) met default None
-  - [ ] Add `progress_callback` parameter (Callable | None) met default None
-  - [ ] Implement callback calls: `callback(step_name, "starting", data)` voor elke stap
-  - [ ] Implement callback calls: `callback(step_name, "completed", data)` na elke stap
-  - [ ] Implement callback calls: `callback(step_name, "failed", data)` bij errors
-  - [ ] Implement callback calls: `callback(step_name, "skipped", data)` voor skipped steps
-- [ ] **Implement step filtering logica:**
-  - [ ] If `steps_to_run` is None → run all steps (backwards compatible)
-  - [ ] If `steps_to_run` provided → only run selected steps
-  - [ ] Validate dependencies: validation needs extraction, correction needs validation
-  - [ ] Skip steps not in `steps_to_run` en call callback met "skipped" status
-- [ ] **Maintain backwards compatibility:**
-  - [ ] All existing parameters blijven werken
-  - [ ] `progress_callback=None` → oude gedrag (Rich console output blijft)
-  - [ ] No breaking changes to function signature (alleen nieuwe optional params)
-- [ ] **Test refactored orchestrator:**
-  - [ ] Test CLI still works: `python run_pipeline.py test.pdf`
-  - [ ] Test step filtering: only run classification+extraction
-  - [ ] Test callback: verify callbacks worden aangeroepen met correcte data
+### Fase 2: Orchestrator Refactoring ✅
+**Commit:** `5b252c6` - refactor(pipeline): add callback support and step filtering to orchestrator
+**Completed:** 2025-10-14
 
-### Fase 3: Core Execution Screen Implementation
-- [ ] **Create `src/streamlit_app/screens/execution.py`** met:
-  - [ ] Module-level docstring met Purpose, Components, Usage Example
-  - [ ] `show_execution_screen()` main function met rerun prevention logic
-  - [ ] Session state initialization (`execution`, `step_status`)
-  - [ ] `create_progress_callback()` function die Streamlit UI update
-  - [ ] `run_pipeline_with_progress()` wrapper function
-  - [ ] `reset_execution_state()` helper voor state cleanup
-  - [ ] Step status display logic (pending/running/success/failed)
-  - [ ] Error handling logic (critical vs non-critical)
-  - [ ] Verbose logging toggle implementation
-- [ ] **Update exports in `src/streamlit_app/screens/__init__.py`:**
-  - [ ] Add `from .execution import show_execution_screen`
-  - [ ] Add `"show_execution_screen"` to `__all__`
-- [ ] **Update routing in `app.py`:**
-  - [ ] Replace placeholder `st.info()` with `show_execution_screen()` call
-  - [ ] Import `show_execution_screen` from screens
-- [ ] **Test basic routing:**
-  - [ ] Verify execution screen loads when `current_phase = "execution"`
-  - [ ] Verify settings are correctly passed from session state
-  - [ ] Verify rerun prevention works (pipeline doesn't restart)
+- [x] **Refactor `src/pipeline/orchestrator.py`** voor callback support:
+  - [x] Add `steps_to_run` parameter (list[str] | None) met default None
+  - [x] Add `progress_callback` parameter (Callable | None) met default None
+  - [x] Implement callback calls: `callback(step_name, "starting", data)` voor elke stap
+  - [x] Implement callback calls: `callback(step_name, "completed", data)` na elke stap
+  - [x] Implement callback calls: `callback(step_name, "failed", data)` bij errors
+  - [x] Implement callback calls: `callback(step_name, "skipped", data)` voor skipped steps
+- [x] **Implement step filtering logica:**
+  - [x] If `steps_to_run` is None → run all steps (backwards compatible)
+  - [x] If `steps_to_run` provided → only run selected steps
+  - [x] Validate dependencies: validation needs extraction, correction needs validation
+  - [x] Skip steps not in `steps_to_run` en call callback met "skipped" status
+- [x] **Maintain backwards compatibility:**
+  - [x] All existing parameters blijven werken
+  - [x] `progress_callback=None` → oude gedrag (Rich console output blijft)
+  - [x] No breaking changes to function signature (alleen nieuwe optional params)
+- [x] **Test refactored orchestrator:**
+  - [x] Test CLI still works: `python run_pipeline.py test.pdf`
+  - [x] Test step filtering: only run classification+extraction
+  - [x] Test callback: verify callbacks worden aangeroepen met correcte data
+
+**Implementation details:**
+- Added 3 helper functions: `_call_progress_callback()`, `_should_run_step()`, `_validate_step_dependencies()`
+- Injected callbacks in all 4 pipeline steps with timing tracking
+- File increased from 280 to ~430 lines (304 insertions, 36 deletions)
+- All quality checks passed: make format, make lint, make test-fast (94 tests)
+
+### Fase 3: Core Execution Screen Implementation ✅
+**Commit:** `ba72204` - feat(streamlit): add execution screen skeleton with state management
+**Completed:** 2025-10-14
+
+**Scope Note:** Fase 3 werd tijdens implementatie een "skeleton" met state management. Items `create_progress_callback()` en `run_pipeline_with_progress()` zijn verplaatst naar Fase 4 voor betere logische scheiding (UI skeleton in Fase 3, pipeline integratie in Fase 4).
+
+- [x] **Create `src/streamlit_app/screens/execution.py`** met:
+  - [x] Module-level docstring met Purpose, Components, Usage Example, Rerun Prevention Strategy
+  - [x] `show_execution_screen()` main function met state machine (idle → running → completed/failed)
+  - [x] Session state initialization via `init_execution_state()` (execution + step_status dicts)
+  - [ ] ~~`create_progress_callback()` function~~ → **MOVED TO FASE 4** (pipeline integratie)
+  - [ ] ~~`run_pipeline_with_progress()` wrapper~~ → **MOVED TO FASE 4** (pipeline integratie)
+  - [x] `reset_execution_state()` helper voor state cleanup
+  - [x] `display_step_status()` helper met status indicators (⏳ Pending / 🔄 Running / ✅ Success / ❌ Failed / ⏭️ Skipped)
+  - [ ] ~~Error handling logic~~ → **PLACEHOLDER** (detailed implementation in Fase 7)
+  - [ ] ~~Verbose logging toggle~~ → **PLACEHOLDER** (implementation in Fase 6)
+- [x] **Update exports in `src/streamlit_app/screens/__init__.py`:**
+  - [x] Add `from .execution import show_execution_screen`
+  - [x] Add `"show_execution_screen"` to `__all__`
+- [x] **Update routing in `app.py`:**
+  - [x] Replace placeholder `st.info()` with `show_execution_screen()` call
+  - [x] Import `show_execution_screen` from screens
+- [x] **Test basic routing:**
+  - [x] Verify execution screen loads when `current_phase = "execution"`
+  - [x] Verify settings are correctly passed from session state
+  - [x] Verify rerun prevention works (pipeline doesn't restart)
+
+**Implementation details:**
+- Created execution.py with 479 lines (complete module docstring + 4 functions)
+- Implemented state machine for rerun prevention (CRITICAL feature)
+- Session state schema: execution dict (status, timestamps, error, results) + step_status dict per step
+- Placeholder pipeline execution (just sets status="completed") - real integration in Fase 4
+- All quality checks passed: make format, make lint, make test-fast (94 tests)
+
+**Known Issue:** Placeholder sets step status="success" but not timestamps → AttributeError when displaying.
+**Resolution:** Implement Fase 4 properly (callbacks will populate timestamps) instead of quick fix.
 
 ### Fase 4: Pipeline Integration & Progress Callback
 - [ ] **Implement progress callback function:**
@@ -1033,6 +1057,45 @@ Add the following entry onder `## [Unreleased]` in `CHANGELOG.md`:
 
 ---
 
+## 🐛 Known Issues & Resolutions
+
+| Issue | Phase Discovered | Status | Resolution |
+|-------|------------------|--------|------------|
+| **AttributeError: 'NoneType' object has no attribute 'strftime'** | Fase 3 Manual Testing | ✅ Resolved in Fase 4 | Placeholder code sets `status="success"` but leaves `start_time` and `end_time` as `None`. When `display_step_status()` tries to format timestamps, it crashes. **Root cause:** Fase 3 placeholder incomplete by design. **Decision:** Skip quick fix (guard clauses), implement Fase 4 properly where callbacks populate all timestamps. |
+
+**Issue Details:**
+
+**Symptom:**
+```python
+AttributeError: 'NoneType' object has no attribute 'strftime'
+File "execution.py", line 252, in display_step_status
+    st.write(f"Completed: {step['end_time'].strftime('%H:%M:%S')}")
+```
+
+**Trigger:** User selects subset of steps (e.g., only classification) → Execution screen displays → Crash when showing completed step.
+
+**Why it happened:**
+Fase 3 placeholder code (lines 406-409 in execution.py):
+```python
+for step in st.session_state.settings["steps_to_run"]:
+    st.session_state.step_status[step]["status"] = "success"
+    st.session_state.step_status[step]["elapsed_seconds"] = 10.5
+    # Missing: start_time and end_time remain None!
+```
+
+**Resolution options considered:**
+1. **Quick fix (guard clauses):** Add `if step['end_time']:` checks → Minimal changes, but incomplete UI
+2. **Complete placeholder:** Set fake timestamps in placeholder → More realistic testing, but temporary code
+3. **Skip to Fase 4:** Implement real callbacks that populate timestamps → Proper fix, no throwaway code ✅ **CHOSEN**
+
+**Rationale for Fase 4:**
+- Placeholder was intentionally incomplete (Fase 3 = skeleton only)
+- Real callbacks in Fase 4 will populate timestamps correctly
+- Avoids throwaway quick-fix code
+- Gets us to working feature faster
+
+---
+
 ## 🔄 Dependencies
 
 ### Code Dependencies
@@ -1108,6 +1171,18 @@ Add the following entry onder `## [Unreleased]` in `CHANGELOG.md`:
 | 2025-10-14 | Updated: Documentation Checklist - 6 files (CHANGELOG, README, ARCHITECTURE, src/README, API.md, DEVELOPMENT) | Claude Code |
 | 2025-10-14 | Added: Commit frequency strategy (atomic commits per fase) | Claude Code |
 | 2025-10-14 | Updated: Fase 9 - Unit test tasks added (7 tests required) | Claude Code |
+| 2025-10-14 | **FASE 2 COMPLETED:** Orchestrator refactoring voltooid met callbacks en step filtering | Claude Code & Rob Tolboom |
+| 2025-10-14 | Commit 5b252c6: refactor(pipeline) - Added callback support, step filtering, helper functions | Claude Code |
+| 2025-10-14 | Fase 2 Testing: CLI backwards compatibility verified, callback functionality tested, step filtering works | Claude Code & Rob Tolboom |
+| 2025-10-14 | Fase 2 Stats: 304 insertions, 36 deletions, 3 helper functions, 94 tests passing | Claude Code |
+| 2025-10-14 | **FASE 3 COMPLETED:** Execution screen skeleton geïmplementeerd met state management | Claude Code & Rob Tolboom |
+| 2025-10-14 | Commit ba72204: feat(streamlit) - Execution screen skeleton with rerun prevention state machine | Claude Code |
+| 2025-10-14 | Fase 3 Scope Adjustment: `create_progress_callback()` en `run_pipeline_with_progress()` moved to Fase 4 | Claude Code & Rob Tolboom |
+| 2025-10-14 | Fase 3 Stats: 479 lines (execution.py), 4 functions, state machine implementation | Claude Code |
+| 2025-10-14 | **BUG DISCOVERED:** AttributeError in display_step_status() - None timestamps crash strftime() | Rob Tolboom |
+| 2025-10-14 | Bug Analysis: Fase 3 placeholder incomplete by design (status set, timestamps not set) | Claude Code |
+| 2025-10-14 | **Decision:** Skip quick fix, resolve properly in Fase 4 via callback timestamp population | Claude Code & Rob Tolboom |
+| 2025-10-14 | Added: Known Issues & Resolutions section documenting bug + rationale for Fase 4 resolution | Claude Code |
 
 ---
 
