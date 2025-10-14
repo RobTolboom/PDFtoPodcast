@@ -19,11 +19,12 @@ Implementeer een volledig functionele **Execution Screen** voor de Streamlit web
 
 **Core Functionaliteit:**
 - Nieuwe `src/streamlit_app/screens/execution.py` module
-- Integration met bestaande `src.pipeline.orchestrator.run_four_step_pipeline()`
-- Real-time progress tracking per pipeline stap
+- **Refactor `src.pipeline.orchestrator.py`** voor callback support en step selection
+- Real-time progress tracking per pipeline stap met progress callbacks
 - Intelligent error handling met kritische vs. non-kritische fouten
 - Verbose logging toggle (instelbaar via Settings screen)
 - Navigatie terug naar Settings screen na completion (success of failure)
+- Streamlit rerun prevention met session state flags
 
 **UI Components:**
 - Expandable status containers per pipeline stap (`st.status()`)
@@ -52,6 +53,8 @@ Implementeer een volledig functionele **Execution Screen** voor de Streamlit web
 - **Progress percentage** - Alleen "Running" / "Completed" / "Failed" per stap
 - **Cost estimation** - API kosten tracking niet in deze feature
 - **Retry mechanisme** - Bij error: gebruiker moet handmatig opnieuw proberen via Settings
+- **CLI compatibility fix** - CLI kan tijdelijk breken door orchestrator refactor (fix in separate PR/phase)
+- **Automated testing** - Handmatige testing door gebruiker is voldoende
 
 ---
 
@@ -128,42 +131,216 @@ Implementeer een volledig functionele **Execution Screen** voor de Streamlit web
 - Niet nodig: gebruiker wil niet annuleren
 - Overkill voor MVP
 
-### Pipeline Wrapper Strategie
+### Orchestrator Refactoring Strategy
 
-**Originele orchestrator** (`src/pipeline/orchestrator.py`):
+**⚠️ BELANGRIJKE BESLISSING: Orchestrator wordt gerefactored voor Streamlit support**
+
+**Nieuwe orchestrator signature** (`src/pipeline/orchestrator.py`):
 ```python
 def run_four_step_pipeline(
     pdf_path: Path,
-    max_pages: int | None,
-    llm_provider: str,
-    breakpoint_after_step: str | None,
-    have_llm_support: bool
+    max_pages: int | None = None,
+    llm_provider: str = "openai",
+    breakpoint_after_step: str | None = None,
+    have_llm_support: bool = True,
+    steps_to_run: list[str] | None = None,  # NEW: ["classification", "extraction", ...]
+    progress_callback: Callable[[str, str, dict], None] | None = None,  # NEW: callback(step, status, data)
 ) -> dict[str, Any]:
-    # Returns: {"classification": {...}, "extraction": {...}, ...}
+    """
+    Backwards compatible: Oude parameters blijven werken.
+    Nieuwe parameters: steps_to_run (step filtering), progress_callback (real-time updates)
+
+    Callback signature: callback(step_name, status, data)
+    - step_name: "classification" | "extraction" | "validation" | "correction"
+    - status: "starting" | "running" | "completed" | "failed" | "skipped"
+    - data: dict met step-specific info (results, errors, timing, etc.)
+    """
 ```
+
+**Refactoring aanpak:**
+
+1. **Backwards compatibility:**
+   - Alle bestaande parameters blijven werken
+   - Geen breaking changes voor CLI (initially)
+   - `progress_callback=None` → oude gedrag (Rich console output)
+
+2. **Step selection implementation:**
+   - Replace `breakpoint_after_step` hack met `steps_to_run` list
+   - Validate dependencies: validation needs extraction, correction needs validation
+   - Skip steps niet in `steps_to_run`
+
+3. **Progress callback integration:**
+   - Callback voor elke state change: starting → running → completed/failed
+   - Callback met data payload (results, timing, errors)
+   - Non-blocking: callback should not raise exceptions
+
+4. **CLI impact:**
+   - CLI blijft werken met oude parameters (backwards compatible)
+   - CLI kan tijdelijk verbose output verliezen (console.print → callback)
+   - Fix CLI output in separate PR/phase (out of scope voor deze feature)
 
 **Streamlit wrapper** (nieuwe functie in `execution.py`):
 ```python
 def run_pipeline_with_progress(
     pdf_path: Path,
     settings: dict,
-    verbose: bool
+    progress_callback: Callable
 ) -> dict[str, Any]:
     """
-    Wraps run_four_step_pipeline() met Streamlit progress UI.
+    Calls refactored run_four_step_pipeline() with Streamlit callback.
 
-    Voor elke stap:
-    1. Open st.status() expandable container
-    2. Roep pipeline step functie aan
-    3. Update status (success/failure)
-    4. Log verbose details (indien enabled)
-    5. Handle errors (stop of continue)
+    Callback updates Streamlit UI:
+    - Update st.status() containers
+    - Update session state (step_status, step_results)
+    - Log verbose details (if enabled)
+    - Handle errors (stop or continue)
     """
+    return run_four_step_pipeline(
+        pdf_path=pdf_path,
+        max_pages=settings["max_pages"],
+        llm_provider=settings["llm_provider"],
+        steps_to_run=settings["steps_to_run"],
+        progress_callback=progress_callback,
+        have_llm_support=True
+    )
 ```
 
-**Alternative: Refactor orchestrator**
-- ❌ **Niet gekozen**: te invasive, breekt CLI interface
-- ✅ **Gekozen**: wrapper approach, hergebruik bestaande code
+**Alternative: Separate Streamlit orchestrator**
+- ❌ **Niet gekozen**: code duplication, maintenance burden
+- ✅ **Gekozen**: Refactor met backwards compatibility, single source of truth
+
+### Streamlit Rerun Prevention Strategy
+
+**🔴 CRITICAL: Streamlit herlaadt script bij elke interactie**
+
+**Probleem:**
+Streamlit reruns het hele script top-to-bottom bij elke user interactie (button click, checkbox toggle, etc.). Als we `run_four_step_pipeline()` direct in de execution screen aanroepen, zal de pipeline **opnieuw starten** bij elke rerun.
+
+**Voorbeeld van VERKEERD gedrag:**
+```python
+# ❌ DIT WERKT NIET - Pipeline restart bij elke rerun
+def show_execution_screen():
+    st.write("Running pipeline...")
+    results = run_four_step_pipeline(...)  # Runs AGAIN on every rerun!
+    st.write("Done!")
+```
+
+**Oplossing: Session State Flags**
+```python
+def show_execution_screen():
+    # Initialize execution state
+    if "pipeline_status" not in st.session_state:
+        st.session_state.pipeline_status = "idle"  # idle | running | completed | failed
+
+    if "pipeline_results" not in st.session_state:
+        st.session_state.pipeline_results = None
+
+    # State machine: Only run pipeline once
+    if st.session_state.pipeline_status == "idle":
+        # Show "Start Pipeline" button (or auto-start)
+        st.session_state.pipeline_status = "running"
+        st.rerun()  # Rerun to show running UI
+
+    elif st.session_state.pipeline_status == "running":
+        # Execute pipeline exactly once
+        try:
+            results = run_four_step_pipeline(...)
+            st.session_state.pipeline_results = results
+            st.session_state.pipeline_status = "completed"
+            st.rerun()  # Rerun to show completed UI
+        except Exception as e:
+            st.session_state.pipeline_error = str(e)
+            st.session_state.pipeline_status = "failed"
+            st.rerun()
+
+    elif st.session_state.pipeline_status == "completed":
+        # Show results and completion UI
+        display_results(st.session_state.pipeline_results)
+
+    elif st.session_state.pipeline_status == "failed":
+        # Show error and retry option
+        st.error(st.session_state.pipeline_error)
+```
+
+**State cleanup:**
+Bij navigatie terug naar Settings of bij retry:
+```python
+# Reset execution state
+st.session_state.pipeline_status = "idle"
+st.session_state.pipeline_results = None
+st.session_state.pipeline_error = None
+```
+
+### Session State Schema
+
+**Complete session state structure voor execution phase:**
+
+```python
+# Execution control (added in execution.py)
+st.session_state.execution = {
+    "status": "idle",  # idle | running | completed | failed
+    "start_time": None,  # datetime when pipeline started
+    "end_time": None,    # datetime when pipeline ended
+    "error": None,       # Error message if failed
+    "results": None,     # Full results dict from run_four_step_pipeline()
+}
+
+# Per-step tracking (updated via progress callback)
+st.session_state.step_status = {
+    "classification": {
+        "status": "pending",  # pending | running | success | failed | skipped
+        "start_time": None,
+        "end_time": None,
+        "result": None,       # Step-specific result data
+        "error": None,        # Error message if failed
+        "elapsed_seconds": None,
+    },
+    "extraction": { ... },
+    "validation": { ... },
+    "correction": { ... },
+}
+
+# Existing settings (from settings screen)
+st.session_state.settings = {
+    "llm_provider": "openai",
+    "max_pages": None,
+    "steps_to_run": ["classification", "extraction", "validation", "correction"],
+    "cleanup_policy": "keep_forever",
+    "breakpoint": None,
+    "verbose_logging": False,
+}
+
+# Existing file info (from upload screen)
+st.session_state.pdf_path = "uploads/20250114_123456_paper.pdf"
+st.session_state.uploaded_file_info = { ... }
+```
+
+**State initialization in `show_execution_screen()`:**
+```python
+def show_execution_screen():
+    # Initialize execution state on first load
+    if "execution" not in st.session_state:
+        st.session_state.execution = {
+            "status": "idle",
+            "start_time": None,
+            "end_time": None,
+            "error": None,
+            "results": None,
+        }
+
+    if "step_status" not in st.session_state:
+        st.session_state.step_status = {
+            step: {
+                "status": "pending",
+                "start_time": None,
+                "end_time": None,
+                "result": None,
+                "error": None,
+                "elapsed_seconds": None,
+            }
+            for step in ["classification", "extraction", "validation", "correction"]
+        }
+```
 
 ---
 
@@ -229,6 +406,158 @@ Show only:
 - High-level result (e.g., "Publication Type: interventional_trial")
 - Elapsed time
 - Error messages (if any)
+
+### Error Recovery & State Reset
+
+**Error scenario handling:**
+
+**Critical errors** (stop pipeline, allow retry):
+1. Classification failure → Pipeline stops
+2. Extraction failure → Pipeline stops
+3. LLM API errors (auth, timeout, rate limit) → Pipeline stops
+
+**State na critical error:**
+```python
+st.session_state.execution["status"] = "failed"
+st.session_state.execution["error"] = "Classification failed: <error message>"
+st.session_state.step_status["classification"]["status"] = "failed"
+st.session_state.step_status["classification"]["error"] = "<error details>"
+```
+
+**User actions after error:**
+- ✅ **"Back to Settings"** → Fixes settings (API key, page limit, etc.) → kan opnieuw proberen
+- ✅ **State cleanup bij navigatie:** Reset `execution` en `step_status` state
+- ✅ **Partial results preserved:** Als classification succesvol was maar extraction faalde, classification result blijft in `tmp/` directory
+
+**State cleanup logic:**
+```python
+def reset_execution_state():
+    """Called when user navigates back to Settings or retries."""
+    st.session_state.execution = {
+        "status": "idle",
+        "start_time": None,
+        "end_time": None,
+        "error": None,
+        "results": None,
+    }
+    st.session_state.step_status = {
+        step: {
+            "status": "pending",
+            "start_time": None,
+            "end_time": None,
+            "result": None,
+            "error": None,
+            "elapsed_seconds": None,
+        }
+        for step in ["classification", "extraction", "validation", "correction"]
+    }
+```
+
+**Retry from failed step (future enhancement, out of scope):**
+- Not implemented in MVP
+- User moet volledige pipeline opnieuw draaien
+- Kan reuse bestaande results uit `tmp/` directory (handmatig via Settings screen)
+
+### File Output Behavior
+
+**Output file management strategy:**
+
+**Current behavior (PipelineFileManager):**
+```python
+# Files saved with filename-based naming:
+tmp/{pdf_stem}-classification.json
+tmp/{pdf_stem}-extraction.json
+tmp/{pdf_stem}-validation.json
+tmp/{pdf_stem}-extraction-corrected.json  # If correction runs
+tmp/{pdf_stem}-validation-corrected.json
+```
+
+**Overwrite policy:**
+- ✅ **Elke run overschrijft bestaande files** (no versioning)
+- ✅ **Rationale:** Simplicity, user can view old results in Settings screen before re-running
+- ✅ **User responsibility:** Check bestaande results via Settings screen → view/delete before re-running
+
+**Edge cases:**
+1. **User re-runs same PDF met andere settings:**
+   - Old files worden overschreven
+   - No warning (user moet zelf checken)
+   - Alternative: Timestamped versions (out of scope)
+
+2. **User re-runs same PDF met subset van steps:**
+   - Voorbeeld: First run = all 4 steps, second run = only classification+extraction
+   - Old validation.json blijft bestaan (niet overschreven want niet uitgevoerd)
+   - Settings screen toont oude validation result (kan verwarrend zijn)
+   - **Mitigatie:** Settings screen toont timestamp, user kan delete
+
+3. **Multiple PDFs met zelfde filename:**
+   - Verschillende uploads → zelfde stem → overwrite
+   - Duplicate detection in Upload screen voorkomt dit meestal
+   - Edge case: User re-uploads after manual delete
+
+**Future enhancement (out of scope):**
+- Timestamped versions: `tmp/{pdf_stem}-{timestamp}-classification.json`
+- Run history tracking in manifest
+- Compare results tussen runs
+
+### Verbose Logging Implementation Details
+
+**Logging architecture:**
+
+**Current orchestrator** (`src/pipeline/orchestrator.py`):
+```python
+from rich.console import Console
+console = Console()
+
+# Current logging (Rich console output):
+console.print("[bold cyan]📋 Stap 1: Classificatie[/bold cyan]")
+console.print(f"[green]✅ Classificatie opgeslagen: {file}[/green]")
+```
+
+**Problem:**
+- Rich `console.print()` gaat naar stdout (niet captured door Streamlit)
+- Streamlit kan stdout niet real-time tonen tijdens blocking calls
+- Token usage niet direct beschikbaar (alleen in results dict)
+
+**Solution approach:**
+
+**Optie 1: Ignore orchestrator logs (gekozen voor MVP)**
+- ✅ Orchestrator blijft `console.print()` gebruiken (stdout)
+- ✅ Streamlit wrapper logt eigen informatie via `st.write()` en callbacks
+- ✅ Verbose info komt uit:
+  - Callback data payloads (timing, step names)
+  - Results dict (final outputs, saved file paths)
+  - Estimated info (schema tokens from compatibility check)
+- ❌ Geen real-time LLM API token usage (alleen na completion)
+
+**Optie 2: Dual logging (future enhancement)**
+- Refactor orchestrator: Replace `console.print()` met `logging` module
+- Log to both stdout (CLI) en Streamlit (via callback)
+- Capture token usage real-time tijdens API calls
+
+**MVP implementation:**
+
+Verbose details available via callback:
+```python
+def progress_callback(step_name, status, data):
+    if status == "starting":
+        # data = {"schema_name": "interventional_trial", "estimated_tokens": 8500}
+        if verbose:
+            st.write(f"• Using schema: {data['schema_name']} (~{data['estimated_tokens']} tokens)")
+
+    elif status == "completed":
+        # data = {"result": {...}, "elapsed_seconds": 12.4, "file_path": "tmp/..."}
+        if verbose:
+            st.write(f"• Completed in {data['elapsed_seconds']:.1f}s")
+            st.write(f"• Saved: {data['file_path']}")
+```
+
+Token usage (post-processing):
+```python
+# Extract from results dict (NOT real-time):
+if verbose and "usage" in step_result:
+    st.write(f"• Input tokens: {step_result['usage']['input']}")
+    st.write(f"• Output tokens: {step_result['usage']['output']}")
+```
 
 ---
 
@@ -296,7 +625,7 @@ Show only:
 
 10. **Performance:**
     - ✅ UI updates blijven responsive tijdens pipeline execution
-    - ✅ Geen significant overhead t.o.v. CLI pipeline (< 1 seconde extra)
+    - ✅ Minimale overhead t.o.v. CLI pipeline (< 5 seconden extra voor session state + UI rendering)
     - ✅ File I/O gebeurt via bestaande `PipelineFileManager` (geen duplicaat saves)
 
 ---
@@ -310,12 +639,37 @@ Show only:
 - [x] Schrijf feature document met volledige specificatie
 - [x] Maak feature branch: `feature/pipeline-execution-implementation`
 
-### Fase 2: Core Execution Screen Implementation
+### Fase 2: Orchestrator Refactoring
+- [ ] **Refactor `src/pipeline/orchestrator.py`** voor callback support:
+  - [ ] Add `steps_to_run` parameter (list[str] | None) met default None
+  - [ ] Add `progress_callback` parameter (Callable | None) met default None
+  - [ ] Implement callback calls: `callback(step_name, "starting", data)` voor elke stap
+  - [ ] Implement callback calls: `callback(step_name, "completed", data)` na elke stap
+  - [ ] Implement callback calls: `callback(step_name, "failed", data)` bij errors
+  - [ ] Implement callback calls: `callback(step_name, "skipped", data)` voor skipped steps
+- [ ] **Implement step filtering logica:**
+  - [ ] If `steps_to_run` is None → run all steps (backwards compatible)
+  - [ ] If `steps_to_run` provided → only run selected steps
+  - [ ] Validate dependencies: validation needs extraction, correction needs validation
+  - [ ] Skip steps not in `steps_to_run` en call callback met "skipped" status
+- [ ] **Maintain backwards compatibility:**
+  - [ ] All existing parameters blijven werken
+  - [ ] `progress_callback=None` → oude gedrag (Rich console output blijft)
+  - [ ] No breaking changes to function signature (alleen nieuwe optional params)
+- [ ] **Test refactored orchestrator:**
+  - [ ] Test CLI still works: `python run_pipeline.py test.pdf`
+  - [ ] Test step filtering: only run classification+extraction
+  - [ ] Test callback: verify callbacks worden aangeroepen met correcte data
+
+### Fase 3: Core Execution Screen Implementation
 - [ ] **Create `src/streamlit_app/screens/execution.py`** met:
   - [ ] Module-level docstring met Purpose, Components, Usage Example
-  - [ ] `show_execution_screen()` main function
+  - [ ] `show_execution_screen()` main function met rerun prevention logic
+  - [ ] Session state initialization (`execution`, `step_status`)
+  - [ ] `create_progress_callback()` function die Streamlit UI update
   - [ ] `run_pipeline_with_progress()` wrapper function
-  - [ ] Step status tracking helper functions
+  - [ ] `reset_execution_state()` helper voor state cleanup
+  - [ ] Step status display logic (pending/running/success/failed)
   - [ ] Error handling logic (critical vs non-critical)
   - [ ] Verbose logging toggle implementation
 - [ ] **Update exports in `src/streamlit_app/screens/__init__.py`:**
@@ -327,24 +681,31 @@ Show only:
 - [ ] **Test basic routing:**
   - [ ] Verify execution screen loads when `current_phase = "execution"`
   - [ ] Verify settings are correctly passed from session state
+  - [ ] Verify rerun prevention works (pipeline doesn't restart)
 
-### Fase 3: Pipeline Integration
+### Fase 4: Pipeline Integration & Progress Callback
+- [ ] **Implement progress callback function:**
+  - [ ] `create_progress_callback()` returns callback that updates `st.session_state.step_status`
+  - [ ] Callback handles "starting" status → update step start_time
+  - [ ] Callback handles "completed" status → update step result, end_time, status="success"
+  - [ ] Callback handles "failed" status → update step error, status="failed"
+  - [ ] Callback handles "skipped" status → update step status="skipped"
 - [ ] **Implement pipeline wrapper logic:**
   - [ ] Extract settings from `st.session_state.settings`
-  - [ ] Map settings to `run_four_step_pipeline()` parameters
-  - [ ] Call orchestrator with correct arguments
-  - [ ] Capture return value (results dict)
-- [ ] **Implement step-by-step execution:**
-  - [ ] Wrap Classification step with `st.status()` container
-  - [ ] Wrap Extraction step with `st.status()` container
-  - [ ] Wrap Validation step with `st.status()` container
-  - [ ] Wrap Correction step with `st.status()` container (conditional)
-- [ ] **Test step filtering:**
-  - [ ] Verify only selected steps run (`steps_to_run`)
-  - [ ] Verify unselected steps are skipped
-  - [ ] Verify breakpoint handling (if set)
+  - [ ] Create progress callback instance
+  - [ ] Call refactored `run_four_step_pipeline()` met callbacks
+  - [ ] Capture return value (results dict) → store in `st.session_state.execution["results"]`
+- [ ] **Test callback integration:**
+  - [ ] Verify session state updates during pipeline execution
+  - [ ] Verify step_status reflects current state
+  - [ ] Verify UI updates in real-time (via st.rerun in callback if needed)
 
-### Fase 4: Progress Tracking & UI
+### Fase 5: Progress Tracking & UI Components
+- [ ] **Implement st.status() containers per step:**
+  - [ ] Create status container for Classification step
+  - [ ] Create status container for Extraction step
+  - [ ] Create status container for Validation step
+  - [ ] Create status container for Correction step
 - [ ] **Implement status indicators:**
   - [ ] Pending state (⏳) - before execution
   - [ ] Running state (🔄) - during execution
@@ -355,13 +716,13 @@ Show only:
   - [ ] Elapsed time counter for running step
   - [ ] Completion time for finished steps
   - [ ] Total pipeline duration
-- [ ] **Implement result summary:**
+- [ ] **Implement result summary per step:**
   - [ ] Classification: show publication type, DOI
   - [ ] Extraction: show "Completed" + file path
   - [ ] Validation: show overall status, scores
   - [ ] Correction: show "Applied" or "Skipped"
 
-### Fase 5: Verbose Logging Implementation
+### Fase 6: Verbose Logging Implementation
 - [ ] **Create verbose logging helper:**
   - [ ] Function to log API call details (provider, model, tokens)
   - [ ] Function to log file save details (path, size)
@@ -374,7 +735,7 @@ Show only:
   - [ ] Enable in Settings → Execute → Verify detailed logs shown
   - [ ] Disable in Settings → Execute → Verify only high-level progress shown
 
-### Fase 6: Error Handling
+### Fase 7: Error Handling
 - [ ] **Implement critical error handling:**
   - [ ] Classification failure → stop, show error, enable "Back"
   - [ ] Extraction failure → stop, show error, enable "Back"
@@ -392,7 +753,7 @@ Show only:
   - [ ] Network timeout → verify graceful failure
   - [ ] Publication type "overig" → verify pipeline stops correctly
 
-### Fase 7: Navigation & Flow Control
+### Fase 8: Navigation & Flow Control
 - [ ] **Implement navigation buttons:**
   - [ ] "Back to Settings" button (altijd beschikbaar)
   - [ ] Position button logically (bovenaan of onderaan)
@@ -406,7 +767,7 @@ Show only:
   - [ ] Auto-redirect works correctly
   - [ ] Cancel redirect keeps user on Execution screen
 
-### Fase 8: Testing & Validation
+### Fase 9: Testing & Validation (Handmatig door gebruiker)
 - [ ] **Functional testing:**
   - [ ] Test: All 4 steps selected → verify all run
   - [ ] Test: Only classification+extraction → verify validation skipped
@@ -430,7 +791,7 @@ Show only:
   - [ ] Test: Auto-redirect countdown → verify cancel works
   - [ ] Test: Back button during execution → verify safe (no corruption)
 
-### Fase 9: Documentation & Finalization
+### Fase 10: Documentation & Finalization
 - [ ] **Code documentation:**
   - [ ] Complete docstrings for all functions (Args, Returns, Raises, Example)
   - [ ] Module-level docstring met Purpose, Components, Usage
@@ -451,14 +812,14 @@ Show only:
   - [ ] Run `make commit` - Pre-commit checks
   - [ ] Verify commit message follows convention
 
-### Fase 10: Integration & Deployment
+### Fase 11: Integration & Deployment
 - [ ] **Integration testing:**
   - [ ] Test complete flow: Intro → Upload → Settings → Execution → Settings
   - [ ] Test with real PDF documents (small, medium, large)
   - [ ] Test with different publication types
   - [ ] Test error recovery (fix API key → retry)
 - [ ] **Performance validation:**
-  - [ ] Measure execution time vs CLI (should be < 1s overhead)
+  - [ ] Measure execution time vs CLI (should be < 5s overhead)
   - [ ] Verify memory usage (no leaks during long pipelines)
   - [ ] Verify file cleanup (tmp/ directory not growing unnecessarily)
 - [ ] **Final checks:**
@@ -478,7 +839,9 @@ Show only:
 
 | Risico | Impact | Waarschijnlijkheid | Mitigatie |
 |--------|--------|-------------------|-----------|
-| **Pipeline blocking hangt Streamlit UI** | Hoog | Medium | Use `st.status()` met updates in try/finally blocks, keep UI responsive |
+| **Orchestrator refactor breekt CLI** | Hoog | Hoog | Backwards compatible API (optional params), CLI fix in separate PR |
+| **Pipeline blocking hangt Streamlit UI** | Hoog | Medium | Use callbacks for progress updates, st.rerun() for UI refresh |
+| **Streamlit rerun restart pipeline** | Hoog | Hoog | Session state flags prevent re-execution (status="idle/running/completed") |
 | **Error tijdens pipeline corrupteert state** | Medium | Medium | Wrap in try/except, reset state on critical errors, safe file I/O |
 | **Verbose logging te veel output** | Laag | Hoog | Make expandable by default (collapsed), only expand on error |
 | **LLM API timeout tijdens execution** | Medium | Medium | Handle timeout explicitly, show actionable error, don't corrupt tmp/ files |
@@ -486,6 +849,7 @@ Show only:
 | **File permissions error bij write** | Medium | Laag | Check `tmp/` directory writeable on startup, show clear error |
 | **Memory leak bij lange pipelines** | Laag | Laag | Reuse existing orchestrator (no new memory patterns), verify with profiling |
 | **Inconsistent state tussen Settings en Execution** | Medium | Medium | Always read from `st.session_state.settings`, don't cache locally |
+| **Callback exceptions crash pipeline** | Medium | Medium | Wrap callbacks in try/except, log errors but don't propagate |
 
 ---
 
@@ -545,6 +909,18 @@ Show only:
 | 2025-10-14 | Error handling strategie uitgewerkt (critical vs non-critical) | Claude Code & Rob Tolboom |
 | 2025-10-14 | Verbose logging specificatie toegevoegd (toggle via settings) | Claude Code & Rob Tolboom |
 | 2025-10-14 | Results screen verwijderd uit scope (bestaande functionaliteit voldoende) | Claude Code & Rob Tolboom |
+| 2025-10-14 | **MAJOR UPDATE:** Document verbeterd met kritieke implementatie details | Claude Code & Rob Tolboom |
+| 2025-10-14 | Added: Streamlit Rerun Prevention Strategy (CRITICAL) | Claude Code |
+| 2025-10-14 | Added: Session State Schema (complete structure) | Claude Code |
+| 2025-10-14 | Added: Orchestrator Refactoring Strategy (callbacks + step selection) | Claude Code |
+| 2025-10-14 | Added: Error Recovery & State Reset (cleanup logic) | Claude Code |
+| 2025-10-14 | Added: File Output Behavior (overwrite policy) | Claude Code |
+| 2025-10-14 | Added: Verbose Logging Implementation Details (console vs Streamlit) | Claude Code |
+| 2025-10-14 | Updated: Scope - orchestrator refactoring in scope | Claude Code |
+| 2025-10-14 | Updated: Out of Scope - CLI fix separate, automated testing out | Claude Code |
+| 2025-10-14 | Updated: Takenlijst - Fase 2 nu orchestrator refactoring (11 fases totaal) | Claude Code |
+| 2025-10-14 | Updated: Risico's - Added orchestrator breaking CLI, rerun prevention | Claude Code |
+| 2025-10-14 | Updated: Performance - Realistic < 5s overhead (was < 1s) | Claude Code |
 
 ---
 
