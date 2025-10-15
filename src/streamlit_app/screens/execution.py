@@ -63,12 +63,13 @@ Rerun Prevention Strategy:
     is immediately changed to completed/failed after execution, preventing reruns.
 """
 
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
 import streamlit as st
 
-from src.pipeline.orchestrator import run_four_step_pipeline  # noqa: F401 - Used in Fase 4
+from src.pipeline.orchestrator import run_four_step_pipeline
 
 
 def init_execution_state():
@@ -174,6 +175,102 @@ def reset_execution_state():
         }
         for step in ["classification", "extraction", "validation", "correction"]
     }
+
+
+def create_progress_callback() -> Callable[[str, str, dict], None]:
+    """
+    Create progress callback that updates Streamlit session state during pipeline execution.
+
+    Returns a callback function that the orchestrator calls to report pipeline progress.
+    The callback updates `st.session_state.step_status` in real-time, allowing the UI
+    to reflect current execution state.
+
+    Returns:
+        Callback function with signature: callback(step_name, status, data)
+
+    Callback Parameters:
+        step_name (str): Step identifier - "classification", "extraction", "validation", "correction"
+        status (str): Step status - "starting", "completed", "failed", "skipped"
+        data (dict): Status-specific data payload (see below)
+
+    Data Payload by Status:
+        starting:
+            - pdf_path (str): Path to PDF being processed
+            - max_pages (int | None): Page limit configuration
+            - schema_name (str, optional): Schema being used (for extraction)
+
+        completed:
+            - result (dict): Step result data
+            - elapsed_seconds (float): Step execution time
+            - file_path (str): Path to saved output file
+
+        failed:
+            - error (str): Error message
+            - error_type (str): Exception class name
+            - elapsed_seconds (float): Time until failure
+
+        skipped:
+            - (empty dict or reason for skip)
+
+    Callback Behavior:
+        - starting: Sets step status="running", records start_time
+        - completed: Sets step status="success", records end_time, elapsed_seconds, result
+        - failed: Sets step status="failed", records end_time, error message
+        - skipped: Sets step status="skipped"
+
+    Example:
+        >>> callback = create_progress_callback()
+        >>> # Orchestrator calls:
+        >>> callback("classification", "starting", {"pdf_path": "paper.pdf"})
+        >>> # ... LLM API call happens ...
+        >>> callback("classification", "completed", {
+        ...     "result": {"publication_type": "interventional_trial"},
+        ...     "elapsed_seconds": 12.4,
+        ...     "file_path": "tmp/paper-classification.json"
+        ... })
+
+    Note:
+        - Thread-safe via Streamlit session state
+        - Ignores unknown step names (validation check)
+        - Does not raise exceptions (safe for orchestrator)
+        - Updates are immediately reflected in UI on next rerun
+    """
+
+    def callback(step_name: str, status: str, data: dict) -> None:
+        # Validate step_name exists in session state
+        if step_name not in st.session_state.step_status:
+            return  # Silently ignore unknown steps
+
+        step = st.session_state.step_status[step_name]
+
+        if status == "starting":
+            # Step is beginning execution
+            step["status"] = "running"
+            step["start_time"] = datetime.now()
+
+        elif status == "completed":
+            # Step completed successfully
+            step["status"] = "success"
+            step["end_time"] = datetime.now()
+            step["elapsed_seconds"] = data.get("elapsed_seconds")
+            step["result"] = data.get("result")
+            # Store file path for potential UI display
+            if "file_path" in data:
+                step["file_path"] = data["file_path"]
+
+        elif status == "failed":
+            # Step failed with error
+            step["status"] = "failed"
+            step["end_time"] = datetime.now()
+            step["elapsed_seconds"] = data.get("elapsed_seconds")
+            step["error"] = data.get("error", "Unknown error")
+
+        elif status == "skipped":
+            # Step was skipped (not in steps_to_run or not needed)
+            step["status"] = "skipped"
+            # No timestamps for skipped steps
+
+    return callback
 
 
 def display_step_status(step_name: str, step_label: str, step_number: int):
@@ -327,11 +424,10 @@ def show_execution_screen():
         6. On completion: Shows summary, enables "Back to Settings"
 
     Note:
-        - Pipeline integration happens in Fase 4 (callbacks)
-        - Verbose logging implemented in Fase 6
-        - Error handling details in Fase 7
-        - Auto-redirect implemented in Fase 8
-        - This Fase 3 version is a skeleton with placeholders
+        - Pipeline integration via callbacks (Fase 4 - IMPLEMENTED)
+        - Verbose logging placeholders (Fase 6 - TODO)
+        - Advanced error handling (Fase 7 - TODO)
+        - Auto-redirect (Fase 8 - TODO)
     """
     # Initialize state
     init_execution_state()
@@ -380,35 +476,43 @@ def show_execution_screen():
         # EXECUTE PIPELINE EXACTLY ONCE
         st.info("⏳ Pipeline is executing... Please wait.")
 
-        # TODO Fase 4: Integrate run_four_step_pipeline() with callbacks
-        # For now: Just simulate completion
-        # Example (Fase 4):
-        # try:
-        #     callback = create_progress_callback()
-        #     results = run_four_step_pipeline(
-        #         pdf_path=Path(st.session_state.pdf_path),
-        #         max_pages=st.session_state.settings["max_pages"],
-        #         llm_provider=st.session_state.settings["llm_provider"],
-        #         steps_to_run=st.session_state.settings["steps_to_run"],
-        #         progress_callback=callback,
-        #     )
-        #     st.session_state.execution["results"] = results
-        #     st.session_state.execution["status"] = "completed"
-        # except Exception as e:
-        #     st.session_state.execution["error"] = str(e)
-        #     st.session_state.execution["status"] = "failed"
+        try:
+            # Create progress callback for real-time UI updates
+            callback = create_progress_callback()
 
-        # Fase 3: Placeholder - just mark as completed
-        st.session_state.execution["status"] = "completed"
-        st.session_state.execution["end_time"] = datetime.now()
-        st.session_state.execution["results"] = {"placeholder": "Pipeline integration in Fase 4"}
+            # Extract settings
+            settings = st.session_state.settings
+            pdf_path = Path(st.session_state.pdf_path)
 
-        # Mark steps as placeholder success
-        for step in st.session_state.settings["steps_to_run"]:
-            st.session_state.step_status[step]["status"] = "success"
-            st.session_state.step_status[step]["elapsed_seconds"] = 10.5
+            # Call orchestrator with callbacks
+            # Callback will update step_status in real-time during execution
+            results = run_four_step_pipeline(
+                pdf_path=pdf_path,
+                max_pages=settings["max_pages"],
+                llm_provider=settings["llm_provider"],
+                steps_to_run=settings["steps_to_run"],
+                progress_callback=callback,
+                have_llm_support=True,
+            )
 
-        st.rerun()
+            # Store results and mark as completed
+            st.session_state.execution["results"] = results
+            st.session_state.execution["status"] = "completed"
+            st.session_state.execution["end_time"] = datetime.now()
+
+            st.rerun()
+
+        except Exception as e:
+            # Handle pipeline errors gracefully
+            st.session_state.execution["error"] = str(e)
+            st.session_state.execution["status"] = "failed"
+            st.session_state.execution["end_time"] = datetime.now()
+
+            # TODO Fase 6: Store error traceback for verbose logging display
+            # import traceback
+            # error_traceback = traceback.format_exc()
+
+            st.rerun()
 
     elif status == "completed":
         # Display completion UI

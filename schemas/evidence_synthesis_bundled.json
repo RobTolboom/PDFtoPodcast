@@ -2333,6 +2333,26 @@
         }
       }
     },
+    "LanguageCode": {
+      "type": "string",
+      "pattern": "^[a-z]{2,3}(-[A-Z]{2})?(-[a-z]{2,8})*$",
+      "description": "BCP 47 language tag supporting language, region, and variants (e.g., 'en-US', 'zh-Hans-CN', 'ar-EG')",
+      "examples": [
+        "en",
+        "en-US",
+        "en-GB",
+        "nl",
+        "nl-NL",
+        "nl-BE",
+        "de-DE",
+        "fr-FR",
+        "es-ES",
+        "zh-Hans",
+        "zh-Hant",
+        "ar-EG",
+        "he-IL"
+      ]
+    },
     "Registration": {
       "type": "object",
       "additionalProperties": false,
@@ -2465,52 +2485,99 @@
         }
       ]
     },
-    "ExtractionWarning": {
+    "ContrastEffect": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Statistical effect estimate with confidence interval",
+      "required": [
+        "type",
+        "point"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "RR",
+            "IRR",
+            "OR",
+            "HR",
+            "MD",
+            "SMD",
+            "RD",
+            "RMST",
+            "Other"
+          ],
+          "description": "Type of effect measure (RR=Risk Ratio, OR=Odds Ratio, HR=Hazard Ratio, etc.)"
+        },
+        "point": {
+          "type": "number",
+          "description": "Point estimate of the effect"
+        },
+        "ci": {
+          "$ref": "#/$defs/EffectCI"
+        },
+        "credible_interval": {
+          "$ref": "#/$defs/BayesianInterval"
+        },
+        "p_value": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Statistical significance p-value"
+        },
+        "bayes_factor": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Bayesian evidence ratio (BF10 or BF01)"
+        },
+        "posterior_probability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Posterior probability of effect direction"
+        },
+        "favors": {
+          "type": "string",
+          "enum": [
+            "treatment_or_exposure",
+            "control_or_reference",
+            "neutral",
+            "unclear"
+          ],
+          "default": "neutral",
+          "description": "Which group the effect favors based on clinical interpretation"
+        }
+      }
+    },
+    "FigureSummary": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "code",
-        "message"
+        "figure_id",
+        "caption"
       ],
       "properties": {
-        "code": {
-          "type": "string",
-          "enum": [
-            "TABLE_PARSE_FAIL",
-            "AMBIGUOUS_UNIT",
-            "CI_PARSE_FAIL",
-            "MISSING_ARM_ID",
-            "MISSING_GROUP_ID",
-            "OTHER"
-          ]
-        },
-        "message": {
+        "figure_id": {
           "type": "string"
+        },
+        "caption": {
+          "type": "string"
+        },
+        "key_values": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          },
+          "default": {}
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1
         },
         "source": {
           "$ref": "#/$defs/SourceRef"
         }
       }
-    },
-    "LanguageCode": {
-      "type": "string",
-      "pattern": "^[a-z]{2,3}(-[A-Z]{2})?(-[a-z]{2,8})*$",
-      "description": "BCP 47 language tag supporting language, region, and variants (e.g., 'en-US', 'zh-Hans-CN', 'ar-EG')",
-      "examples": [
-        "en",
-        "en-US",
-        "en-GB",
-        "nl",
-        "nl-NL",
-        "nl-BE",
-        "de-DE",
-        "fr-FR",
-        "es-ES",
-        "zh-Hans",
-        "zh-Hant",
-        "ar-EG",
-        "he-IL"
-      ]
     },
     "TruncationInfo": {
       "type": "object",
@@ -2531,58 +2598,50 @@
         }
       }
     },
-    "ParsedTable": {
+    "BayesianInterval": {
       "type": "object",
       "additionalProperties": false,
+      "description": "Bayesian credible interval",
       "required": [
-        "table_id",
-        "title"
+        "lower",
+        "upper",
+        "credibility"
       ],
       "properties": {
-        "table_id": {
-          "type": "string"
+        "lower": {
+          "type": "number",
+          "description": "Lower bound of credible interval"
         },
-        "title": {
-          "type": "string"
+        "upper": {
+          "type": "number",
+          "description": "Upper bound of credible interval"
         },
-        "page": {
-          "type": "integer",
-          "minimum": 1
+        "credibility": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Credibility level (e.g., 0.95 for 95% CrI)"
         },
-        "type": {
-          "type": "string",
-          "enum": [
-            "baseline",
-            "outcomes",
-            "harms",
-            "methods",
-            "other"
-          ]
-        },
-        "rows": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "cells"
-            ],
-            "properties": {
-              "cells": {
-                "type": "array",
-                "minItems": 1,
-                "items": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "default": []
-        },
-        "source": {
-          "$ref": "#/$defs/SourceRef"
+        "hdi": {
+          "type": "boolean",
+          "description": "Whether this is a Highest Density Interval"
         }
       }
+    },
+    "ISO8601Duration": {
+      "$anchor": "duration",
+      "type": "string",
+      "pattern": "^P(?:(?:\\d+Y)?(?:\\d+M)?(?:\\d+W)?(?:\\d+D)?)?(?:T(?:\\d+H)?(?:\\d+M)?(?:\\d+(?:\\.\\d+)?S)?)?$",
+      "description": "Strict ISO 8601 duration (e.g., 'P30D', 'PT24H', 'P2W', 'P1Y2M3DT4H5M6S').",
+      "examples": [
+        "P30D",
+        "PT24H",
+        "P2W",
+        "P6M",
+        "P1Y",
+        "PT2H30M",
+        "P1Y2M3DT4H5M6.789S"
+      ]
     },
     "Metadata": {
       "type": "object",
@@ -2801,170 +2860,86 @@
         }
       ]
     },
-    "ContrastEffect": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Statistical effect estimate with confidence interval",
-      "required": [
-        "type",
-        "point"
-      ],
-      "properties": {
-        "type": {
-          "type": "string",
-          "enum": [
-            "RR",
-            "IRR",
-            "OR",
-            "HR",
-            "MD",
-            "SMD",
-            "RD",
-            "RMST",
-            "Other"
-          ],
-          "description": "Type of effect measure (RR=Risk Ratio, OR=Odds Ratio, HR=Hazard Ratio, etc.)"
-        },
-        "point": {
-          "type": "number",
-          "description": "Point estimate of the effect"
-        },
-        "ci": {
-          "$ref": "#/$defs/EffectCI"
-        },
-        "credible_interval": {
-          "$ref": "#/$defs/BayesianInterval"
-        },
-        "p_value": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Statistical significance p-value"
-        },
-        "bayes_factor": {
-          "type": "number",
-          "minimum": 0,
-          "description": "Bayesian evidence ratio (BF10 or BF01)"
-        },
-        "posterior_probability": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Posterior probability of effect direction"
-        },
-        "favors": {
-          "type": "string",
-          "enum": [
-            "treatment_or_exposure",
-            "control_or_reference",
-            "neutral",
-            "unclear"
-          ],
-          "default": "neutral",
-          "description": "Which group the effect favors based on clinical interpretation"
-        }
-      }
-    },
-    "FigureSummary": {
+    "ParsedTable": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "figure_id",
-        "caption"
+        "table_id",
+        "title"
       ],
       "properties": {
-        "figure_id": {
+        "table_id": {
           "type": "string"
         },
-        "caption": {
+        "title": {
           "type": "string"
-        },
-        "key_values": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "number"
-          },
-          "default": {}
         },
         "page": {
           "type": "integer",
           "minimum": 1
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "baseline",
+            "outcomes",
+            "harms",
+            "methods",
+            "other"
+          ]
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "cells"
+            ],
+            "properties": {
+              "cells": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": []
         },
         "source": {
           "$ref": "#/$defs/SourceRef"
         }
       }
     },
-    "ISO8601Duration": {
-      "$anchor": "duration",
-      "type": "string",
-      "pattern": "^P(?:(?:\\d+Y)?(?:\\d+M)?(?:\\d+W)?(?:\\d+D)?)?(?:T(?:\\d+H)?(?:\\d+M)?(?:\\d+(?:\\.\\d+)?S)?)?$",
-      "description": "Strict ISO 8601 duration (e.g., 'P30D', 'PT24H', 'P2W', 'P1Y2M3DT4H5M6S').",
-      "examples": [
-        "P30D",
-        "PT24H",
-        "P2W",
-        "P6M",
-        "P1Y",
-        "PT2H30M",
-        "P1Y2M3DT4H5M6.789S"
-      ]
-    },
-    "SupplementFile": {
+    "EffectCI": {
       "type": "object",
       "additionalProperties": false,
+      "description": "Confidence interval for effect estimates",
       "required": [
-        "label"
+        "lower",
+        "upper"
       ],
       "properties": {
-        "label": {
-          "type": "string"
+        "level": {
+          "type": "number",
+          "enum": [
+            80,
+            90,
+            95,
+            99
+          ],
+          "default": 95,
+          "description": "Confidence level as percentage"
         },
-        "filename": {
-          "type": "string"
+        "lower": {
+          "type": "number",
+          "description": "Lower bound of confidence interval"
         },
-        "url": {
-          "type": "string",
-          "format": "uri"
-        },
-        "doi": {
-          "type": "string",
-          "pattern": "^10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+$"
-        },
-        "content_type": {
-          "type": "string"
-        },
-        "file_size": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "File size in bytes"
-        },
-        "checksum": {
-          "$ref": "#/$defs/DataIntegrity"
-        }
-      }
-    },
-    "SourceRef": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Reference to a specific location within a document",
-      "properties": {
-        "anchor": {
-          "type": "string",
-          "description": "Free-text pointer like 'Table 2', 'Fig 1', or sentence quote"
-        },
-        "page": {
-          "type": "integer",
-          "minimum": 1,
-          "description": "Page number within the document"
-        },
-        "figure_id": {
-          "type": "string",
-          "description": "Identifier of a specific figure"
-        },
-        "table_id": {
-          "type": "string",
-          "description": "Identifier of a specific table"
+        "upper": {
+          "type": "number",
+          "description": "Upper bound of confidence interval"
         }
       }
     },
@@ -3236,146 +3211,54 @@
         }
       ]
     },
-    "Author": {
+    "SourceRef": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Author information for academic publications",
-      "required": [
-        "last_name"
-      ],
+      "description": "Reference to a specific location within a document",
       "properties": {
-        "last_name": {
+        "anchor": {
           "type": "string",
-          "description": "Author's family name"
+          "description": "Free-text pointer like 'Table 2', 'Fig 1', or sentence quote"
         },
-        "initials": {
-          "type": "string",
-          "description": "Author's first/middle name initials"
-        },
-        "given_names": {
-          "type": "string",
-          "description": "Author's full first and middle names"
-        },
-        "orcid": {
-          "type": "string",
-          "pattern": "^(https://orcid\\.org/)?0000-00(0[2-9]|[1-9]\\d)-\\d{4}-\\d{3}[\\dX]$",
-          "description": "ORCID identifier with checksum validation (optionally with URL prefix)",
-          "examples": [
-            "0000-0002-1825-0097",
-            "https://orcid.org/0000-0002-1825-0097"
-          ]
-        },
-        "affiliations": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [],
-          "description": "Author's institutional affiliations"
-        },
-        "corresponding": {
-          "type": "boolean",
-          "default": false,
-          "description": "Whether this author is the corresponding author"
-        },
-        "email": {
-          "$ref": "#/$defs/EmailAddress",
-          "description": "Contact email address (typically for corresponding authors)"
-        }
-      }
-    },
-    "ParsingContext": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "parser_name",
-        "parsing_timestamp"
-      ],
-      "properties": {
-        "parser_name": {
-          "type": "string",
-          "description": "Name of the parsing tool/library used"
-        },
-        "parser_version": {
-          "type": "string",
-          "description": "Version of the parsing tool"
-        },
-        "parsing_timestamp": {
-          "type": "string",
-          "format": "date-time",
-          "description": "When parsing was performed"
-        },
-        "language_detected": {
-          "$ref": "#/$defs/LanguageCode",
-          "description": "Detected language of the document"
-        },
-        "ocr_engine": {
-          "type": "string",
-          "description": "OCR engine used (if applicable)"
-        },
-        "ocr_quality_score": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Overall OCR quality assessment"
-        },
-        "pdf_producer": {
-          "type": "string",
-          "description": "Software that generated the PDF"
-        },
-        "page_count": {
+        "page": {
           "type": "integer",
           "minimum": 1,
-          "description": "Total pages in document"
+          "description": "Page number within the document"
         },
-        "sections_detected": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [],
-          "description": "Document sections automatically detected"
+        "figure_id": {
+          "type": "string",
+          "description": "Identifier of a specific figure"
         },
-        "parsing_warnings": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [],
-          "description": "Warnings encountered during parsing"
-        },
-        "ai_processing": {
-          "$ref": "#/$defs/AIProcessingMetadata"
+        "table_id": {
+          "type": "string",
+          "description": "Identifier of a specific table"
         }
       }
     },
-    "BayesianInterval": {
+    "ExtractionWarning": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Bayesian credible interval",
       "required": [
-        "lower",
-        "upper",
-        "credibility"
+        "code",
+        "message"
       ],
       "properties": {
-        "lower": {
-          "type": "number",
-          "description": "Lower bound of credible interval"
+        "code": {
+          "type": "string",
+          "enum": [
+            "TABLE_PARSE_FAIL",
+            "AMBIGUOUS_UNIT",
+            "CI_PARSE_FAIL",
+            "MISSING_ARM_ID",
+            "MISSING_GROUP_ID",
+            "OTHER"
+          ]
         },
-        "upper": {
-          "type": "number",
-          "description": "Upper bound of credible interval"
+        "message": {
+          "type": "string"
         },
-        "credibility": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Credibility level (e.g., 0.95 for 95% CrI)"
-        },
-        "hdi": {
-          "type": "boolean",
-          "description": "Whether this is a Highest Density Interval"
+        "source": {
+          "$ref": "#/$defs/SourceRef"
         }
       }
     },
@@ -3437,6 +3320,88 @@
         },
         "source": {
           "$ref": "#/$defs/SourceRef"
+        }
+      }
+    },
+    "SupplementFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label"
+      ],
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "filename": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "doi": {
+          "type": "string",
+          "pattern": "^10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+$"
+        },
+        "content_type": {
+          "type": "string"
+        },
+        "file_size": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "File size in bytes"
+        },
+        "checksum": {
+          "$ref": "#/$defs/DataIntegrity"
+        }
+      }
+    },
+    "Author": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Author information for academic publications",
+      "required": [
+        "last_name"
+      ],
+      "properties": {
+        "last_name": {
+          "type": "string",
+          "description": "Author's family name"
+        },
+        "initials": {
+          "type": "string",
+          "description": "Author's first/middle name initials"
+        },
+        "given_names": {
+          "type": "string",
+          "description": "Author's full first and middle names"
+        },
+        "orcid": {
+          "type": "string",
+          "pattern": "^(https://orcid\\.org/)?0000-00(0[2-9]|[1-9]\\d)-\\d{4}-\\d{3}[\\dX]$",
+          "description": "ORCID identifier with checksum validation (optionally with URL prefix)",
+          "examples": [
+            "0000-0002-1825-0097",
+            "https://orcid.org/0000-0002-1825-0097"
+          ]
+        },
+        "affiliations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Author's institutional affiliations"
+        },
+        "corresponding": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this author is the corresponding author"
+        },
+        "email": {
+          "$ref": "#/$defs/EmailAddress",
+          "description": "Contact email address (typically for corresponding authors)"
         }
       }
     },
@@ -3532,6 +3497,87 @@
           }
         }
       ]
+    },
+    "ParsingContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "parser_name",
+        "parsing_timestamp"
+      ],
+      "properties": {
+        "parser_name": {
+          "type": "string",
+          "description": "Name of the parsing tool/library used"
+        },
+        "parser_version": {
+          "type": "string",
+          "description": "Version of the parsing tool"
+        },
+        "parsing_timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When parsing was performed"
+        },
+        "language_detected": {
+          "$ref": "#/$defs/LanguageCode",
+          "description": "Detected language of the document"
+        },
+        "ocr_engine": {
+          "type": "string",
+          "description": "OCR engine used (if applicable)"
+        },
+        "ocr_quality_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Overall OCR quality assessment"
+        },
+        "pdf_producer": {
+          "type": "string",
+          "description": "Software that generated the PDF"
+        },
+        "page_count": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Total pages in document"
+        },
+        "sections_detected": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Document sections automatically detected"
+        },
+        "parsing_warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Warnings encountered during parsing"
+        },
+        "ai_processing": {
+          "$ref": "#/$defs/AIProcessingMetadata"
+        }
+      }
+    },
+    "Adjudication": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "needed": {
+          "type": "boolean",
+          "default": false
+        },
+        "adjudicator": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
     },
     "AIProcessingMetadata": {
       "type": "object",
@@ -3821,16 +3867,6 @@
         }
       }
     },
-    "EmailAddress": {
-      "type": "string",
-      "format": "email",
-      "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
-      "description": "Valid email address for correspondence",
-      "examples": [
-        "researcher@university.edu",
-        "corresponding.author@hospital.org"
-      ]
-    },
     "DataIntegrity": {
       "type": "object",
       "additionalProperties": false,
@@ -4030,51 +4066,15 @@
         }
       ]
     },
-    "EffectCI": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Confidence interval for effect estimates",
-      "required": [
-        "lower",
-        "upper"
-      ],
-      "properties": {
-        "level": {
-          "type": "number",
-          "enum": [
-            80,
-            90,
-            95,
-            99
-          ],
-          "default": 95,
-          "description": "Confidence level as percentage"
-        },
-        "lower": {
-          "type": "number",
-          "description": "Lower bound of confidence interval"
-        },
-        "upper": {
-          "type": "number",
-          "description": "Upper bound of confidence interval"
-        }
-      }
-    },
-    "Adjudication": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "needed": {
-          "type": "boolean",
-          "default": false
-        },
-        "adjudicator": {
-          "type": "string"
-        },
-        "notes": {
-          "type": "string"
-        }
-      }
+    "EmailAddress": {
+      "type": "string",
+      "format": "email",
+      "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
+      "description": "Valid email address for correspondence",
+      "examples": [
+        "researcher@university.edu",
+        "corresponding.author@hospital.org"
+      ]
     }
   }
 }
