@@ -122,6 +122,7 @@ def init_execution_state():
                 "result": None,
                 "error": None,
                 "elapsed_seconds": None,
+                "verbose_data": {},  # Store callback data for verbose logging
             }
             for step in ["classification", "extraction", "validation", "correction"]
         }
@@ -172,6 +173,7 @@ def reset_execution_state():
             "result": None,
             "error": None,
             "elapsed_seconds": None,
+            "verbose_data": {},
         }
         for step in ["classification", "extraction", "validation", "correction"]
     }
@@ -243,6 +245,9 @@ def create_progress_callback() -> Callable[[str, str, dict], None]:
 
         step = st.session_state.step_status[step_name]
 
+        # Store all callback data for verbose logging
+        step["verbose_data"][status] = data.copy()
+
         if status == "starting":
             # Step is beginning execution
             step["status"] = "running"
@@ -271,6 +276,124 @@ def create_progress_callback() -> Callable[[str, str, dict], None]:
             # No timestamps for skipped steps
 
     return callback
+
+
+def _extract_token_usage(result: dict) -> dict | None:
+    """
+    Extract token usage information from LLM result dictionary.
+
+    Searches for common token usage keys in result dict and returns standardized format.
+
+    Args:
+        result: LLM result dictionary that may contain usage/token information
+
+    Returns:
+        Dict with standardized keys {input, output, total} or None if not found
+
+    Example:
+        >>> result = {"usage": {"input_tokens": 1000, "output_tokens": 250}}
+        >>> _extract_token_usage(result)
+        {'input': 1000, 'output': 250, 'total': 1250}
+    """
+    if not result or not isinstance(result, dict):
+        return None
+
+    # Try different common key patterns
+    usage = result.get("usage") or result.get("token_usage") or result.get("tokens")
+
+    if not usage or not isinstance(usage, dict):
+        return None
+
+    # Extract input/output tokens with various key names
+    input_tokens = (
+        usage.get("input_tokens")
+        or usage.get("prompt_tokens")
+        or usage.get("input")
+        or usage.get("prompt")
+    )
+
+    output_tokens = (
+        usage.get("output_tokens")
+        or usage.get("completion_tokens")
+        or usage.get("output")
+        or usage.get("completion")
+    )
+
+    if input_tokens is None and output_tokens is None:
+        return None
+
+    # Build standardized dict
+    token_info = {}
+    if input_tokens is not None:
+        token_info["input"] = input_tokens
+    if output_tokens is not None:
+        token_info["output"] = output_tokens
+    if input_tokens is not None and output_tokens is not None:
+        token_info["total"] = input_tokens + output_tokens
+
+    return token_info
+
+
+def _display_verbose_info(step_name: str, verbose_data: dict, result: dict | None):
+    """
+    Display verbose logging information for a pipeline step.
+
+    Shows detailed information when verbose logging is enabled, including:
+    - Starting data (PDF path, publication type, etc.)
+    - Completion data (file path, token usage)
+    - Timing details
+
+    Args:
+        step_name: Step identifier ("classification", "extraction", "validation", "correction")
+        verbose_data: Dict of callback data by status {starting: {...}, completed: {...}}
+        result: Step result dictionary (may contain token usage)
+
+    Example:
+        >>> _display_verbose_info("classification", {...}, {...})
+        # Renders verbose details in Streamlit UI
+    """
+    st.markdown("#### 🔍 Verbose Details")
+
+    # Display starting data
+    starting_data = verbose_data.get("starting", {})
+    if starting_data:
+        st.markdown("**Starting parameters:**")
+
+        if step_name == "classification":
+            if "pdf_path" in starting_data:
+                st.write(f"• PDF: `{starting_data['pdf_path']}`")
+            if "max_pages" in starting_data:
+                max_pages = starting_data["max_pages"] or "All"
+                st.write(f"• Max pages: {max_pages}")
+
+        elif step_name == "extraction":
+            if "publication_type" in starting_data:
+                st.write(f"• Publication type: `{starting_data['publication_type']}`")
+
+        elif step_name == "correction":
+            if "validation_status" in starting_data:
+                st.write(f"• Validation status: {starting_data['validation_status']}")
+
+    # Display token usage if available
+    if result:
+        token_usage = _extract_token_usage(result)
+        if token_usage:
+            st.markdown("**Token usage:**")
+            if "input" in token_usage:
+                st.write(f"• Input tokens: {token_usage['input']:,}")
+            if "output" in token_usage:
+                st.write(f"• Output tokens: {token_usage['output']:,}")
+            if "total" in token_usage:
+                st.write(f"• Total tokens: {token_usage['total']:,}")
+
+    # Display completion data
+    completed_data = verbose_data.get("completed", {})
+    if completed_data:
+        # File path is already shown in main display, but can show size here
+        if "file_path" in completed_data:
+            file_path = completed_data["file_path"]
+            # Could add file size here if we read it from disk
+            st.caption(f"💾 Output: `{file_path}`")
 
 
 def _display_classification_result(result: dict):
@@ -442,10 +565,18 @@ def display_step_status(step_name: str, step_label: str, step_number: int):
                 elif step_name == "correction":
                     _display_correction_result(result)
 
-            # Show file path if available (verbose detail)
+            # Show file path if available (non-verbose always shows this)
             file_path = step.get("file_path")
             if file_path:
                 st.caption(f"💾 **Saved:** `{file_path}`")
+
+            # Show verbose logging details if enabled
+            verbose_enabled = st.session_state.settings.get("verbose_logging", False)
+            if verbose_enabled:
+                verbose_data = step.get("verbose_data", {})
+                if verbose_data or result:
+                    st.markdown("---")
+                    _display_verbose_info(step_name, verbose_data, result)
 
     elif status == "failed":
         # Auto-expanded for errors
