@@ -1,6 +1,6 @@
 # Feature: Pipeline Execution Implementation
 
-**Status:** In Development (Fase 4 completed, Manual Testing in progress)
+**Status:** In Development (Fase 6 completed, Manual Testing pending, Ready for Fase 7)
 **Aangemaakt:** 2025-10-14
 **Eigenaar:** Rob Tolboom
 **Branch:** feature/pipeline-execution-implementation
@@ -824,40 +824,68 @@ if verbose and "usage" in step_result:
 
 **Manual Testing:** User performing testing with real PDF and LLM API calls (in progress)
 
-### Fase 5: Progress Tracking & UI Components
-- [ ] **Implement st.status() containers per step:**
-  - [ ] Create status container for Classification step
-  - [ ] Create status container for Extraction step
-  - [ ] Create status container for Validation step
-  - [ ] Create status container for Correction step
-- [ ] **Implement status indicators:**
-  - [ ] Pending state (⏳) - before execution
-  - [ ] Running state (🔄) - during execution
-  - [ ] Success state (✅) - after successful completion
-  - [ ] Warning state (⚠️) - completed with warnings
-  - [ ] Failed state (❌) - critical error
-- [ ] **Implement timing display:**
-  - [ ] Elapsed time counter for running step
-  - [ ] Completion time for finished steps
-  - [ ] Total pipeline duration
-- [ ] **Implement result summary per step:**
-  - [ ] Classification: show publication type, DOI
-  - [ ] Extraction: show "Completed" + file path
-  - [ ] Validation: show overall status, scores
-  - [ ] Correction: show "Applied" or "Skipped"
+### Fase 5: Progress Tracking & UI Components ✅
+**Commit:** `774417a` - feat(streamlit): add status indicators and timing display
+**Completed:** 2025-10-15
 
-### Fase 6: Verbose Logging Implementation
-- [ ] **Create verbose logging helper:**
-  - [ ] Function to log API call details (provider, model, tokens)
-  - [ ] Function to log file save details (path, size)
-  - [ ] Function to log timing details (start, end, duration)
-- [ ] **Integrate verbose logging:**
-  - [ ] Check `st.session_state.settings["verbose_logging"]`
-  - [ ] Show verbose details in expandable sections (when enabled)
-  - [ ] Hide verbose details when disabled (clean UI)
-- [ ] **Test verbose toggle:**
+- [x] **Implement st.status() containers per step:**
+  - [x] Create status container for Classification step
+  - [x] Create status container for Extraction step
+  - [x] Create status container for Validation step
+  - [x] Create status container for Correction step
+- [x] **Implement status indicators:**
+  - [x] Pending state (⏳) - before execution
+  - [x] Running state (🔄) - during execution
+  - [x] Success state (✅) - after successful completion
+  - [x] Warning state (⚠️) - completed with warnings (defined, not yet used)
+  - [x] Failed state (❌) - critical error
+- [x] **Implement timing display:**
+  - [x] Elapsed time counter for running step
+  - [x] Completion time for finished steps
+  - [x] Total pipeline duration
+- [x] **Implement result summary per step:**
+  - [x] Classification: show publication type, DOI
+  - [x] Extraction: show field count + title excerpt
+  - [x] Validation: show overall status, error count, quality scores
+  - [x] Correction: show "Applied" or "Skipped" + number of changes
+
+**Implementation details:**
+- Created 4 helper functions: `_display_classification_result()`, `_display_extraction_result()`, `_display_validation_result()`, `_display_correction_result()`
+- Refactored `display_step_status()` with rich st.status() containers
+- Auto-expand for running/failed steps, collapsed for success
+- Step-specific result summaries with icons and formatted output
+- File path display in success containers
+- 108 insertions, 9 deletions
+- All quality checks passed: format ✅, lint ✅, test-fast ✅ (94 tests passed)
+
+### Fase 6: Verbose Logging Implementation ✅
+**Commit:** `0da08ca` - feat(streamlit): implement verbose logging toggle
+**Completed:** 2025-10-15
+
+- [x] **Create verbose logging helper:**
+  - [x] Function to log API call details (tokens via `_extract_token_usage()`)
+  - [x] Function to log file save details (`_display_verbose_info()` shows paths)
+  - [x] Function to log timing details (timing already in main display, verbose shows starting params)
+- [x] **Integrate verbose logging:**
+  - [x] Check `st.session_state.settings["verbose_logging"]`
+  - [x] Show verbose details in expandable sections (when enabled)
+  - [x] Hide verbose details when disabled (clean UI)
+- [ ] **Test verbose toggle:** (MANUAL TESTING PENDING)
   - [ ] Enable in Settings → Execute → Verify detailed logs shown
   - [ ] Disable in Settings → Execute → Verify only high-level progress shown
+
+**Implementation details:**
+- Enhanced `create_progress_callback()` to store verbose_data in session state
+- Added `verbose_data` field to step_status schema
+- Created 2 helper functions:
+  - `_extract_token_usage()`: Extract and standardize token usage from result dicts (supports OpenAI & Claude formats)
+  - `_display_verbose_info()`: Display verbose details (starting params, token usage, file paths)
+- Integrated conditional verbose display in `display_step_status()` success branch
+- Verbose content: PDF path, max pages, publication type, validation status, token usage (input/output/total)
+- 132 insertions, 1 deletion
+- All quality checks passed: format ✅, lint ✅, test-fast ✅ (94 tests passed)
+
+**Note:** Manual testing by user required to verify verbose toggle functionality in live Streamlit UI
 
 ### Fase 7: Error Handling
 - [ ] **Implement critical error handling:**
@@ -1377,6 +1405,21 @@ if name in defs:
 | 2025-10-14 | Fase 4 Quality Checks: format ✅, lint ✅, test-fast ✅ (94 tests passed, 5 deselected) | Claude Code |
 | 2025-10-14 | Fase 4 Manual Testing: User testing with real PDF and LLM API calls (in progress) | Rob Tolboom |
 | 2025-10-14 | Updated: Known Issues section with Fase 4 resolution implementation details | Claude Code |
+| 2025-10-15 | **FASE 5 COMPLETED:** Progress Tracking & UI Components geïmplementeerd | Claude Code & Rob Tolboom |
+| 2025-10-15 | Commit 774417a: feat(streamlit) - Status indicators and timing display | Claude Code |
+| 2025-10-15 | Fase 5 Implementation: Rich st.status() containers met result summaries per step | Claude Code |
+| 2025-10-15 | Fase 5: Added 4 helper functions (_display_*_result) for step-specific summaries | Claude Code |
+| 2025-10-15 | Fase 5: Enhanced display_step_status() with expandable containers and timing | Claude Code |
+| 2025-10-15 | Fase 5 Stats: 108 insertions, 9 deletions, 4 new helper functions | Claude Code |
+| 2025-10-15 | Fase 5 Quality Checks: format ✅, lint ✅, test-fast ✅ (94 tests passed) | Claude Code |
+| 2025-10-15 | **FASE 6 COMPLETED:** Verbose Logging Implementation geïmplementeerd | Claude Code & Rob Tolboom |
+| 2025-10-15 | Commit 0da08ca: feat(streamlit) - Verbose logging toggle | Claude Code |
+| 2025-10-15 | Fase 6 Implementation: Enhanced callback to store verbose_data in session state | Claude Code |
+| 2025-10-15 | Fase 6: Added 2 helper functions (_extract_token_usage, _display_verbose_info) | Claude Code |
+| 2025-10-15 | Fase 6: Conditional verbose display based on settings["verbose_logging"] | Claude Code |
+| 2025-10-15 | Fase 6 Stats: 132 insertions, 1 deletion, token usage extraction supports OpenAI & Claude formats | Claude Code |
+| 2025-10-15 | Fase 6 Quality Checks: format ✅, lint ✅, test-fast ✅ (94 tests passed) | Claude Code |
+| 2025-10-15 | Fase 6 Manual Testing: PENDING - user must test verbose toggle functionality | Rob Tolboom |
 
 ---
 
