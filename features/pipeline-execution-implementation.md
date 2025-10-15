@@ -1091,6 +1091,7 @@ Add the following entry onder `## [Unreleased]` in `CHANGELOG.md`:
 | Issue | Phase Discovered | Status | Resolution |
 |-------|------------------|--------|------------|
 | **AttributeError: 'NoneType' object has no attribute 'strftime'** | Fase 3 Manual Testing | ✅ RESOLVED (Fase 4) | Implemented `create_progress_callback()` that populates all timestamps via orchestrator callbacks. Callbacks set start_time, end_time, and elapsed_seconds correctly during pipeline execution. Bug no longer occurs - verified in quality checks and ready for manual testing. |
+| **Maximum recursion depth exceeded during validation** | Fase 4 Manual Testing | ✅ RESOLVED (Bugfix) | Fixed schema bundler that was creating self-referencing definitions. `ContrastEffect` alias in source schemas was converted to self-reference after bundling. Bundler now replaces aliases with actual definitions from common schema before rewriting references. Validated with circular reference detection. |
 
 **Issue Details:**
 
@@ -1168,6 +1169,114 @@ The bug was resolved by implementing proper callback integration in Fase 4:
 - ✅ Bug eliminated at source, not with guard clauses
 - ✅ Verified in quality checks (make format, make lint, make test-fast)
 - ✅ Ready for manual testing with real PDF and LLM API calls
+
+---
+
+### Bug 2: Maximum Recursion Depth in Validation
+
+**Issue Details:**
+
+**Symptom:**
+```
+RecursionError: maximum recursion depth exceeded
+Pipeline execution failed
+```
+
+**Trigger:** Validation step crashes after classification and extraction complete successfully. Occurs with both observational_analytic and interventional_trial publication types.
+
+**Console Output:**
+```
+✅ Stap 1: Classificatie - Successful
+✅ Stap 2: Extractie - Successful
+🔍 Stap 3: Validatie (Schema + LLM)
+   Schema validation...
+[CRASH - no further output]
+```
+
+**Root Cause Analysis:**
+
+The bug was in the schema bundler (`schemas/json-bundler.py`), not in the validation code itself:
+
+1. **Source schemas** (observational_analytic.schema.json, interventional_trial.schema.json) contain local alias definitions:
+   ```json
+   "$defs": {
+     "ContrastEffect": {
+       "$ref": "common.schema.json#/$defs/ContrastEffect"
+     }
+   }
+   ```
+
+2. **Bundler process** was designed to:
+   - Find all refs to common schema ✅
+   - Copy common definitions to local `$defs` ✅
+   - Rewrite refs from external to local ✅
+   - **But:** Didn't check if local alias already existed ❌
+
+3. **After bundling**, the alias became:
+   ```json
+   "$defs": {
+     "ContrastEffect": {
+       "$ref": "#/$defs/ContrastEffect"  // Self-reference!
+     }
+   }
+   ```
+
+4. **During validation**, jsonschema's `Draft202012Validator.iter_errors()` tried to resolve the self-reference → infinite recursion.
+
+**Investigation Process:**
+1. Verified bundled schemas are used (not source schemas) via `schemas_loader.py`
+2. Found 69 internal `$ref` patterns in bundled schemas
+3. Detected circular reference: `ContrastEffect -> ContrastEffect`
+4. Traced to bundler rewriting local aliases without replacing them
+
+**Resolution Implementation:**
+
+Fixed `schemas/json-bundler.py` (lines 207-243):
+
+```python
+# Before processing, check if definition exists locally as alias
+if name in defs:
+    local_def = defs[name]
+    # If it's a simple alias to common schema
+    if (isinstance(local_def, dict) and
+        len(local_def) == 1 and
+        "$ref" in local_def):
+        ref_value = local_def["$ref"]
+        m = common_ref_rx.match(ref_value)
+        if m and m.group(1) == name:
+            # Replace alias with actual definition from common
+            definition = deepcopy(common_schema["$defs"][name])
+            defs[name] = definition  # ✅ Real definition replaces alias
+```
+
+**Verification:**
+```python
+# Before fix:
+"ContrastEffect": {"$ref": "#/$defs/ContrastEffect"}  // ❌ Self-ref
+
+# After fix:
+"ContrastEffect": {
+  "type": "object",
+  "properties": { ... },   // ✅ Full definition
+  "required": ["type", "point"]
+}
+```
+
+**Testing:**
+- ✅ Circular reference detection: No self-references found
+- ✅ Both schemas fixed: observational_analytic_bundled.json, interventional_trial_bundled.json
+- ✅ 94 unit tests passed
+- ✅ Ready for manual validation testing
+
+**Files Changed:**
+- `schemas/json-bundler.py` - Added alias detection and replacement logic
+- `schemas/observational_analytic_bundled.json` - Regenerated without self-refs
+- `schemas/interventional_trial_bundled.json` - Regenerated without self-refs
+- `schemas/evidence_synthesis_bundled.json` - Regenerated (precautionary)
+- `schemas/prediction_prognosis_bundled.json` - Regenerated (precautionary)
+- `schemas/editorials_opinion_bundled.json` - Regenerated (precautionary)
+
+**Branch:** `bugfix/schema-bundler-self-reference`
 
 ---
 

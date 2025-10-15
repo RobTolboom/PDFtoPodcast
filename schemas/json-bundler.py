@@ -201,8 +201,31 @@ def bundle_schema(
         # Get a definition that hasn't been processed yet
         name = needed.pop()
 
-        if name in processed or name in defs:
-            continue  # Skip if already processed or exists locally
+        if name in processed:
+            continue  # Skip if already processed
+
+        # Check if this exists locally as an alias (just a $ref to common)
+        if name in defs:
+            local_def = defs[name]
+            # If it's a simple alias to common schema, replace it with the actual definition
+            if isinstance(local_def, dict) and len(local_def) == 1 and "$ref" in local_def:
+                ref_value = local_def["$ref"]
+                # Check if it references common schema
+                m = common_ref_rx.match(ref_value)
+                if m and m.group(1) == name:
+                    # This is an alias to itself in common - replace with actual definition
+                    if name not in common_schema.get("$defs", {}):
+                        raise KeyError(f"Definition '{name}' not found in common schema")
+                    definition = deepcopy(common_schema["$defs"][name])
+                    defs[name] = definition  # Replace alias with actual definition
+                else:
+                    # It's a ref to something else - keep it and continue
+                    processed.add(name)
+                    continue
+            else:
+                # It's a full definition locally - keep it and continue
+                processed.add(name)
+                continue
 
         if name not in common_schema.get("$defs", {}):
             raise KeyError(f"Definition '{name}' not found in common schema")

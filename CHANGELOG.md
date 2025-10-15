@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed schema bundler creating self-referencing definitions causing validation recursion errors
+  - `schemas/json-bundler.py` - Replace local alias definitions with actual definitions from common schema
+  - Prevents `ContrastEffect` and similar aliases from becoming `{"$ref": "#/$defs/ContrastEffect"}` self-references
+  - Resolves "maximum recursion depth exceeded" error during validation step
+  - Affects `observational_analytic_bundled.json` and `interventional_trial_bundled.json`
+
 ### Added
 - Professional development documentation structure
   - ARCHITECTURE.md - Complete system architecture documentation
