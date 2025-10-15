@@ -1,6 +1,6 @@
 # Feature: Pipeline Execution Implementation
 
-**Status:** In Development (Fase 6 completed, Manual Testing pending, Ready for Fase 7)
+**Status:** In Development (Fase 7 completed, Manual Testing pending, Ready for Fase 8)
 **Aangemaakt:** 2025-10-14
 **Eigenaar:** Rob Tolboom
 **Branch:** feature/pipeline-execution-implementation
@@ -887,23 +887,52 @@ if verbose and "usage" in step_result:
 
 **Note:** Manual testing by user required to verify verbose toggle functionality in live Streamlit UI
 
-### Fase 7: Error Handling
-- [ ] **Implement critical error handling:**
-  - [ ] Classification failure → stop, show error, enable "Back"
-  - [ ] Extraction failure → stop, show error, enable "Back"
-  - [ ] LLM API errors → stop, show actionable message
-- [ ] **Implement non-critical error handling:**
-  - [ ] Validation warnings → log, continue
-  - [ ] Schema compatibility warnings → log, continue
-- [ ] **Implement error display:**
-  - [ ] Red alert box for critical errors
-  - [ ] Yellow warning box for non-critical warnings
-  - [ ] Error details in expandable section
-  - [ ] Actionable guidance (e.g., "Check .env file")
-- [ ] **Test error scenarios:**
+### Fase 7: Error Handling ✅
+**Commit:** `d051cd0` - feat(streamlit): implement intelligent error handling
+**Completed:** 2025-10-15
+
+- [x] **Implement critical error handling:**
+  - [x] Classification failure → stop, show error, enable "Back"
+  - [x] Extraction failure → stop, show error, enable "Back"
+  - [x] LLM API errors → stop, show actionable message
+- [x] **Implement non-critical error handling:**
+  - [x] Validation warnings → log, continue (yellow warning boxes)
+  - [x] Schema compatibility warnings → log, continue (implemented via validation warnings)
+- [x] **Implement error display:**
+  - [x] Red alert box for critical errors
+  - [x] Yellow warning box for non-critical warnings
+  - [x] Error details in expandable section
+  - [x] Actionable guidance (5 error types with specific guidance)
+- [ ] **Test error scenarios:** (MANUAL TESTING REQUIRED)
   - [ ] Invalid API key → verify error caught and displayed
   - [ ] Network timeout → verify graceful failure
   - [ ] Publication type "overig" → verify pipeline stops correctly
+
+**Implementation details:**
+- Created ERROR_MESSAGES dict with 5 error types:
+  - api_key: API authentication errors → Check .env file guidance
+  - network: Connection errors → Internet/firewall troubleshooting
+  - rate_limit: API quota errors → Wait and retry guidance
+  - publication_type: Unsupported type errors → Research paper requirement
+  - generic: Unexpected errors → General troubleshooting
+- Added 4 helper functions:
+  - `_classify_error_type()`: Keyword-based error classification (50 lines)
+  - `_get_error_guidance()`: Map error type to user-friendly guidance (18 lines)
+  - `_display_error_with_guidance()`: Display with numbered action steps + expandable technical details (39 lines)
+  - `_check_validation_warnings()`: Detect non-critical validation warnings (30 lines)
+- Enhanced `display_step_status()` failed branch with actionable guidance
+- Enhanced `show_execution_screen()` failed state with step-level error detection
+- Added validation warning display in `_display_validation_result()`
+- 226 insertions, 7 deletions
+- All quality checks passed: format ✅, lint ✅, test-fast ✅ (94 tests passed)
+
+**Error display features:**
+- Error title (e.g., "API Key Error")
+- User-friendly message explaining the issue
+- Numbered troubleshooting action steps (1-4 steps per error type)
+- Expandable "Technical Details" section with raw error message
+- Exception type display if available from callback data
+- Step-level error detection (finds which step failed)
 
 ### Fase 8: Navigation & Flow Control
 - [ ] **Implement navigation buttons:**
@@ -1420,6 +1449,16 @@ if name in defs:
 | 2025-10-15 | Fase 6 Stats: 132 insertions, 1 deletion, token usage extraction supports OpenAI & Claude formats | Claude Code |
 | 2025-10-15 | Fase 6 Quality Checks: format ✅, lint ✅, test-fast ✅ (94 tests passed) | Claude Code |
 | 2025-10-15 | Fase 6 Manual Testing: PENDING - user must test verbose toggle functionality | Rob Tolboom |
+| 2025-10-15 | **FASE 7 COMPLETED:** Error Handling geïmplementeerd | Claude Code & Rob Tolboom |
+| 2025-10-15 | Commit d051cd0: feat(streamlit) - Intelligent error handling | Claude Code |
+| 2025-10-15 | Fase 7 Implementation: Error classification system met 5 error types | Claude Code |
+| 2025-10-15 | Fase 7: ERROR_MESSAGES dict met structured guidance (title, message, actions) | Claude Code |
+| 2025-10-15 | Fase 7: Added 4 helper functions (_classify_error_type, _get_error_guidance, _display_error_with_guidance, _check_validation_warnings) | Claude Code |
+| 2025-10-15 | Fase 7: Enhanced step-level and pipeline-level error display with actionable guidance | Claude Code |
+| 2025-10-15 | Fase 7: Validation warning detection (quality score < 8, minor schema issues) | Claude Code |
+| 2025-10-15 | Fase 7 Stats: 226 insertions, 7 deletions, 5 error types (api_key, network, rate_limit, publication_type, generic) | Claude Code |
+| 2025-10-15 | Fase 7 Quality Checks: format ✅, lint ✅, test-fast ✅ (94 tests passed) | Claude Code |
+| 2025-10-15 | Fase 7 Manual Testing: PENDING - user must test error scenarios (API key, network, publication type) | Rob Tolboom |
 
 ---
 
