@@ -273,6 +273,78 @@ def create_progress_callback() -> Callable[[str, str, dict], None]:
     return callback
 
 
+def _display_classification_result(result: dict):
+    """Display classification step result summary."""
+    if not result:
+        return
+
+    pub_type = result.get("publication_type", "Unknown")
+    st.write(f"📚 **Publication Type:** `{pub_type}`")
+
+    # Show DOI if available
+    metadata = result.get("metadata", {})
+    if isinstance(metadata, dict) and "doi" in metadata:
+        doi = metadata["doi"]
+        st.write(f"🔗 **DOI:** `{doi}`")
+
+
+def _display_extraction_result(result: dict):
+    """Display extraction step result summary."""
+    if not result:
+        return
+
+    # Count extracted fields (rough estimate)
+    field_count = len(result) if isinstance(result, dict) else 0
+    if field_count > 0:
+        st.write(f"📊 **Extracted fields:** {field_count}")
+
+    # Show title if available
+    if isinstance(result, dict):
+        title = result.get("title") or result.get("metadata", {}).get("title")
+        if title:
+            st.write(f"📄 **Title:** {title[:80]}{'...' if len(title) > 80 else ''}")
+
+
+def _display_validation_result(result: dict):
+    """Display validation step result summary."""
+    if not result:
+        return
+
+    # Show overall validation status
+    is_valid = result.get("is_valid", False)
+    status_text = "✅ Valid" if is_valid else "⚠️ Issues found"
+    st.write(f"**Validation:** {status_text}")
+
+    # Show error count if available
+    errors = result.get("errors", [])
+    if errors:
+        error_count = len(errors)
+        st.write(f"🔍 **Issues:** {error_count} schema validation error(s)")
+
+    # Show quality score if available (from LLM validation)
+    quality_score = result.get("quality_score")
+    if quality_score is not None:
+        st.write(f"⭐ **Quality Score:** {quality_score}/10")
+
+
+def _display_correction_result(result: dict):
+    """Display correction step result summary."""
+    if not result:
+        return
+
+    # Check if correction was applied or skipped
+    correction_applied = result.get("correction_applied", False)
+    if correction_applied:
+        st.write("🔧 **Correction:** Applied")
+
+        # Show number of corrections if available
+        corrections = result.get("corrections", [])
+        if corrections:
+            st.write(f"📝 **Changes:** {len(corrections)} corrections made")
+    else:
+        st.write("✨ **Correction:** Not needed (validation passed)")
+
+
 def display_step_status(step_name: str, step_label: str, step_number: int):
     """
     Display status UI for a single pipeline step.
@@ -281,7 +353,8 @@ def display_step_status(step_name: str, step_label: str, step_number: int):
     - Status icon (⏳ Pending / 🔄 Running / ✅ Success / ❌ Failed / ⏭️ Skipped)
     - Elapsed time (for running/completed steps)
     - Error message (for failed steps)
-    - Expandable details section (collapsed by default)
+    - Result summary (for successful steps)
+    - Expandable details section (collapsed by default for success)
 
     Args:
         step_name: Step identifier ("classification", "extraction", "validation", "correction")
@@ -300,9 +373,16 @@ def display_step_status(step_name: str, step_label: str, step_number: int):
         - running/failed: Auto-expanded to show progress/error
         - success: Collapsed by default, user can expand for details
 
+    Result Summaries by Step:
+        - classification: Publication type, DOI
+        - extraction: Field count, title excerpt
+        - validation: Valid/invalid status, error count, quality score
+        - correction: Applied/skipped status, number of changes
+
     Example:
         >>> display_step_status("classification", "Classification", 1)
         # Renders: "Step 1: Classification  ✅ Completed in 8.3s"
+        # Expandable content shows: Publication Type, DOI
 
     Note:
         Reads step status from st.session_state.step_status[step_name].
@@ -340,24 +420,43 @@ def display_step_status(step_name: str, step_label: str, step_number: int):
     elif status == "running":
         # Auto-expanded for running
         with st.status(f"{icon} {label} - Running{elapsed_text}", expanded=True):
-            st.write(f"Started: {step['start_time'].strftime('%H:%M:%S')}")
-            st.write("Executing pipeline step...")
+            st.write(f"⏰ **Started:** {step['start_time'].strftime('%H:%M:%S')}")
+            st.write("⚙️ Executing pipeline step...")
 
     elif status == "success":
-        # Collapsed by default for success
+        # Collapsed by default for success, with result summary
         with st.status(f"{icon} {label} - Completed{elapsed_text}", expanded=False):
-            st.write(f"Completed: {step['end_time'].strftime('%H:%M:%S')}")
-            if step["result"]:
-                st.write("Result data available")
+            # Show timing
+            st.write(f"⏰ **Completed:** {step['end_time'].strftime('%H:%M:%S')}")
+
+            # Show step-specific result summary
+            result = step.get("result")
+            if result:
+                st.markdown("---")
+                if step_name == "classification":
+                    _display_classification_result(result)
+                elif step_name == "extraction":
+                    _display_extraction_result(result)
+                elif step_name == "validation":
+                    _display_validation_result(result)
+                elif step_name == "correction":
+                    _display_correction_result(result)
+
+            # Show file path if available (verbose detail)
+            file_path = step.get("file_path")
+            if file_path:
+                st.caption(f"💾 **Saved:** `{file_path}`")
 
     elif status == "failed":
         # Auto-expanded for errors
         with st.status(f"{icon} {label} - Failed{elapsed_text}", expanded=True, state="error"):
             st.error(f"**Error:** {step['error']}")
+
+            # Show timing
             if step["start_time"]:
-                st.write(f"Started: {step['start_time'].strftime('%H:%M:%S')}")
+                st.write(f"⏰ **Started:** {step['start_time'].strftime('%H:%M:%S')}")
             if step["end_time"]:
-                st.write(f"Failed: {step['end_time'].strftime('%H:%M:%S')}")
+                st.write(f"⏰ **Failed:** {step['end_time'].strftime('%H:%M:%S')}")
 
     elif status == "skipped":
         # Simple text for skipped
