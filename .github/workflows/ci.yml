@@ -10,6 +10,8 @@ jobs:
   lint-and-format:
     name: Code Quality Checks
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
     - uses: actions/checkout@v4
@@ -38,6 +40,8 @@ jobs:
   test:
     name: Run Tests
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
@@ -72,6 +76,8 @@ jobs:
   coverage:
     name: Test Coverage
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     if: github.event_name == 'pull_request'
 
     steps:
@@ -104,6 +110,8 @@ jobs:
   validate-schemas:
     name: Validate JSON Schemas
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
     - uses: actions/checkout@v4
@@ -126,6 +134,8 @@ jobs:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
     - uses: actions/checkout@v4
