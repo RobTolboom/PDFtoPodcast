@@ -406,9 +406,10 @@
       "properties": {
         "level": {
           "type": "number",
-          "enum": [80, 90, 95, 99],
+          "minimum": 50,
+          "maximum": 99.99,
           "default": 95,
-          "description": "Confidence level as percentage"
+          "description": "Confidence level as percentage (e.g., 95, 97.5, 99)"
         },
         "lower": { "type": "number", "description": "Lower bound of confidence interval" },
         "upper": { "type": "number", "description": "Upper bound of confidence interval" }
@@ -742,10 +743,18 @@
                       "type": "string",
                       "enum": [
                         "randomization_process",
+                        "Randomisation process",
+                        "Randomization process",
                         "deviations_from_intended_interventions",
+                        "Deviations from intended interventions",
                         "missing_outcome_data",
+                        "Missing outcome data",
                         "measurement_of_outcome",
-                        "selection_of_reported_result"
+                        "Measurement of the outcome",
+                        "Measurement of outcome",
+                        "selection_of_reported_result",
+                        "Selection of the reported result",
+                        "Selection of reported result"
                       ]
                     },
                     "judgement": { "type": "string", "enum": ["low", "some_concerns", "high", "unclear"] }

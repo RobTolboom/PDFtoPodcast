@@ -19,7 +19,12 @@ import streamlit as st
 
 # Import streamlit_app components
 from src.streamlit_app import init_session_state
-from src.streamlit_app.screens import show_intro_screen, show_settings_screen, show_upload_screen
+from src.streamlit_app.screens import (
+    show_execution_screen,
+    show_intro_screen,
+    show_settings_screen,
+    show_upload_screen,
+)
 
 # Page configuration - must be first Streamlit command
 st.set_page_config(
@@ -76,7 +81,7 @@ def main():
     elif st.session_state.current_phase == "settings":
         show_settings_screen()
     elif st.session_state.current_phase == "execution":
-        st.info("🔄 Execution phase - coming in Phase 4")
+        show_execution_screen()
     elif st.session_state.current_phase == "results":
         st.info("📊 Results phase - coming in Phase 5")
 

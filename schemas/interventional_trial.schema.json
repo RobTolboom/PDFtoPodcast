@@ -1111,6 +1111,9 @@
         "crossovers_to": {
           "type": "string",
           "description": "arm_id waarheen deelnemers zijn gecrossoverd (indien relevant)"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/SourceRef"
         }
       }
     },

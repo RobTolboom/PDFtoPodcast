@@ -41,6 +41,7 @@ Usage Example:
     ...     show_settings_screen()
 """
 
+from .execution import show_execution_screen
 from .intro import show_intro_screen
 from .settings import show_settings_screen
 from .upload import show_upload_screen
@@ -49,4 +50,5 @@ __all__ = [
     "show_intro_screen",
     "show_upload_screen",
     "show_settings_screen",
+    "show_execution_screen",
 ]
