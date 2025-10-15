@@ -396,6 +396,202 @@ def _display_verbose_info(step_name: str, verbose_data: dict, result: dict | Non
             st.caption(f"💾 Output: `{file_path}`")
 
 
+# Error handling guidance mapping
+ERROR_MESSAGES = {
+    "api_key": {
+        "title": "API Key Error",
+        "message": "Authentication failed. Your API key may be invalid or missing.",
+        "actions": [
+            "Check your .env file for OPENAI_API_KEY or ANTHROPIC_API_KEY",
+            "Verify the key is correct (no extra spaces or quotes)",
+            "Ensure the API key has sufficient permissions",
+            "Try regenerating the key from your provider's dashboard",
+        ],
+    },
+    "network": {
+        "title": "Network Error",
+        "message": "Could not connect to the LLM API.",
+        "actions": [
+            "Check your internet connection",
+            "Verify the API endpoint is reachable",
+            "Try again in a few moments",
+            "Check if your firewall allows API calls",
+        ],
+    },
+    "rate_limit": {
+        "title": "Rate Limit Exceeded",
+        "message": "You have exceeded the API rate limit.",
+        "actions": [
+            "Wait a few minutes before trying again",
+            "Check your API usage quota on the provider's dashboard",
+            "Consider upgrading your API plan",
+            "Reduce the number of pages being processed (max_pages setting)",
+        ],
+    },
+    "publication_type": {
+        "title": "Unsupported Publication Type",
+        "message": "The publication type 'overig' or 'unknown' cannot be processed.",
+        "actions": [
+            "Only specific publication types are supported (interventional trial, observational study, etc.)",
+            "Check if the PDF is a research paper",
+            "Verify the classification result in Settings screen",
+            "Try a different PDF document",
+        ],
+    },
+    "generic": {
+        "title": "Pipeline Error",
+        "message": "An unexpected error occurred during pipeline execution.",
+        "actions": [
+            "Check the technical details below for more information",
+            "Review your settings and try again",
+            "Ensure your PDF is a valid research paper",
+            "Contact support if the issue persists",
+        ],
+    },
+}
+
+
+def _classify_error_type(error_msg: str, step_name: str) -> str:
+    """
+    Classify error type based on error message and step name.
+
+    Args:
+        error_msg: Error message from exception or callback
+        step_name: Step where error occurred ("classification", "extraction", etc.)
+
+    Returns:
+        Error type: "api_key", "network", "rate_limit", "publication_type", "generic"
+
+    Example:
+        >>> _classify_error_type("401 Unauthorized", "classification")
+        'api_key'
+        >>> _classify_error_type("Rate limit exceeded", "extraction")
+        'rate_limit'
+    """
+    error_lower = error_msg.lower()
+
+    # Check for API key errors
+    if any(
+        keyword in error_lower
+        for keyword in ["api key", "authentication", "401", "unauthorized", "invalid key"]
+    ):
+        return "api_key"
+
+    # Check for rate limit errors
+    if any(keyword in error_lower for keyword in ["rate limit", "429", "too many requests"]):
+        return "rate_limit"
+
+    # Check for network errors
+    if any(
+        keyword in error_lower
+        for keyword in ["timeout", "connection", "network", "unreachable", "dns"]
+    ):
+        return "network"
+
+    # Check for publication type errors
+    if any(
+        keyword in error_lower
+        for keyword in ["overig", "not supported", "unknown publication", "unsupported type"]
+    ):
+        return "publication_type"
+
+    # Default to generic error
+    return "generic"
+
+
+def _get_error_guidance(error_type: str, error_msg: str) -> dict:
+    """
+    Get user-friendly error guidance for a given error type.
+
+    Args:
+        error_type: Classified error type
+        error_msg: Original error message
+
+    Returns:
+        Dict with keys: title, message, actions, technical_details
+
+    Example:
+        >>> _get_error_guidance("api_key", "401 Unauthorized")
+        {'title': 'API Key Error', 'message': '...', 'actions': [...], ...}
+    """
+    guidance = ERROR_MESSAGES.get(error_type, ERROR_MESSAGES["generic"]).copy()
+    guidance["technical_details"] = error_msg
+    return guidance
+
+
+def _display_error_with_guidance(error_msg: str, step_name: str, step: dict):
+    """
+    Display error with actionable guidance and troubleshooting steps.
+
+    Shows:
+    - Error title and user-friendly message
+    - Numbered action steps
+    - Expandable technical details section
+
+    Args:
+        error_msg: Error message from exception
+        step_name: Step where error occurred
+        step: Step status dict (may contain additional error info)
+
+    Example:
+        >>> _display_error_with_guidance("401 Unauthorized", "classification", {...})
+        # Renders error with guidance in Streamlit UI
+    """
+    # Classify error and get guidance
+    error_type = _classify_error_type(error_msg, step_name)
+    guidance = _get_error_guidance(error_type, error_msg)
+
+    # Display error title and message
+    st.error(f"**{guidance['title']}**")
+    st.markdown(guidance["message"])
+
+    # Display action steps
+    st.markdown("**💡 Troubleshooting steps:**")
+    for i, action in enumerate(guidance["actions"], 1):
+        st.markdown(f"{i}. {action}")
+
+    # Expandable technical details
+    with st.expander("🔧 Technical Details"):
+        st.code(guidance["technical_details"], language="text")
+
+        # Show additional context if available
+        if "error_type" in step.get("verbose_data", {}).get("failed", {}):
+            error_type_name = step["verbose_data"]["failed"]["error_type"]
+            st.caption(f"**Exception type:** `{error_type_name}`")
+
+
+def _check_validation_warnings(validation_result: dict) -> list[str]:
+    """
+    Check validation result for non-critical warnings.
+
+    Args:
+        validation_result: Validation result dictionary
+
+    Returns:
+        List of warning messages (empty if no warnings)
+
+    Example:
+        >>> result = {"is_valid": True, "quality_score": 6}
+        >>> _check_validation_warnings(result)
+        ['Quality score is 6/10 (below recommended 8)']
+    """
+    warnings = []
+
+    # Check quality score
+    quality_score = validation_result.get("quality_score")
+    if quality_score is not None and quality_score < 8:
+        warnings.append(f"Quality score is {quality_score}/10 (below recommended 8)")
+
+    # Check for minor schema errors (errors exist but validation passed)
+    is_valid = validation_result.get("is_valid", False)
+    errors = validation_result.get("errors", [])
+    if is_valid and errors:
+        error_count = len(errors)
+        warnings.append(f"{error_count} minor schema issue(s) found but validation passed")
+
+    return warnings
+
+
 def _display_classification_result(result: dict):
     """Display classification step result summary."""
     if not result:
@@ -448,6 +644,12 @@ def _display_validation_result(result: dict):
     quality_score = result.get("quality_score")
     if quality_score is not None:
         st.write(f"⭐ **Quality Score:** {quality_score}/10")
+
+    # Check for non-critical warnings
+    warnings = _check_validation_warnings(result)
+    if warnings:
+        for warning in warnings:
+            st.warning(f"⚠️ {warning}")
 
 
 def _display_correction_result(result: dict):
@@ -579,11 +781,13 @@ def display_step_status(step_name: str, step_label: str, step_number: int):
                     _display_verbose_info(step_name, verbose_data, result)
 
     elif status == "failed":
-        # Auto-expanded for errors
+        # Auto-expanded for errors with actionable guidance
         with st.status(f"{icon} {label} - Failed{elapsed_text}", expanded=True, state="error"):
-            st.error(f"**Error:** {step['error']}")
+            # Display error with guidance and troubleshooting steps
+            _display_error_with_guidance(step["error"], step_name, step)
 
             # Show timing
+            st.markdown("---")
             if step["start_time"]:
                 st.write(f"⏰ **Started:** {step['start_time'].strftime('%H:%M:%S')}")
             if step["end_time"]:
@@ -770,13 +974,30 @@ def show_execution_screen():
         st.info("💡 Pipeline execution completed. View results in Settings screen or run again.")
 
     elif status == "failed":
-        # Display error UI
+        # Display error UI with step-level detection
         st.error("❌ Pipeline execution failed")
 
-        error_msg = st.session_state.execution.get("error", "Unknown error")
-        st.markdown(f"**Error:** {error_msg}")
+        # Determine which step failed and show guidance at pipeline level
+        failed_step = None
+        failed_step_name = None
+        for step_name, step_data in st.session_state.step_status.items():
+            if step_data["status"] == "failed":
+                failed_step = step_data
+                failed_step_name = step_name
+                break
+
+        if failed_step and failed_step_name:
+            # Display error with guidance for the failed step
+            st.markdown(f"**Failed at step:** {failed_step_name.title()}")
+            st.markdown("---")
+            _display_error_with_guidance(failed_step["error"], failed_step_name, failed_step)
+        else:
+            # Generic error (pipeline-level failure)
+            error_msg = st.session_state.execution.get("error", "Unknown error")
+            st.markdown(f"**Error:** {error_msg}")
 
         # Show execution time if available
+        st.markdown("---")
         start = st.session_state.execution["start_time"]
         end = st.session_state.execution["end_time"]
         if start and end:
@@ -793,8 +1014,6 @@ def show_execution_screen():
         display_step_status("correction", "Correction", 4)
 
         st.markdown("---")
-
-        # TODO Fase 7: More sophisticated error handling and actionable messages
 
     # Navigation button (always available)
     st.markdown("---")
