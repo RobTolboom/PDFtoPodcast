@@ -14,6 +14,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Resolves "maximum recursion depth exceeded" error during validation step
   - Affects `observational_analytic_bundled.json` and `interventional_trial_bundled.json`
 
+- **Execution Screen Real-time Feedback** - Fixed step status visibility and updates during pipeline execution
+  - Fixed step containers not showing during execution (only "⏳ Pipeline is executing..." was visible)
+  - Fixed non-selected steps showing "pending" instead of "⏭️ Skipped"
+  - Fixed first step showing "pending" instead of "🔄 Running" when pipeline starts
+  - Removed static "0.0s" elapsed time from running status (shown only for completed/failed)
+  - Implemented proactive status updates to work within Streamlit's execution model constraints
+  - Added `_mark_next_step_running()` helper to auto-update next step after completion
+  - Improved user experience with immediate, accurate step status feedback
+
 ### Added
 - **Streamlit Execution Screen** - Real-time pipeline execution UI with progress tracking
   - Live progress updates per step via callbacks (Classification → Extraction → Validation → Correction)
@@ -21,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Verbose logging toggle (configurable via Settings screen)
   - Intelligent error handling with critical vs. non-critical error distinction
   - Step selection support (run subset of pipeline steps via Settings)
-  - Auto-redirect to Settings after completion with 3-second countdown timer
+  - Auto-redirect to Settings after completion with 30-second countdown timer (cancellable)
   - Error recovery with state cleanup and retry capability
   - Top navigation "Back" button with confirmation dialog during running state
   - Comprehensive manual testing checklist (90+ tests across 7 categories)

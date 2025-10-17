@@ -1070,37 +1070,37 @@ tests/unit/test_execution_screen.py
 ### 1️⃣ Core Pipeline Execution (Fase 4-5)
 
 **Basic Pipeline Flows:**
-- [ ] **Test 1.1:** All 4 steps selected → All run in sequence (Classification → Extraction → Validation → Correction)
+- [x] **Test 1.1:** All 4 steps selected → All run in sequence (Classification → Extraction → Validation → Correction)
   - **Expected:** All 4 step containers appear, each transitions Pending → Running → Success
   - **Phase:** Fase 4-5
 
-- [ ] **Test 1.2:** Only classification + extraction selected → Validation and Correction skipped
+- [x] **Test 1.2:** Only classification + extraction selected → Validation and Correction skipped
   - **Expected:** Classification and Extraction run, Validation/Correction show "Skipped" status
   - **Phase:** Fase 2, 4
 
-- [ ] **Test 1.3:** Classification + extraction + validation (no correction) → Correction skipped
+- [x] **Test 1.3:** Classification + extraction + validation (no correction) → Correction skipped
   - **Expected:** First 3 steps run, Correction shows "Skipped"
   - **Phase:** Fase 2, 4
 
 **Pipeline Outputs:**
-- [ ] **Test 1.4:** Verify classification output saved to `tmp/{pdf_stem}-classification.json`
+- [x] **Test 1.4:** Verify classification output saved to `tmp/{pdf_stem}-classification.json`
   - **Expected:** JSON file exists, contains `publication_type` field
   - **Phase:** Fase 4-5
 
-- [ ] **Test 1.5:** Verify extraction output saved to `tmp/{pdf_stem}-extraction.json`
+- [x] **Test 1.5:** Verify extraction output saved to `tmp/{pdf_stem}-extraction.json`
   - **Expected:** JSON file exists, contains extracted fields matching publication type schema
   - **Phase:** Fase 4-5
 
-- [ ] **Test 1.6:** Verify validation output saved to `tmp/{pdf_stem}-validation.json`
+- [x] **Test 1.6:** Verify validation output saved to `tmp/{pdf_stem}-validation.json`
   - **Expected:** JSON file exists, contains `is_valid` and validation results
   - **Phase:** Fase 4-5
 
-- [ ] **Test 1.7:** If validation fails and correction runs → Verify corrected files saved with `-corrected` suffix
+- [x] **Test 1.7:** If validation fails and correction runs → Verify corrected files saved with `-corrected` suffix
   - **Expected:** `tmp/{pdf_stem}-extraction-corrected.json` and `tmp/{pdf_stem}-validation-corrected.json` exist
   - **Phase:** Fase 4-5
 
 **File Overwrite Behavior:**
-- [ ] **Test 1.8:** Run same PDF twice → Second run overwrites first run's outputs
+- [x] **Test 1.8:** Run same PDF twice → Second run overwrites first run's outputs
   - **Expected:** Old JSON files replaced with new results, no duplicate files
   - **Phase:** Fase 4-5
 
@@ -1109,11 +1109,11 @@ tests/unit/test_execution_screen.py
 ### 2️⃣ Progress Tracking & UI Components (Fase 5)
 
 **Status Indicators:**
-- [ ] **Test 2.1:** Verify Pending status (⏳) shows before pipeline starts
+- [x] **Test 2.1:** Verify Pending status (⏳) shows before pipeline starts
   - **Expected:** All steps show "⏳ Not yet started" in idle state
   - **Phase:** Fase 5
 
-- [ ] **Test 2.2:** Verify Running status (🔄) shows during step execution
+- [x] **Test 2.2:** Verify Running status (🔄) shows during step execution
   - **Expected:** Current step shows "🔄 Running" with elapsed time counter
   - **Phase:** Fase 5
 
@@ -1912,6 +1912,22 @@ if name in defs:
 | 2025-10-17 | Fase 9: TestHelperFunctions class (4 tests) - token extraction and validation warnings | Claude Code |
 | 2025-10-17 | Fase 9 Quality Checks: format ✅, lint ✅, test-fast ✅ (107 tests passed - 9 new + 98 existing) | Claude Code |
 | 2025-10-17 | Fase 9 Stats: All 13 unit test tasks completed, comprehensive test coverage for execution screen | Claude Code |
+| 2025-10-17 | **BUG DISCOVERED (Manual Test 2.2):** Step containers not visible during execution, only "⏳ Pipeline is executing..." shown | Rob Tolboom |
+| 2025-10-17 | Commit b8c1472: fix(streamlit) - Display step status during pipeline execution | Claude Code |
+| 2025-10-17 | Bug Fix 1: Added display_step_status() calls in "running" branch to show containers before execution | Claude Code |
+| 2025-10-17 | **BUG DISCOVERED:** Non-selected steps show "pending" instead of "skipped", first step shows "pending" instead of "running" | Rob Tolboom |
+| 2025-10-17 | Commit 737f629: feat(streamlit) - Increase auto-redirect countdown from 3s to 30s (UX improvement) | Claude Code |
+| 2025-10-17 | Commit 148fd7f: fix(streamlit) - Proactive step status updates for real-time feedback | Claude Code |
+| 2025-10-17 | Bug Fix 2: Mark non-selected steps as "skipped" immediately when pipeline starts | Claude Code |
+| 2025-10-17 | Bug Fix 2: Mark first selected step as "running" when pipeline starts | Claude Code |
+| 2025-10-17 | Bug Fix 2: Added _mark_next_step_running() helper to update next step after completion | Claude Code |
+| 2025-10-17 | Bug Fix 2: Updated callback to mark next step as "running" after current step completes/fails | Claude Code |
+| 2025-10-17 | Bug Fix 2: Updated unit tests to verify next-step-running behavior (added settings mock) | Claude Code |
+| 2025-10-17 | **BUG DISCOVERED:** Running status shows static "0.0s" elapsed time (confusing, looks like bug) | Rob Tolboom |
+| 2025-10-17 | Commit 56b8038: fix(streamlit) - Remove static elapsed time from running step status | Claude Code |
+| 2025-10-17 | Bug Fix 3: Removed elapsed time calculation for "running" status (only shown for completed/failed) | Claude Code |
+| 2025-10-17 | All Bug Fixes Quality Checks: format ✅, lint ✅, test-fast ✅ (107 tests passed) | Claude Code |
+| 2025-10-17 | **Manual Test 2.2 VERIFIED:** Step containers now correctly show running/skipped status during execution | Rob Tolboom |
 
 ---
 
