@@ -823,121 +823,76 @@ def run_four_step_pipeline(
     if steps_to_run is not None:
         _validate_step_dependencies(steps_to_run)
 
-    # STEP 1: CLASSIFICATION
-    # Check if classification should be skipped
-    if not _should_run_step("classification", steps_to_run):
-        _call_progress_callback(progress_callback, "classification", "skipped", {})
-        console.print("[yellow]⏭️  Classification skipped (not in steps_to_run)[/yellow]")
-        # Classification is required for all other steps - cannot skip
-        raise RuntimeError("Classification cannot be skipped - required for all other steps")
+    # Define all steps in order
+    all_steps = ["classification", "extraction", "validation", "correction"]
 
-    # Run classification step
-    classification_result = _run_classification_step(
-        pdf_path=pdf_path,
-        max_pages=max_pages,
-        llm_provider=llm_provider,
-        file_manager=file_manager,
-        progress_callback=progress_callback,
-        have_llm_support=have_llm_support,
-    )
-    results["classification"] = classification_result
+    # Execute each step using run_single_step()
+    for step_name in all_steps:
+        # Check if step should run
+        if not _should_run_step(step_name, steps_to_run):
+            _call_progress_callback(progress_callback, step_name, "skipped", {})
+            console.print(f"[yellow]⏭️  {step_name.title()} skipped (not in steps_to_run)[/yellow]")
 
-    # Check for breakpoint after classification
-    if check_breakpoint("classification", results, file_manager, breakpoint_after_step):
-        return results
+            # Classification cannot be skipped - it's required for all other steps
+            if step_name == "classification":
+                raise RuntimeError(
+                    "Classification cannot be skipped - required for all other steps"
+                )
 
-    if classification_result["publication_type"] == "overig":
-        console.print(
-            "[yellow]⚠️ Publicatietype 'overig' - "
-            "geen gespecialiseerde extractie beschikbaar[/yellow]"
-        )
-        return results
+            continue
 
-    # Get LLM provider for remaining steps
-    llm = get_llm_provider(llm_provider)
+        # Special handling for correction - skip if validation passed
+        if step_name == "correction":
+            validation_result = results.get("validation")
+            if validation_result:
+                validation_status = validation_result.get("verification_summary", {}).get(
+                    "overall_status"
+                )
+                if validation_status == "passed":
+                    _call_progress_callback(
+                        progress_callback,
+                        "correction",
+                        "skipped",
+                        {"reason": "validation_passed", "validation_status": validation_status},
+                    )
+                    console.print("[green]✅ Correction not needed - validation passed[/green]")
+                    continue
 
-    # STEP 2: EXTRACTION
-    # Check if extraction should be skipped
-    if not _should_run_step("extraction", steps_to_run):
-        _call_progress_callback(progress_callback, "extraction", "skipped", {})
-        console.print("[yellow]⏭️  Extraction skipped (not in steps_to_run)[/yellow]")
-        return results
+        try:
+            # Run single step with previous results
+            step_result = run_single_step(
+                step_name=step_name,
+                pdf_path=pdf_path,
+                max_pages=max_pages,
+                llm_provider=llm_provider,
+                file_manager=file_manager,
+                progress_callback=progress_callback,
+                previous_results=results,
+            )
 
-    # Run extraction step
-    extraction_result = _run_extraction_step(
-        pdf_path=pdf_path,
-        max_pages=max_pages,
-        classification_result=classification_result,
-        llm=llm,
-        file_manager=file_manager,
-        progress_callback=progress_callback,
-    )
-    results["extraction"] = extraction_result
+            # Store result
+            if step_name == "correction":
+                # Correction returns dict with extraction_corrected and validation_corrected
+                results["extraction_corrected"] = step_result["extraction_corrected"]
+                results["validation_corrected"] = step_result["validation_corrected"]
+            else:
+                results[step_name] = step_result
 
-    # Check for breakpoint after extraction
-    if check_breakpoint("extraction", results, file_manager, breakpoint_after_step):
-        return results
+        except Exception:
+            # Error already handled in run_single_step() via progress callback
+            raise
 
-    # STEP 3: VALIDATION
-    # Check if validation should be skipped
-    if not _should_run_step("validation", steps_to_run):
-        _call_progress_callback(progress_callback, "validation", "skipped", {})
-        console.print("[yellow]⏭️  Validation skipped (not in steps_to_run)[/yellow]")
-        return results
+        # Check for breakpoint after this step
+        if check_breakpoint(step_name, results, file_manager, breakpoint_after_step):
+            return results
 
-    # Run validation step
-    validation_result = _run_validation_step(
-        extraction_result=extraction_result,
-        pdf_path=pdf_path,
-        max_pages=max_pages,
-        classification_result=classification_result,
-        llm=llm,
-        file_manager=file_manager,
-        progress_callback=progress_callback,
-    )
-    results["validation"] = validation_result
-
-    # Check for breakpoint after validation
-    if check_breakpoint("validation", results, file_manager, breakpoint_after_step):
-        return results
-
-    # STEP 4: CORRECTION (conditional)
-    validation_status = validation_result.get("verification_summary", {}).get("overall_status")
-    publication_type = classification_result.get("publication_type")
-
-    # Check if correction should be skipped
-    if not _should_run_step("correction", steps_to_run):
-        _call_progress_callback(progress_callback, "correction", "skipped", {})
-        console.print("[yellow]⏭️  Correction skipped (not in steps_to_run)[/yellow]")
-        return results
-
-    # Skip correction if validation passed
-    if validation_status == "passed":
-        _call_progress_callback(
-            progress_callback,
-            "correction",
-            "skipped",
-            {"reason": "validation_passed", "validation_status": validation_status},
-        )
-        console.print("[green]✅ Correction not needed - validation passed[/green]")
-        return results
-
-    # Run correction step
-    corrected_extraction, final_validation = _run_correction_step(
-        extraction_result=extraction_result,
-        validation_result=validation_result,
-        pdf_path=pdf_path,
-        max_pages=max_pages,
-        publication_type=publication_type,
-        llm=llm,
-        file_manager=file_manager,
-        progress_callback=progress_callback,
-    )
-    results["extraction_corrected"] = corrected_extraction
-    results["validation_corrected"] = final_validation
-
-    # Check for breakpoint after correction
-    if check_breakpoint("correction", results, file_manager, breakpoint_after_step):
-        return results
+        # Check for publication_type == "overig" after classification
+        if step_name == "classification":
+            if step_result.get("publication_type") == "overig":
+                console.print(
+                    "[yellow]⚠️ Publicatietype 'overig' - "
+                    "geen gespecialiseerde extractie beschikbaar[/yellow]"
+                )
+                return results
 
     return results

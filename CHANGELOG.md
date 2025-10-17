@@ -39,9 +39,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Extracted `_run_validation_step()` private function (66 lines)
   - Extracted `_run_correction_step()` private function (125 lines)
   - Added `run_single_step()` public API for step-by-step execution with dependency validation
+  - Refactored `run_four_step_pipeline()` to use `run_single_step()` internally (DRY principle)
+  - Reduced code duplication: wrapper now calls same API used by Streamlit
   - Updated module docstring with API documentation and usage examples
-  - Reduced `run_four_step_pipeline()` from 547 to ~180 lines
-  - Enables future step-by-step UI updates in Streamlit with reruns between steps
+  - Reduced `run_four_step_pipeline()` from 547 to ~78 lines
+  - Enables step-by-step UI updates in Streamlit with reruns between steps
   - Maintains 100% backwards compatibility with existing CLI and API usage
 
 - **Streamlit Execution Screen** - Real-time pipeline execution UI with progress tracking
