@@ -1031,7 +1031,7 @@ def show_execution_screen():
         if execution["auto_redirect_enabled"] and not execution["redirect_cancelled"]:
             # Initialize countdown if not started
             if execution["redirect_countdown"] is None:
-                execution["redirect_countdown"] = 3
+                execution["redirect_countdown"] = 30
                 st.rerun()
 
             countdown = execution["redirect_countdown"]
