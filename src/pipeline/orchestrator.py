@@ -79,6 +79,106 @@ def _call_progress_callback(
         console.print(f"[yellow]⚠️  Progress callback error in {step_name}: {e}[/yellow]")
 
 
+def _run_extraction_step(
+    pdf_path: Path,
+    max_pages: int | None,
+    classification_result: dict[str, Any],
+    llm: Any,
+    file_manager: PipelineFileManager,
+    progress_callback: Callable[[str, str, dict], None] | None,
+) -> dict[str, Any]:
+    """
+    Run extraction step of the pipeline.
+
+    Performs schema-based structured data extraction from PDF based on
+    the publication type identified in classification step.
+
+    Args:
+        pdf_path: Path to the PDF file to extract from
+        max_pages: Maximum number of pages to process (None = all pages)
+        classification_result: Result from classification step containing publication_type
+        llm: LLM provider instance (from get_llm_provider)
+        file_manager: PipelineFileManager for saving results
+        progress_callback: Optional callback for progress updates
+
+    Returns:
+        Dictionary containing extracted structured data
+
+    Raises:
+        SchemaLoadError: If schema file cannot be loaded
+        PromptLoadError: If prompt file cannot be loaded
+        LLMError: If LLM API call fails
+    """
+    console.print("[bold cyan]📊 Stap 2: Data Extractie (Schema-based)[/bold cyan]")
+
+    start_time = time.time()
+    publication_type = classification_result.get("publication_type")
+
+    _call_progress_callback(
+        progress_callback,
+        "extraction",
+        "starting",
+        {"publication_type": publication_type},
+    )
+
+    try:
+        # Load appropriate extraction prompt and schema
+        extraction_prompt = load_extraction_prompt(publication_type)
+        extraction_schema = load_schema(publication_type)
+
+        # Check schema compatibility with OpenAI
+        compatibility = validate_schema_compatibility(extraction_schema)
+        if compatibility["warnings"]:
+            console.print("[yellow]⚠️  Schema compatibility warnings:[/yellow]")
+            for warning in compatibility["warnings"][:3]:
+                console.print(f"[dim]  • {warning}[/dim]")
+
+        console.print(f"[dim]Running schema-based {publication_type} extraction with PDF upload...")
+        console.print(f"[dim]Schema: ~{compatibility['estimated_tokens']} tokens[/dim]")
+
+        # Run schema-based extraction with direct PDF upload
+        extraction_result = llm.generate_json_with_pdf(
+            pdf_path=pdf_path,
+            schema=extraction_schema,
+            system_prompt=extraction_prompt,
+            max_pages=max_pages,
+            schema_name=f"{publication_type}_extraction",
+        )
+
+        console.print("[green]✅ Schema-conforming extraction completed[/green]")
+
+        # Save extraction result
+        extraction_file = file_manager.save_json(extraction_result, "extraction")
+        console.print(f"[green]✅ Extractie opgeslagen: {extraction_file}[/green]")
+
+        # Extraction completed successfully
+        elapsed = time.time() - start_time
+        _call_progress_callback(
+            progress_callback,
+            "extraction",
+            "completed",
+            {
+                "result": extraction_result,
+                "elapsed_seconds": elapsed,
+                "file_path": str(extraction_file),
+                "publication_type": publication_type,
+            },
+        )
+
+        return extraction_result
+
+    except (SchemaLoadError, PromptLoadError, LLMError) as e:
+        elapsed = time.time() - start_time
+        console.print(f"[red]❌ Extractie fout: {e}[/red]")
+        _call_progress_callback(
+            progress_callback,
+            "extraction",
+            "failed",
+            {"error": str(e), "error_type": type(e).__name__, "elapsed_seconds": elapsed},
+        )
+        raise
+
+
 def _should_run_step(step_name: str, steps_to_run: list[str] | None) -> bool:
     """
     Check if step should be executed based on steps_to_run filter.
@@ -361,80 +461,22 @@ def run_four_step_pipeline(
     llm = get_llm_provider(llm_provider)
 
     # STEP 2: EXTRACTION
-    console.print("[bold cyan]📊 Stap 2: Data Extractie (Schema-based)[/bold cyan]")
-
     # Check if extraction should be skipped
     if not _should_run_step("extraction", steps_to_run):
         _call_progress_callback(progress_callback, "extraction", "skipped", {})
         console.print("[yellow]⏭️  Extraction skipped (not in steps_to_run)[/yellow]")
         return results
 
-    # Start extraction with callback
-    start_time = time.time()
-    _call_progress_callback(
-        progress_callback,
-        "extraction",
-        "starting",
-        {"publication_type": classification_result.get("publication_type")},
+    # Run extraction step
+    extraction_result = _run_extraction_step(
+        pdf_path=pdf_path,
+        max_pages=max_pages,
+        classification_result=classification_result,
+        llm=llm,
+        file_manager=file_manager,
+        progress_callback=progress_callback,
     )
-
-    try:
-        publication_type = classification_result.get("publication_type")
-
-        # Load appropriate extraction prompt and schema
-        extraction_prompt = load_extraction_prompt(publication_type)
-        extraction_schema = load_schema(publication_type)
-
-        # Check schema compatibility with OpenAI
-        compatibility = validate_schema_compatibility(extraction_schema)
-        if compatibility["warnings"]:
-            console.print("[yellow]⚠️  Schema compatibility warnings:[/yellow]")
-            for warning in compatibility["warnings"][:3]:
-                console.print(f"[dim]  • {warning}[/dim]")
-
-        console.print(f"[dim]Running schema-based {publication_type} extraction with PDF upload...")
-        console.print(f"[dim]Schema: ~{compatibility['estimated_tokens']} tokens[/dim]")
-
-        # Run schema-based extraction with direct PDF upload
-        extraction_result = llm.generate_json_with_pdf(
-            pdf_path=pdf_path,
-            schema=extraction_schema,
-            system_prompt=extraction_prompt,
-            max_pages=max_pages,
-            schema_name=f"{publication_type}_extraction",
-        )
-
-        console.print("[green]✅ Schema-conforming extraction completed[/green]")
-
-        # Save extraction result
-        extraction_file = file_manager.save_json(extraction_result, "extraction")
-        console.print(f"[green]✅ Extractie opgeslagen: {extraction_file}[/green]")
-        results["extraction"] = extraction_result
-
-        # Extraction completed successfully
-        elapsed = time.time() - start_time
-        _call_progress_callback(
-            progress_callback,
-            "extraction",
-            "completed",
-            {
-                "result": extraction_result,
-                "elapsed_seconds": elapsed,
-                "file_path": str(extraction_file),
-                "publication_type": publication_type,
-            },
-        )
-
-    except (SchemaLoadError, PromptLoadError, LLMError) as e:
-        elapsed = time.time() - start_time
-        console.print(f"[red]❌ Extractie fout: {e}[/red]")
-        _call_progress_callback(
-            progress_callback,
-            "extraction",
-            "failed",
-            {"error": str(e), "error_type": type(e).__name__, "elapsed_seconds": elapsed},
-        )
-        raise
+    results["extraction"] = extraction_result
 
     # Check for breakpoint after extraction
     if check_breakpoint("extraction", results, file_manager, breakpoint_after_step):
