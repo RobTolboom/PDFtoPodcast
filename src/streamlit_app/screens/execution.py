@@ -1034,10 +1034,12 @@ def show_execution_screen():
         # Get current step to execute
         current_step_name = steps_to_run[current_step_index]
 
-        # Mark current step as running (if not already)
+        # Mark current step as running (if not already) and refresh UI
         if st.session_state.step_status[current_step_name]["status"] == "pending":
             st.session_state.step_status[current_step_name]["status"] = "running"
             st.session_state.step_status[current_step_name]["start_time"] = datetime.now()
+            st.rerun()  # Refresh UI to show "running" status before executing
+            return
 
         try:
             # Create progress callback for real-time updates
