@@ -1031,6 +1031,416 @@ tests/unit/test_execution_screen.py
   - [ ] Test: Auto-redirect countdown → verify cancel works
   - [ ] Test: Back button during execution → verify safe (no corruption)
 
+---
+
+## 📋 COMPREHENSIVE MANUAL TESTING CHECKLIST
+
+**Purpose:** Single source of truth for all manual tests across Phases 1-8. Complete this checklist before marking the feature as production-ready.
+
+**Testing Environment:**
+- PDF test files: Small (<10 pages), Medium (10-50 pages), Large (>50 pages)
+- API providers: OpenAI and Claude (test both)
+- Network conditions: Normal, slow connection, offline
+- Test scenarios: Success paths, error paths, edge cases
+
+---
+
+### 1️⃣ Core Pipeline Execution (Fase 4-5)
+
+**Basic Pipeline Flows:**
+- [ ] **Test 1.1:** All 4 steps selected → All run in sequence (Classification → Extraction → Validation → Correction)
+  - **Expected:** All 4 step containers appear, each transitions Pending → Running → Success
+  - **Phase:** Fase 4-5
+
+- [ ] **Test 1.2:** Only classification + extraction selected → Validation and Correction skipped
+  - **Expected:** Classification and Extraction run, Validation/Correction show "Skipped" status
+  - **Phase:** Fase 2, 4
+
+- [ ] **Test 1.3:** Classification + extraction + validation (no correction) → Correction skipped
+  - **Expected:** First 3 steps run, Correction shows "Skipped"
+  - **Phase:** Fase 2, 4
+
+**Pipeline Outputs:**
+- [ ] **Test 1.4:** Verify classification output saved to `tmp/{pdf_stem}-classification.json`
+  - **Expected:** JSON file exists, contains `publication_type` field
+  - **Phase:** Fase 4-5
+
+- [ ] **Test 1.5:** Verify extraction output saved to `tmp/{pdf_stem}-extraction.json`
+  - **Expected:** JSON file exists, contains extracted fields matching publication type schema
+  - **Phase:** Fase 4-5
+
+- [ ] **Test 1.6:** Verify validation output saved to `tmp/{pdf_stem}-validation.json`
+  - **Expected:** JSON file exists, contains `is_valid` and validation results
+  - **Phase:** Fase 4-5
+
+- [ ] **Test 1.7:** If validation fails and correction runs → Verify corrected files saved with `-corrected` suffix
+  - **Expected:** `tmp/{pdf_stem}-extraction-corrected.json` and `tmp/{pdf_stem}-validation-corrected.json` exist
+  - **Phase:** Fase 4-5
+
+**File Overwrite Behavior:**
+- [ ] **Test 1.8:** Run same PDF twice → Second run overwrites first run's outputs
+  - **Expected:** Old JSON files replaced with new results, no duplicate files
+  - **Phase:** Fase 4-5
+
+---
+
+### 2️⃣ Progress Tracking & UI Components (Fase 5)
+
+**Status Indicators:**
+- [ ] **Test 2.1:** Verify Pending status (⏳) shows before pipeline starts
+  - **Expected:** All steps show "⏳ Not yet started" in idle state
+  - **Phase:** Fase 5
+
+- [ ] **Test 2.2:** Verify Running status (🔄) shows during step execution
+  - **Expected:** Current step shows "🔄 Running" with elapsed time counter
+  - **Phase:** Fase 5
+
+- [ ] **Test 2.3:** Verify Success status (✅) shows after step completes
+  - **Expected:** Completed step shows "✅ Completed in X.Xs" with result summary
+  - **Phase:** Fase 5
+
+- [ ] **Test 2.4:** Verify Failed status (❌) shows when step errors
+  - **Expected:** Failed step shows "❌ Failed" with error message and guidance
+  - **Phase:** Fase 5, 7
+
+- [ ] **Test 2.5:** Verify Skipped status (⏭️) shows for non-selected steps
+  - **Expected:** Skipped steps show "⏭️ Skipped" with no timing
+  - **Phase:** Fase 5
+
+**Step Result Summaries:**
+- [ ] **Test 2.6:** Classification success → Shows publication type and DOI
+  - **Expected:** Expandable shows "📚 Publication Type: `interventional_trial`" and DOI if available
+  - **Phase:** Fase 5
+
+- [ ] **Test 2.7:** Extraction success → Shows field count and title excerpt
+  - **Expected:** Expandable shows "📊 Extracted fields: X" and title preview
+  - **Phase:** Fase 5
+
+- [ ] **Test 2.8:** Validation success → Shows validation status and quality score
+  - **Expected:** Expandable shows "✅ Valid" and quality score (if LLM validation enabled)
+  - **Phase:** Fase 5
+
+- [ ] **Test 2.9:** Correction success → Shows "Applied" or "Skipped" status
+  - **Expected:** Expandable shows "🔧 Correction: Applied" with number of changes
+  - **Phase:** Fase 5
+
+**Timing Display:**
+- [ ] **Test 2.10:** Verify elapsed time shows during running step
+  - **Expected:** Running step shows "• X.Xs" that updates in real-time
+  - **Phase:** Fase 5
+
+- [ ] **Test 2.11:** Verify completion time shows after step finishes
+  - **Expected:** Completed step shows final "• X.Xs" duration
+  - **Phase:** Fase 5
+
+- [ ] **Test 2.12:** Verify total pipeline duration shows at top
+  - **Expected:** After completion: "Total execution time: X.Xs"
+  - **Phase:** Fase 5
+
+**Expandable Containers:**
+- [ ] **Test 2.13:** Running step auto-expanded → Shows progress details
+  - **Expected:** Currently running step container opens automatically
+  - **Phase:** Fase 5
+
+- [ ] **Test 2.14:** Success step collapsed by default → Can expand manually
+  - **Expected:** Successful steps start collapsed, user can click to expand
+  - **Phase:** Fase 5
+
+- [ ] **Test 2.15:** Failed step auto-expanded → Shows error details
+  - **Expected:** Failed step container opens automatically with error message
+  - **Phase:** Fase 5, 7
+
+---
+
+### 3️⃣ Verbose Logging (Fase 6)
+
+**Verbose Mode Enabled:**
+- [ ] **Test 3.1:** Settings: `verbose_logging = True` → Shows detailed logs in success containers
+  - **Expected:** Expandable containers show "🔍 Verbose Details" section
+  - **Phase:** Fase 6
+
+- [ ] **Test 3.2:** Verbose details include starting parameters (PDF path, max pages, publication type)
+  - **Expected:** "Starting parameters: • PDF: `path/to/file.pdf` • Max pages: 10"
+  - **Phase:** Fase 6
+
+- [ ] **Test 3.3:** Verbose details include token usage (input, output, total)
+  - **Expected:** "Token usage: • Input tokens: 1,234 • Output tokens: 567 • Total: 1,801"
+  - **Phase:** Fase 6
+
+- [ ] **Test 3.4:** Verbose details include file output paths
+  - **Expected:** "💾 Output: `tmp/paper-classification.json`"
+  - **Phase:** Fase 6
+
+**Verbose Mode Disabled:**
+- [ ] **Test 3.5:** Settings: `verbose_logging = False` → Only shows high-level results
+  - **Expected:** No "🔍 Verbose Details" section, only result summaries
+  - **Phase:** Fase 6
+
+- [ ] **Test 3.6:** Verbose disabled → UI is clean and concise
+  - **Expected:** Step containers show timing, status, basic results only
+  - **Phase:** Fase 6
+
+**Token Usage Extraction:**
+- [ ] **Test 3.7:** OpenAI provider → Token usage extracted and displayed correctly
+  - **Expected:** Verbose section shows OpenAI-format token counts
+  - **Phase:** Fase 6
+
+- [ ] **Test 3.8:** Claude provider → Token usage extracted and displayed correctly
+  - **Expected:** Verbose section shows Claude-format token counts
+  - **Phase:** Fase 6
+
+---
+
+### 4️⃣ Error Handling (Fase 7)
+
+**Critical Errors (Pipeline Stops):**
+- [ ] **Test 4.1:** Invalid API key → Pipeline stops, shows API key error guidance
+  - **Expected:** "API Key Error" with 4 troubleshooting steps, technical details expandable
+  - **Phase:** Fase 7
+
+- [ ] **Test 4.2:** Network timeout → Pipeline stops, shows network error guidance
+  - **Expected:** "Network Error" with connectivity troubleshooting steps
+  - **Phase:** Fase 7
+
+- [ ] **Test 4.3:** Rate limit exceeded → Pipeline stops, shows rate limit guidance
+  - **Expected:** "Rate Limit Exceeded" with wait time recommendations
+  - **Phase:** Fase 7
+
+- [ ] **Test 4.4:** Classification returns "overig" or unknown type → Pipeline stops
+  - **Expected:** "Unsupported Publication Type" with research paper requirement message
+  - **Phase:** Fase 7
+
+- [ ] **Test 4.5:** Extraction failure → Pipeline stops, shows generic error guidance
+  - **Expected:** "Pipeline Error" with troubleshooting steps and technical details
+  - **Phase:** Fase 7
+
+**Error Display Format:**
+- [ ] **Test 4.6:** Error shows user-friendly title and message
+  - **Expected:** Red alert box with clear error title (e.g., "API Key Error")
+  - **Phase:** Fase 7
+
+- [ ] **Test 4.7:** Error shows numbered troubleshooting action steps
+  - **Expected:** "💡 Troubleshooting steps: 1. Check .env file... 2. Verify key..."
+  - **Phase:** Fase 7
+
+- [ ] **Test 4.8:** Error shows expandable technical details
+  - **Expected:** "🔧 Technical Details" section with raw error message
+  - **Phase:** Fase 7
+
+- [ ] **Test 4.9:** Step-level error detection → Shows which step failed
+  - **Expected:** "Failed at step: Classification" with step-specific guidance
+  - **Phase:** Fase 7
+
+**Non-Critical Warnings (Pipeline Continues):**
+- [ ] **Test 4.10:** Validation quality score < 8 → Yellow warning, pipeline continues
+  - **Expected:** "⚠️ Quality score is 6/10 (below recommended 8)" in validation result
+  - **Phase:** Fase 7
+
+- [ ] **Test 4.11:** Validation has minor schema errors but passes → Warning shown, continues
+  - **Expected:** "⚠️ 2 minor schema issue(s) found but validation passed"
+  - **Phase:** Fase 7
+
+- [ ] **Test 4.12:** Validation passes → Correction skipped (expected behavior, not error)
+  - **Expected:** Correction shows "✨ Correction: Not needed (validation passed)"
+  - **Phase:** Fase 7
+
+**Error Recovery:**
+- [ ] **Test 4.13:** After error → "Back to Settings" button allows retry
+  - **Expected:** Click Back → Settings screen → can adjust settings → retry pipeline
+  - **Phase:** Fase 7-8
+
+- [ ] **Test 4.14:** Partial results preserved after error
+  - **Expected:** If classification succeeded but extraction failed, classification.json still in tmp/
+  - **Phase:** Fase 7
+
+---
+
+### 5️⃣ Navigation & Auto-Redirect (Fase 8)
+
+**Top Navigation Button:**
+- [ ] **Test 5.1:** "Back" button visible in top-right corner at all times
+  - **Expected:** Secondary button always present in header, all execution states
+  - **Phase:** Fase 8
+
+- [ ] **Test 5.2:** Back button from idle/completed/failed state → Direct navigation to Settings
+  - **Expected:** Click Back → immediate redirect to Settings, state reset
+  - **Phase:** Fase 8
+
+- [ ] **Test 5.3:** Back button during running state → Shows confirmation dialog
+  - **Expected:** Warning: "Pipeline is running! Are you sure?" with Yes/Cancel buttons
+  - **Phase:** Fase 8
+
+- [ ] **Test 5.4:** Confirmation "Yes, go back" → Navigates to Settings, resets execution state
+  - **Expected:** State cleaned, Settings screen loads, can start new execution
+  - **Phase:** Fase 8
+
+- [ ] **Test 5.5:** Confirmation "Cancel" → Stays on Execution screen, pipeline continues
+  - **Expected:** Warning dialog closes, pipeline keeps running, no state change
+  - **Phase:** Fase 8
+
+**Auto-Redirect After Completion:**
+- [ ] **Test 5.6:** Pipeline completes successfully → Countdown starts automatically (3 seconds)
+  - **Expected:** "🔄 Redirecting to Settings screen in 3 seconds..." with Cancel button
+  - **Phase:** Fase 8
+
+- [ ] **Test 5.7:** Countdown decrements → "3 seconds... 2 seconds... 1 second..."
+  - **Expected:** Message updates each second with correct pluralization
+  - **Phase:** Fase 8
+
+- [ ] **Test 5.8:** Countdown reaches 0 → Automatic redirect to Settings
+  - **Expected:** After "1 second", immediately navigates to Settings, state reset
+  - **Phase:** Fase 8
+
+- [ ] **Test 5.9:** Click "Cancel" during countdown → Redirect cancelled, stays on Execution
+  - **Expected:** Info message: "Pipeline execution completed. View results in Settings..."
+  - **Phase:** Fase 8
+
+- [ ] **Test 5.10:** After cancel → Can still use Back button manually
+  - **Expected:** Top Back button still works, navigates to Settings
+  - **Phase:** Fase 8
+
+**Navigation State Management:**
+- [ ] **Test 5.11:** State reset on navigation → Execution state returns to idle
+  - **Expected:** `st.session_state.execution["status"] = "idle"`, all steps pending
+  - **Phase:** Fase 8
+
+- [ ] **Test 5.12:** Navigation during running does not corrupt pipeline state
+  - **Expected:** No errors, no partial state, Settings screen loads cleanly
+  - **Phase:** Fase 8
+
+---
+
+### 6️⃣ Settings Integration (Fase 4-8)
+
+**LLM Provider Selection:**
+- [ ] **Test 6.1:** Settings: `llm_provider = "openai"` → Pipeline uses OpenAI GPT models
+  - **Expected:** Verbose logs show OpenAI API calls, token format matches OpenAI
+  - **Phase:** Fase 4, 6
+
+- [ ] **Test 6.2:** Settings: `llm_provider = "claude"` → Pipeline uses Claude models
+  - **Expected:** Verbose logs show Claude API calls, token format matches Claude
+  - **Phase:** Fase 4, 6
+
+**Max Pages Configuration:**
+- [ ] **Test 6.3:** Settings: `max_pages = None` (All pages) → Entire PDF processed
+  - **Expected:** Settings summary shows "Max pages: All", verbose shows full page count
+  - **Phase:** Fase 4
+
+- [ ] **Test 6.4:** Settings: `max_pages = 10` → Only first 10 pages processed
+  - **Expected:** Settings summary shows "Max pages: 10", processing faster for large PDFs
+  - **Phase:** Fase 4
+
+- [ ] **Test 6.5:** PDF with < max_pages → All pages processed without error
+  - **Expected:** 5-page PDF with max_pages=10 → processes 5 pages, no error
+  - **Phase:** Fase 4
+
+**Step Selection:**
+- [ ] **Test 6.6:** Settings: Only "classification" selected → Other steps skipped
+  - **Expected:** Classification runs, extraction/validation/correction show "Skipped"
+  - **Phase:** Fase 2, 4
+
+- [ ] **Test 6.7:** Settings: "classification", "extraction", "validation" → Correction skipped
+  - **Expected:** First 3 steps run, correction shows "Skipped"
+  - **Phase:** Fase 2, 4
+
+- [ ] **Test 6.8:** Settings summary displays selected steps correctly
+  - **Expected:** Header shows "Steps: Classification, Extraction, Validation, Correction"
+  - **Phase:** Fase 5
+
+**Cleanup Policy:**
+- [ ] **Test 6.9:** Settings: `cleanup_policy = "keep_forever"` → Old files remain in tmp/
+  - **Expected:** After multiple runs, all JSON files preserved (manual deletion required)
+  - **Phase:** Fase 4-5
+
+**Breakpoint (if implemented):**
+- [ ] **Test 6.10:** Settings: `breakpoint = "classification"` → Pipeline stops after classification
+  - **Expected:** Classification completes, execution stops, remaining steps pending
+  - **Phase:** Fase 2, 4 (if breakpoint feature used)
+
+---
+
+### 7️⃣ Edge Cases & Stress Testing (All Phases)
+
+**Large PDFs:**
+- [ ] **Test 7.1:** PDF > 50 pages, no max_pages limit → Pipeline handles without crash
+  - **Expected:** Long execution time (> 2 minutes), UI stays responsive, completes successfully
+  - **Phase:** Fase 4-5
+
+- [ ] **Test 7.2:** PDF > 100 pages → Verify memory usage acceptable
+  - **Expected:** No memory leak, application remains stable
+  - **Phase:** Fase 4-5
+
+**Small PDFs:**
+- [ ] **Test 7.3:** PDF with 1-2 pages → Pipeline completes quickly
+  - **Expected:** Fast execution (< 30 seconds), all steps work correctly
+  - **Phase:** Fase 4-5
+
+**Corrupt or Invalid PDFs:**
+- [ ] **Test 7.4:** Corrupted PDF file → Pipeline shows error, does not crash
+  - **Expected:** Classification or extraction fails with clear error message
+  - **Phase:** Fase 7
+
+- [ ] **Test 7.5:** Non-research paper PDF (e.g., form, table) → Classification returns "overig"
+  - **Expected:** Pipeline stops with "Unsupported Publication Type" error
+  - **Phase:** Fase 7
+
+**Multiple PDFs (Sequential Runs):**
+- [ ] **Test 7.6:** Process PDF A → Back to Settings → Process PDF B
+  - **Expected:** State reset properly, PDF B processed independently, both outputs in tmp/
+  - **Phase:** Fase 8
+
+- [ ] **Test 7.7:** Process same PDF twice with different settings
+  - **Expected:** Second run overwrites first run's files, new settings applied
+  - **Phase:** Fase 4-5
+
+**UI Responsiveness:**
+- [ ] **Test 7.8:** Long-running pipeline (> 2 min) → UI updates in real-time
+  - **Expected:** Progress updates visible, elapsed time increments, UI not frozen
+  - **Phase:** Fase 5
+
+- [ ] **Test 7.9:** Expand/collapse step details during and after execution
+  - **Expected:** Containers expand/collapse smoothly, no lag
+  - **Phase:** Fase 5
+
+**Rerun Prevention:**
+- [ ] **Test 7.10:** Click refresh/reload browser during execution → Pipeline does not restart
+  - **Expected:** Session state preserved (if browser maintains session), or fresh start if session lost
+  - **Phase:** Fase 3-4
+
+- [ ] **Test 7.11:** Interact with UI elements during running → No duplicate pipeline execution
+  - **Expected:** Clicking buttons, expanding containers does not trigger rerun
+  - **Phase:** Fase 3-4
+
+**Network Conditions:**
+- [ ] **Test 7.12:** Slow network connection → Pipeline completes but takes longer
+  - **Expected:** Extended execution time, no timeout errors (unless extremely slow)
+  - **Phase:** Fase 7
+
+- [ ] **Test 7.13:** Disconnect network mid-execution → Pipeline fails gracefully
+  - **Expected:** "Network Error" with troubleshooting steps, no crash
+  - **Phase:** Fase 7
+
+---
+
+## ✅ Testing Completion Criteria
+
+**Mark feature as production-ready when:**
+- [ ] All 90+ manual tests above completed with expected results
+- [ ] No critical bugs discovered during testing
+- [ ] Performance acceptable (< 5s overhead vs CLI for typical PDF)
+- [ ] Error messages are clear and actionable
+- [ ] UI is responsive and intuitive
+- [ ] Documentation updated with testing results
+
+**Testing Notes:**
+- Document any unexpected behavior in "Known Issues" section
+- Take screenshots of error states for documentation
+- Record execution times for performance validation
+- Test with multiple publication types (interventional trial, observational study, etc.)
+- Test both OpenAI and Claude providers
+
+---
+
 ### Fase 10: Documentation & Finalization
 - [ ] **Code documentation:**
   - [ ] Complete docstrings for all functions (Args, Returns, Raises, Example)

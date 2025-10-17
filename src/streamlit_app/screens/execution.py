@@ -63,6 +63,7 @@ Rerun Prevention Strategy:
     is immediately changed to completed/failed after execution, preventing reruns.
 """
 
+import time
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
@@ -110,6 +111,9 @@ def init_execution_state():
             "end_time": None,
             "error": None,
             "results": None,
+            "auto_redirect_enabled": True,  # Enable auto-redirect after completion
+            "redirect_cancelled": False,  # User cancelled auto-redirect
+            "redirect_countdown": None,  # Countdown value (3, 2, 1, 0)
         }
 
     # Initialize per-step tracking
@@ -163,6 +167,9 @@ def reset_execution_state():
         "end_time": None,
         "error": None,
         "results": None,
+        "auto_redirect_enabled": True,
+        "redirect_cancelled": False,
+        "redirect_countdown": None,
     }
 
     st.session_state.step_status = {
@@ -866,8 +873,48 @@ def show_execution_screen():
     # Initialize state
     init_execution_state()
 
-    # Header
-    st.markdown("## 🚀 Pipeline Execution")
+    # Header with top navigation
+    col1, col2 = st.columns([4, 1])
+    with col1:
+        st.markdown("## 🚀 Pipeline Execution")
+    with col2:
+        # Top navigation button (always visible)
+        status = st.session_state.execution["status"]
+        if status == "running":
+            # Show confirmation for navigation during execution
+            if st.button("⬅️ Back", key="back_top", use_container_width=True, type="secondary"):
+                # Add confirmation state
+                if "confirm_navigation" not in st.session_state:
+                    st.session_state.confirm_navigation = False
+
+                if not st.session_state.confirm_navigation:
+                    st.session_state.confirm_navigation = True
+                    st.rerun()
+        else:
+            # Direct back for non-running states
+            if st.button("⬅️ Back", key="back_top", use_container_width=True, type="secondary"):
+                reset_execution_state()
+                st.session_state.current_phase = "settings"
+                st.rerun()
+
+    # Show confirmation warning if navigation requested during running
+    if status == "running" and st.session_state.get("confirm_navigation", False):
+        st.warning(
+            "⚠️ **Pipeline is running!** Navigating away will not stop the execution. "
+            "Are you sure you want to go back to Settings?"
+        )
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("✅ Yes, go back", use_container_width=True):
+                st.session_state.confirm_navigation = False
+                reset_execution_state()
+                st.session_state.current_phase = "settings"
+                st.rerun()
+        with col2:
+            if st.button("❌ Cancel", use_container_width=True):
+                st.session_state.confirm_navigation = False
+                st.rerun()
+        st.markdown("---")
 
     # Show PDF and settings info
     if st.session_state.pdf_path:
@@ -970,8 +1017,43 @@ def show_execution_screen():
 
         st.markdown("---")
 
-        # TODO Fase 8: Auto-redirect to settings after 3 seconds
-        st.info("💡 Pipeline execution completed. View results in Settings screen or run again.")
+        # Auto-redirect logic with countdown
+        execution = st.session_state.execution
+        if execution["auto_redirect_enabled"] and not execution["redirect_cancelled"]:
+            # Initialize countdown if not started
+            if execution["redirect_countdown"] is None:
+                execution["redirect_countdown"] = 3
+                st.rerun()
+
+            countdown = execution["redirect_countdown"]
+
+            if countdown > 0:
+                # Show countdown with cancel option
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    st.info(
+                        f"🔄 Redirecting to Settings screen in {countdown} second{'s' if countdown > 1 else ''}..."
+                    )
+                with col2:
+                    if st.button("Cancel", key="cancel_redirect", use_container_width=True):
+                        execution["redirect_cancelled"] = True
+                        st.rerun()
+
+                # Decrement countdown
+                time.sleep(1)
+                execution["redirect_countdown"] -= 1
+                st.rerun()
+
+            else:
+                # Countdown finished, redirect
+                reset_execution_state()
+                st.session_state.current_phase = "settings"
+                st.rerun()
+        else:
+            # Auto-redirect disabled or cancelled
+            st.info(
+                "💡 Pipeline execution completed. View results in Settings screen or run again."
+            )
 
     elif status == "failed":
         # Display error UI with step-level detection
@@ -1014,10 +1096,3 @@ def show_execution_screen():
         display_step_status("correction", "Correction", 4)
 
         st.markdown("---")
-
-    # Navigation button (always available)
-    st.markdown("---")
-    if st.button("⬅️ Back to Settings", use_container_width=False):
-        reset_execution_state()
-        st.session_state.current_phase = "settings"
-        st.rerun()
