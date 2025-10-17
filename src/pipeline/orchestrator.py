@@ -14,6 +14,36 @@ Pipeline Steps:
     3. Validation - Dual validation (schema + conditional LLM semantic)
     4. Correction - Fix issues identified during validation
 
+Public APIs:
+    - run_single_step(): Execute individual pipeline steps with dependency validation
+      Enables step-by-step execution with UI updates between steps.
+
+    - run_four_step_pipeline(): Execute all four steps sequentially (legacy API)
+      Runs the complete pipeline in one call without intermediate updates.
+
+Step-by-Step Execution Example:
+    >>> from pathlib import Path
+    >>> from src.pipeline.orchestrator import run_single_step
+    >>> from src.pipeline.file_manager import PipelineFileManager
+    >>>
+    >>> pdf_path = Path("paper.pdf")
+    >>> fm = PipelineFileManager(pdf_path)
+    >>>
+    >>> # Step 1: Classification
+    >>> result1 = run_single_step("classification", pdf_path, None, "openai", fm)
+    >>>
+    >>> # Step 2: Extraction (requires classification)
+    >>> result2 = run_single_step(
+    ...     "extraction", pdf_path, None, "openai", fm,
+    ...     previous_results={"classification": result1}
+    ... )
+    >>>
+    >>> # Step 3: Validation (requires classification + extraction)
+    >>> result3 = run_single_step(
+    ...     "validation", pdf_path, None, "openai", fm,
+    ...     previous_results={"classification": result1, "extraction": result2}
+    ... )
+
 PDF Upload Strategy:
     All LLM steps use direct PDF upload (no text extraction) to preserve:
     - Tables and figures (critical for medical research data)
@@ -537,6 +567,177 @@ def _run_classification_step(
             {"error": str(e), "error_type": type(e).__name__, "elapsed_seconds": elapsed},
         )
         raise
+
+
+def run_single_step(
+    step_name: str,
+    pdf_path: Path,
+    max_pages: int | None,
+    llm_provider: str,
+    file_manager: PipelineFileManager,
+    progress_callback: Callable[[str, str, dict], None] | None = None,
+    previous_results: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """
+    Execute a single pipeline step with dependency validation.
+
+    This is the public API for step-by-step pipeline execution. It enables
+    running individual steps independently with UI updates between steps,
+    supporting iterative workflows and better user feedback.
+
+    Args:
+        step_name: Step to execute ("classification", "extraction", "validation", "correction")
+        pdf_path: Path to PDF file to process
+        max_pages: Maximum pages to process (None = all pages)
+        llm_provider: LLM provider name ("openai" or "claude")
+        file_manager: File manager for saving step results
+        progress_callback: Optional callback for progress updates (step_name, status, data)
+        previous_results: Results from previous steps (required for dependent steps)
+
+    Returns:
+        Dictionary containing step result. Key depends on step:
+        - classification: {"publication_type": str, "metadata": dict, ...}
+        - extraction: {"data": dict, ...}
+        - validation: {"verification_summary": dict, ...}
+        - correction: {"corrected_extraction": dict, "final_validation": dict}
+
+    Raises:
+        ValueError: If step_name is invalid
+        ValueError: If required dependencies are missing from previous_results
+        PromptLoadError: If prompt file cannot be loaded
+        SchemaLoadError: If schema file cannot be loaded
+        LLMError: If LLM API call fails
+        RuntimeError: If LLM support is not available
+
+    Example:
+        >>> # Step 1: Classification (no dependencies)
+        >>> fm = PipelineFileManager(pdf_path)
+        >>> result1 = run_single_step(
+        ...     "classification",
+        ...     pdf_path,
+        ...     max_pages=10,
+        ...     llm_provider="openai",
+        ...     file_manager=fm,
+        ... )
+        >>> # Step 2: Extraction (requires classification)
+        >>> result2 = run_single_step(
+        ...     "extraction",
+        ...     pdf_path,
+        ...     max_pages=10,
+        ...     llm_provider="openai",
+        ...     file_manager=fm,
+        ...     previous_results={"classification": result1},
+        ... )
+    """
+    # Validate step name
+    valid_steps = ["classification", "extraction", "validation", "correction"]
+    if step_name not in valid_steps:
+        raise ValueError(
+            f"Invalid step_name '{step_name}'. Must be one of: {', '.join(valid_steps)}"
+        )
+
+    # Initialize previous_results if not provided
+    if previous_results is None:
+        previous_results = {}
+
+    # Validate dependencies based on step
+    if step_name == "extraction":
+        if "classification" not in previous_results:
+            raise ValueError("Extraction step requires classification result in previous_results")
+
+    elif step_name == "validation":
+        if "classification" not in previous_results:
+            raise ValueError("Validation step requires classification result in previous_results")
+        if "extraction" not in previous_results:
+            raise ValueError("Validation step requires extraction result in previous_results")
+
+    elif step_name == "correction":
+        if "classification" not in previous_results:
+            raise ValueError("Correction step requires classification result in previous_results")
+        if "extraction" not in previous_results:
+            raise ValueError("Correction step requires extraction result in previous_results")
+        if "validation" not in previous_results:
+            raise ValueError("Correction step requires validation result in previous_results")
+
+        # Check if correction is actually needed
+        validation_result = previous_results["validation"]
+        validation_status = validation_result.get("verification_summary", {}).get("overall_status")
+        if validation_status == "passed":
+            raise ValueError(
+                "Correction step not needed - validation passed. "
+                "Only run correction when validation status is not 'passed'."
+            )
+
+    # Check LLM support availability
+    try:
+        from ..llm import get_llm_provider
+
+        have_llm_support = True
+    except ImportError:
+        have_llm_support = False
+
+    # Dispatch to appropriate step function
+    if step_name == "classification":
+        return _run_classification_step(
+            pdf_path=pdf_path,
+            max_pages=max_pages,
+            llm_provider=llm_provider,
+            file_manager=file_manager,
+            progress_callback=progress_callback,
+            have_llm_support=have_llm_support,
+        )
+
+    elif step_name == "extraction":
+        classification_result = previous_results["classification"]
+        llm = get_llm_provider(llm_provider)
+
+        return _run_extraction_step(
+            pdf_path=pdf_path,
+            max_pages=max_pages,
+            classification_result=classification_result,
+            llm=llm,
+            file_manager=file_manager,
+            progress_callback=progress_callback,
+        )
+
+    elif step_name == "validation":
+        classification_result = previous_results["classification"]
+        extraction_result = previous_results["extraction"]
+        llm = get_llm_provider(llm_provider)
+
+        return _run_validation_step(
+            extraction_result=extraction_result,
+            pdf_path=pdf_path,
+            max_pages=max_pages,
+            classification_result=classification_result,
+            llm=llm,
+            file_manager=file_manager,
+            progress_callback=progress_callback,
+        )
+
+    elif step_name == "correction":
+        classification_result = previous_results["classification"]
+        extraction_result = previous_results["extraction"]
+        validation_result = previous_results["validation"]
+        publication_type = classification_result.get("publication_type")
+        llm = get_llm_provider(llm_provider)
+
+        corrected_extraction, final_validation = _run_correction_step(
+            extraction_result=extraction_result,
+            validation_result=validation_result,
+            pdf_path=pdf_path,
+            max_pages=max_pages,
+            publication_type=publication_type,
+            llm=llm,
+            file_manager=file_manager,
+            progress_callback=progress_callback,
+        )
+
+        # Return both corrected extraction and final validation
+        return {
+            "extraction_corrected": corrected_extraction,
+            "validation_corrected": final_validation,
+        }
 
 
 def run_four_step_pipeline(

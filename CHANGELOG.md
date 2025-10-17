@@ -24,6 +24,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Improved user experience with immediate, accurate step status feedback
 
 ### Added
+- **Orchestrator Modular Architecture** - Refactored monolithic pipeline into modular, testable functions
+  - Extracted `_run_classification_step()` private function (110 lines)
+  - Extracted `_run_extraction_step()` private function (98 lines)
+  - Extracted `_run_validation_step()` private function (66 lines)
+  - Extracted `_run_correction_step()` private function (125 lines)
+  - Added `run_single_step()` public API for step-by-step execution with dependency validation
+  - Updated module docstring with API documentation and usage examples
+  - Reduced `run_four_step_pipeline()` from 547 to ~180 lines
+  - Enables future step-by-step UI updates in Streamlit with reruns between steps
+  - Maintains 100% backwards compatibility with existing CLI and API usage
+
 - **Streamlit Execution Screen** - Real-time pipeline execution UI with progress tracking
   - Live progress updates per step via callbacks (Classification → Extraction → Validation → Correction)
   - Session state management with rerun prevention (prevents pipeline restart on UI interactions)
