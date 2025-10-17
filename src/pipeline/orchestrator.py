@@ -132,6 +132,118 @@ def _validate_step_dependencies(steps_to_run: list[str]) -> None:
         raise ValueError("Extraction step requires classification step")
 
 
+def _run_classification_step(
+    pdf_path: Path,
+    max_pages: int | None,
+    llm_provider: str,
+    file_manager: PipelineFileManager,
+    progress_callback: Callable[[str, str, dict], None] | None,
+    have_llm_support: bool,
+) -> dict[str, Any]:
+    """
+    Run classification step of the pipeline.
+
+    Identifies publication type and extracts metadata from PDF using LLM.
+
+    Args:
+        pdf_path: Path to PDF file to process
+        max_pages: Maximum pages to process (None = all pages)
+        llm_provider: LLM provider name ("openai" or "claude")
+        file_manager: File manager for saving results
+        progress_callback: Optional callback for progress updates
+        have_llm_support: Whether LLM modules are available
+
+    Returns:
+        Classification result dictionary with keys:
+        - publication_type: str
+        - metadata: dict
+
+    Raises:
+        RuntimeError: If LLM support not available
+        LLMError: If LLM API call fails
+        SchemaLoadError: If classification schema cannot be loaded
+        PromptLoadError: If classification prompt cannot be loaded
+
+    Example:
+        >>> file_mgr = PipelineFileManager(Path("paper.pdf"))
+        >>> result = _run_classification_step(
+        ...     pdf_path=Path("paper.pdf"),
+        ...     max_pages=20,
+        ...     llm_provider="openai",
+        ...     file_manager=file_mgr,
+        ...     progress_callback=None,
+        ...     have_llm_support=True
+        ... )
+        >>> result["publication_type"]
+        'interventional_trial'
+    """
+    console.print("[bold cyan]📋 Stap 1: Classificatie[/bold cyan]")
+
+    if not have_llm_support:
+        console.print("[red]❌ LLM support niet beschikbaar[/red]")
+        raise RuntimeError(
+            "LLM support is required for pipeline execution. "
+            "Please install required dependencies: pip install openai anthropic"
+        )
+
+    # Start classification with callback
+    start_time = time.time()
+    _call_progress_callback(
+        progress_callback,
+        "classification",
+        "starting",
+        {"pdf_path": str(pdf_path), "max_pages": max_pages},
+    )
+
+    try:
+        # Load classification prompt and schema
+        classification_prompt = load_classification_prompt()
+        classification_schema = load_schema("classification")
+
+        # Get LLM provider
+        llm = get_llm_provider(llm_provider)
+
+        # Run classification with direct PDF upload
+        console.print("[dim]Uploading PDF for classification...[/dim]")
+        classification_result = llm.generate_json_with_pdf(
+            pdf_path=pdf_path,
+            schema=classification_schema,
+            system_prompt=classification_prompt,
+            max_pages=max_pages,
+            schema_name="classification",
+        )
+
+        # Save classification result
+        classification_file = file_manager.save_json(classification_result, "classification")
+        console.print(f"[green]✅ Classificatie opgeslagen: {classification_file}[/green]")
+
+        # Classification completed successfully
+        elapsed = time.time() - start_time
+        _call_progress_callback(
+            progress_callback,
+            "classification",
+            "completed",
+            {
+                "result": classification_result,
+                "elapsed_seconds": elapsed,
+                "file_path": str(classification_file),
+            },
+        )
+
+        return classification_result
+
+    except (PromptLoadError, LLMError, SchemaLoadError) as e:
+        elapsed = time.time() - start_time
+        console.print(f"[red]❌ Classificatie fout: {e}[/red]")
+        _call_progress_callback(
+            progress_callback,
+            "classification",
+            "failed",
+            {"error": str(e), "error_type": type(e).__name__, "elapsed_seconds": elapsed},
+        )
+        raise
+
+
 def run_four_step_pipeline(
     pdf_path: Path,
     max_pages: int | None = None,
@@ -216,8 +328,6 @@ def run_four_step_pipeline(
         _validate_step_dependencies(steps_to_run)
 
     # STEP 1: CLASSIFICATION
-    console.print("[bold cyan]📋 Stap 1: Classificatie[/bold cyan]")
-
     # Check if classification should be skipped
     if not _should_run_step("classification", steps_to_run):
         _call_progress_callback(progress_callback, "classification", "skipped", {})
@@ -225,68 +335,16 @@ def run_four_step_pipeline(
         # Classification is required for all other steps - cannot skip
         raise RuntimeError("Classification cannot be skipped - required for all other steps")
 
-    if not have_llm_support:
-        console.print("[red]❌ LLM support niet beschikbaar[/red]")
-        raise RuntimeError(
-            "LLM support is required for pipeline execution. "
-            "Please install required dependencies: pip install openai anthropic"
-        )
-
-    # Start classification with callback
-    start_time = time.time()
-    _call_progress_callback(
-        progress_callback,
-        "classification",
-        "starting",
-        {"pdf_path": str(pdf_path), "max_pages": max_pages},
+    # Run classification step
+    classification_result = _run_classification_step(
+        pdf_path=pdf_path,
+        max_pages=max_pages,
+        llm_provider=llm_provider,
+        file_manager=file_manager,
+        progress_callback=progress_callback,
+        have_llm_support=have_llm_support,
     )
-
-    try:
-        # Load classification prompt and schema
-        classification_prompt = load_classification_prompt()
-        classification_schema = load_schema("classification")
-
-        # Get LLM provider
-        llm = get_llm_provider(llm_provider)
-
-        # Run classification with direct PDF upload
-        console.print("[dim]Uploading PDF for classification...[/dim]")
-        classification_result = llm.generate_json_with_pdf(
-            pdf_path=pdf_path,
-            schema=classification_schema,
-            system_prompt=classification_prompt,
-            max_pages=max_pages,
-            schema_name="classification",
-        )
-
-        # Save classification result
-        classification_file = file_manager.save_json(classification_result, "classification")
-        console.print(f"[green]✅ Classificatie opgeslagen: {classification_file}[/green]")
-        results["classification"] = classification_result
-
-        # Classification completed successfully
-        elapsed = time.time() - start_time
-        _call_progress_callback(
-            progress_callback,
-            "classification",
-            "completed",
-            {
-                "result": classification_result,
-                "elapsed_seconds": elapsed,
-                "file_path": str(classification_file),
-            },
-        )
-
-    except (PromptLoadError, LLMError, SchemaLoadError) as e:
-        elapsed = time.time() - start_time
-        console.print(f"[red]❌ Classificatie fout: {e}[/red]")
-        _call_progress_callback(
-            progress_callback,
-            "classification",
-            "failed",
-            {"error": str(e), "error_type": type(e).__name__, "elapsed_seconds": elapsed},
-        )
-        raise
+    results["classification"] = classification_result
 
     # Check for breakpoint after classification
     if check_breakpoint("classification", results, file_manager, breakpoint_after_step):
@@ -298,6 +356,9 @@ def run_four_step_pipeline(
             "geen gespecialiseerde extractie beschikbaar[/yellow]"
         )
         return results
+
+    # Get LLM provider for remaining steps
+    llm = get_llm_provider(llm_provider)
 
     # STEP 2: EXTRACTION
     console.print("[bold cyan]📊 Stap 2: Data Extractie (Schema-based)[/bold cyan]")
