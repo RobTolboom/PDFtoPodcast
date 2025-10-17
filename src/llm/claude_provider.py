@@ -243,6 +243,20 @@ class ClaudeProvider(BaseLLMProvider):
                     "Schema guidance was provided to LLM but compliance is not guaranteed."
                 )
 
+            # Add usage information to result if available
+            if hasattr(response, "usage"):
+                usage = response.usage
+                usage_dict = {
+                    "input_tokens": getattr(usage, "input_tokens", None),
+                    "output_tokens": getattr(usage, "output_tokens", None),
+                }
+                # Calculate total tokens
+                if usage_dict["input_tokens"] and usage_dict["output_tokens"]:
+                    usage_dict["total_tokens"] = (
+                        usage_dict["input_tokens"] + usage_dict["output_tokens"]
+                    )
+                result["usage"] = usage_dict
+
             return result
 
         except anthropic.AnthropicError as e:
@@ -358,6 +372,20 @@ class ClaudeProvider(BaseLLMProvider):
                     "jsonschema library not available - skipping schema validation. "
                     "Schema guidance was provided to LLM but compliance is not guaranteed."
                 )
+
+            # Add usage information to result if available
+            if hasattr(response, "usage"):
+                usage = response.usage
+                usage_dict = {
+                    "input_tokens": getattr(usage, "input_tokens", None),
+                    "output_tokens": getattr(usage, "output_tokens", None),
+                }
+                # Calculate total tokens
+                if usage_dict["input_tokens"] and usage_dict["output_tokens"]:
+                    usage_dict["total_tokens"] = (
+                        usage_dict["input_tokens"] + usage_dict["output_tokens"]
+                    )
+                result["usage"] = usage_dict
 
             return result
 
