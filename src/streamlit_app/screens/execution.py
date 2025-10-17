@@ -957,6 +957,15 @@ def show_execution_screen():
         # EXECUTE PIPELINE EXACTLY ONCE
         st.info("⏳ Pipeline is executing... Please wait.")
 
+        # Display step status containers BEFORE execution
+        # This allows user to see which steps are configured and their progress
+        st.markdown("---")
+        st.markdown("### Pipeline Steps")
+        display_step_status("classification", "Classification", 1)
+        display_step_status("extraction", "Extraction", 2)
+        display_step_status("validation", "Validation", 3)
+        display_step_status("correction", "Correction", 4)
+
         try:
             # Create progress callback for real-time UI updates
             callback = create_progress_callback()
