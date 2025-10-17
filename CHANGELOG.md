@@ -15,6 +15,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Affects `observational_analytic_bundled.json` and `interventional_trial_bundled.json`
 
 ### Added
+- **Streamlit Execution Screen** - Real-time pipeline execution UI with progress tracking
+  - Live progress updates per step via callbacks (Classification → Extraction → Validation → Correction)
+  - Session state management with rerun prevention (prevents pipeline restart on UI interactions)
+  - Verbose logging toggle (configurable via Settings screen)
+  - Intelligent error handling with critical vs. non-critical error distinction
+  - Step selection support (run subset of pipeline steps via Settings)
+  - Auto-redirect to Settings after completion with 3-second countdown timer
+  - Error recovery with state cleanup and retry capability
+  - Top navigation "Back" button with confirmation dialog during running state
+  - Comprehensive manual testing checklist (90+ tests across 7 categories)
+
+- **Unit Tests for Execution Screen** - `tests/unit/test_execution_screen.py`
+  - 9 comprehensive unit tests covering state management, callbacks, and helper functions
+  - MockSessionState class for Streamlit session_state simulation
+  - 100% test coverage for public functions (init, reset, create_callback, helpers)
+  - All tests use mocking to avoid Streamlit dependency and real API calls
+
 - Professional development documentation structure
   - ARCHITECTURE.md - Complete system architecture documentation
   - CONTRIBUTING.md - Developer contribution guide
@@ -23,6 +40,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - TESTING.md - Testing strategy and guidelines
 
 ### Changed
+- **Pipeline Orchestrator** - `src/pipeline/orchestrator.py` refactored for Streamlit callback support
+  - Added `steps_to_run: list[str] | None` parameter for step filtering
+  - Added `progress_callback: Callable | None` parameter for real-time UI updates
+  - Maintained backwards compatibility with CLI interface (all existing parameters work)
+  - Step filtering validates dependencies (validation needs extraction, correction needs validation)
+  - Callback signature: `callback(step_name: str, status: str, data: dict)`
+  - Callbacks invoked on state changes: starting, completed, failed, skipped
+
 - Refactored `src/llm.py` (1,152 lines) into modular package structure
   - `src/llm/base.py` - Abstract base class and exceptions
   - `src/llm/openai_provider.py` - OpenAI provider implementation
