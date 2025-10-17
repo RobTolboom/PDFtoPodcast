@@ -777,13 +777,10 @@ def display_step_status(step_name: str, step_label: str, step_number: int):
     icon = icons.get(status, "❓")
     label = f"Step {step_number}: {step_label}"
 
-    # Calculate elapsed time
+    # Calculate elapsed time (only for completed/failed steps)
     elapsed_text = ""
     if step["elapsed_seconds"] is not None:
         elapsed = step["elapsed_seconds"]
-        elapsed_text = f" • {elapsed:.1f}s"
-    elif status == "running" and step["start_time"] is not None:
-        elapsed = (datetime.now() - step["start_time"]).total_seconds()
         elapsed_text = f" • {elapsed:.1f}s"
 
     # Status container configuration
@@ -792,8 +789,8 @@ def display_step_status(step_name: str, step_label: str, step_number: int):
         st.markdown(f"{icon} **{label}** - Not yet started")
 
     elif status == "running":
-        # Auto-expanded for running
-        with st.status(f"{icon} {label} - Running{elapsed_text}", expanded=True):
+        # Auto-expanded for running (no elapsed time - it's static during execution)
+        with st.status(f"{icon} {label} - Running", expanded=True):
             st.write(f"⏰ **Started:** {step['start_time'].strftime('%H:%M:%S')}")
             st.write("⚙️ Executing pipeline step...")
 
