@@ -112,3 +112,34 @@ class PipelineFileManager:
         with open(filepath, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
         return filepath
+
+    def load_json(self, step: str, status: str = "") -> dict[str, Any] | None:
+        """
+        Load JSON data from file if it exists.
+
+        Args:
+            step: Pipeline step name
+            status: Optional status suffix
+
+        Returns:
+            Dictionary with loaded data, or None if file doesn't exist
+
+        Example:
+            >>> manager = PipelineFileManager(Path("paper.pdf"))
+            >>> # Save data first
+            >>> manager.save_json({"type": "trial"}, "classification")
+            PosixPath('tmp/paper-classification.json')
+            >>> # Load it back
+            >>> result = manager.load_json("classification")
+            >>> result["type"]
+            'trial'
+            >>> # Non-existent file returns None
+            >>> manager.load_json("nonexistent")
+            None
+        """
+        filepath = self.get_filename(step, status)
+        if not filepath.exists():
+            return None
+
+        with open(filepath, encoding="utf-8") as f:
+            return json.load(f)

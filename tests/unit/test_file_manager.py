@@ -133,3 +133,76 @@ class TestPipelineFileManager:
 
         assert manager.identifier == "my_document"
         assert manager.identifier == manager.pdf_stem
+
+    def test_load_json_returns_data_when_file_exists(self, tmp_path):
+        """Test that load_json returns data when file exists."""
+        pdf_path = tmp_path / "test.pdf"
+        pdf_path.touch()
+
+        manager = PipelineFileManager(pdf_path)
+        manager.tmp_dir = tmp_path
+
+        # Save data first
+        data = {"publication_type": "interventional_trial", "doi": "10.1234/test"}
+        manager.save_json(data, "classification")
+
+        # Load it back
+        loaded_data = manager.load_json("classification")
+
+        assert loaded_data is not None
+        assert loaded_data == data
+
+    def test_load_json_returns_none_when_file_not_exists(self, tmp_path):
+        """Test that load_json returns None when file doesn't exist."""
+        pdf_path = tmp_path / "test.pdf"
+        pdf_path.touch()
+
+        manager = PipelineFileManager(pdf_path)
+        manager.tmp_dir = tmp_path
+
+        # Try to load non-existent file
+        result = manager.load_json("nonexistent_step")
+
+        assert result is None
+
+    def test_load_json_with_status_suffix(self, tmp_path):
+        """Test that load_json works with status suffix."""
+        pdf_path = tmp_path / "test.pdf"
+        pdf_path.touch()
+
+        manager = PipelineFileManager(pdf_path)
+        manager.tmp_dir = tmp_path
+
+        # Save data with status
+        data = {"corrected": True, "validation_passed": True}
+        manager.save_json(data, "extraction", "corrected")
+
+        # Load it back with status
+        loaded_data = manager.load_json("extraction", "corrected")
+
+        assert loaded_data is not None
+        assert loaded_data["corrected"] is True
+
+    def test_load_json_save_and_load_roundtrip(self, tmp_path):
+        """Test complete save and load roundtrip using load_json method."""
+        pdf_path = tmp_path / "paper.pdf"
+        pdf_path.touch()
+
+        manager = PipelineFileManager(pdf_path)
+        manager.tmp_dir = tmp_path
+
+        # Save complex data
+        data = {
+            "is_valid": True,
+            "quality_score": 0.95,
+            "errors": [],
+            "nested": {"field": "value"},
+        }
+        manager.save_json(data, "validation")
+
+        # Load using load_json method
+        loaded = manager.load_json("validation")
+
+        assert loaded == data
+        assert loaded["quality_score"] == 0.95
+        assert loaded["nested"]["field"] == "value"

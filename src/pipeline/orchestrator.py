@@ -640,27 +640,56 @@ def run_single_step(
     if previous_results is None:
         previous_results = {}
 
-    # Validate dependencies based on step
+    # Helper function to get result (from previous_results or load from disk)
+    def _get_or_load_result(dep_step: str) -> dict[str, Any]:
+        """
+        Try to get step result from previous_results first, then load from disk.
+
+        Args:
+            dep_step: Dependency step name to load
+
+        Returns:
+            Result dictionary from step
+
+        Raises:
+            ValueError: If result not found in memory or on disk
+        """
+        # Check if result already in previous_results (current run)
+        if dep_step in previous_results:
+            return previous_results[dep_step]
+
+        # Try loading from disk (previous run)
+        result = file_manager.load_json(dep_step)
+        if result is None:
+            raise ValueError(
+                f"{dep_step.title()} step result not found. "
+                f"Please run {dep_step} step first or ensure "
+                f"tmp/{file_manager.identifier}-{dep_step}.json exists."
+            )
+
+        console.print(f"[yellow]📂 Loaded {dep_step} result from disk[/yellow]")
+        return result
+
+    # Validate dependencies based on step and load if needed
     if step_name == "extraction":
-        if "classification" not in previous_results:
-            raise ValueError("Extraction step requires classification result in previous_results")
+        classification_result = _get_or_load_result("classification")
+        previous_results["classification"] = classification_result  # Cache in memory
 
     elif step_name == "validation":
-        if "classification" not in previous_results:
-            raise ValueError("Validation step requires classification result in previous_results")
-        if "extraction" not in previous_results:
-            raise ValueError("Validation step requires extraction result in previous_results")
+        classification_result = _get_or_load_result("classification")
+        extraction_result = _get_or_load_result("extraction")
+        previous_results["classification"] = classification_result
+        previous_results["extraction"] = extraction_result
 
     elif step_name == "correction":
-        if "classification" not in previous_results:
-            raise ValueError("Correction step requires classification result in previous_results")
-        if "extraction" not in previous_results:
-            raise ValueError("Correction step requires extraction result in previous_results")
-        if "validation" not in previous_results:
-            raise ValueError("Correction step requires validation result in previous_results")
+        classification_result = _get_or_load_result("classification")
+        extraction_result = _get_or_load_result("extraction")
+        validation_result = _get_or_load_result("validation")
+        previous_results["classification"] = classification_result
+        previous_results["extraction"] = extraction_result
+        previous_results["validation"] = validation_result
 
         # Check if correction is actually needed
-        validation_result = previous_results["validation"]
         validation_status = validation_result.get("verification_summary", {}).get("overall_status")
         if validation_status == "passed":
             raise ValueError(
