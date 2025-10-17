@@ -186,6 +186,41 @@ def reset_execution_state():
     }
 
 
+def _mark_next_step_running(current_step: str):
+    """
+    Mark the next step in steps_to_run as 'running' after current step completes.
+
+    This provides proactive UI updates for better UX within Streamlit's constraints.
+    When a step completes, the next step is immediately marked as running so that
+    on the next UI refresh, users see the correct status.
+
+    Args:
+        current_step: Name of the step that just completed/failed
+
+    Example:
+        >>> # After classification completes:
+        >>> _mark_next_step_running("classification")
+        >>> # If extraction is next, it's now marked as "running"
+    """
+    # Get configured steps from settings
+    steps_to_run = st.session_state.settings.get("steps_to_run", [])
+
+    # Find current step index in the configured list
+    if current_step not in steps_to_run:
+        return  # Current step not in list, nothing to do
+
+    current_index = steps_to_run.index(current_step)
+
+    # Find next step in the configured list
+    if current_index + 1 < len(steps_to_run):
+        next_step = steps_to_run[current_index + 1]
+
+        # Only mark as running if it's still pending (not already processed)
+        if st.session_state.step_status[next_step]["status"] == "pending":
+            st.session_state.step_status[next_step]["status"] = "running"
+            st.session_state.step_status[next_step]["start_time"] = datetime.now()
+
+
 def create_progress_callback() -> Callable[[str, str, dict], None]:
     """
     Create progress callback that updates Streamlit session state during pipeline execution.
@@ -270,12 +305,19 @@ def create_progress_callback() -> Callable[[str, str, dict], None]:
             if "file_path" in data:
                 step["file_path"] = data["file_path"]
 
+            # Proactively mark next step as running for better UX
+            _mark_next_step_running(step_name)
+
         elif status == "failed":
             # Step failed with error
             step["status"] = "failed"
             step["end_time"] = datetime.now()
             step["elapsed_seconds"] = data.get("elapsed_seconds")
             step["error"] = data.get("error", "Unknown error")
+
+            # Proactively mark next step as running if pipeline continues
+            # (Note: orchestrator decides if pipeline continues after failure)
+            _mark_next_step_running(step_name)
 
         elif status == "skipped":
             # Step was skipped (not in steps_to_run or not needed)
@@ -957,6 +999,23 @@ def show_execution_screen():
         # EXECUTE PIPELINE EXACTLY ONCE
         st.info("⏳ Pipeline is executing... Please wait.")
 
+        # Extract settings
+        settings = st.session_state.settings
+        steps_to_run = settings["steps_to_run"]
+        all_steps = ["classification", "extraction", "validation", "correction"]
+
+        # Proactively set step statuses for better UX
+        # Mark non-selected steps as skipped immediately
+        for step in all_steps:
+            if step not in steps_to_run:
+                st.session_state.step_status[step]["status"] = "skipped"
+
+        # Mark first selected step as running
+        if steps_to_run:
+            first_step = steps_to_run[0]
+            st.session_state.step_status[first_step]["status"] = "running"
+            st.session_state.step_status[first_step]["start_time"] = datetime.now()
+
         # Display step status containers BEFORE execution
         # This allows user to see which steps are configured and their progress
         st.markdown("---")
@@ -970,8 +1029,6 @@ def show_execution_screen():
             # Create progress callback for real-time UI updates
             callback = create_progress_callback()
 
-            # Extract settings
-            settings = st.session_state.settings
             pdf_path = Path(st.session_state.pdf_path)
 
             # Call orchestrator with callbacks

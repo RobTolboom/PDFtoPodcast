@@ -186,6 +186,9 @@ class TestProgressCallback:
         start_time = datetime.now()
         mock_st.session_state = MockSessionState(
             {
+                "settings": {
+                    "steps_to_run": ["classification", "extraction"],
+                },
                 "step_status": {
                     "classification": {
                         "status": "running",
@@ -195,8 +198,17 @@ class TestProgressCallback:
                         "error": None,
                         "elapsed_seconds": None,
                         "verbose_data": {},
-                    }
-                }
+                    },
+                    "extraction": {
+                        "status": "pending",
+                        "start_time": None,
+                        "end_time": None,
+                        "result": None,
+                        "error": None,
+                        "elapsed_seconds": None,
+                        "verbose_data": {},
+                    },
+                },
             }
         )
 
@@ -222,6 +234,12 @@ class TestProgressCallback:
         assert step["file_path"] == "tmp/test-classification.json"
         assert "completed" in step["verbose_data"]
 
+        # Assert: Next step (extraction) marked as running
+        next_step = mock_st.session_state["step_status"]["extraction"]
+        assert next_step["status"] == "running"
+        assert next_step["start_time"] is not None
+        assert isinstance(next_step["start_time"], datetime)
+
     @patch("src.streamlit_app.screens.execution.st")
     def test_progress_callback_failed(self, mock_st):
         """Test callback updates step to 'failed' status on 'failed' event."""
@@ -229,6 +247,9 @@ class TestProgressCallback:
         start_time = datetime.now()
         mock_st.session_state = MockSessionState(
             {
+                "settings": {
+                    "steps_to_run": ["classification"],
+                },
                 "step_status": {
                     "classification": {
                         "status": "running",
@@ -239,7 +260,7 @@ class TestProgressCallback:
                         "elapsed_seconds": None,
                         "verbose_data": {},
                     }
-                }
+                },
             }
         )
 
