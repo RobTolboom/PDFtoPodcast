@@ -179,6 +179,74 @@ def _run_extraction_step(
         raise
 
 
+def _run_validation_step(
+    extraction_result: dict[str, Any],
+    pdf_path: Path,
+    max_pages: int | None,
+    classification_result: dict[str, Any],
+    llm: Any,
+    file_manager: PipelineFileManager,
+    progress_callback: Callable[[str, str, dict], None] | None,
+) -> dict[str, Any]:
+    """
+    Run validation step of the pipeline.
+
+    Performs dual validation (schema + conditional LLM semantic) on the
+    extracted data to identify quality issues and errors.
+
+    Args:
+        extraction_result: Result from extraction step to validate
+        pdf_path: Path to original PDF file for LLM validation
+        max_pages: Maximum number of pages to process (None = all pages)
+        classification_result: Result from classification step containing publication_type
+        llm: LLM provider instance (from get_llm_provider)
+        file_manager: PipelineFileManager for saving results
+        progress_callback: Optional callback for progress updates
+
+    Returns:
+        Dictionary containing validation results with verification_summary
+
+    Raises:
+        LLMError: If LLM API call fails during semantic validation
+    """
+    console.print("[bold cyan]🔍 Stap 3: Validatie (Schema + LLM)[/bold cyan]")
+
+    start_time = time.time()
+    _call_progress_callback(progress_callback, "validation", "starting", {})
+
+    # Run dual validation (schema + conditional LLM)
+    publication_type = classification_result.get("publication_type")
+    validation_result = run_dual_validation(
+        extraction_result=extraction_result,
+        pdf_path=pdf_path,
+        max_pages=max_pages,
+        publication_type=publication_type,
+        llm=llm,
+        console=console,
+    )
+
+    validation_file = file_manager.save_json(validation_result, "validation")
+    console.print(f"[green]✅ Validatie opgeslagen: {validation_file}[/green]")
+
+    # Validation completed
+    elapsed = time.time() - start_time
+    _call_progress_callback(
+        progress_callback,
+        "validation",
+        "completed",
+        {
+            "result": validation_result,
+            "elapsed_seconds": elapsed,
+            "file_path": str(validation_file),
+            "validation_status": validation_result.get("verification_summary", {}).get(
+                "overall_status"
+            ),
+        },
+    )
+
+    return validation_result
+
+
 def _should_run_step(step_name: str, steps_to_run: list[str] | None) -> bool:
     """
     Check if step should be executed based on steps_to_run filter.
@@ -483,48 +551,23 @@ def run_four_step_pipeline(
         return results
 
     # STEP 3: VALIDATION
-    console.print("[bold cyan]🔍 Stap 3: Validatie (Schema + LLM)[/bold cyan]")
-
     # Check if validation should be skipped
     if not _should_run_step("validation", steps_to_run):
         _call_progress_callback(progress_callback, "validation", "skipped", {})
         console.print("[yellow]⏭️  Validation skipped (not in steps_to_run)[/yellow]")
         return results
 
-    # Start validation with callback
-    start_time = time.time()
-    _call_progress_callback(progress_callback, "validation", "starting", {})
-
-    # Run dual validation (schema + conditional LLM)
-    publication_type = classification_result.get("publication_type")
-    validation_result = run_dual_validation(
+    # Run validation step
+    validation_result = _run_validation_step(
         extraction_result=extraction_result,
         pdf_path=pdf_path,
         max_pages=max_pages,
-        publication_type=publication_type,
+        classification_result=classification_result,
         llm=llm,
-        console=console,
+        file_manager=file_manager,
+        progress_callback=progress_callback,
     )
-
-    validation_file = file_manager.save_json(validation_result, "validation")
-    console.print(f"[green]✅ Validatie opgeslagen: {validation_file}[/green]")
     results["validation"] = validation_result
-
-    # Validation completed
-    elapsed = time.time() - start_time
-    _call_progress_callback(
-        progress_callback,
-        "validation",
-        "completed",
-        {
-            "result": validation_result,
-            "elapsed_seconds": elapsed,
-            "file_path": str(validation_file),
-            "validation_status": validation_result.get("verification_summary", {}).get(
-                "overall_status"
-            ),
-        },
-    )
 
     # Check for breakpoint after validation
     if check_breakpoint("validation", results, file_manager, breakpoint_after_step):
@@ -532,6 +575,7 @@ def run_four_step_pipeline(
 
     # STEP 4: CORRECTION (conditional)
     validation_status = validation_result.get("verification_summary", {}).get("overall_status")
+    publication_type = classification_result.get("publication_type")
 
     # Check if correction should be skipped
     if not _should_run_step("correction", steps_to_run):
