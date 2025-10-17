@@ -18,10 +18,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fixed step containers not showing during execution (only "⏳ Pipeline is executing..." was visible)
   - Fixed non-selected steps showing "pending" instead of "⏭️ Skipped"
   - Fixed first step showing "pending" instead of "🔄 Running" when pipeline starts
+  - Fixed all steps now show "🔄 Running" status immediately before execution begins (added `st.rerun()` after status update)
   - Removed static "0.0s" elapsed time from running status (shown only for completed/failed)
   - Implemented proactive status updates to work within Streamlit's execution model constraints
   - Added `_mark_next_step_running()` helper to auto-update next step after completion
   - Improved user experience with immediate, accurate step status feedback
+
+- **Partial Pipeline Runs** - Fixed "dependency not found" error when running individual steps
+  - Added `PipelineFileManager.load_json()` to load cached results from `tmp/` folder
+  - Enables running validation after classification+extraction (separate runs)
+  - Enables re-running correction without re-doing extraction
+  - Smart fallback: checks previous_results first, then loads from disk, then errors
+  - Console feedback (yellow 📂) when loading from disk
+  - Better error messages indicating missing dependency files
+  - Added 4 new unit tests (111 total tests passing)
 
 ### Changed
 - **Pipeline Execution Architecture** - Switched to step-by-step execution with real-time UI updates
@@ -62,6 +72,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - MockSessionState class for Streamlit session_state simulation
   - 100% test coverage for public functions (init, reset, create_callback, helpers)
   - All tests use mocking to avoid Streamlit dependency and real API calls
+
+- **Dual-Mode Execution Documentation** - Added comprehensive architecture documentation
+  - New section in ARCHITECTURE.md explaining Streamlit (step-by-step) vs CLI (batch) execution modes
+  - Documents state management patterns and rerun behavior
+  - Includes comparison table and code examples for both modes
+  - Explains DRY principle: single `run_single_step()` API used by both modes
+  - Architecture benefits: testability, maintainability, flexibility for future modes
 
 - Professional development documentation structure
   - ARCHITECTURE.md - Complete system architecture documentation
