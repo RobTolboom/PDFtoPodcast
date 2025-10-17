@@ -70,7 +70,8 @@ from pathlib import Path
 
 import streamlit as st
 
-from src.pipeline.orchestrator import run_four_step_pipeline
+from src.pipeline.file_manager import PipelineFileManager
+from src.pipeline.orchestrator import run_single_step
 
 
 def init_execution_state():
@@ -111,9 +112,10 @@ def init_execution_state():
             "end_time": None,
             "error": None,
             "results": None,
+            "current_step_index": 0,  # Index of current step being executed (0-3)
             "auto_redirect_enabled": True,  # Enable auto-redirect after completion
             "redirect_cancelled": False,  # User cancelled auto-redirect
-            "redirect_countdown": None,  # Countdown value (3, 2, 1, 0)
+            "redirect_countdown": None,  # Countdown value (30, 29, ..., 0)
         }
 
     # Initialize per-step tracking
@@ -167,6 +169,7 @@ def reset_execution_state():
         "end_time": None,
         "error": None,
         "results": None,
+        "current_step_index": 0,
         "auto_redirect_enabled": True,
         "redirect_cancelled": False,
         "redirect_countdown": None,
@@ -993,28 +996,26 @@ def show_execution_screen():
         st.rerun()
 
     elif status == "running":
-        # EXECUTE PIPELINE EXACTLY ONCE
+        # STEP-BY-STEP EXECUTION WITH UI UPDATES BETWEEN STEPS
         st.info("⏳ Pipeline is executing... Please wait.")
 
         # Extract settings
         settings = st.session_state.settings
         steps_to_run = settings["steps_to_run"]
         all_steps = ["classification", "extraction", "validation", "correction"]
+        current_step_index = st.session_state.execution["current_step_index"]
 
-        # Proactively set step statuses for better UX
-        # Mark non-selected steps as skipped immediately
-        for step in all_steps:
-            if step not in steps_to_run:
-                st.session_state.step_status[step]["status"] = "skipped"
+        # Initialize results dict if needed
+        if st.session_state.execution["results"] is None:
+            st.session_state.execution["results"] = {}
 
-        # Mark first selected step as running
-        if steps_to_run:
-            first_step = steps_to_run[0]
-            st.session_state.step_status[first_step]["status"] = "running"
-            st.session_state.step_status[first_step]["start_time"] = datetime.now()
+        # One-time setup: mark non-selected steps as skipped
+        if current_step_index == 0:
+            for step in all_steps:
+                if step not in steps_to_run:
+                    st.session_state.step_status[step]["status"] = "skipped"
 
-        # Display step status containers BEFORE execution
-        # This allows user to see which steps are configured and their progress
+        # Display step status containers - shows current progress
         st.markdown("---")
         st.markdown("### Pipeline Steps")
         display_step_status("classification", "Classification", 1)
@@ -1022,39 +1023,80 @@ def show_execution_screen():
         display_step_status("validation", "Validation", 3)
         display_step_status("correction", "Correction", 4)
 
+        # Check if all steps completed
+        if current_step_index >= len(steps_to_run):
+            # All steps completed successfully
+            st.session_state.execution["status"] = "completed"
+            st.session_state.execution["end_time"] = datetime.now()
+            st.rerun()
+            return
+
+        # Get current step to execute
+        current_step_name = steps_to_run[current_step_index]
+
+        # Mark current step as running (if not already)
+        if st.session_state.step_status[current_step_name]["status"] == "pending":
+            st.session_state.step_status[current_step_name]["status"] = "running"
+            st.session_state.step_status[current_step_name]["start_time"] = datetime.now()
+
         try:
-            # Create progress callback for real-time UI updates
+            # Create progress callback for real-time updates
             callback = create_progress_callback()
 
             pdf_path = Path(st.session_state.pdf_path)
+            file_manager = PipelineFileManager(pdf_path)
 
-            # Call orchestrator with callbacks
-            # Callback will update step_status in real-time during execution
-            results = run_four_step_pipeline(
+            # Execute current step with previous results
+            step_result = run_single_step(
+                step_name=current_step_name,
                 pdf_path=pdf_path,
                 max_pages=settings["max_pages"],
                 llm_provider=settings["llm_provider"],
-                steps_to_run=settings["steps_to_run"],
+                file_manager=file_manager,
                 progress_callback=callback,
-                have_llm_support=True,
+                previous_results=st.session_state.execution["results"],
             )
 
-            # Store results and mark as completed
-            st.session_state.execution["results"] = results
-            st.session_state.execution["status"] = "completed"
-            st.session_state.execution["end_time"] = datetime.now()
+            # Store step result
+            if current_step_name == "correction":
+                # Correction returns dict with both corrected_extraction and final_validation
+                st.session_state.execution["results"].update(step_result)
+            else:
+                st.session_state.execution["results"][current_step_name] = step_result
 
+            # Mark step as success
+            st.session_state.step_status[current_step_name]["status"] = "success"
+            st.session_state.step_status[current_step_name]["end_time"] = datetime.now()
+            elapsed = (
+                st.session_state.step_status[current_step_name]["end_time"]
+                - st.session_state.step_status[current_step_name]["start_time"]
+            ).total_seconds()
+            st.session_state.step_status[current_step_name]["elapsed_seconds"] = elapsed
+            st.session_state.step_status[current_step_name]["result"] = step_result
+
+            # Move to next step
+            st.session_state.execution["current_step_index"] += 1
+
+            # Rerun to execute next step (or show completion)
             st.rerun()
 
         except Exception as e:
-            # Handle pipeline errors gracefully
+            # Mark current step as failed
+            st.session_state.step_status[current_step_name]["status"] = "failed"
+            st.session_state.step_status[current_step_name]["end_time"] = datetime.now()
+            st.session_state.step_status[current_step_name]["error"] = str(e)
+
+            if st.session_state.step_status[current_step_name]["start_time"]:
+                elapsed = (
+                    st.session_state.step_status[current_step_name]["end_time"]
+                    - st.session_state.step_status[current_step_name]["start_time"]
+                ).total_seconds()
+                st.session_state.step_status[current_step_name]["elapsed_seconds"] = elapsed
+
+            # Mark pipeline as failed
             st.session_state.execution["error"] = str(e)
             st.session_state.execution["status"] = "failed"
             st.session_state.execution["end_time"] = datetime.now()
-
-            # TODO Fase 6: Store error traceback for verbose logging display
-            # import traceback
-            # error_traceback = traceback.format_exc()
 
             st.rerun()
 

@@ -23,6 +23,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `_mark_next_step_running()` helper to auto-update next step after completion
   - Improved user experience with immediate, accurate step status feedback
 
+### Changed
+- **Pipeline Execution Architecture** - Switched to step-by-step execution with real-time UI updates
+  - Execute one step at a time with `st.rerun()` between steps instead of running all steps at once
+  - Added `current_step_index` to execution state for progress tracking (0-3)
+  - Users see immediate UI updates as each step completes (Classification → Extraction → Validation → Correction)
+  - Fixes bug where multi-step selection showed static status during execution
+  - Maintains all error handling, callbacks, and status tracking functionality
+  - Special handling for correction step which returns dict with two keys
+
 ### Added
 - **Orchestrator Modular Architecture** - Refactored monolithic pipeline into modular, testable functions
   - Extracted `_run_classification_step()` private function (110 lines)
