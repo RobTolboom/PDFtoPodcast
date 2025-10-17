@@ -247,6 +247,133 @@ def _run_validation_step(
     return validation_result
 
 
+def _run_correction_step(
+    extraction_result: dict[str, Any],
+    validation_result: dict[str, Any],
+    pdf_path: Path,
+    max_pages: int | None,
+    publication_type: str,
+    llm: Any,
+    file_manager: PipelineFileManager,
+    progress_callback: Callable[[str, str, dict], None] | None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """
+    Run correction step of the pipeline.
+
+    Applies LLM-based corrections to extraction results based on validation
+    feedback, then re-validates the corrected extraction.
+
+    Args:
+        extraction_result: Original extraction result to correct
+        validation_result: Validation result containing issues to fix
+        pdf_path: Path to original PDF file for LLM correction
+        max_pages: Maximum number of pages to process (None = all pages)
+        publication_type: Publication type from classification (for schema)
+        llm: LLM provider instance (from get_llm_provider)
+        file_manager: PipelineFileManager for saving results
+        progress_callback: Optional callback for progress updates
+
+    Returns:
+        Tuple of (corrected_extraction, final_validation)
+
+    Raises:
+        PromptLoadError: If correction prompt cannot be loaded
+        SchemaLoadError: If extraction schema cannot be loaded
+        LLMError: If LLM API call fails
+    """
+    console.print("[bold cyan]🔧 Stap 4: Correctie[/bold cyan]")
+
+    start_time = time.time()
+    validation_status = validation_result.get("verification_summary", {}).get("overall_status")
+
+    _call_progress_callback(
+        progress_callback,
+        "correction",
+        "starting",
+        {"validation_status": validation_status},
+    )
+
+    try:
+        # Load correction prompt and extraction schema
+        correction_prompt = load_correction_prompt()
+        extraction_schema = load_schema(publication_type)
+
+        # Prepare correction context with original extraction and validation feedback
+        correction_context = f"""
+ORIGINAL_EXTRACTION: {json.dumps(extraction_result, indent=2)}
+
+VALIDATION_REPORT: {json.dumps(validation_result, indent=2)}
+
+Systematically address all identified issues and produce corrected, complete,\
+ schema-compliant JSON extraction.
+"""
+
+        # Run correction with PDF upload for direct reference
+        console.print("[dim]Running correction with PDF upload...[/dim]")
+        corrected_extraction = llm.generate_json_with_pdf(
+            pdf_path=pdf_path,
+            schema=extraction_schema,
+            system_prompt=correction_prompt + "\n\n" + correction_context,
+            max_pages=max_pages,
+            schema_name=f"{publication_type}_extraction_corrected",
+        )
+
+        # Ensure correction metadata
+        if "correction_notes" not in corrected_extraction:
+            corrected_extraction["correction_notes"] = (
+                "Corrections applied based on validation feedback"
+            )
+
+        corrected_file = file_manager.save_json(corrected_extraction, "extraction", "corrected")
+        console.print(f"[green]✅ Correctie opgeslagen: {corrected_file}[/green]")
+
+        # Final validation of corrected extraction - use same dual validation approach
+        console.print("[dim]Running final validation on corrected extraction...[/dim]")
+
+        # Re-run dual validation on corrected extraction
+        final_validation = run_dual_validation(
+            extraction_result=corrected_extraction,
+            pdf_path=pdf_path,
+            max_pages=max_pages,
+            publication_type=publication_type,
+            llm=llm,
+            console=console,
+        )
+
+        final_validation_file = file_manager.save_json(final_validation, "validation", "corrected")
+        console.print(f"[green]✅ Finale validatie opgeslagen: {final_validation_file}[/green]")
+
+        # Correction completed successfully
+        elapsed = time.time() - start_time
+        _call_progress_callback(
+            progress_callback,
+            "correction",
+            "completed",
+            {
+                "result": corrected_extraction,
+                "elapsed_seconds": elapsed,
+                "extraction_file_path": str(corrected_file),
+                "validation_file_path": str(final_validation_file),
+                "final_validation_status": final_validation.get("verification_summary", {}).get(
+                    "overall_status"
+                ),
+            },
+        )
+
+        return corrected_extraction, final_validation
+
+    except (PromptLoadError, LLMError, SchemaLoadError) as e:
+        elapsed = time.time() - start_time
+        console.print(f"[red]❌ Correctie fout: {e}[/red]")
+        _call_progress_callback(
+            progress_callback,
+            "correction",
+            "failed",
+            {"error": str(e), "error_type": type(e).__name__, "elapsed_seconds": elapsed},
+        )
+        raise
+
+
 def _should_run_step(step_name: str, steps_to_run: list[str] | None) -> bool:
     """
     Check if step should be executed based on steps_to_run filter.
@@ -594,101 +721,22 @@ def run_four_step_pipeline(
         console.print("[green]✅ Correction not needed - validation passed[/green]")
         return results
 
-    # Correction needed - validation did not pass
-    console.print("[bold cyan]🔧 Stap 4: Correctie[/bold cyan]")
-
-    # Start correction with callback
-    start_time = time.time()
-    _call_progress_callback(
-        progress_callback,
-        "correction",
-        "starting",
-        {"validation_status": validation_status},
+    # Run correction step
+    corrected_extraction, final_validation = _run_correction_step(
+        extraction_result=extraction_result,
+        validation_result=validation_result,
+        pdf_path=pdf_path,
+        max_pages=max_pages,
+        publication_type=publication_type,
+        llm=llm,
+        file_manager=file_manager,
+        progress_callback=progress_callback,
     )
+    results["extraction_corrected"] = corrected_extraction
+    results["validation_corrected"] = final_validation
 
-    try:
-        # Load correction prompt and extraction schema
-        correction_prompt = load_correction_prompt()
-        extraction_schema = load_schema(publication_type)
-
-        # Prepare correction context with original extraction and validation feedback
-        correction_context = f"""
-ORIGINAL_EXTRACTION: {json.dumps(extraction_result, indent=2)}
-
-VALIDATION_REPORT: {json.dumps(validation_result, indent=2)}
-
-Systematically address all identified issues and produce corrected, complete,\
- schema-compliant JSON extraction.
-"""
-
-        # Run correction with PDF upload for direct reference
-        console.print("[dim]Running correction with PDF upload...[/dim]")
-        corrected_extraction = llm.generate_json_with_pdf(
-            pdf_path=pdf_path,
-            schema=extraction_schema,
-            system_prompt=correction_prompt + "\n\n" + correction_context,
-            max_pages=max_pages,
-            schema_name=f"{publication_type}_extraction_corrected",
-        )
-
-        # Ensure correction metadata
-        if "correction_notes" not in corrected_extraction:
-            corrected_extraction["correction_notes"] = (
-                "Corrections applied based on validation feedback"
-            )
-
-        corrected_file = file_manager.save_json(corrected_extraction, "extraction", "corrected")
-        console.print(f"[green]✅ Correctie opgeslagen: {corrected_file}[/green]")
-
-        # Final validation of corrected extraction - use same dual validation approach
-        console.print("[dim]Running final validation on corrected extraction...[/dim]")
-
-        # Re-run dual validation on corrected extraction
-        final_validation = run_dual_validation(
-            extraction_result=corrected_extraction,
-            pdf_path=pdf_path,
-            max_pages=max_pages,
-            publication_type=publication_type,
-            llm=llm,
-            console=console,
-        )
-
-        final_validation_file = file_manager.save_json(final_validation, "validation", "corrected")
-        console.print(f"[green]✅ Finale validatie opgeslagen: {final_validation_file}[/green]")
-
-        results["extraction_corrected"] = corrected_extraction
-        results["validation_corrected"] = final_validation
-
-        # Correction completed successfully
-        elapsed = time.time() - start_time
-        _call_progress_callback(
-            progress_callback,
-            "correction",
-            "completed",
-            {
-                "result": corrected_extraction,
-                "elapsed_seconds": elapsed,
-                "extraction_file_path": str(corrected_file),
-                "validation_file_path": str(final_validation_file),
-                "final_validation_status": final_validation.get("verification_summary", {}).get(
-                    "overall_status"
-                ),
-            },
-        )
-
-        # Check for breakpoint after correction
-        if check_breakpoint("correction", results, file_manager, breakpoint_after_step):
-            return results
-
-    except (PromptLoadError, LLMError, SchemaLoadError) as e:
-        elapsed = time.time() - start_time
-        console.print(f"[red]❌ Correctie fout: {e}[/red]")
-        _call_progress_callback(
-            progress_callback,
-            "correction",
-            "failed",
-            {"error": str(e), "error_type": type(e).__name__, "elapsed_seconds": elapsed},
-        )
-        raise
+    # Check for breakpoint after correction
+    if check_breakpoint("correction", results, file_manager, breakpoint_after_step):
+        return results
 
     return results
