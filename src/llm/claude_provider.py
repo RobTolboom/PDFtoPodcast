@@ -257,6 +257,20 @@ class ClaudeProvider(BaseLLMProvider):
                     )
                 result["usage"] = usage_dict
 
+            # Add enhanced metadata to result
+            metadata = {}
+
+            # Response tracking
+            if hasattr(response, "id"):
+                metadata["response_id"] = response.id
+            if hasattr(response, "model"):
+                metadata["model"] = response.model
+            if hasattr(response, "stop_reason"):
+                metadata["stop_reason"] = response.stop_reason
+
+            if metadata:
+                result["_metadata"] = metadata
+
             return result
 
         except anthropic.AnthropicError as e:
@@ -386,6 +400,20 @@ class ClaudeProvider(BaseLLMProvider):
                         usage_dict["input_tokens"] + usage_dict["output_tokens"]
                     )
                 result["usage"] = usage_dict
+
+            # Add enhanced metadata to result
+            metadata = {}
+
+            # Response tracking
+            if hasattr(response, "id"):
+                metadata["response_id"] = response.id
+            if hasattr(response, "model"):
+                metadata["model"] = response.model
+            if hasattr(response, "stop_reason"):
+                metadata["stop_reason"] = response.stop_reason
+
+            if metadata:
+                result["_metadata"] = metadata
 
             return result
 

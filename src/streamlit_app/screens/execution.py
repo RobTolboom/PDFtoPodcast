@@ -438,6 +438,50 @@ def _display_verbose_info(step_name: str, verbose_data: dict, result: dict | Non
             if "total" in token_usage:
                 st.write(f"• Total tokens: {token_usage['total']:,}")
 
+        # Display cached tokens if available (cost optimization)
+        usage = result.get("usage", {})
+        cached_tokens = usage.get("cached_tokens")
+        if cached_tokens:
+            st.markdown("**Cache efficiency:**")
+            input_tokens = usage.get("input_tokens", 0)
+            if input_tokens > 0:
+                cache_hit_pct = (cached_tokens / input_tokens) * 100
+                st.write(f"• Cached tokens: {cached_tokens:,} ({cache_hit_pct:.1f}% cache hit)")
+            else:
+                st.write(f"• Cached tokens: {cached_tokens:,}")
+
+        # Display reasoning tokens if significant
+        reasoning_tokens = usage.get("reasoning_tokens")
+        if reasoning_tokens:
+            st.markdown("**Reasoning tokens:**")
+            output_tokens = usage.get("output_tokens", 0)
+            if output_tokens > 0:
+                reasoning_pct = (reasoning_tokens / output_tokens) * 100
+                st.write(f"• Reasoning: {reasoning_tokens:,} ({reasoning_pct:.1f}% of output)")
+            else:
+                st.write(f"• Reasoning: {reasoning_tokens:,}")
+
+        # Display response metadata
+        metadata = result.get("_metadata", {})
+        if metadata:
+            st.markdown("**Response metadata:**")
+            if "model" in metadata:
+                st.write(f"• Model: `{metadata['model']}`")
+            if "response_id" in metadata:
+                st.write(f"• Response ID: `{metadata['response_id']}`")
+            if "status" in metadata:
+                st.write(f"• Status: {metadata['status']}")
+            if "stop_reason" in metadata:
+                st.write(f"• Stop reason: {metadata['stop_reason']}")
+
+            # Expandable reasoning summary for GPT-5/o-series
+            reasoning = metadata.get("reasoning", {})
+            if reasoning and "summary" in reasoning:
+                with st.expander("🧠 Reasoning Summary"):
+                    st.write(reasoning["summary"])
+                    if "effort" in reasoning:
+                        st.caption(f"Effort level: {reasoning['effort']}")
+
     # Display completion data
     completed_data = verbose_data.get("completed", {})
     if completed_data:

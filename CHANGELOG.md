@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Enhanced Verbose Logging Metadata** - Comprehensive API response metadata for debugging and cost optimization
+  - Response IDs for debugging and support tickets (both OpenAI and Claude)
+  - Model tracking: exact model version used (e.g., "gpt-5-2025-04-14", "claude-3-5-sonnet-20241022")
+  - Cached tokens display with cache hit percentage for cost optimization (OpenAI only)
+  - Reasoning tokens and summary for GPT-5/o-series models with effort level
+  - Response status and stop_reason tracking
+  - Metadata stored in `_metadata` field in result dict (non-breaking addition)
+  - Streamlit verbose display enhanced with:
+    - Cache efficiency section showing cached token percentage
+    - Reasoning tokens prominently displayed when significant
+    - Response metadata section with model, response_id, status
+    - Expandable reasoning summary for GPT-5/o-series (🧠 icon)
+  - Updated OpenAI provider: 2 locations in `_parse_response_output()` (success + repair paths)
+  - Updated Claude provider: 2 locations (`generate_json_with_schema()`, `generate_json_with_pdf()`)
+  - Updated Streamlit: `_display_verbose_info()` in `src/streamlit_app/screens/execution.py`
+
 ### Fixed
 - Fixed schema bundler creating self-referencing definitions causing validation recursion errors
   - `schemas/json-bundler.py` - Replace local alias definitions with actual definitions from common schema
