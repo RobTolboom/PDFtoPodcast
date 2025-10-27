@@ -58,6 +58,7 @@ PDF Upload Strategy:
 import json
 import time
 from collections.abc import Callable
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -109,6 +110,45 @@ def _call_progress_callback(
         console.print(f"[yellow]⚠️  Progress callback error in {step_name}: {e}[/yellow]")
 
 
+def _strip_metadata_for_pipeline(data: dict) -> dict:
+    """
+    Remove metadata fields before passing data to next pipeline step.
+
+    Strips fields that contain execution metadata but are not part of
+    the schema-defined data structure:
+
+    - usage: LLM token usage (input/output/cached tokens)
+    - _metadata: LLM API response metadata (response_id, model, etc.)
+    - _pipeline_metadata: Pipeline execution metadata (timestamp, duration, etc.)
+
+    This ensures:
+    1. Schema validation doesn't fail on unexpected fields
+    2. LLM prompts don't receive metadata clutter
+    3. Step dependencies only see clean, schema-valid data
+
+    Args:
+        data: Dictionary containing step results with potential metadata
+
+    Returns:
+        Clean copy of data with metadata fields removed
+
+    Example:
+        >>> result = {
+        ...     "publication_type": "interventional_trial",
+        ...     "usage": {"input_tokens": 1000},
+        ...     "_metadata": {"response_id": "resp_123"}
+        ... }
+        >>> clean = _strip_metadata_for_pipeline(result)
+        >>> clean
+        {'publication_type': 'interventional_trial'}
+    """
+    clean_data = data.copy()
+    clean_data.pop("usage", None)
+    clean_data.pop("_metadata", None)
+    clean_data.pop("_pipeline_metadata", None)
+    return clean_data
+
+
 def _run_extraction_step(
     pdf_path: Path,
     max_pages: int | None,
@@ -142,7 +182,10 @@ def _run_extraction_step(
     console.print("[bold cyan]📊 Stap 2: Data Extractie (Schema-based)[/bold cyan]")
 
     start_time = time.time()
-    publication_type = classification_result.get("publication_type")
+
+    # Strip metadata from classification before using
+    classification_clean = _strip_metadata_for_pipeline(classification_result)
+    publication_type = classification_clean.get("publication_type")
 
     _call_progress_callback(
         progress_callback,
@@ -177,6 +220,21 @@ def _run_extraction_step(
 
         console.print("[green]✅ Schema-conforming extraction completed[/green]")
 
+        # Add pipeline metadata
+        elapsed = time.time() - start_time
+        extraction_result["_pipeline_metadata"] = {
+            "step": "extraction",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "duration_seconds": elapsed,
+            "llm_provider": llm.settings.provider if hasattr(llm, "settings") else None,
+            "model_used": extraction_result.get("_metadata", {}).get("model"),
+            "max_pages": max_pages,
+            "pdf_filename": pdf_path.name,
+            "execution_mode": "streamlit" if progress_callback else "cli",
+            "status": "success",
+            "publication_type": publication_type,
+        }
+
         # Save extraction result
         extraction_file = file_manager.save_json(extraction_result, "extraction")
         console.print(f"[green]✅ Extractie opgeslagen: {extraction_file}[/green]")
@@ -200,6 +258,29 @@ def _run_extraction_step(
     except (SchemaLoadError, PromptLoadError, LLMError) as e:
         elapsed = time.time() - start_time
         console.print(f"[red]❌ Extractie fout: {e}[/red]")
+
+        # Save error metadata (best effort)
+        error_data = {
+            "_pipeline_metadata": {
+                "step": "extraction",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "duration_seconds": elapsed,
+                "llm_provider": llm.settings.provider if hasattr(llm, "settings") else None,
+                "model_used": None,
+                "max_pages": max_pages,
+                "pdf_filename": pdf_path.name,
+                "execution_mode": "streamlit" if progress_callback else "cli",
+                "status": "failed",
+                "error_message": str(e),
+                "error_type": type(e).__name__,
+                "publication_type": publication_type,
+            }
+        }
+        try:
+            file_manager.save_json(error_data, "extraction", "failed")
+        except Exception:
+            pass  # Don't fail the error handling
+
         _call_progress_callback(
             progress_callback,
             "extraction",
@@ -244,16 +325,35 @@ def _run_validation_step(
     start_time = time.time()
     _call_progress_callback(progress_callback, "validation", "starting", {})
 
-    # Run dual validation (schema + conditional LLM)
-    publication_type = classification_result.get("publication_type")
+    # Strip metadata from dependencies before using
+    extraction_clean = _strip_metadata_for_pipeline(extraction_result)
+    classification_clean = _strip_metadata_for_pipeline(classification_result)
+    publication_type = classification_clean.get("publication_type")
+
+    # Run dual validation (schema + conditional LLM) with clean data
     validation_result = run_dual_validation(
-        extraction_result=extraction_result,
+        extraction_result=extraction_clean,
         pdf_path=pdf_path,
         max_pages=max_pages,
         publication_type=publication_type,
         llm=llm,
         console=console,
     )
+
+    # Add pipeline metadata
+    elapsed = time.time() - start_time
+    validation_result["_pipeline_metadata"] = {
+        "step": "validation",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "duration_seconds": elapsed,
+        "llm_provider": llm.settings.provider if hasattr(llm, "settings") else None,
+        "model_used": validation_result.get("_metadata", {}).get("model"),
+        "max_pages": max_pages,
+        "pdf_filename": pdf_path.name,
+        "execution_mode": "streamlit" if progress_callback else "cli",
+        "status": "success",
+        "validation_passed": validation_result.get("is_valid", False),
+    }
 
     validation_file = file_manager.save_json(validation_result, "validation")
     console.print(f"[green]✅ Validatie opgeslagen: {validation_file}[/green]")
@@ -324,15 +424,19 @@ def _run_correction_step(
     )
 
     try:
+        # Strip metadata from dependencies before using in prompts
+        extraction_clean = _strip_metadata_for_pipeline(extraction_result)
+        validation_clean = _strip_metadata_for_pipeline(validation_result)
+
         # Load correction prompt and extraction schema
         correction_prompt = load_correction_prompt()
         extraction_schema = load_schema(publication_type)
 
-        # Prepare correction context with original extraction and validation feedback
+        # Prepare correction context with clean extraction and validation feedback
         correction_context = f"""
-ORIGINAL_EXTRACTION: {json.dumps(extraction_result, indent=2)}
+ORIGINAL_EXTRACTION: {json.dumps(extraction_clean, indent=2)}
 
-VALIDATION_REPORT: {json.dumps(validation_result, indent=2)}
+VALIDATION_REPORT: {json.dumps(validation_clean, indent=2)}
 
 Systematically address all identified issues and produce corrected, complete,\
  schema-compliant JSON extraction.
@@ -354,21 +458,54 @@ Systematically address all identified issues and produce corrected, complete,\
                 "Corrections applied based on validation feedback"
             )
 
+        # Add pipeline metadata to corrected extraction
+        elapsed_extraction = time.time() - start_time
+        corrected_extraction["_pipeline_metadata"] = {
+            "step": "correction",
+            "sub_step": "extraction",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "duration_seconds": elapsed_extraction,
+            "llm_provider": llm.settings.provider if hasattr(llm, "settings") else None,
+            "model_used": corrected_extraction.get("_metadata", {}).get("model"),
+            "max_pages": max_pages,
+            "pdf_filename": pdf_path.name,
+            "execution_mode": "streamlit" if progress_callback else "cli",
+            "status": "success",
+        }
+
         corrected_file = file_manager.save_json(corrected_extraction, "extraction", "corrected")
         console.print(f"[green]✅ Correctie opgeslagen: {corrected_file}[/green]")
 
         # Final validation of corrected extraction - use same dual validation approach
         console.print("[dim]Running final validation on corrected extraction...[/dim]")
 
-        # Re-run dual validation on corrected extraction
+        # Strip metadata from corrected extraction before validation
+        corrected_extraction_clean = _strip_metadata_for_pipeline(corrected_extraction)
+
+        # Re-run dual validation on clean corrected extraction
         final_validation = run_dual_validation(
-            extraction_result=corrected_extraction,
+            extraction_result=corrected_extraction_clean,
             pdf_path=pdf_path,
             max_pages=max_pages,
             publication_type=publication_type,
             llm=llm,
             console=console,
         )
+
+        # Add pipeline metadata to final validation
+        elapsed_validation = time.time() - start_time
+        final_validation["_pipeline_metadata"] = {
+            "step": "correction",
+            "sub_step": "validation",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "duration_seconds": elapsed_validation - elapsed_extraction,
+            "llm_provider": llm.settings.provider if hasattr(llm, "settings") else None,
+            "model_used": final_validation.get("_metadata", {}).get("model"),
+            "max_pages": max_pages,
+            "pdf_filename": pdf_path.name,
+            "execution_mode": "streamlit" if progress_callback else "cli",
+            "status": "success",
+        }
 
         final_validation_file = file_manager.save_json(final_validation, "validation", "corrected")
         console.print(f"[green]✅ Finale validatie opgeslagen: {final_validation_file}[/green]")
@@ -395,6 +532,28 @@ Systematically address all identified issues and produce corrected, complete,\
     except (PromptLoadError, LLMError, SchemaLoadError) as e:
         elapsed = time.time() - start_time
         console.print(f"[red]❌ Correctie fout: {e}[/red]")
+
+        # Save error metadata (best effort)
+        error_data = {
+            "_pipeline_metadata": {
+                "step": "correction",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "duration_seconds": elapsed,
+                "llm_provider": llm.settings.provider if hasattr(llm, "settings") else None,
+                "model_used": None,
+                "max_pages": max_pages,
+                "pdf_filename": pdf_path.name,
+                "execution_mode": "streamlit" if progress_callback else "cli",
+                "status": "failed",
+                "error_message": str(e),
+                "error_type": type(e).__name__,
+            }
+        }
+        try:
+            file_manager.save_json(error_data, "correction", "failed")
+        except Exception:
+            pass  # Don't fail the error handling
+
         _call_progress_callback(
             progress_callback,
             "correction",
@@ -538,6 +697,20 @@ def _run_classification_step(
             schema_name="classification",
         )
 
+        # Add pipeline metadata
+        elapsed = time.time() - start_time
+        classification_result["_pipeline_metadata"] = {
+            "step": "classification",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "duration_seconds": elapsed,
+            "llm_provider": llm_provider,
+            "model_used": classification_result.get("_metadata", {}).get("model"),
+            "max_pages": max_pages,
+            "pdf_filename": pdf_path.name,
+            "execution_mode": "streamlit" if progress_callback else "cli",
+            "status": "success",
+        }
+
         # Save classification result
         classification_file = file_manager.save_json(classification_result, "classification")
         console.print(f"[green]✅ Classificatie opgeslagen: {classification_file}[/green]")
@@ -560,6 +733,28 @@ def _run_classification_step(
     except (PromptLoadError, LLMError, SchemaLoadError) as e:
         elapsed = time.time() - start_time
         console.print(f"[red]❌ Classificatie fout: {e}[/red]")
+
+        # Save error metadata (best effort)
+        error_data = {
+            "_pipeline_metadata": {
+                "step": "classification",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "duration_seconds": elapsed,
+                "llm_provider": llm_provider,
+                "model_used": None,
+                "max_pages": max_pages,
+                "pdf_filename": pdf_path.name,
+                "execution_mode": "streamlit" if progress_callback else "cli",
+                "status": "failed",
+                "error_message": str(e),
+                "error_type": type(e).__name__,
+            }
+        }
+        try:
+            file_manager.save_json(error_data, "classification", "failed")
+        except Exception:
+            pass  # Don't fail the error handling
+
         _call_progress_callback(
             progress_callback,
             "classification",

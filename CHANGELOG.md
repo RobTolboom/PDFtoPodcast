@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Pipeline Execution Metadata** - Comprehensive metadata embedded in step JSON files
+  - Added `_pipeline_metadata` field to all step outputs (classification, extraction, validation, correction)
+  - Metadata includes: timestamp (ISO-8601 UTC), duration_seconds, LLM provider/model, max_pages, PDF filename, execution_mode (streamlit/cli), status (success/failed)
+  - Error handling: Failed steps save `{step}-failed.json` with metadata including error_message and error_type
+  - Automatic metadata stripping before schema validation and LLM prompts via `_strip_metadata_for_pipeline()`
+  - Enables cost analytics, debugging, and audit trail without external database
+  - Added 7 unit tests for metadata stripping helper function (118 total unit tests)
+  - Non-breaking: metadata is optional and doesn't affect existing code or schemas
+  - Implementation in `src/pipeline/orchestrator.py` covering all 4 pipeline steps
+
 - **Enhanced Verbose Logging Metadata** - Comprehensive API response metadata for debugging and cost optimization
   - Response IDs for debugging and support tickets (both OpenAI and Claude)
   - Model tracking: exact model version used (e.g., "gpt-5-2025-04-14", "claude-3-5-sonnet-20241022")
