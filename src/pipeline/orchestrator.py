@@ -149,6 +149,33 @@ def _strip_metadata_for_pipeline(data: dict) -> dict:
     return clean_data
 
 
+def _get_provider_name(llm: Any) -> str:
+    """
+    Get provider name from LLM instance class name.
+
+    Determines which LLM provider is being used by inspecting the
+    class name of the LLM instance. Used for pipeline metadata tracking.
+
+    Args:
+        llm: LLM provider instance (OpenAIProvider or ClaudeProvider)
+
+    Returns:
+        Provider name: "openai", "claude", or "unknown"
+
+    Example:
+        >>> from src.llm import get_llm_provider
+        >>> llm = get_llm_provider("openai")
+        >>> _get_provider_name(llm)
+        'openai'
+    """
+    class_name = llm.__class__.__name__
+    if "OpenAI" in class_name:
+        return "openai"
+    elif "Claude" in class_name:
+        return "claude"
+    return "unknown"
+
+
 def _run_extraction_step(
     pdf_path: Path,
     max_pages: int | None,
@@ -226,7 +253,7 @@ def _run_extraction_step(
             "step": "extraction",
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "duration_seconds": elapsed,
-            "llm_provider": llm.settings.provider if hasattr(llm, "settings") else None,
+            "llm_provider": _get_provider_name(llm),
             "model_used": extraction_result.get("_metadata", {}).get("model"),
             "max_pages": max_pages,
             "pdf_filename": pdf_path.name,
@@ -265,7 +292,7 @@ def _run_extraction_step(
                 "step": "extraction",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "duration_seconds": elapsed,
-                "llm_provider": llm.settings.provider if hasattr(llm, "settings") else None,
+                "llm_provider": _get_provider_name(llm),
                 "model_used": None,
                 "max_pages": max_pages,
                 "pdf_filename": pdf_path.name,
@@ -346,7 +373,7 @@ def _run_validation_step(
         "step": "validation",
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "duration_seconds": elapsed,
-        "llm_provider": llm.settings.provider if hasattr(llm, "settings") else None,
+        "llm_provider": _get_provider_name(llm),
         "model_used": validation_result.get("_metadata", {}).get("model"),
         "max_pages": max_pages,
         "pdf_filename": pdf_path.name,
@@ -465,7 +492,7 @@ Systematically address all identified issues and produce corrected, complete,\
             "sub_step": "extraction",
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "duration_seconds": elapsed_extraction,
-            "llm_provider": llm.settings.provider if hasattr(llm, "settings") else None,
+            "llm_provider": _get_provider_name(llm),
             "model_used": corrected_extraction.get("_metadata", {}).get("model"),
             "max_pages": max_pages,
             "pdf_filename": pdf_path.name,
@@ -499,7 +526,7 @@ Systematically address all identified issues and produce corrected, complete,\
             "sub_step": "validation",
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "duration_seconds": elapsed_validation - elapsed_extraction,
-            "llm_provider": llm.settings.provider if hasattr(llm, "settings") else None,
+            "llm_provider": _get_provider_name(llm),
             "model_used": final_validation.get("_metadata", {}).get("model"),
             "max_pages": max_pages,
             "pdf_filename": pdf_path.name,
@@ -539,7 +566,7 @@ Systematically address all identified issues and produce corrected, complete,\
                 "step": "correction",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "duration_seconds": elapsed,
-                "llm_provider": llm.settings.provider if hasattr(llm, "settings") else None,
+                "llm_provider": _get_provider_name(llm),
                 "model_used": None,
                 "max_pages": max_pages,
                 "pdf_filename": pdf_path.name,
