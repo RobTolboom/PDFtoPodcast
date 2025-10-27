@@ -105,9 +105,9 @@ contrasts[]
     effect: {
       type ∈ {"RR","IRR","OR","HR","MD","SMD","RD","RMST","Other"},
       point: <number>,
-      ci: { lower, upper }  # if reported
+      ci: { lower, upper },  # if reported
+      p_value: <number>      # if reported
     },
-    p_value,                 # if reported
     covariates[] ,           # optional if adjusted
     propensity_score: { method, model, diagnostics }  # optional
     sensitivity: [...],      # optional

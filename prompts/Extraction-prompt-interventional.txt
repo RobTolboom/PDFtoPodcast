@@ -115,9 +115,9 @@ contrasts[]
     effect: {
       type ∈ {"RR","OR","HR","MD","SMD","RD","RMST","Other"},
       point:number,
-      ci:{lower:number,upper:number}   # if reported
+      ci:{lower:number,upper:number},  # if reported
+      p_value:number | string          # if reported
     },
-    p_value:number | string            # if reported
     covariates[]                       # optional when adjusted
     cluster_adjusted:true/false?       # if cluster adjustment reported
     cluster_params?                    # detail if reported
