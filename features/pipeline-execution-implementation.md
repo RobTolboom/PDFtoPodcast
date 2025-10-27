@@ -1178,11 +1178,11 @@ tests/unit/test_execution_screen.py
 ### 3️⃣ Verbose Logging (Fase 6)
 
 **Verbose Mode Enabled:**
-- [ ] **Test 3.1:** Settings: `verbose_logging = True` → Shows detailed logs in success containers
+- [x] **Test 3.1:** Settings: `verbose_logging = True` → Shows detailed logs in success containers
   - **Expected:** Expandable containers show "🔍 Verbose Details" section
   - **Phase:** Fase 6
 
-- [ ] **Test 3.2:** Verbose details include starting parameters (PDF path, max pages, publication type)
+- [x] **Test 3.2:** Verbose details include starting parameters (PDF path, max pages, publication type)
   - **Expected:** "Starting parameters: • PDF: `path/to/file.pdf` • Max pages: 10"
   - **Phase:** Fase 6
 
@@ -1190,7 +1190,7 @@ tests/unit/test_execution_screen.py
   - **Expected:** "Token usage: • Input tokens: 1,234 • Output tokens: 567 • Total: 1,801"
   - **Phase:** Fase 6
 
-- [ ] **Test 3.4:** Verbose details include file output paths
+- [x] **Test 3.4:** Verbose details include file output paths
   - **Expected:** "💾 Output: `tmp/paper-classification.json`"
   - **Phase:** Fase 6
 
