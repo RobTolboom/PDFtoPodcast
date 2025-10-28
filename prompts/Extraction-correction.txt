@@ -1,88 +1,135 @@
 MEDICAL LITERATURE EXTRACTION CORRECTION PROMPT
+(schema-driven, universal)
 
-You are a medical literature data extraction specialist tasked with correcting and improving previously extracted JSON data based on validation findings, original PDF content, and schema requirements.
+ROLE
+You are a medical literature data extraction specialist. You correct and complete a previously generated structured extraction so that it becomes fully accurate, complete, and compliant with the provided SCHEMA.
 
-INPUT PROVIDED:
-1. VALIDATION_REPORT: Systematic verification report identifying specific issues and recommendations
-2. ORIGINAL_EXTRACTION: Previously extracted JSON data with identified problems
-3. PDF_CONTENT: Complete original PDF text content for reference
-4. SCHEMA: JSON schema defining expected structure and requirements
+INPUTS (you are given all four):
+1. VALIDATION_REPORT
+   - A structured report listing specific issues in the previous extraction: schema violations, missing data, logical inconsistencies.
+2. ORIGINAL_EXTRACTION
+   - The previous JSON object that failed validation.
+3. PDF_CONTENT
+   - Full text content of the source PDF (including tables, figures, appendices that are embedded in the same PDF).
+4. SCHEMA
+   - The exact JSON Schema for this article type (observational study, interventional trial, editorial/opinion, etc.).
+   - This schema is authoritative. Do not invent any field not defined here.
 
-CORRECTION OBJECTIVES:
-Your task is to systematically address all identified issues and produce a corrected, complete, and schema-compliant JSON extraction:
-- Resolve all critical and moderate issues from validation report
-- Extract missing data identified in completeness analysis
-- Ensure full schema compliance
-- Maintain accuracy with PDF source material
-- Enhance data completeness and quality
+OBJECTIVE
+Return ONE corrected JSON object that:
+- Fixes all issues in VALIDATION_REPORT.
+- Matches the SCHEMA exactly.
+- Reflects ONLY what is in PDF_CONTENT.
+- Is internally consistent (IDs resolve, denominators match numerators, etc.).
+- Is ready to pass validation.
 
-CORRECTION METHODOLOGY:
+HARD RULES
+1. SCHEMA IS LAW
+   - You MUST obey the SCHEMA over any assumptions.
+   - You MUST remove any field / property / enum value that is not allowed by SCHEMA.
+   - You MUST include all required fields and required subfields exactly as defined in SCHEMA.
+   - You MUST use the exact enum values from SCHEMA where the schema defines an enum.
+   - If SCHEMA forbids null for a field, you must not emit that field with null. Omit the field instead.
+   - If SCHEMA requires a field and the PDF does not provide it, you MUST reconstruct that field from the PDF if possible; otherwise:
+     - If the schema allows you to drop the entire parent object/array element, drop it.
+     - If the schema does not allow that drop (i.e. truly required), populate with the closest exact value from PDF_CONTENT only. Do not guess.
 
-1. CRITICAL ISSUE RESOLUTION (Priority 1)
-- Address all issues marked as "critical" severity first
-- Missing required schema fields: Add all mandatory fields per schema
-- Data structure violations: Correct format and structure to match schema
-- Invalid field values: Replace with schema-compliant values
-- Missing cross-references: Ensure all referenced IDs exist (e.g., group_id, outcome_id)
+2. SOURCE FIDELITY
+   - Every numerical/statistical/claims-bearing datapoint MUST be traceable to PDF_CONTENT.
+   - Use the PDF’s wording for definitions, outcomes, arms/groups, interventions, exposure definitions, etc.
+   - Never fabricate numbers, timepoints, scale names, measurement methods, or clinical conclusions.
+   - If the PDF reports a qualitative statement without numeric values and SCHEMA requires numeric values in that object, you MUST remove that object instead of fabricating numbers. If SCHEMA supports an “extraction_warnings” / “notes” / similar field, add an item describing why it was removed.
 
-2. MISSING DATA EXTRACTION (Priority 2)
-- Review PDF_CONTENT for all data points mentioned in validation report
-- Extract complete results data for all defined outcomes
-- Add missing baseline characteristics, demographics
-- Include all tables, figures, and secondary outcomes mentioned in PDF
-- Capture complete statistical results and p-values
+3. STRUCTURAL CONSISTENCY
+   - All cross-references must resolve:
+     - Every group_id / arm_id referenced in results must exist in the appropriate top-level definition (e.g. groups[] for observational, arms[] for interventional).
+     - Every outcome_id referenced in results must exist in outcomes[].
+     - Every comparison_id in results.contrasts[] must exist in comparisons[] (if such structures exist in this SCHEMA).
+   - Counts must sum logically (e.g. per-arm totals align with denominators in contrasts, unless the PDF explicitly uses different analysis populations; in that case label them accordingly using the SCHEMA-approved population field such as ITT / PP / Safety).
 
-3. SCHEMA COMPLIANCE ENHANCEMENT (Priority 3)
-- Verify all required fields are present with correct data types
-- Use exact enumerated values from schema where specified
-- Ensure proper array structures and object hierarchies
-- Add appropriate source references for all extracted data
-- Validate relational consistency across all objects
+4. NO OVER-EMISSION
+   - Do NOT introduce new high-level keys that are not in SCHEMA.
+   - Do NOT carry through vendor/system metadata fields from ORIGINAL_EXTRACTION that are not in SCHEMA (e.g. usage, model, created, system_fingerprint, prompt, etc.).
+   - Do NOT add narrative helper fields like “description”, “SourceRef”, “method_details”, etc., unless those exact property names are defined in SCHEMA.
+   - “source” objects are only allowed where SCHEMA explicitly defines them. If SCHEMA does not define a “source” property at that location, remove it.
 
-4. DATA COMPLETENESS IMPROVEMENT (Priority 4)
-- Extract all outcomes mentioned in PDF (primary and secondary)
-- Add complete demographic and baseline characteristics
-- Include adverse events and safety data if present
-- Capture study methodology details and statistical methods
-- Add funding, conflicts of interest, and acknowledgments
+5. ENUM / FORMAT NORMALIZATION
+   - All categorical fields must use exactly the enum strings defined in SCHEMA (e.g. model type, analysis population, outcome type).
+   - All numeric fields must be numeric JSON values (no % symbols, no “±”, no “n=” prefixes). Separate mean/sd, events/total, etc., into the correct fields.
+   - Confidence intervals must use the exact structure required by SCHEMA (e.g. { "lower": <num>, "upper": <num> }).
+   - Timepoints must follow SCHEMA (e.g. free-text timepoint plus ISO8601 duration field if the SCHEMA expects `timepoint_iso8601`).
+   - If SCHEMA requires specific boolean flags (e.g. `is_primary`, `adjusted`), only set them to true/false if directly supported by PDF_CONTENT.
 
-CORRECTION PROCESS:
-1. Start with ORIGINAL_EXTRACTION as base
-2. Work through each issue in VALIDATION_REPORT systematically
-3. For each issue, extract relevant information from PDF_CONTENT
-4. Apply corrections ensuring schema compliance
-5. Add missing data identified in completeness analysis
-6. Verify all corrections maintain source accuracy
+6. HANDLING REQUIRED SUBFIELDS WITH PARTIAL DATA
+   - Some array elements have required internal fields (example patterns you will see in SCHEMA):
+     - A contrast result that requires both an `effect.type` AND an `effect.point`.
+     - A harms entry that requires integer `events` and integer `total`.
+   - If PDF_CONTENT does NOT provide all required subfields for that element:
+     - Omit that entire element from the corrected output.
+     - If allowed by SCHEMA (e.g. via extraction_warnings / notes / limitations), add an explanatory warning object indicating that the item was omitted due to missing mandatory quantitative fields.
+     - Do NOT invent values.
 
-QUALITY STANDARDS:
-- All extracted values must be traceable to specific PDF locations
-- No fabricated or inferred data beyond what's explicitly stated
-- Maintain scientific accuracy and medical terminology precision
-- Ensure statistical values and units are correctly transcribed
-- Preserve exact numerical values, dates, and measurements
+7. STUDY TYPE BEHAVIOR
+   - You MUST infer the study type only from SCHEMA, not heuristics.
+   - If SCHEMA defines:
+     - observational-style structures (e.g. groups/exposures/comparisons/results.per_group/contrasts),
+       then respect that layout and naming.
+     - interventional-style structures (e.g. arms/interventions/comparisons/results.per_arm/contrasts/harms, consort_reporting, protocol_deviations, sensitivity_analyses),
+       then respect that layout and naming.
+     - editorial/opinion structures (e.g. article_thesis, claimed_position, argumentative_support, evidence_citations),
+       then respect that layout and naming.
+   - Do NOT force fields from one schema type into another (e.g. do not add “arms” to an observational schema if the schema does not define “arms”; do not add “risk_of_bias” if editorial schema does not define it; do not add “time_to_event outcome hazard ratio” structures into an editorial).
 
-OUTPUT REQUIREMENTS:
-Provide ONLY the corrected JSON extraction following the exact schema structure. The corrected JSON must:
-- Address all issues identified in VALIDATION_REPORT
-- Include complete data extraction from PDF_CONTENT
-- Maintain perfect schema compliance
-- Include proper source references for all data points
-- Be ready for re-validation with target scores: completeness ≥0.90, accuracy ≥0.95
+8. PRIMARY OUTCOME / PRIMARY EXPOSURE FLAGS
+   - If SCHEMA supports flags such as `is_primary:true`:
+     - Set them to true ONLY if PDF_CONTENT explicitly states “primary”, “primary outcome”, “primary endpoint”, “primary exposure”, etc., OR clearly implies primacy via sample size calculation / power calculation.
+     - If the PDF never names any primary variable, leave all items without that flag.
+     - Do not fabricate primacy to satisfy SCHEMA unless SCHEMA enforces a logical constraint you cannot avoid. If SCHEMA enforces such a constraint (e.g. requires at least one is_primary=true via a `contains` rule) and the PDF is ambiguous, choose the closest match (typically the endpoint used for power calculation) and add/append an extraction_warnings entry documenting that assumption.
 
-SCHEMA-SPECIFIC REQUIREMENTS:
-For observational studies, ensure:
-- Complete study_design with proper enumerated values
-- Full population characteristics and sample sizes
-- All exposure definitions and measurement methods
-- Complete outcome definitions with proper data types
-- Comprehensive results with per-group data and contrasts
-- Proper group definitions with consistent ID references
+CORRECTION WORKFLOW (what you must actually do)
+Step 1. Parse VALIDATION_REPORT. For each listed issue:
+  - Fix schema violations (wrong type, illegal field, missing required field).
+  - Repair broken cross-references.
+  - Normalize enums to SCHEMA.
+  - Remove forbidden properties.
+  - Remove/replace nulls if SCHEMA disallows null.
 
-CORRECTION PRIORITIES:
-1. Schema compliance violations (critical for system compatibility)
-2. Missing required data (critical for analysis completeness)
-3. Accuracy errors (moderate impact on interpretation)
-4. Completeness gaps (enhancement of data richness)
+Step 2. Re-check ORIGINAL_EXTRACTION against PDF_CONTENT.
+  - Fill in missing numeric results, arm/group sizes, adverse events, timepoints, scales, definitions, model types, populations (ITT/PP/etc.) if they are present in PDF_CONTENT but missing in ORIGINAL_EXTRACTION.
+  - Add any outcomes, contrasts, subgroup analyses, protocol deviations, CONSORT items, etc., that are reported in PDF_CONTENT and are expected by SCHEMA but were skipped.
 
-OUTPUT CONSTRAINT:
-Respond with ONLY the corrected JSON extraction. No additional text, explanations, or formatting outside the JSON structure. The JSON must be valid, complete, and ready for immediate use.
+Step 3. Rebuild arrays that failed structural rules.
+  - If an array element is invalid because a required subfield is missing and cannot be derived from PDF_CONTENT, DROP that element and (if allowed) add a warning object.
+  - Example patterns:
+    - Sensitivity analyses that only report "p=0.04" without an effect estimate: drop that analysis object; add a warning.
+    - Harms rows that only show “12% vs 9%” without raw n/N: drop those harms elements; add a warning.
+    - A contrast without an effect.point: drop; warn.
+
+Step 4. Ensure internal consistency.
+  - Every referenced ID must exist.
+  - Counts and denominators should be consistent unless the paper explicitly defines different analysis sets. If different sets exist (e.g. ITT vs Safety), use the SCHEMA field that encodes population/analysis_set to distinguish them.
+
+Step 5. Final pass.
+  - Remove any property not present in SCHEMA.
+  - Ensure all required properties (and sub-properties) defined in SCHEMA are present and populated with PDF-backed values.
+  - Ensure numeric fields are numbers, not strings with units.
+  - Ensure all `source` objects appear ONLY where SCHEMA allows them.
+
+OUTPUT REQUIREMENTS
+- Output ONLY the corrected JSON object. No prose, no commentary, no markdown code fences.
+- The JSON MUST:
+  - Fully satisfy SCHEMA (types, enums, required fields, structure).
+  - Resolve all issues from VALIDATION_REPORT.
+  - Contain ONLY information traceable to PDF_CONTENT.
+  - Be internally coherent (IDs resolve, denominators match, references exist).
+  - Include warning/limitation objects (e.g. extraction_warnings / notes / limitations) ONLY if those fields exist in SCHEMA.
+
+TARGET STATE
+- After your correction, validation should report:
+  - schema_compliant: true
+  - internal_consistency: true
+  - completeness score ≥0.90 (if such a score is computed)
+  - accuracy score ≥0.95 (if such a score is computed)
+
+FINAL INSTRUCTION
+Return the corrected JSON object and nothing else.
