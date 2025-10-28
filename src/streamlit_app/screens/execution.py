@@ -63,13 +63,22 @@ Rerun Prevention Strategy:
     is immediately changed to completed/failed after execution, preventing reruns.
 """
 
+import time
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
 import streamlit as st
 
-from src.pipeline.orchestrator import run_four_step_pipeline
+from src.pipeline.file_manager import PipelineFileManager
+from src.pipeline.orchestrator import (
+    ALL_PIPELINE_STEPS,
+    STEP_CLASSIFICATION,
+    STEP_CORRECTION,
+    STEP_EXTRACTION,
+    STEP_VALIDATION,
+    run_single_step,
+)
 
 
 def init_execution_state():
@@ -110,6 +119,10 @@ def init_execution_state():
             "end_time": None,
             "error": None,
             "results": None,
+            "current_step_index": 0,  # Index of current step being executed (0-3)
+            "auto_redirect_enabled": True,  # Enable auto-redirect after completion
+            "redirect_cancelled": False,  # User cancelled auto-redirect
+            "redirect_countdown": None,  # Countdown value (30, 29, ..., 0)
         }
 
     # Initialize per-step tracking
@@ -122,8 +135,9 @@ def init_execution_state():
                 "result": None,
                 "error": None,
                 "elapsed_seconds": None,
+                "verbose_data": {},  # Store callback data for verbose logging
             }
-            for step in ["classification", "extraction", "validation", "correction"]
+            for step in ALL_PIPELINE_STEPS
         }
 
 
@@ -162,6 +176,10 @@ def reset_execution_state():
         "end_time": None,
         "error": None,
         "results": None,
+        "current_step_index": 0,
+        "auto_redirect_enabled": True,
+        "redirect_cancelled": False,
+        "redirect_countdown": None,
     }
 
     st.session_state.step_status = {
@@ -172,9 +190,45 @@ def reset_execution_state():
             "result": None,
             "error": None,
             "elapsed_seconds": None,
+            "verbose_data": {},
         }
-        for step in ["classification", "extraction", "validation", "correction"]
+        for step in ALL_PIPELINE_STEPS
     }
+
+
+def _mark_next_step_running(current_step: str):
+    """
+    Mark the next step in steps_to_run as 'running' after current step completes.
+
+    This provides proactive UI updates for better UX within Streamlit's constraints.
+    When a step completes, the next step is immediately marked as running so that
+    on the next UI refresh, users see the correct status.
+
+    Args:
+        current_step: Name of the step that just completed/failed
+
+    Example:
+        >>> # After classification completes:
+        >>> _mark_next_step_running("classification")
+        >>> # If extraction is next, it's now marked as "running"
+    """
+    # Get configured steps from settings
+    steps_to_run = st.session_state.settings.get("steps_to_run", [])
+
+    # Find current step index in the configured list
+    if current_step not in steps_to_run:
+        return  # Current step not in list, nothing to do
+
+    current_index = steps_to_run.index(current_step)
+
+    # Find next step in the configured list
+    if current_index + 1 < len(steps_to_run):
+        next_step = steps_to_run[current_index + 1]
+
+        # Only mark as running if it's still pending (not already processed)
+        if st.session_state.step_status[next_step]["status"] == "pending":
+            st.session_state.step_status[next_step]["status"] = "running"
+            st.session_state.step_status[next_step]["start_time"] = datetime.now()
 
 
 def create_progress_callback() -> Callable[[str, str, dict], None]:
@@ -243,6 +297,9 @@ def create_progress_callback() -> Callable[[str, str, dict], None]:
 
         step = st.session_state.step_status[step_name]
 
+        # Store all callback data for verbose logging
+        step["verbose_data"][status] = data.copy()
+
         if status == "starting":
             # Step is beginning execution
             step["status"] = "running"
@@ -258,6 +315,9 @@ def create_progress_callback() -> Callable[[str, str, dict], None]:
             if "file_path" in data:
                 step["file_path"] = data["file_path"]
 
+            # Proactively mark next step as running for better UX
+            _mark_next_step_running(step_name)
+
         elif status == "failed":
             # Step failed with error
             step["status"] = "failed"
@@ -265,12 +325,452 @@ def create_progress_callback() -> Callable[[str, str, dict], None]:
             step["elapsed_seconds"] = data.get("elapsed_seconds")
             step["error"] = data.get("error", "Unknown error")
 
+            # Proactively mark next step as running if pipeline continues
+            # (Note: orchestrator decides if pipeline continues after failure)
+            _mark_next_step_running(step_name)
+
         elif status == "skipped":
             # Step was skipped (not in steps_to_run or not needed)
             step["status"] = "skipped"
             # No timestamps for skipped steps
 
     return callback
+
+
+def _extract_token_usage(result: dict) -> dict | None:
+    """
+    Extract token usage information from LLM result dictionary.
+
+    Searches for common token usage keys in result dict and returns standardized format.
+
+    Args:
+        result: LLM result dictionary that may contain usage/token information
+
+    Returns:
+        Dict with standardized keys {input, output, total} or None if not found
+
+    Example:
+        >>> result = {"usage": {"input_tokens": 1000, "output_tokens": 250}}
+        >>> _extract_token_usage(result)
+        {'input': 1000, 'output': 250, 'total': 1250}
+    """
+    if not result or not isinstance(result, dict):
+        return None
+
+    # Try different common key patterns
+    usage = result.get("usage") or result.get("token_usage") or result.get("tokens")
+
+    if not usage or not isinstance(usage, dict):
+        return None
+
+    # Extract input/output tokens with various key names
+    input_tokens = (
+        usage.get("input_tokens")
+        or usage.get("prompt_tokens")
+        or usage.get("input")
+        or usage.get("prompt")
+    )
+
+    output_tokens = (
+        usage.get("output_tokens")
+        or usage.get("completion_tokens")
+        or usage.get("output")
+        or usage.get("completion")
+    )
+
+    if input_tokens is None and output_tokens is None:
+        return None
+
+    # Build standardized dict
+    token_info = {}
+    if input_tokens is not None:
+        token_info["input"] = input_tokens
+    if output_tokens is not None:
+        token_info["output"] = output_tokens
+    if input_tokens is not None and output_tokens is not None:
+        token_info["total"] = input_tokens + output_tokens
+
+    return token_info
+
+
+def _display_verbose_info(step_name: str, verbose_data: dict, result: dict | None):
+    """
+    Display verbose logging information for a pipeline step.
+
+    Shows detailed information when verbose logging is enabled, including:
+    - Starting data (PDF path, publication type, etc.)
+    - Completion data (file path, token usage)
+    - Timing details
+
+    Args:
+        step_name: Step identifier ("classification", "extraction", "validation", "correction")
+        verbose_data: Dict of callback data by status {starting: {...}, completed: {...}}
+        result: Step result dictionary (may contain token usage)
+
+    Example:
+        >>> _display_verbose_info("classification", {...}, {...})
+        # Renders verbose details in Streamlit UI
+    """
+    st.markdown("#### 🔍 Verbose Details")
+
+    # Display starting data
+    starting_data = verbose_data.get("starting", {})
+    if starting_data:
+        st.markdown("**Starting parameters:**")
+
+        if step_name == STEP_CLASSIFICATION:
+            if "pdf_path" in starting_data:
+                st.write(f"• PDF: `{starting_data['pdf_path']}`")
+            if "max_pages" in starting_data:
+                max_pages = starting_data["max_pages"] or "All"
+                st.write(f"• Max pages: {max_pages}")
+
+        elif step_name == STEP_EXTRACTION:
+            if "publication_type" in starting_data:
+                st.write(f"• Publication type: `{starting_data['publication_type']}`")
+
+        elif step_name == STEP_CORRECTION:
+            if "validation_status" in starting_data:
+                st.write(f"• Validation status: {starting_data['validation_status']}")
+
+    # Display token usage if available
+    if result:
+        token_usage = _extract_token_usage(result)
+        if token_usage:
+            st.markdown("**Token usage:**")
+            if "input" in token_usage:
+                st.write(f"• Input tokens: {token_usage['input']:,}")
+            if "output" in token_usage:
+                st.write(f"• Output tokens: {token_usage['output']:,}")
+            if "total" in token_usage:
+                st.write(f"• Total tokens: {token_usage['total']:,}")
+
+        # Display cached tokens if available (cost optimization)
+        usage = result.get("usage", {})
+        cached_tokens = usage.get("cached_tokens")
+        if cached_tokens:
+            st.markdown("**Cache efficiency:**")
+            input_tokens = usage.get("input_tokens", 0)
+            if input_tokens > 0:
+                cache_hit_pct = (cached_tokens / input_tokens) * 100
+                st.write(f"• Cached tokens: {cached_tokens:,} ({cache_hit_pct:.1f}% cache hit)")
+            else:
+                st.write(f"• Cached tokens: {cached_tokens:,}")
+
+        # Display reasoning tokens if significant
+        reasoning_tokens = usage.get("reasoning_tokens")
+        if reasoning_tokens:
+            st.markdown("**Reasoning tokens:**")
+            output_tokens = usage.get("output_tokens", 0)
+            if output_tokens > 0:
+                reasoning_pct = (reasoning_tokens / output_tokens) * 100
+                st.write(f"• Reasoning: {reasoning_tokens:,} ({reasoning_pct:.1f}% of output)")
+            else:
+                st.write(f"• Reasoning: {reasoning_tokens:,}")
+
+        # Display response metadata
+        metadata = result.get("_metadata", {})
+        if metadata:
+            st.markdown("**Response metadata:**")
+            if "model" in metadata:
+                st.write(f"• Model: `{metadata['model']}`")
+            if "response_id" in metadata:
+                st.write(f"• Response ID: `{metadata['response_id']}`")
+            if "status" in metadata:
+                st.write(f"• Status: {metadata['status']}")
+            if "stop_reason" in metadata:
+                st.write(f"• Stop reason: {metadata['stop_reason']}")
+
+            # Expandable reasoning summary for GPT-5/o-series
+            reasoning = metadata.get("reasoning", {})
+            if reasoning and "summary" in reasoning:
+                with st.expander("🧠 Reasoning Summary"):
+                    st.write(reasoning["summary"])
+                    if "effort" in reasoning:
+                        st.caption(f"Effort level: {reasoning['effort']}")
+
+    # Display completion data
+    completed_data = verbose_data.get("completed", {})
+    if completed_data:
+        # File path is already shown in main display, but can show size here
+        if "file_path" in completed_data:
+            file_path = completed_data["file_path"]
+            # Could add file size here if we read it from disk
+            st.caption(f"💾 Output: `{file_path}`")
+
+
+# Error handling guidance mapping
+ERROR_MESSAGES = {
+    "api_key": {
+        "title": "API Key Error",
+        "message": "Authentication failed. Your API key may be invalid or missing.",
+        "actions": [
+            "Check your .env file for OPENAI_API_KEY or ANTHROPIC_API_KEY",
+            "Verify the key is correct (no extra spaces or quotes)",
+            "Ensure the API key has sufficient permissions",
+            "Try regenerating the key from your provider's dashboard",
+        ],
+    },
+    "network": {
+        "title": "Network Error",
+        "message": "Could not connect to the LLM API.",
+        "actions": [
+            "Check your internet connection",
+            "Verify the API endpoint is reachable",
+            "Try again in a few moments",
+            "Check if your firewall allows API calls",
+        ],
+    },
+    "rate_limit": {
+        "title": "Rate Limit Exceeded",
+        "message": "You have exceeded the API rate limit.",
+        "actions": [
+            "Wait a few minutes before trying again",
+            "Check your API usage quota on the provider's dashboard",
+            "Consider upgrading your API plan",
+            "Reduce the number of pages being processed (max_pages setting)",
+        ],
+    },
+    "publication_type": {
+        "title": "Unsupported Publication Type",
+        "message": "The publication type 'overig' or 'unknown' cannot be processed.",
+        "actions": [
+            "Only specific publication types are supported (interventional trial, observational study, etc.)",
+            "Check if the PDF is a research paper",
+            "Verify the classification result in Settings screen",
+            "Try a different PDF document",
+        ],
+    },
+    "generic": {
+        "title": "Pipeline Error",
+        "message": "An unexpected error occurred during pipeline execution.",
+        "actions": [
+            "Check the technical details below for more information",
+            "Review your settings and try again",
+            "Ensure your PDF is a valid research paper",
+            "Contact support if the issue persists",
+        ],
+    },
+}
+
+
+def _classify_error_type(error_msg: str, step_name: str) -> str:
+    """
+    Classify error type based on error message and step name.
+
+    Args:
+        error_msg: Error message from exception or callback
+        step_name: Step where error occurred ("classification", "extraction", etc.)
+
+    Returns:
+        Error type: "api_key", "network", "rate_limit", "publication_type", "generic"
+
+    Example:
+        >>> _classify_error_type("401 Unauthorized", "classification")
+        'api_key'
+        >>> _classify_error_type("Rate limit exceeded", "extraction")
+        'rate_limit'
+    """
+    error_lower = error_msg.lower()
+
+    # Check for API key errors
+    if any(
+        keyword in error_lower
+        for keyword in ["api key", "authentication", "401", "unauthorized", "invalid key"]
+    ):
+        return "api_key"
+
+    # Check for rate limit errors
+    if any(keyword in error_lower for keyword in ["rate limit", "429", "too many requests"]):
+        return "rate_limit"
+
+    # Check for network errors
+    if any(
+        keyword in error_lower
+        for keyword in ["timeout", "connection", "network", "unreachable", "dns"]
+    ):
+        return "network"
+
+    # Check for publication type errors
+    if any(
+        keyword in error_lower
+        for keyword in ["overig", "not supported", "unknown publication", "unsupported type"]
+    ):
+        return "publication_type"
+
+    # Default to generic error
+    return "generic"
+
+
+def _get_error_guidance(error_type: str, error_msg: str) -> dict:
+    """
+    Get user-friendly error guidance for a given error type.
+
+    Args:
+        error_type: Classified error type
+        error_msg: Original error message
+
+    Returns:
+        Dict with keys: title, message, actions, technical_details
+
+    Example:
+        >>> _get_error_guidance("api_key", "401 Unauthorized")
+        {'title': 'API Key Error', 'message': '...', 'actions': [...], ...}
+    """
+    guidance = ERROR_MESSAGES.get(error_type, ERROR_MESSAGES["generic"]).copy()
+    guidance["technical_details"] = error_msg
+    return guidance
+
+
+def _display_error_with_guidance(error_msg: str, step_name: str, step: dict):
+    """
+    Display error with actionable guidance and troubleshooting steps.
+
+    Shows:
+    - Error title and user-friendly message
+    - Numbered action steps
+    - Expandable technical details section
+
+    Args:
+        error_msg: Error message from exception
+        step_name: Step where error occurred
+        step: Step status dict (may contain additional error info)
+
+    Example:
+        >>> _display_error_with_guidance("401 Unauthorized", "classification", {...})
+        # Renders error with guidance in Streamlit UI
+    """
+    # Classify error and get guidance
+    error_type = _classify_error_type(error_msg, step_name)
+    guidance = _get_error_guidance(error_type, error_msg)
+
+    # Display error title and message
+    st.error(f"**{guidance['title']}**")
+    st.markdown(guidance["message"])
+
+    # Display action steps
+    st.markdown("**💡 Troubleshooting steps:**")
+    for i, action in enumerate(guidance["actions"], 1):
+        st.markdown(f"{i}. {action}")
+
+    # Expandable technical details
+    with st.expander("🔧 Technical Details"):
+        st.code(guidance["technical_details"], language="text")
+
+        # Show additional context if available
+        if "error_type" in step.get("verbose_data", {}).get("failed", {}):
+            error_type_name = step["verbose_data"]["failed"]["error_type"]
+            st.caption(f"**Exception type:** `{error_type_name}`")
+
+
+def _check_validation_warnings(validation_result: dict) -> list[str]:
+    """
+    Check validation result for non-critical warnings.
+
+    Args:
+        validation_result: Validation result dictionary
+
+    Returns:
+        List of warning messages (empty if no warnings)
+
+    Example:
+        >>> result = {"is_valid": True, "quality_score": 6}
+        >>> _check_validation_warnings(result)
+        ['Quality score is 6/10 (below recommended 8)']
+    """
+    warnings = []
+
+    # Check quality score
+    quality_score = validation_result.get("quality_score")
+    if quality_score is not None and quality_score < 8:
+        warnings.append(f"Quality score is {quality_score}/10 (below recommended 8)")
+
+    # Check for minor schema errors (errors exist but validation passed)
+    is_valid = validation_result.get("is_valid", False)
+    errors = validation_result.get("errors", [])
+    if is_valid and errors:
+        error_count = len(errors)
+        warnings.append(f"{error_count} minor schema issue(s) found but validation passed")
+
+    return warnings
+
+
+def _display_classification_result(result: dict):
+    """Display classification step result summary."""
+    if not result:
+        return
+
+    pub_type = result.get("publication_type", "Unknown")
+    st.write(f"📚 **Publication Type:** `{pub_type}`")
+
+    # Show DOI if available
+    metadata = result.get("metadata", {})
+    if isinstance(metadata, dict) and "doi" in metadata:
+        doi = metadata["doi"]
+        st.write(f"🔗 **DOI:** `{doi}`")
+
+
+def _display_extraction_result(result: dict):
+    """Display extraction step result summary."""
+    if not result:
+        return
+
+    # Count extracted fields (rough estimate)
+    field_count = len(result) if isinstance(result, dict) else 0
+    if field_count > 0:
+        st.write(f"📊 **Extracted fields:** {field_count}")
+
+    # Show title if available
+    if isinstance(result, dict):
+        title = result.get("title") or result.get("metadata", {}).get("title")
+        if title:
+            st.write(f"📄 **Title:** {title[:80]}{'...' if len(title) > 80 else ''}")
+
+
+def _display_validation_result(result: dict):
+    """Display validation step result summary."""
+    if not result:
+        return
+
+    # Show overall validation status
+    is_valid = result.get("is_valid", False)
+    status_text = "✅ Valid" if is_valid else "⚠️ Issues found"
+    st.write(f"**Validation:** {status_text}")
+
+    # Show error count if available
+    errors = result.get("errors", [])
+    if errors:
+        error_count = len(errors)
+        st.write(f"🔍 **Issues:** {error_count} schema validation error(s)")
+
+    # Show quality score if available (from LLM validation)
+    quality_score = result.get("quality_score")
+    if quality_score is not None:
+        st.write(f"⭐ **Quality Score:** {quality_score}/10")
+
+    # Check for non-critical warnings
+    warnings = _check_validation_warnings(result)
+    if warnings:
+        for warning in warnings:
+            st.warning(f"⚠️ {warning}")
+
+
+def _display_correction_result(result: dict):
+    """Display correction step result summary."""
+    if not result:
+        return
+
+    # Check if correction was applied or skipped
+    correction_applied = result.get("correction_applied", False)
+    if correction_applied:
+        st.write("🔧 **Correction:** Applied")
+
+        # Show number of corrections if available
+        corrections = result.get("corrections", [])
+        if corrections:
+            st.write(f"📝 **Changes:** {len(corrections)} corrections made")
+    else:
+        st.write("✨ **Correction:** Not needed (validation passed)")
 
 
 def display_step_status(step_name: str, step_label: str, step_number: int):
@@ -281,7 +781,8 @@ def display_step_status(step_name: str, step_label: str, step_number: int):
     - Status icon (⏳ Pending / 🔄 Running / ✅ Success / ❌ Failed / ⏭️ Skipped)
     - Elapsed time (for running/completed steps)
     - Error message (for failed steps)
-    - Expandable details section (collapsed by default)
+    - Result summary (for successful steps)
+    - Expandable details section (collapsed by default for success)
 
     Args:
         step_name: Step identifier ("classification", "extraction", "validation", "correction")
@@ -300,9 +801,16 @@ def display_step_status(step_name: str, step_label: str, step_number: int):
         - running/failed: Auto-expanded to show progress/error
         - success: Collapsed by default, user can expand for details
 
+    Result Summaries by Step:
+        - classification: Publication type, DOI
+        - extraction: Field count, title excerpt
+        - validation: Valid/invalid status, error count, quality score
+        - correction: Applied/skipped status, number of changes
+
     Example:
         >>> display_step_status("classification", "Classification", 1)
         # Renders: "Step 1: Classification  ✅ Completed in 8.3s"
+        # Expandable content shows: Publication Type, DOI
 
     Note:
         Reads step status from st.session_state.step_status[step_name].
@@ -323,13 +831,10 @@ def display_step_status(step_name: str, step_label: str, step_number: int):
     icon = icons.get(status, "❓")
     label = f"Step {step_number}: {step_label}"
 
-    # Calculate elapsed time
+    # Calculate elapsed time (only for completed/failed steps)
     elapsed_text = ""
     if step["elapsed_seconds"] is not None:
         elapsed = step["elapsed_seconds"]
-        elapsed_text = f" • {elapsed:.1f}s"
-    elif status == "running" and step["start_time"] is not None:
-        elapsed = (datetime.now() - step["start_time"]).total_seconds()
         elapsed_text = f" • {elapsed:.1f}s"
 
     # Status container configuration
@@ -338,26 +843,55 @@ def display_step_status(step_name: str, step_label: str, step_number: int):
         st.markdown(f"{icon} **{label}** - Not yet started")
 
     elif status == "running":
-        # Auto-expanded for running
-        with st.status(f"{icon} {label} - Running{elapsed_text}", expanded=True):
-            st.write(f"Started: {step['start_time'].strftime('%H:%M:%S')}")
-            st.write("Executing pipeline step...")
+        # Auto-expanded for running (no elapsed time - it's static during execution)
+        with st.status(f"{icon} {label} - Running", expanded=True):
+            st.write(f"⏰ **Started:** {step['start_time'].strftime('%H:%M:%S')}")
+            st.write("⚙️ Executing pipeline step...")
 
     elif status == "success":
-        # Collapsed by default for success
+        # Collapsed by default for success, with result summary
         with st.status(f"{icon} {label} - Completed{elapsed_text}", expanded=False):
-            st.write(f"Completed: {step['end_time'].strftime('%H:%M:%S')}")
-            if step["result"]:
-                st.write("Result data available")
+            # Show timing
+            st.write(f"⏰ **Completed:** {step['end_time'].strftime('%H:%M:%S')}")
+
+            # Show step-specific result summary
+            result = step.get("result")
+            if result:
+                st.markdown("---")
+                if step_name == STEP_CLASSIFICATION:
+                    _display_classification_result(result)
+                elif step_name == STEP_EXTRACTION:
+                    _display_extraction_result(result)
+                elif step_name == STEP_VALIDATION:
+                    _display_validation_result(result)
+                elif step_name == STEP_CORRECTION:
+                    _display_correction_result(result)
+
+            # Show file path if available (non-verbose always shows this)
+            file_path = step.get("file_path")
+            if file_path:
+                st.caption(f"💾 **Saved:** `{file_path}`")
+
+            # Show verbose logging details if enabled
+            verbose_enabled = st.session_state.settings.get("verbose_logging", False)
+            if verbose_enabled:
+                verbose_data = step.get("verbose_data", {})
+                if verbose_data or result:
+                    st.markdown("---")
+                    _display_verbose_info(step_name, verbose_data, result)
 
     elif status == "failed":
-        # Auto-expanded for errors
+        # Auto-expanded for errors with actionable guidance
         with st.status(f"{icon} {label} - Failed{elapsed_text}", expanded=True, state="error"):
-            st.error(f"**Error:** {step['error']}")
+            # Display error with guidance and troubleshooting steps
+            _display_error_with_guidance(step["error"], step_name, step)
+
+            # Show timing
+            st.markdown("---")
             if step["start_time"]:
-                st.write(f"Started: {step['start_time'].strftime('%H:%M:%S')}")
+                st.write(f"⏰ **Started:** {step['start_time'].strftime('%H:%M:%S')}")
             if step["end_time"]:
-                st.write(f"Failed: {step['end_time'].strftime('%H:%M:%S')}")
+                st.write(f"⏰ **Failed:** {step['end_time'].strftime('%H:%M:%S')}")
 
     elif status == "skipped":
         # Simple text for skipped
@@ -432,8 +966,48 @@ def show_execution_screen():
     # Initialize state
     init_execution_state()
 
-    # Header
-    st.markdown("## 🚀 Pipeline Execution")
+    # Header with top navigation
+    col1, col2 = st.columns([4, 1])
+    with col1:
+        st.markdown("## 🚀 Pipeline Execution")
+    with col2:
+        # Top navigation button (always visible)
+        status = st.session_state.execution["status"]
+        if status == "running":
+            # Show confirmation for navigation during execution
+            if st.button("⬅️ Back", key="back_top", use_container_width=True, type="secondary"):
+                # Add confirmation state
+                if "confirm_navigation" not in st.session_state:
+                    st.session_state.confirm_navigation = False
+
+                if not st.session_state.confirm_navigation:
+                    st.session_state.confirm_navigation = True
+                    st.rerun()
+        else:
+            # Direct back for non-running states
+            if st.button("⬅️ Back", key="back_top", use_container_width=True, type="secondary"):
+                reset_execution_state()
+                st.session_state.current_phase = "settings"
+                st.rerun()
+
+    # Show confirmation warning if navigation requested during running
+    if status == "running" and st.session_state.get("confirm_navigation", False):
+        st.warning(
+            "⚠️ **Pipeline is running!** Navigating away will not stop the execution. "
+            "Are you sure you want to go back to Settings?"
+        )
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("✅ Yes, go back", use_container_width=True):
+                st.session_state.confirm_navigation = False
+                reset_execution_state()
+                st.session_state.current_phase = "settings"
+                st.rerun()
+        with col2:
+            if st.button("❌ Cancel", use_container_width=True):
+                st.session_state.confirm_navigation = False
+                st.rerun()
+        st.markdown("---")
 
     # Show PDF and settings info
     if st.session_state.pdf_path:
@@ -473,44 +1047,109 @@ def show_execution_screen():
         st.rerun()
 
     elif status == "running":
-        # EXECUTE PIPELINE EXACTLY ONCE
+        # STEP-BY-STEP EXECUTION WITH UI UPDATES BETWEEN STEPS
         st.info("⏳ Pipeline is executing... Please wait.")
 
+        # Extract settings
+        settings = st.session_state.settings
+        steps_to_run = settings["steps_to_run"]
+        all_steps = ALL_PIPELINE_STEPS
+        current_step_index = st.session_state.execution["current_step_index"]
+
+        # Initialize results dict if needed
+        if st.session_state.execution["results"] is None:
+            st.session_state.execution["results"] = {}
+
+        # One-time setup: mark non-selected steps as skipped
+        if current_step_index == 0:
+            for step in all_steps:
+                if step not in steps_to_run:
+                    st.session_state.step_status[step]["status"] = "skipped"
+
+        # Display step status containers - shows current progress
+        st.markdown("---")
+        st.markdown("### Pipeline Steps")
+        display_step_status(STEP_CLASSIFICATION, "Classification", 1)
+        display_step_status(STEP_EXTRACTION, "Extraction", 2)
+        display_step_status(STEP_VALIDATION, "Validation", 3)
+        display_step_status(STEP_CORRECTION, "Correction", 4)
+
+        # Check if all steps completed
+        if current_step_index >= len(steps_to_run):
+            # All steps completed successfully
+            st.session_state.execution["status"] = "completed"
+            st.session_state.execution["end_time"] = datetime.now()
+            st.rerun()
+            return
+
+        # Get current step to execute
+        current_step_name = steps_to_run[current_step_index]
+
+        # Mark current step as running (if not already) and refresh UI
+        if st.session_state.step_status[current_step_name]["status"] == "pending":
+            st.session_state.step_status[current_step_name]["status"] = "running"
+            st.session_state.step_status[current_step_name]["start_time"] = datetime.now()
+            st.rerun()  # Refresh UI to show "running" status before executing
+            return
+
         try:
-            # Create progress callback for real-time UI updates
+            # Create progress callback for real-time updates
             callback = create_progress_callback()
 
-            # Extract settings
-            settings = st.session_state.settings
             pdf_path = Path(st.session_state.pdf_path)
+            file_manager = PipelineFileManager(pdf_path)
 
-            # Call orchestrator with callbacks
-            # Callback will update step_status in real-time during execution
-            results = run_four_step_pipeline(
+            # Execute current step with previous results
+            step_result = run_single_step(
+                step_name=current_step_name,
                 pdf_path=pdf_path,
                 max_pages=settings["max_pages"],
                 llm_provider=settings["llm_provider"],
-                steps_to_run=settings["steps_to_run"],
+                file_manager=file_manager,
                 progress_callback=callback,
-                have_llm_support=True,
+                previous_results=st.session_state.execution["results"],
             )
 
-            # Store results and mark as completed
-            st.session_state.execution["results"] = results
-            st.session_state.execution["status"] = "completed"
-            st.session_state.execution["end_time"] = datetime.now()
+            # Store step result
+            if current_step_name == STEP_CORRECTION:
+                # Correction returns dict with both corrected_extraction and final_validation
+                st.session_state.execution["results"].update(step_result)
+            else:
+                st.session_state.execution["results"][current_step_name] = step_result
 
+            # Mark step as success
+            st.session_state.step_status[current_step_name]["status"] = "success"
+            st.session_state.step_status[current_step_name]["end_time"] = datetime.now()
+            elapsed = (
+                st.session_state.step_status[current_step_name]["end_time"]
+                - st.session_state.step_status[current_step_name]["start_time"]
+            ).total_seconds()
+            st.session_state.step_status[current_step_name]["elapsed_seconds"] = elapsed
+            st.session_state.step_status[current_step_name]["result"] = step_result
+
+            # Move to next step
+            st.session_state.execution["current_step_index"] += 1
+
+            # Rerun to execute next step (or show completion)
             st.rerun()
 
         except Exception as e:
-            # Handle pipeline errors gracefully
+            # Mark current step as failed
+            st.session_state.step_status[current_step_name]["status"] = "failed"
+            st.session_state.step_status[current_step_name]["end_time"] = datetime.now()
+            st.session_state.step_status[current_step_name]["error"] = str(e)
+
+            if st.session_state.step_status[current_step_name]["start_time"]:
+                elapsed = (
+                    st.session_state.step_status[current_step_name]["end_time"]
+                    - st.session_state.step_status[current_step_name]["start_time"]
+                ).total_seconds()
+                st.session_state.step_status[current_step_name]["elapsed_seconds"] = elapsed
+
+            # Mark pipeline as failed
             st.session_state.execution["error"] = str(e)
             st.session_state.execution["status"] = "failed"
             st.session_state.execution["end_time"] = datetime.now()
-
-            # TODO Fase 6: Store error traceback for verbose logging display
-            # import traceback
-            # error_traceback = traceback.format_exc()
 
             st.rerun()
 
@@ -529,24 +1168,76 @@ def show_execution_screen():
 
         # Display step statuses
         st.markdown("### Pipeline Steps")
-        display_step_status("classification", "Classification", 1)
-        display_step_status("extraction", "Extraction", 2)
-        display_step_status("validation", "Validation", 3)
-        display_step_status("correction", "Correction", 4)
+        display_step_status(STEP_CLASSIFICATION, "Classification", 1)
+        display_step_status(STEP_EXTRACTION, "Extraction", 2)
+        display_step_status(STEP_VALIDATION, "Validation", 3)
+        display_step_status(STEP_CORRECTION, "Correction", 4)
 
         st.markdown("---")
 
-        # TODO Fase 8: Auto-redirect to settings after 3 seconds
-        st.info("💡 Pipeline execution completed. View results in Settings screen or run again.")
+        # Auto-redirect logic with countdown
+        execution = st.session_state.execution
+        if execution["auto_redirect_enabled"] and not execution["redirect_cancelled"]:
+            # Initialize countdown if not started
+            if execution["redirect_countdown"] is None:
+                execution["redirect_countdown"] = 30
+                st.rerun()
+
+            countdown = execution["redirect_countdown"]
+
+            if countdown > 0:
+                # Show countdown with cancel option
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    st.info(
+                        f"🔄 Redirecting to Settings screen in {countdown} second{'s' if countdown > 1 else ''}..."
+                    )
+                with col2:
+                    if st.button("Cancel", key="cancel_redirect", use_container_width=True):
+                        execution["redirect_cancelled"] = True
+                        st.rerun()
+
+                # Decrement countdown
+                time.sleep(1)
+                execution["redirect_countdown"] -= 1
+                st.rerun()
+
+            else:
+                # Countdown finished, redirect
+                reset_execution_state()
+                st.session_state.current_phase = "settings"
+                st.rerun()
+        else:
+            # Auto-redirect disabled or cancelled
+            st.info(
+                "💡 Pipeline execution completed. View results in Settings screen or run again."
+            )
 
     elif status == "failed":
-        # Display error UI
+        # Display error UI with step-level detection
         st.error("❌ Pipeline execution failed")
 
-        error_msg = st.session_state.execution.get("error", "Unknown error")
-        st.markdown(f"**Error:** {error_msg}")
+        # Determine which step failed and show guidance at pipeline level
+        failed_step = None
+        failed_step_name = None
+        for step_name, step_data in st.session_state.step_status.items():
+            if step_data["status"] == "failed":
+                failed_step = step_data
+                failed_step_name = step_name
+                break
+
+        if failed_step and failed_step_name:
+            # Display error with guidance for the failed step
+            st.markdown(f"**Failed at step:** {failed_step_name.title()}")
+            st.markdown("---")
+            _display_error_with_guidance(failed_step["error"], failed_step_name, failed_step)
+        else:
+            # Generic error (pipeline-level failure)
+            error_msg = st.session_state.execution.get("error", "Unknown error")
+            st.markdown(f"**Error:** {error_msg}")
 
         # Show execution time if available
+        st.markdown("---")
         start = st.session_state.execution["start_time"]
         end = st.session_state.execution["end_time"]
         if start and end:
@@ -557,18 +1248,9 @@ def show_execution_screen():
 
         # Display step statuses to show where it failed
         st.markdown("### Pipeline Steps")
-        display_step_status("classification", "Classification", 1)
-        display_step_status("extraction", "Extraction", 2)
-        display_step_status("validation", "Validation", 3)
-        display_step_status("correction", "Correction", 4)
+        display_step_status(STEP_CLASSIFICATION, "Classification", 1)
+        display_step_status(STEP_EXTRACTION, "Extraction", 2)
+        display_step_status(STEP_VALIDATION, "Validation", 3)
+        display_step_status(STEP_CORRECTION, "Correction", 4)
 
         st.markdown("---")
-
-        # TODO Fase 7: More sophisticated error handling and actionable messages
-
-    # Navigation button (always available)
-    st.markdown("---")
-    if st.button("⬅️ Back to Settings", use_container_width=False):
-        reset_execution_state()
-        st.session_state.current_phase = "settings"
-        st.rerun()

@@ -243,6 +243,34 @@ class ClaudeProvider(BaseLLMProvider):
                     "Schema guidance was provided to LLM but compliance is not guaranteed."
                 )
 
+            # Add usage information to result if available
+            if hasattr(response, "usage"):
+                usage = response.usage
+                usage_dict = {
+                    "input_tokens": getattr(usage, "input_tokens", None),
+                    "output_tokens": getattr(usage, "output_tokens", None),
+                }
+                # Calculate total tokens
+                if usage_dict["input_tokens"] and usage_dict["output_tokens"]:
+                    usage_dict["total_tokens"] = (
+                        usage_dict["input_tokens"] + usage_dict["output_tokens"]
+                    )
+                result["usage"] = usage_dict
+
+            # Add enhanced metadata to result
+            metadata = {}
+
+            # Response tracking
+            if hasattr(response, "id"):
+                metadata["response_id"] = response.id
+            if hasattr(response, "model"):
+                metadata["model"] = response.model
+            if hasattr(response, "stop_reason"):
+                metadata["stop_reason"] = response.stop_reason
+
+            if metadata:
+                result["_metadata"] = metadata
+
             return result
 
         except anthropic.AnthropicError as e:
@@ -358,6 +386,34 @@ class ClaudeProvider(BaseLLMProvider):
                     "jsonschema library not available - skipping schema validation. "
                     "Schema guidance was provided to LLM but compliance is not guaranteed."
                 )
+
+            # Add usage information to result if available
+            if hasattr(response, "usage"):
+                usage = response.usage
+                usage_dict = {
+                    "input_tokens": getattr(usage, "input_tokens", None),
+                    "output_tokens": getattr(usage, "output_tokens", None),
+                }
+                # Calculate total tokens
+                if usage_dict["input_tokens"] and usage_dict["output_tokens"]:
+                    usage_dict["total_tokens"] = (
+                        usage_dict["input_tokens"] + usage_dict["output_tokens"]
+                    )
+                result["usage"] = usage_dict
+
+            # Add enhanced metadata to result
+            metadata = {}
+
+            # Response tracking
+            if hasattr(response, "id"):
+                metadata["response_id"] = response.id
+            if hasattr(response, "model"):
+                metadata["model"] = response.model
+            if hasattr(response, "stop_reason"):
+                metadata["stop_reason"] = response.stop_reason
+
+            if metadata:
+                result["_metadata"] = metadata
 
             return result
 

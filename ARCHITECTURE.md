@@ -80,23 +80,137 @@ PDFtoPodcast is a **medical literature data extraction pipeline** that uses LLM 
 
 ## Component Architecture
 
-### 1. Pipeline Orchestrator (`run_pipeline.py`)
+### 1. Pipeline Orchestrator (`src/pipeline/orchestrator.py`)
 
 **Responsibilities:**
 - Coordinate 4-step extraction workflow
+- Provide modular step execution API
 - Handle breakpoints for testing
 - Manage intermediate file I/O
 - Display user-friendly progress
 
 **Key Functions:**
-- `run_four_step_pipeline()`: Main orchestration logic
-- `run_dual_validation()`: Implements two-tier validation strategy
-- `check_breakpoint()`: Testing support
+- `run_single_step()`: Execute one pipeline step with dependency validation
+- `run_four_step_pipeline()`: Backwards-compatible wrapper for CLI/batch usage
+- `_run_classification_step()`: Private classification logic
+- `_run_extraction_step()`: Private extraction logic
+- `_run_validation_step()`: Private validation logic
+- `_run_correction_step()`: Private correction logic
 
 **Design Decisions:**
 - **Why 4 steps?** Separation of concerns: classify → extract → validate → correct
+- **Why modular functions?** Enables step-by-step execution with UI updates (Streamlit)
+- **Why public API?** Single source of truth used by both CLI and web interface
 - **Why breakpoints?** Enable step-by-step testing without full pipeline runs
 - **Why PDF filename-based naming?** Consistent file tracking across pipeline stages, works without DOI
+
+---
+
+#### Dual-Mode Execution Architecture
+
+**Problem:** Streamlit and CLI have different execution models:
+- **CLI:** Runs all 4 steps in sequence, displays final results
+- **Streamlit:** Needs real-time UI updates between steps
+
+**Solution:** Modular architecture with two execution modes:
+
+##### Mode 1: Step-by-Step Execution (Streamlit)
+
+**Implementation:** `src/streamlit_app/screens/execution.py`
+
+```python
+# Execute one step at a time with UI refresh between steps
+current_step_index = st.session_state.execution["current_step_index"]
+steps_to_run = ["classification", "extraction", "validation", "correction"]
+
+current_step = steps_to_run[current_step_index]
+
+# Run single step
+step_result = run_single_step(
+    step_name=current_step,
+    pdf_path=pdf_path,
+    max_pages=max_pages,
+    llm_provider=llm_provider,
+    file_manager=file_manager,
+    progress_callback=callback,
+    previous_results=st.session_state.execution["results"],
+)
+
+# Store result and increment index
+st.session_state.execution["results"][current_step] = step_result
+st.session_state.execution["current_step_index"] += 1
+
+# Rerun to refresh UI and execute next step
+st.rerun()
+```
+
+**Benefits:**
+- ✅ UI refreshes after each step
+- ✅ User sees real-time progress (Classification → Extraction → Validation → Correction)
+- ✅ Step status indicators update immediately
+- ✅ Works within Streamlit's top-to-bottom execution model
+
+**State Tracking:**
+- `current_step_index`: Which step to execute next (0-3)
+- `results`: Dict accumulating results from completed steps
+- `step_status`: Per-step status (pending/running/success/failed)
+
+##### Mode 2: Batch Execution (CLI)
+
+**Implementation:** `src/pipeline/orchestrator.py`
+
+```python
+def run_four_step_pipeline(...) -> dict[str, Any]:
+    """Execute all 4 steps in sequence (backwards compatible)."""
+    results = {}
+    file_manager = PipelineFileManager(pdf_path)
+
+    all_steps = ["classification", "extraction", "validation", "correction"]
+
+    for step_name in all_steps:
+        # Run single step using same API as Streamlit
+        step_result = run_single_step(
+            step_name=step_name,
+            pdf_path=pdf_path,
+            max_pages=max_pages,
+            llm_provider=llm_provider,
+            file_manager=file_manager,
+            progress_callback=progress_callback,
+            previous_results=results,
+        )
+
+        # Store result and continue to next step
+        results[step_name] = step_result
+
+        # Check for breakpoint or early exit
+        if check_breakpoint(...) or publication_type == "overig":
+            return results
+
+    return results
+```
+
+**Benefits:**
+- ✅ Single source of truth - both modes use `run_single_step()`
+- ✅ No code duplication between CLI and web interface
+- ✅ Backwards compatible with existing CLI usage
+- ✅ Preserves all existing functionality (breakpoints, filtering, error handling)
+
+**Comparison:**
+
+| Aspect | CLI Mode | Streamlit Mode |
+|--------|----------|----------------|
+| **Execution** | All steps in one script run | One step per script run |
+| **UI Updates** | Only at completion | After each step |
+| **Rerun Behavior** | N/A | `st.rerun()` after each step |
+| **State Management** | Local variables | Session state |
+| **Use Case** | Batch processing, testing | Interactive user experience |
+| **Code Reuse** | ✅ Both use `run_single_step()` | ✅ Both use `run_single_step()` |
+
+**Architecture Benefits:**
+1. **DRY Principle:** Single implementation of step execution logic
+2. **Testability:** Test `run_single_step()` once, both modes benefit
+3. **Maintainability:** Bug fixes apply to both CLI and Streamlit
+4. **Flexibility:** Easy to add new execution modes (API server, batch queue, etc.)
 
 ---
 

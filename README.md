@@ -171,14 +171,18 @@ streamlit run app.py
 **Features:**
 - 📤 **Drag-and-drop PDF upload** with duplicate detection
 - ⚙️ **Interactive pipeline configuration** (select steps, LLM provider, page limits)
+- 🚀 **Real-time execution screen** with live progress tracking per step
 - 👁️ **View results** for each pipeline step with JSON syntax highlighting
 - 🔄 **Re-run individual steps** without full pipeline execution
 - 📁 **Previously uploaded files library** for easy file selection
+- ⚠️ **Intelligent error handling** with actionable recovery guidance
+- 🔍 **Verbose logging toggle** for detailed pipeline diagnostics
 
 **Perfect for:**
 - First-time users
 - Testing and experimentation
 - Reviewing results interactively
+- Real-time progress monitoring
 - Non-technical users
 
 ---

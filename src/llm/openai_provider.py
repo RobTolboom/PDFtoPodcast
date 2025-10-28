@@ -315,7 +315,59 @@ class OpenAIProvider(BaseLLMProvider):
             )
 
         try:
-            return cast(dict[str, Any], json.loads(content))
+            result = cast(dict[str, Any], json.loads(content))
+
+            # Add usage information to result if available
+            if hasattr(response, "usage"):
+                usage = response.usage
+                usage_dict = {
+                    "input_tokens": getattr(usage, "input_tokens", None),
+                    "output_tokens": getattr(usage, "output_tokens", None),
+                    "total_tokens": getattr(usage, "total_tokens", None),
+                }
+
+                # Add cached tokens if available (cost optimization metric)
+                if hasattr(usage, "input_tokens_details"):
+                    input_details = usage.input_tokens_details
+                    if hasattr(input_details, "cached_tokens") and input_details.cached_tokens:
+                        usage_dict["cached_tokens"] = input_details.cached_tokens
+
+                # Add output token details if available (reasoning tokens for GPT-5/o-series)
+                if hasattr(usage, "output_tokens_details"):
+                    details = usage.output_tokens_details
+                    if hasattr(details, "reasoning_tokens") and details.reasoning_tokens:
+                        usage_dict["reasoning_tokens"] = details.reasoning_tokens
+
+                # Add to result dictionary
+                result["usage"] = usage_dict
+
+            # Add enhanced metadata to result
+            metadata = {}
+
+            # Response tracking
+            if hasattr(response, "id"):
+                metadata["response_id"] = response.id
+            if hasattr(response, "model"):
+                metadata["model"] = response.model
+            if hasattr(response, "created_at"):
+                metadata["created_at"] = response.created_at
+            if hasattr(response, "status"):
+                metadata["status"] = response.status
+
+            # Reasoning summary (GPT-5/o-series)
+            if hasattr(response, "reasoning") and response.reasoning:
+                reasoning_data = {}
+                if hasattr(response.reasoning, "effort"):
+                    reasoning_data["effort"] = response.reasoning.effort
+                if hasattr(response.reasoning, "summary"):
+                    reasoning_data["summary"] = response.reasoning.summary
+                if reasoning_data:
+                    metadata["reasoning"] = reasoning_data
+
+            if metadata:
+                result["_metadata"] = metadata
+
+            return result
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse JSON response: {e}")
             logger.error(f"Full content length: {len(content)} characters")
@@ -344,6 +396,56 @@ class OpenAIProvider(BaseLLMProvider):
                     "✓ JSON repair successful! This is a workaround for OpenAI Responses API bug. "
                     "Consider reporting to OpenAI that strict mode doesn't escape quotes properly."
                 )
+
+                # Add usage information to result if available
+                if hasattr(response, "usage"):
+                    usage = response.usage
+                    usage_dict = {
+                        "input_tokens": getattr(usage, "input_tokens", None),
+                        "output_tokens": getattr(usage, "output_tokens", None),
+                        "total_tokens": getattr(usage, "total_tokens", None),
+                    }
+
+                    # Add cached tokens if available (cost optimization metric)
+                    if hasattr(usage, "input_tokens_details"):
+                        input_details = usage.input_tokens_details
+                        if hasattr(input_details, "cached_tokens") and input_details.cached_tokens:
+                            usage_dict["cached_tokens"] = input_details.cached_tokens
+
+                    # Add output token details if available
+                    if hasattr(usage, "output_tokens_details"):
+                        details = usage.output_tokens_details
+                        if hasattr(details, "reasoning_tokens") and details.reasoning_tokens:
+                            usage_dict["reasoning_tokens"] = details.reasoning_tokens
+
+                    result["usage"] = usage_dict
+
+                # Add enhanced metadata to result
+                metadata = {}
+
+                # Response tracking
+                if hasattr(response, "id"):
+                    metadata["response_id"] = response.id
+                if hasattr(response, "model"):
+                    metadata["model"] = response.model
+                if hasattr(response, "created_at"):
+                    metadata["created_at"] = response.created_at
+                if hasattr(response, "status"):
+                    metadata["status"] = response.status
+
+                # Reasoning summary (GPT-5/o-series)
+                if hasattr(response, "reasoning") and response.reasoning:
+                    reasoning_data = {}
+                    if hasattr(response.reasoning, "effort"):
+                        reasoning_data["effort"] = response.reasoning.effort
+                    if hasattr(response.reasoning, "summary"):
+                        reasoning_data["summary"] = response.reasoning.summary
+                    if reasoning_data:
+                        metadata["reasoning"] = reasoning_data
+
+                if metadata:
+                    result["_metadata"] = metadata
+
                 return result
             except json.JSONDecodeError as repair_error:
                 logger.error(f"JSON repair also failed: {repair_error}")

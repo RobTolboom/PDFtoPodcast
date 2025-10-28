@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Pipeline Execution Metadata** - Comprehensive metadata embedded in step JSON files
+  - Added `_pipeline_metadata` field to all step outputs (classification, extraction, validation, correction)
+  - Metadata includes: timestamp (ISO-8601 UTC), duration_seconds, LLM provider/model, max_pages, PDF filename, execution_mode (streamlit/cli), status (success/failed)
+  - Error handling: Failed steps save `{step}-failed.json` with metadata including error_message and error_type
+  - Automatic metadata stripping before schema validation and LLM prompts via `_strip_metadata_for_pipeline()`
+  - Enables cost analytics, debugging, and audit trail without external database
+  - Added 7 unit tests for metadata stripping helper function (118 total unit tests)
+  - Non-breaking: metadata is optional and doesn't affect existing code or schemas
+  - Implementation in `src/pipeline/orchestrator.py` covering all 4 pipeline steps
+
+- **Enhanced Verbose Logging Metadata** - Comprehensive API response metadata for debugging and cost optimization
+  - Response IDs for debugging and support tickets (both OpenAI and Claude)
+  - Model tracking: exact model version used (e.g., "gpt-5-2025-04-14", "claude-3-5-sonnet-20241022")
+  - Cached tokens display with cache hit percentage for cost optimization (OpenAI only)
+  - Reasoning tokens and summary for GPT-5/o-series models with effort level
+  - Response status and stop_reason tracking
+  - Metadata stored in `_metadata` field in result dict (non-breaking addition)
+  - Streamlit verbose display enhanced with:
+    - Cache efficiency section showing cached token percentage
+    - Reasoning tokens prominently displayed when significant
+    - Response metadata section with model, response_id, status
+    - Expandable reasoning summary for GPT-5/o-series (🧠 icon)
+  - Updated OpenAI provider: 2 locations in `_parse_response_output()` (success + repair paths)
+  - Updated Claude provider: 2 locations (`generate_json_with_schema()`, `generate_json_with_pdf()`)
+  - Updated Streamlit: `_display_verbose_info()` in `src/streamlit_app/screens/execution.py`
+
 ### Fixed
 - Fixed schema bundler creating self-referencing definitions causing validation recursion errors
   - `schemas/json-bundler.py` - Replace local alias definitions with actual definitions from common schema
@@ -14,7 +41,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Resolves "maximum recursion depth exceeded" error during validation step
   - Affects `observational_analytic_bundled.json` and `interventional_trial_bundled.json`
 
+- **Execution Screen Real-time Feedback** - Fixed step status visibility and updates during pipeline execution
+  - Fixed step containers not showing during execution (only "⏳ Pipeline is executing..." was visible)
+  - Fixed non-selected steps showing "pending" instead of "⏭️ Skipped"
+  - Fixed first step showing "pending" instead of "🔄 Running" when pipeline starts
+  - Fixed all steps now show "🔄 Running" status immediately before execution begins (added `st.rerun()` after status update)
+  - Removed static "0.0s" elapsed time from running status (shown only for completed/failed)
+  - Implemented proactive status updates to work within Streamlit's execution model constraints
+  - Added `_mark_next_step_running()` helper to auto-update next step after completion
+  - Improved user experience with immediate, accurate step status feedback
+
+- **Partial Pipeline Runs** - Fixed "dependency not found" error when running individual steps
+  - Added `PipelineFileManager.load_json()` to load cached results from `tmp/` folder
+  - Enables running validation after classification+extraction (separate runs)
+  - Enables re-running correction without re-doing extraction
+  - Smart fallback: checks previous_results first, then loads from disk, then errors
+  - Console feedback (yellow 📂) when loading from disk
+  - Better error messages indicating missing dependency files
+  - Added 4 new unit tests (111 total tests passing)
+
+### Changed
+- **Pipeline Execution Architecture** - Switched to step-by-step execution with real-time UI updates
+  - Execute one step at a time with `st.rerun()` between steps instead of running all steps at once
+  - Added `current_step_index` to execution state for progress tracking (0-3)
+  - Users see immediate UI updates as each step completes (Classification → Extraction → Validation → Correction)
+  - Fixes bug where multi-step selection showed static status during execution
+  - Maintains all error handling, callbacks, and status tracking functionality
+  - Special handling for correction step which returns dict with two keys
+
 ### Added
+- **Orchestrator Modular Architecture** - Refactored monolithic pipeline into modular, testable functions
+  - Extracted `_run_classification_step()` private function (110 lines)
+  - Extracted `_run_extraction_step()` private function (98 lines)
+  - Extracted `_run_validation_step()` private function (66 lines)
+  - Extracted `_run_correction_step()` private function (125 lines)
+  - Added `run_single_step()` public API for step-by-step execution with dependency validation
+  - Refactored `run_four_step_pipeline()` to use `run_single_step()` internally (DRY principle)
+  - Reduced code duplication: wrapper now calls same API used by Streamlit
+  - Updated module docstring with API documentation and usage examples
+  - Reduced `run_four_step_pipeline()` from 547 to ~78 lines
+  - Enables step-by-step UI updates in Streamlit with reruns between steps
+  - Maintains 100% backwards compatibility with existing CLI and API usage
+
+- **Streamlit Execution Screen** - Real-time pipeline execution UI with progress tracking
+  - Live progress updates per step via callbacks (Classification → Extraction → Validation → Correction)
+  - Session state management with rerun prevention (prevents pipeline restart on UI interactions)
+  - Verbose logging toggle (configurable via Settings screen)
+  - Intelligent error handling with critical vs. non-critical error distinction
+  - Step selection support (run subset of pipeline steps via Settings)
+  - Auto-redirect to Settings after completion with 30-second countdown timer (cancellable)
+  - Error recovery with state cleanup and retry capability
+  - Top navigation "Back" button with confirmation dialog during running state
+  - Comprehensive manual testing checklist (90+ tests across 7 categories)
+
+- **Unit Tests for Execution Screen** - `tests/unit/test_execution_screen.py`
+  - 9 comprehensive unit tests covering state management, callbacks, and helper functions
+  - MockSessionState class for Streamlit session_state simulation
+  - 100% test coverage for public functions (init, reset, create_callback, helpers)
+  - All tests use mocking to avoid Streamlit dependency and real API calls
+
+- **Dual-Mode Execution Documentation** - Added comprehensive architecture documentation
+  - New section in ARCHITECTURE.md explaining Streamlit (step-by-step) vs CLI (batch) execution modes
+  - Documents state management patterns and rerun behavior
+  - Includes comparison table and code examples for both modes
+  - Explains DRY principle: single `run_single_step()` API used by both modes
+  - Architecture benefits: testability, maintainability, flexibility for future modes
+
 - Professional development documentation structure
   - ARCHITECTURE.md - Complete system architecture documentation
   - CONTRIBUTING.md - Developer contribution guide
@@ -23,6 +115,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - TESTING.md - Testing strategy and guidelines
 
 ### Changed
+- **Pipeline Orchestrator** - `src/pipeline/orchestrator.py` refactored for Streamlit callback support
+  - Added `steps_to_run: list[str] | None` parameter for step filtering
+  - Added `progress_callback: Callable | None` parameter for real-time UI updates
+  - Maintained backwards compatibility with CLI interface (all existing parameters work)
+  - Step filtering validates dependencies (validation needs extraction, correction needs validation)
+  - Callback signature: `callback(step_name: str, status: str, data: dict)`
+  - Callbacks invoked on state changes: starting, completed, failed, skipped
+
 - Refactored `src/llm.py` (1,152 lines) into modular package structure
   - `src/llm/base.py` - Abstract base class and exceptions
   - `src/llm/openai_provider.py` - OpenAI provider implementation
