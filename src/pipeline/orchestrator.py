@@ -77,6 +77,19 @@ from .file_manager import PipelineFileManager
 from .utils import check_breakpoint
 from .validation_runner import run_dual_validation
 
+# Pipeline step name constants
+STEP_CLASSIFICATION = "classification"
+STEP_EXTRACTION = "extraction"
+STEP_VALIDATION = "validation"
+STEP_CORRECTION = "correction"
+
+ALL_PIPELINE_STEPS = [
+    STEP_CLASSIFICATION,
+    STEP_EXTRACTION,
+    STEP_VALIDATION,
+    STEP_CORRECTION,
+]
+
 console = Console()
 
 
@@ -352,7 +365,7 @@ def _run_validation_step(
     console.print("[bold cyan]🔍 Stap 3: Validatie (Schema + LLM)[/bold cyan]")
 
     start_time = time.time()
-    _call_progress_callback(progress_callback, "validation", "starting", {})
+    _call_progress_callback(progress_callback, STEP_VALIDATION, "starting", {})
 
     # Strip metadata from dependencies before using
     extraction_clean = _strip_metadata_for_pipeline(extraction_result)
@@ -635,13 +648,13 @@ def _validate_step_dependencies(steps_to_run: list[str]) -> None:
         ...
         ValueError: Validation step requires extraction step
     """
-    if "validation" in steps_to_run and "extraction" not in steps_to_run:
+    if STEP_VALIDATION in steps_to_run and STEP_EXTRACTION not in steps_to_run:
         raise ValueError("Validation step requires extraction step")
 
-    if "correction" in steps_to_run and "validation" not in steps_to_run:
+    if STEP_CORRECTION in steps_to_run and STEP_VALIDATION not in steps_to_run:
         raise ValueError("Correction step requires validation step")
 
-    if "extraction" in steps_to_run and "classification" not in steps_to_run:
+    if STEP_EXTRACTION in steps_to_run and STEP_CLASSIFICATION not in steps_to_run:
         raise ValueError("Extraction step requires classification step")
 
 
@@ -854,10 +867,9 @@ def run_single_step(
         ... )
     """
     # Validate step name
-    valid_steps = ["classification", "extraction", "validation", "correction"]
-    if step_name not in valid_steps:
+    if step_name not in ALL_PIPELINE_STEPS:
         raise ValueError(
-            f"Invalid step_name '{step_name}'. Must be one of: {', '.join(valid_steps)}"
+            f"Invalid step_name '{step_name}'. Must be one of: {', '.join(ALL_PIPELINE_STEPS)}"
         )
 
     # Initialize previous_results if not provided
@@ -895,23 +907,23 @@ def run_single_step(
         return result
 
     # Validate dependencies based on step and load if needed
-    if step_name == "extraction":
+    if step_name == STEP_EXTRACTION:
         classification_result = _get_or_load_result("classification")
-        previous_results["classification"] = classification_result  # Cache in memory
+        previous_results[STEP_CLASSIFICATION] = classification_result  # Cache in memory
 
-    elif step_name == "validation":
+    elif step_name == STEP_VALIDATION:
         classification_result = _get_or_load_result("classification")
         extraction_result = _get_or_load_result("extraction")
-        previous_results["classification"] = classification_result
-        previous_results["extraction"] = extraction_result
+        previous_results[STEP_CLASSIFICATION] = classification_result
+        previous_results[STEP_EXTRACTION] = extraction_result
 
-    elif step_name == "correction":
+    elif step_name == STEP_CORRECTION:
         classification_result = _get_or_load_result("classification")
         extraction_result = _get_or_load_result("extraction")
         validation_result = _get_or_load_result("validation")
-        previous_results["classification"] = classification_result
-        previous_results["extraction"] = extraction_result
-        previous_results["validation"] = validation_result
+        previous_results[STEP_CLASSIFICATION] = classification_result
+        previous_results[STEP_EXTRACTION] = extraction_result
+        previous_results[STEP_VALIDATION] = validation_result
 
         # Check if correction is actually needed
         validation_status = validation_result.get("verification_summary", {}).get("overall_status")
@@ -930,7 +942,7 @@ def run_single_step(
         have_llm_support = False
 
     # Dispatch to appropriate step function
-    if step_name == "classification":
+    if step_name == STEP_CLASSIFICATION:
         return _run_classification_step(
             pdf_path=pdf_path,
             max_pages=max_pages,
@@ -940,8 +952,8 @@ def run_single_step(
             have_llm_support=have_llm_support,
         )
 
-    elif step_name == "extraction":
-        classification_result = previous_results["classification"]
+    elif step_name == STEP_EXTRACTION:
+        classification_result = previous_results[STEP_CLASSIFICATION]
         llm = get_llm_provider(llm_provider)
 
         return _run_extraction_step(
@@ -953,9 +965,9 @@ def run_single_step(
             progress_callback=progress_callback,
         )
 
-    elif step_name == "validation":
-        classification_result = previous_results["classification"]
-        extraction_result = previous_results["extraction"]
+    elif step_name == STEP_VALIDATION:
+        classification_result = previous_results[STEP_CLASSIFICATION]
+        extraction_result = previous_results[STEP_EXTRACTION]
         llm = get_llm_provider(llm_provider)
 
         return _run_validation_step(
@@ -968,10 +980,10 @@ def run_single_step(
             progress_callback=progress_callback,
         )
 
-    elif step_name == "correction":
-        classification_result = previous_results["classification"]
-        extraction_result = previous_results["extraction"]
-        validation_result = previous_results["validation"]
+    elif step_name == STEP_CORRECTION:
+        classification_result = previous_results[STEP_CLASSIFICATION]
+        extraction_result = previous_results[STEP_EXTRACTION]
+        validation_result = previous_results[STEP_VALIDATION]
         publication_type = classification_result.get("publication_type")
         llm = get_llm_provider(llm_provider)
 
@@ -1077,7 +1089,7 @@ def run_four_step_pipeline(
         _validate_step_dependencies(steps_to_run)
 
     # Define all steps in order
-    all_steps = ["classification", "extraction", "validation", "correction"]
+    all_steps = ALL_PIPELINE_STEPS
 
     # Execute each step using run_single_step()
     for step_name in all_steps:
@@ -1087,7 +1099,7 @@ def run_four_step_pipeline(
             console.print(f"[yellow]⏭️  {step_name.title()} skipped (not in steps_to_run)[/yellow]")
 
             # Classification cannot be skipped - it's required for all other steps
-            if step_name == "classification":
+            if step_name == STEP_CLASSIFICATION:
                 raise RuntimeError(
                     "Classification cannot be skipped - required for all other steps"
                 )
@@ -1095,8 +1107,8 @@ def run_four_step_pipeline(
             continue
 
         # Special handling for correction - skip if validation passed
-        if step_name == "correction":
-            validation_result = results.get("validation")
+        if step_name == STEP_CORRECTION:
+            validation_result = results.get(STEP_VALIDATION)
             if validation_result:
                 validation_status = validation_result.get("verification_summary", {}).get(
                     "overall_status"
@@ -1104,7 +1116,7 @@ def run_four_step_pipeline(
                 if validation_status == "passed":
                     _call_progress_callback(
                         progress_callback,
-                        "correction",
+                        STEP_CORRECTION,
                         "skipped",
                         {"reason": "validation_passed", "validation_status": validation_status},
                     )
@@ -1124,7 +1136,7 @@ def run_four_step_pipeline(
             )
 
             # Store result
-            if step_name == "correction":
+            if step_name == STEP_CORRECTION:
                 # Correction returns dict with extraction_corrected and validation_corrected
                 results["extraction_corrected"] = step_result["extraction_corrected"]
                 results["validation_corrected"] = step_result["validation_corrected"]
@@ -1140,7 +1152,7 @@ def run_four_step_pipeline(
             return results
 
         # Check for publication_type == "overig" after classification
-        if step_name == "classification":
+        if step_name == STEP_CLASSIFICATION:
             if step_result.get("publication_type") == "overig":
                 console.print(
                     "[yellow]⚠️ Publicatietype 'overig' - "

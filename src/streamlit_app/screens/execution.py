@@ -71,7 +71,14 @@ from pathlib import Path
 import streamlit as st
 
 from src.pipeline.file_manager import PipelineFileManager
-from src.pipeline.orchestrator import run_single_step
+from src.pipeline.orchestrator import (
+    ALL_PIPELINE_STEPS,
+    STEP_CLASSIFICATION,
+    STEP_CORRECTION,
+    STEP_EXTRACTION,
+    STEP_VALIDATION,
+    run_single_step,
+)
 
 
 def init_execution_state():
@@ -130,7 +137,7 @@ def init_execution_state():
                 "elapsed_seconds": None,
                 "verbose_data": {},  # Store callback data for verbose logging
             }
-            for step in ["classification", "extraction", "validation", "correction"]
+            for step in ALL_PIPELINE_STEPS
         }
 
 
@@ -185,7 +192,7 @@ def reset_execution_state():
             "elapsed_seconds": None,
             "verbose_data": {},
         }
-        for step in ["classification", "extraction", "validation", "correction"]
+        for step in ALL_PIPELINE_STEPS
     }
 
 
@@ -411,18 +418,18 @@ def _display_verbose_info(step_name: str, verbose_data: dict, result: dict | Non
     if starting_data:
         st.markdown("**Starting parameters:**")
 
-        if step_name == "classification":
+        if step_name == STEP_CLASSIFICATION:
             if "pdf_path" in starting_data:
                 st.write(f"• PDF: `{starting_data['pdf_path']}`")
             if "max_pages" in starting_data:
                 max_pages = starting_data["max_pages"] or "All"
                 st.write(f"• Max pages: {max_pages}")
 
-        elif step_name == "extraction":
+        elif step_name == STEP_EXTRACTION:
             if "publication_type" in starting_data:
                 st.write(f"• Publication type: `{starting_data['publication_type']}`")
 
-        elif step_name == "correction":
+        elif step_name == STEP_CORRECTION:
             if "validation_status" in starting_data:
                 st.write(f"• Validation status: {starting_data['validation_status']}")
 
@@ -851,13 +858,13 @@ def display_step_status(step_name: str, step_label: str, step_number: int):
             result = step.get("result")
             if result:
                 st.markdown("---")
-                if step_name == "classification":
+                if step_name == STEP_CLASSIFICATION:
                     _display_classification_result(result)
-                elif step_name == "extraction":
+                elif step_name == STEP_EXTRACTION:
                     _display_extraction_result(result)
-                elif step_name == "validation":
+                elif step_name == STEP_VALIDATION:
                     _display_validation_result(result)
-                elif step_name == "correction":
+                elif step_name == STEP_CORRECTION:
                     _display_correction_result(result)
 
             # Show file path if available (non-verbose always shows this)
@@ -1046,7 +1053,7 @@ def show_execution_screen():
         # Extract settings
         settings = st.session_state.settings
         steps_to_run = settings["steps_to_run"]
-        all_steps = ["classification", "extraction", "validation", "correction"]
+        all_steps = ALL_PIPELINE_STEPS
         current_step_index = st.session_state.execution["current_step_index"]
 
         # Initialize results dict if needed
@@ -1062,10 +1069,10 @@ def show_execution_screen():
         # Display step status containers - shows current progress
         st.markdown("---")
         st.markdown("### Pipeline Steps")
-        display_step_status("classification", "Classification", 1)
-        display_step_status("extraction", "Extraction", 2)
-        display_step_status("validation", "Validation", 3)
-        display_step_status("correction", "Correction", 4)
+        display_step_status(STEP_CLASSIFICATION, "Classification", 1)
+        display_step_status(STEP_EXTRACTION, "Extraction", 2)
+        display_step_status(STEP_VALIDATION, "Validation", 3)
+        display_step_status(STEP_CORRECTION, "Correction", 4)
 
         # Check if all steps completed
         if current_step_index >= len(steps_to_run):
@@ -1104,7 +1111,7 @@ def show_execution_screen():
             )
 
             # Store step result
-            if current_step_name == "correction":
+            if current_step_name == STEP_CORRECTION:
                 # Correction returns dict with both corrected_extraction and final_validation
                 st.session_state.execution["results"].update(step_result)
             else:
@@ -1161,10 +1168,10 @@ def show_execution_screen():
 
         # Display step statuses
         st.markdown("### Pipeline Steps")
-        display_step_status("classification", "Classification", 1)
-        display_step_status("extraction", "Extraction", 2)
-        display_step_status("validation", "Validation", 3)
-        display_step_status("correction", "Correction", 4)
+        display_step_status(STEP_CLASSIFICATION, "Classification", 1)
+        display_step_status(STEP_EXTRACTION, "Extraction", 2)
+        display_step_status(STEP_VALIDATION, "Validation", 3)
+        display_step_status(STEP_CORRECTION, "Correction", 4)
 
         st.markdown("---")
 
@@ -1241,9 +1248,9 @@ def show_execution_screen():
 
         # Display step statuses to show where it failed
         st.markdown("### Pipeline Steps")
-        display_step_status("classification", "Classification", 1)
-        display_step_status("extraction", "Extraction", 2)
-        display_step_status("validation", "Validation", 3)
-        display_step_status("correction", "Correction", 4)
+        display_step_status(STEP_CLASSIFICATION, "Classification", 1)
+        display_step_status(STEP_EXTRACTION, "Extraction", 2)
+        display_step_status(STEP_VALIDATION, "Validation", 3)
+        display_step_status(STEP_CORRECTION, "Correction", 4)
 
         st.markdown("---")
