@@ -3,7 +3,7 @@
 **Status**: Planning
 **Branch**: `feature/iterative-validation-correction`
 **Created**: 2025-01-28
-**Updated**: 2025-01-28 (v1.1 - Critical fixes)
+**Updated**: 2025-01-28 (v1.2 - st.empty() UI strategie)
 **Author**: Rob Tolboom (met Claude Code)
 
 ---
@@ -1065,6 +1065,308 @@ def init_execution_state():
         }
 ```
 
+### 4. Real-Time Updates met st.empty() (Streamlit Best Practice)
+
+**Probleem**: De iterative loop draait binnen één pipeline step. Tussen iteraties willen we de UI updaten zonder st.rerun() (wat kostbaar is en de hele app herlaadt).
+
+**Oplossing**: Gebruik `st.empty()` containers voor in-place updates binnen de loop.
+
+**Waarom st.empty() voor deze feature?**
+- ✅ **Efficiency**: Geen full app rerun tussen iteraties (saves ~100-200ms per iteration)
+- ✅ **Real-time feedback**: User ziet metrics/history accumulate zonder page refresh
+- ✅ **Smooth UX**: Progress bar/table updates live, geen flikkering
+- ✅ **Streamlit 2024 best practice**: Recommended pattern voor within-step updates
+- ✅ **Consistent**: Hele validation-correction loop is één atomic step
+
+**Implementatie Strategie**:
+
+```python
+# src/streamlit_app/screens/execution.py
+
+def display_validation_correction_step(
+    pdf_path: Path,
+    extraction_result: dict,
+    classification_result: dict,
+    llm_provider: str,
+    file_manager: PipelineFileManager,
+    progress_callback: Callable | None = None
+):
+    """
+    Display and execute iterative validation-correction with real-time UI updates.
+
+    Uses st.empty() containers for in-place updates WITHOUT st.rerun() between iterations.
+    This provides smooth, efficient real-time feedback during the iterative loop.
+
+    Architecture:
+        - Create placeholder containers upfront (st.empty())
+        - Execute iterations in blocking loop
+        - Update containers in-place via `with container:`
+        - NO reruns until loop completes
+    """
+
+    # Get settings
+    max_iterations = st.session_state.settings.get('max_correction_iterations', 3)
+    quality_thresholds = st.session_state.settings.get('quality_thresholds')
+
+    # ========================================================================
+    # STEP 1: Create st.empty() placeholder containers
+    # ========================================================================
+    # These containers are created ONCE and will be updated in-place during the loop
+
+    st.markdown("### Step 3: Validation & Correction (Iterative)")
+
+    # Container 1: Current iteration status
+    iteration_status_container = st.empty()
+
+    # Container 2: Progress bar
+    progress_bar_container = st.empty()
+
+    # Container 3: Current metrics (latest iteration)
+    current_metrics_container = st.empty()
+
+    # Container 4: Iteration history table
+    history_table_container = st.empty()
+
+    # Container 5: Quality trend chart
+    quality_chart_container = st.empty()
+
+    # ========================================================================
+    # STEP 2: Execute iterative loop WITH in-place updates
+    # ========================================================================
+
+    iterations = []  # Accumulate iteration data
+    current_extraction = extraction_result
+    iteration_num = 0
+
+    while iteration_num <= max_iterations:
+        # ----------------------------------------------------------------
+        # Update UI: Show current iteration status
+        # ----------------------------------------------------------------
+        with iteration_status_container:
+            if iteration_num == 0:
+                st.info(f"⏳ Running initial validation (iteration {iteration_num}/{max_iterations + 1})")
+            else:
+                st.info(f"⏳ Running correction attempt {iteration_num}/{max_iterations} → validation")
+
+        with progress_bar_container:
+            progress = iteration_num / (max_iterations + 1)
+            st.progress(progress)
+            st.caption(f"Iteration {iteration_num + 1} of {max_iterations + 1}")
+
+        # ----------------------------------------------------------------
+        # Execute: Validation (blocking LLM call)
+        # ----------------------------------------------------------------
+        validation_result = _run_validation_step(
+            extraction_result=current_extraction,
+            pdf_path=pdf_path,
+            max_pages=None,
+            classification_result=classification_result,
+            llm=get_llm_provider(llm_provider),
+            file_manager=file_manager,
+            progress_callback=progress_callback
+        )
+
+        # Extract and store metrics
+        metrics = _extract_metrics(validation_result)
+        iteration_data = {
+            'iteration_num': iteration_num,
+            'extraction': current_extraction,
+            'validation': validation_result,
+            'metrics': metrics,
+            'timestamp': datetime.now().isoformat()
+        }
+        iterations.append(iteration_data)
+
+        # ----------------------------------------------------------------
+        # Update UI: Display latest metrics
+        # ----------------------------------------------------------------
+        with current_metrics_container:
+            st.markdown("#### 📊 Current Iteration Metrics")
+            col1, col2, col3, col4 = st.columns(4)
+
+            with col1:
+                comp = metrics.get('completeness_score', 0)
+                comp_threshold = quality_thresholds['completeness_score']
+                comp_status = "✅" if comp >= comp_threshold else "⚠️"
+                st.metric(
+                    f"{comp_status} Completeness",
+                    f"{comp:.1%}",
+                    delta=f"Target: {comp_threshold:.0%}"
+                )
+
+            with col2:
+                acc = metrics.get('accuracy_score', 0)
+                acc_threshold = quality_thresholds['accuracy_score']
+                acc_status = "✅" if acc >= acc_threshold else "⚠️"
+                st.metric(
+                    f"{acc_status} Accuracy",
+                    f"{acc:.1%}",
+                    delta=f"Target: {acc_threshold:.0%}"
+                )
+
+            with col3:
+                schema = metrics.get('schema_compliance_score', 0)
+                schema_threshold = quality_thresholds['schema_compliance_score']
+                schema_status = "✅" if schema >= schema_threshold else "⚠️"
+                st.metric(
+                    f"{schema_status} Schema",
+                    f"{schema:.1%}",
+                    delta=f"Target: {schema_threshold:.0%}"
+                )
+
+            with col4:
+                critical = metrics.get('critical_issues', 0)
+                critical_status = "✅" if critical == 0 else "❌"
+                st.metric(
+                    f"{critical_status} Critical Issues",
+                    f"{critical}",
+                    delta="Must be 0"
+                )
+
+        # ----------------------------------------------------------------
+        # Update UI: Iteration history table (grows with each iteration)
+        # ----------------------------------------------------------------
+        with history_table_container:
+            st.markdown("#### 📋 Iteration History")
+
+            import pandas as pd
+            history_data = []
+            for it in iterations:
+                m = it['metrics']
+                history_data.append({
+                    'Iteration': it['iteration_num'],
+                    'Completeness': f"{m.get('completeness_score', 0):.1%}",
+                    'Accuracy': f"{m.get('accuracy_score', 0):.1%}",
+                    'Schema': f"{m.get('schema_compliance_score', 0):.1%}",
+                    'Critical': m.get('critical_issues', 0),
+                    'Overall': f"{m.get('overall_quality', 0):.1%}"
+                })
+
+            df = pd.DataFrame(history_data)
+            st.dataframe(df, use_container_width=True)
+
+        # ----------------------------------------------------------------
+        # Update UI: Quality trend chart
+        # ----------------------------------------------------------------
+        with quality_chart_container:
+            st.markdown("#### 📈 Quality Improvement Trajectory")
+
+            chart_data = pd.DataFrame({
+                'Iteration': [it['iteration_num'] for it in iterations],
+                'Completeness': [it['metrics']['completeness_score'] for it in iterations],
+                'Accuracy': [it['metrics']['accuracy_score'] for it in iterations],
+                'Schema': [it['metrics']['schema_compliance_score'] for it in iterations],
+            }).set_index('Iteration')
+
+            st.line_chart(chart_data)
+
+        # ----------------------------------------------------------------
+        # Check: Quality sufficient?
+        # ----------------------------------------------------------------
+        if is_quality_sufficient(validation_result, quality_thresholds):
+            # SUCCESS!
+            with iteration_status_container:
+                st.success(f"✅ Quality thresholds met at iteration {iteration_num}!")
+
+            return {
+                'best_extraction': current_extraction,
+                'best_validation': validation_result,
+                'iterations': iterations,
+                'final_status': 'passed',
+                'iteration_count': iteration_num + 1
+            }
+
+        # Check: Early stopping (quality degradation)?
+        if iteration_num >= 2:
+            if _detect_quality_degradation(iterations, window=2):
+                best = _select_best_iteration(iterations)
+                with iteration_status_container:
+                    st.warning(f"⚠️ Early stopping: quality degraded. Using best (iteration {best['iteration_num']})")
+
+                return {
+                    'best_extraction': best['extraction'],
+                    'best_validation': best['validation'],
+                    'iterations': iterations,
+                    'final_status': 'early_stopped_degradation',
+                    'iteration_count': len(iterations)
+                }
+
+        # Check: Max iterations reached?
+        if iteration_num >= max_iterations:
+            # Select best iteration
+            best = _select_best_iteration(iterations)
+            with iteration_status_container:
+                st.warning(f"⚠️ Max iterations reached. Using best (iteration {best['iteration_num']})")
+
+            return {
+                'best_extraction': best['extraction'],
+                'best_validation': best['validation'],
+                'iterations': iterations,
+                'final_status': 'max_iterations_reached',
+                'iteration_count': len(iterations)
+            }
+
+        # ----------------------------------------------------------------
+        # Execute: Correction for next iteration
+        # ----------------------------------------------------------------
+        iteration_num += 1
+
+        with iteration_status_container:
+            st.info(f"⏳ Running correction {iteration_num}/{max_iterations}...")
+
+        correction_result = _run_correction_step(
+            extraction_result=current_extraction,
+            validation_result=validation_result,
+            pdf_path=pdf_path,
+            max_pages=None,
+            classification_result=classification_result,
+            llm=get_llm_provider(llm_provider),
+            file_manager=file_manager,
+            progress_callback=progress_callback
+        )
+
+        current_extraction = correction_result['corrected_extraction']
+        # Loop continues to next validation...
+```
+
+**Key Benefits van deze Approach**:
+
+1. **Zero Reruns binnen Loop**:
+   - Huidige: 2 reruns per iteratie (mark running + after step)
+   - Nieuwe: 0 reruns binnen loop, alleen 1 rerun na completion
+   - Bij 3 iteraties: bespaart 6 reruns = ~600ms
+
+2. **Smooth Visual Updates**:
+   - History table groeit incrementeel (geen flikkering)
+   - Chart updates live (smooth animation)
+   - Metrics update instantly na elke validation
+
+3. **Better UX**:
+   - User ziet continue progress
+   - No page reloads tussen iteraties
+   - Feels more "real-time" and responsive
+
+4. **Maintains Responsiveness**:
+   - Hele loop is binnen één step execution
+   - User kan niet "Back" clicken tijdens loop (correct behavior)
+   - Na completion: normal UI flow resumes met rerun
+
+5. **Streamlit 2024 Best Practice**:
+   - st.empty() is recommended voor this exact use case
+   - Fragments not applicable (blocking operations)
+   - Aligns with Streamlit dashboard patterns
+
+**When NOT to use st.empty()**:
+- ❌ Between different pipeline steps (use st.rerun() - want user navigation)
+- ❌ Voor button clicks (use st.rerun() naturally)
+- ❌ Voor interactive widgets (use fragments or natural rerun)
+
+**When TO use st.empty()**:
+- ✅ Within-step iterations (zoals hier)
+- ✅ Real-time data streaming
+- ✅ Progressive result accumulation
+- ✅ Live dashboards with polling
+
 ---
 
 ## Configuratie & Settings
@@ -1166,20 +1468,23 @@ validation_correction:
 
 **Deliverable**: Backward compatible API
 
-### Fase 4: Streamlit UI Integration (Week 2-3)
+### Fase 4: Streamlit UI Integration met st.empty() (Week 2-3)
 
-**Doel**: UI voor iterative loop
+**Doel**: UI voor iterative loop met real-time updates
 
 1. **Implementatie**:
    - [ ] Settings screen: max_iterations, thresholds
-   - [ ] Execution screen: iteratie progress display
+   - [ ] Execution screen: implement st.empty() container pattern (zie sectie "UI/UX Ontwerp → 4. Real-Time Updates")
+   - [ ] Create 5 placeholder containers: status, progress, metrics, history, chart
+   - [ ] In-place updates binnen loop (NO reruns tussen iteraties)
    - [ ] Step status indicator update
-   - [ ] Real-time metrics updates via callbacks
 2. **Testing**:
-   - [ ] Manual UI testing
-   - [ ] Verschillende scenario's (snel convergeren, max iterations, failure)
+   - [ ] Manual UI testing van st.empty() updates
+   - [ ] Verify smooth updates zonder flikkering
+   - [ ] Test verschillende scenario's (snel convergeren, max iterations, early stopping, failure)
+   - [ ] Performance comparison: measure rerun overhead savings
 
-**Deliverable**: Volledig functionele UI
+**Deliverable**: Volledig functionele UI met efficient real-time updates (0 reruns binnen loop)
 
 ### Fase 5: Edge Cases & Polish (Week 3-4)
 
@@ -1596,3 +1901,4 @@ Gemiddelde verwachting (80% scenario 1, 15% scenario 2, 5% scenario 3):
 |-------|--------|-----------|
 | 2025-01-28 | 1.0 | Initial feature document |
 | 2025-01-28 | 1.1 | Critical fixes na review: loop logica clarification, error handling sectie, best iteration algorithm fix (weighted scoring), file naming mapping table, early stopping logica, sectie hernummering, open vragen opgelost |
+| 2025-01-28 | 1.2 | Added st.empty() real-time UI update strategy: nieuwe sectie 4 onder UI/UX Ontwerp met complete implementatie van in-place updates binnen iterative loop (zero reruns tussen iteraties), updated Fase 4 implementatie strategie |
