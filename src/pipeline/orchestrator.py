@@ -55,6 +55,7 @@ PDF Upload Strategy:
     Benefit: Complete data fidelity - no loss of tables, images, or formatting
 """
 
+import copy
 import json
 import time
 from collections.abc import Callable
@@ -130,7 +131,8 @@ def _strip_metadata_for_pipeline(data: dict) -> dict:
         data: Dictionary containing step results with potential metadata
 
     Returns:
-        Clean copy of data with metadata fields removed
+        Deep copy of data with metadata fields removed. Deep copy ensures
+        modifications to nested objects don't affect the original data.
 
     Example:
         >>> result = {
@@ -142,7 +144,7 @@ def _strip_metadata_for_pipeline(data: dict) -> dict:
         >>> clean
         {'publication_type': 'interventional_trial'}
     """
-    clean_data = data.copy()
+    clean_data = copy.deepcopy(data)
     clean_data.pop("usage", None)
     clean_data.pop("_metadata", None)
     clean_data.pop("_pipeline_metadata", None)
