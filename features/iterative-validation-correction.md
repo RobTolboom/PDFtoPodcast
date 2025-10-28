@@ -3,6 +3,7 @@
 **Status**: Planning
 **Branch**: `feature/iterative-validation-correction`
 **Created**: 2025-01-28
+**Updated**: 2025-01-28 (v1.1 - Critical fixes)
 **Author**: Rob Tolboom (met Claude Code)
 
 ---
@@ -73,9 +74,9 @@ Medische literatuurextractie vereist **hoge kwaliteit** (>90% compleet, >95% acc
                                   ▼
                     ┌──────────────────────────────┐
                     │  Kwaliteit Beoordeling       │
-                    │  - Completeness ≥ 90%?       │
-                    │  - Accuracy ≥ 95%?           │
-                    │  - Schema Compliance ≥ 95%?  │
+                    │  - Completeness ≥ 0.90?      │
+                    │  - Accuracy ≥ 0.95?          │
+                    │  - Schema Compliance ≥ 0.95? │
                     │  - Critical Issues = 0?      │
                     └──────────────────────────────┘
                                   │
@@ -170,7 +171,9 @@ def run_validation_with_correction(
         classification_result: Classification result (for publication type)
         llm_provider: LLM provider name ("openai" | "claude")
         file_manager: File manager for saving iterations
-        max_iterations: Maximum correction iterations (default: 3)
+        max_iterations: Maximum correction attempts (default: 3)
+            Note: Total iterations = initial validation + max_iterations corrections
+            Example: max_iterations=3 means up to 4 total iterations (iter 0,1,2,3)
         quality_thresholds: Custom thresholds, defaults to:
             {
                 'completeness_score': 0.90,
@@ -378,7 +381,35 @@ def run_validation_with_correction(...) -> dict:
                 'improvement_trajectory': [it['metrics']['overall_quality'] for it in iterations]
             }
 
-        # STEP 3: Check if we can do another correction
+        # STEP 3A: Check for quality degradation (early stopping)
+        if iteration_num >= 2:  # Need at least 2 iterations to detect trend
+            if _detect_quality_degradation(iterations, window=2):
+                # EARLY STOP: Quality is degrading
+                best = _select_best_iteration(iterations)
+
+                _call_progress_callback(
+                    progress_callback,
+                    STEP_VALIDATION_CORRECTION,
+                    "completed",
+                    {
+                        'final_status': 'early_stopped_degradation',
+                        'iterations': len(iterations),
+                        'best_iteration': best['iteration_num'],
+                        'reason': 'quality_degradation'
+                    }
+                )
+
+                return {
+                    'best_extraction': best['extraction'],
+                    'best_validation': best['validation'],
+                    'iterations': iterations,
+                    'final_status': 'early_stopped_degradation',
+                    'iteration_count': len(iterations),
+                    'improvement_trajectory': [it['metrics']['overall_quality'] for it in iterations],
+                    'warning': f'Early stopping triggered: quality degraded for {2} consecutive iterations. Using best result (iteration {best["iteration_num"]}).'
+                }
+
+        # STEP 3B: Check if we can do another correction
         if iteration_num >= max_iterations:
             # MAX REACHED: Select best iteration
             best = _select_best_iteration(iterations)
@@ -439,7 +470,193 @@ def run_validation_with_correction(...) -> dict:
         # Loop continues...
 ```
 
-### 4. Beste Iteratie Selectie
+### 4. Error Handling Strategie
+
+```python
+def run_validation_with_correction(...) -> dict:
+    """Main iterative loop with comprehensive error handling."""
+
+    # ... initialization code ...
+
+    while iteration_num <= max_iterations:
+        try:
+            # STEP 1: Validate current extraction
+            validation_result = _run_validation_step(...)
+
+            # Check schema validation failure
+            schema_validation = validation_result.get('schema_validation', {})
+            quality_score = schema_validation.get('quality_score', 0)
+
+            if quality_score < 0.5:  # Schema quality threshold
+                # CRITICAL: Schema validation failed - STOP
+                return {
+                    'best_extraction': None,
+                    'best_validation': validation_result,
+                    'iterations': iterations,
+                    'final_status': 'failed_schema_validation',
+                    'iteration_count': iteration_num + 1,
+                    'error': f'Schema validation failed (quality: {quality_score:.2f}). Cannot proceed with correction.',
+                    'failed_at_iteration': iteration_num
+                }
+
+            # ... quality check and correction logic ...
+
+        except LLMProviderError as e:
+            # LLM API failure - retry with exponential backoff
+            max_retries = 3
+            for retry in range(max_retries):
+                wait_time = 2 ** retry  # 1s, 2s, 4s
+                console.print(f"[yellow]⚠️  LLM call failed, retrying in {wait_time}s... (attempt {retry+1}/{max_retries})[/yellow]")
+                time.sleep(wait_time)
+
+                try:
+                    # Retry the failed step
+                    if 'validation' in str(e):
+                        validation_result = _run_validation_step(...)
+                        break  # Success
+                    elif 'correction' in str(e):
+                        correction_result = _run_correction_step(...)
+                        break  # Success
+                except LLMProviderError:
+                    if retry == max_retries - 1:
+                        # All retries exhausted
+                        best = _select_best_iteration(iterations) if iterations else None
+                        return {
+                            'best_extraction': best['extraction'] if best else current_extraction,
+                            'best_validation': best['validation'] if best else None,
+                            'iterations': iterations,
+                            'final_status': 'failed_llm_error',
+                            'iteration_count': len(iterations),
+                            'error': f'LLM provider error after {max_retries} retries: {str(e)}',
+                            'failed_at_iteration': iteration_num
+                        }
+
+        except json.JSONDecodeError as e:
+            # Invalid JSON from correction - treat as critical error
+            console.print(f"[red]❌ Correction returned invalid JSON at iteration {iteration_num}[/red]")
+            best = _select_best_iteration(iterations) if iterations else None
+            return {
+                'best_extraction': best['extraction'] if best else current_extraction,
+                'best_validation': best['validation'] if best else None,
+                'iterations': iterations,
+                'final_status': 'failed_invalid_json',
+                'iteration_count': len(iterations),
+                'error': f'Correction produced invalid JSON: {str(e)}',
+                'failed_at_iteration': iteration_num
+            }
+
+        except Exception as e:
+            # Unexpected error - fail gracefully
+            console.print(f"[red]❌ Unexpected error at iteration {iteration_num}: {str(e)}[/red]")
+            best = _select_best_iteration(iterations) if len(iterations) > 0 else None
+            return {
+                'best_extraction': best['extraction'] if best else current_extraction,
+                'best_validation': best['validation'] if best else None,
+                'iterations': iterations,
+                'final_status': 'failed_unexpected_error',
+                'iteration_count': len(iterations),
+                'error': f'Unexpected error: {str(e)}',
+                'failed_at_iteration': iteration_num
+            }
+
+
+# Error Status Codes
+FINAL_STATUS_CODES = {
+    'passed': 'Quality thresholds met',
+    'max_iterations_reached': 'Maximum iterations reached, using best result',
+    'failed_schema_validation': 'Schema validation failed',
+    'failed_llm_error': 'LLM API error after retries',
+    'failed_invalid_json': 'Correction produced invalid JSON',
+    'failed_unexpected_error': 'Unexpected error occurred',
+    'early_stopped_degradation': 'Stopped due to quality degradation'
+}
+```
+
+**Error Handling Beslissingen**:
+
+1. **Schema Validation Failure** → STOP FAIL
+   - Cannot recover from structural errors
+   - Return what we have so far
+
+2. **LLM API Failures** → RETRY with exponential backoff (3x)
+   - Transient errors (rate limits, network) often resolve
+   - After 3 retries → FAIL with best iteration so far
+
+3. **Invalid JSON from Correction** → STOP FAIL
+   - Correction corrupted the data
+   - Use previous iteration (before failed correction)
+
+4. **Unexpected Errors** → FAIL GRACEFULLY
+   - Log error, return best iteration so far
+   - Don't lose progress from successful iterations
+
+### 5. Early Stopping (Quality Degradation Detection)
+
+```python
+def _detect_quality_degradation(iterations: list[dict], window: int = 2) -> bool:
+    """
+    Detect if quality has been degrading for the last N iterations.
+
+    Early stopping prevents wasted LLM calls when corrections are making things worse.
+
+    Args:
+        iterations: List of all iteration data (each with 'metrics' dict)
+        window: Number of consecutive degrading iterations to trigger stop (default: 2)
+
+    Returns:
+        True if quality degraded for 'window' consecutive iterations
+
+    Logic:
+        - Need at least (window + 1) iterations to detect trend
+        - Compare last 'window' iterations against the previous best
+        - Degradation = overall_quality consistently drops
+
+    Example:
+        iterations = [
+            {'metrics': {'overall_quality': 0.85}},  # iter 0
+            {'metrics': {'overall_quality': 0.88}},  # iter 1 (best so far)
+            {'metrics': {'overall_quality': 0.86}},  # iter 2 (degraded)
+            {'metrics': {'overall_quality': 0.84}}   # iter 3 (degraded again)
+        ]
+        _detect_quality_degradation(iterations, window=2) → True
+        # Last 2 iterations (0.86, 0.84) both worse than previous best (0.88)
+    """
+    if len(iterations) < window + 1:
+        return False
+
+    # Get quality scores
+    scores = [it['metrics'].get('overall_quality', 0) for it in iterations]
+
+    # Find peak quality before the window
+    peak_before_window = max(scores[:-window])
+
+    # Check if all iterations in window are worse than peak
+    window_scores = scores[-window:]
+    all_degraded = all(score < peak_before_window for score in window_scores)
+
+    return all_degraded
+
+
+```
+
+**Early Stopping Rationale**:
+
+1. **Why detect degradation?**
+   - Sometimes corrections introduce new errors
+   - LLM may "overthink" and corrupt good data
+   - Example: Iter 1 = 0.88 quality, Iter 2 = 0.86, Iter 3 = 0.84 → STOP
+
+2. **Why window=2?**
+   - Single degradation could be transient noise
+   - Two consecutive degradations indicate systematic problem
+   - Balances sensitivity vs false positives
+
+3. **Integration in loop**:
+   - Check after each validation (if iteration_num >= 2)
+   - If triggered: select best iteration and return immediately
+   - Saves LLM costs and processing time
+
+### 6. Beste Iteratie Selectie
 
 ```python
 def _select_best_iteration(iterations: list[dict]) -> dict:
@@ -447,9 +664,10 @@ def _select_best_iteration(iterations: list[dict]) -> dict:
     Select best iteration when max iterations reached but quality insufficient.
 
     Selection strategy:
-        1. Prefer last iteration (usually best due to progressive improvement)
-        2. If last iteration worse than previous: select iteration with highest quality
-        3. Quality ranking: (no critical issues > completeness > accuracy > schema compliance)
+        1. Priority 1: No critical issues (mandatory)
+        2. Priority 2: Highest weighted quality score (40% completeness + 40% accuracy + 20% schema)
+        3. Priority 3: If tied, prefer higher completeness
+        4. Usually selects last iteration due to progressive improvement
 
     Args:
         iterations: List of iteration data dicts
@@ -482,15 +700,24 @@ def _select_best_iteration(iterations: list[dict]) -> dict:
     # Priority ranking for selection
     def quality_rank(iteration: dict) -> tuple:
         """
-        Create sortable quality tuple.
-        Returns: (critical_ok, completeness, accuracy, compliance)
+        Create sortable quality tuple using weighted composite score.
+        Returns: (critical_ok, overall_quality, completeness_tiebreaker)
+
+        Overall quality = weighted average:
+        - 40% completeness (how much PDF data extracted)
+        - 40% accuracy (correctness, no hallucinations)
+        - 20% schema compliance (structural correctness)
         """
         metrics = iteration['metrics']
+        overall_quality = (
+            metrics.get('completeness_score', 0) * 0.40 +
+            metrics.get('accuracy_score', 0) * 0.40 +
+            metrics.get('schema_compliance_score', 0) * 0.20
+        )
         return (
-            metrics.get('critical_issues', 999) == 0,  # Boolean: True > False
-            metrics.get('completeness_score', 0),
-            metrics.get('accuracy_score', 0),
-            metrics.get('schema_compliance_score', 0)
+            metrics.get('critical_issues', 999) == 0,  # Priority 1: No critical issues
+            overall_quality,                            # Priority 2: Composite quality
+            metrics.get('completeness_score', 0)        # Priority 3: Completeness as tiebreaker
         )
 
     # Sort all iterations by quality (best first)
@@ -512,7 +739,19 @@ def _select_best_iteration(iterations: list[dict]) -> dict:
 
 
 def _extract_metrics(validation_result: dict) -> dict:
-    """Extract key metrics from validation result for comparison."""
+    """
+    Extract key metrics from validation result for comparison.
+
+    Used for:
+    - Best iteration selection (_select_best_iteration)
+    - Quality degradation detection (_detect_quality_degradation)
+    - Progress tracking and UI display
+
+    Returns dict with individual scores + computed 'overall_quality':
+        - 40% completeness (coverage of PDF data)
+        - 40% accuracy (correctness, no hallucinations)
+        - 20% schema compliance (structural correctness)
+    """
     summary = validation_result.get('verification_summary', {})
 
     return {
@@ -522,7 +761,7 @@ def _extract_metrics(validation_result: dict) -> dict:
         'critical_issues': summary.get('critical_issues', 0),
         'total_issues': summary.get('total_issues', 0),
         'overall_status': summary.get('overall_status', 'unknown'),
-        # Derived composite score for ranking
+        # Derived composite score (used by ranking and degradation detection)
         'overall_quality': (
             summary.get('completeness_score', 0) * 0.4 +
             summary.get('accuracy_score', 0) * 0.4 +
@@ -531,7 +770,7 @@ def _extract_metrics(validation_result: dict) -> dict:
     }
 ```
 
-### 5. File Naming Structuur
+### 7. File Naming Structuur
 
 ```
 tmp/
@@ -548,6 +787,17 @@ tmp/
 └── paper-123-validation_corrected3.json       # Finale validatie (iteratie 3)
 ```
 
+**Expliciete Mapping**:
+
+| Iteration | Extraction File | Validatie File | Notes |
+|-----------|----------------|----------------|-------|
+| **0** (initial) | `extraction.json` | `validation.json` | Originele extractie + eerste validatie |
+| **1** (after 1st correction) | `extraction_corrected1.json` | `validation_corrected1.json` | Na 1e correctiepoging |
+| **2** (after 2nd correction) | `extraction_corrected2.json` | `validation_corrected2.json` | Na 2e correctiepoging |
+| **3** (after 3rd correction) | `extraction_corrected3.json` | `validation_corrected3.json` | Na 3e correctiepoging (MAX) |
+
+**Belangrijk**: `validation_correctedN.json` valideert altijd `extraction_correctedN.json`
+
 **File Manager Updates**:
 
 ```python
@@ -556,9 +806,17 @@ tmp/
 # Geen wijzigingen nodig - huidige API ondersteunt al status suffix:
 file_manager.save_json(data, "extraction", status="_corrected1")
 # → tmp/paper-123-extraction_corrected1.json
+
+# In loop code:
+suffix = f"_corrected{iteration_num}" if iteration_num > 0 else ""
+validation_file = file_manager.save_json(
+    validation_result,
+    "validation",
+    status=suffix or None  # None = no suffix, "" would create "_"
+)
 ```
 
-### 6. Progress Callbacks
+### 8. Progress Callbacks
 
 Nieuwe callback events voor iterative loop:
 
@@ -1257,25 +1515,25 @@ Gemiddelde verwachting (80% scenario 1, 15% scenario 2, 5% scenario 3):
 ✅ **Q7**: Max iterations?
 **A**: Default 3, configureerbaar in settings (1-5 range)
 
+✅ **Q8**: Early stopping bij kwaliteitsdegradatie?
+**A**: Ja - stop automatisch als quality degradeert voor 2 opeenvolgende iteraties (zie sectie 5: Early Stopping)
+
+✅ **Q9**: Retry bij LLM failures?
+**A**: Ja - retry 3x met exponential backoff (1s, 2s, 4s), daarna fail with best iteration (zie sectie 4: Error Handling)
+
+✅ **Q10**: Best iteration selection algorithm?
+**A**: Weighted composite score (40% completeness + 40% accuracy + 20% schema compliance) na prioriteit voor 0 critical issues (zie sectie 6)
+
+✅ **Q11**: Configuratie persistence?
+**A**: v1 = session state only (herstart = reset naar defaults), v2 = optional config file voor batch processing
+
 ### Open Vragen (Te Beantwoorden Tijdens Implementatie)
 
-❓ **Q8**: Early stopping bij geen verbetering?
-- Als 2 opeenvolgende iteraties geen significante verbetering (<1%) → stop?
-- Of altijd tot MAX?
-
-❓ **Q9**: Retry bij LLM failures?
-- Als LLM call faalt tijdens iteratie → retry of fail hele loop?
-- Exponential backoff?
-
-❓ **Q10**: Parallellisatie mogelijk?
+❓ **Q12**: Parallellisatie mogelijk?
 - Kunnen we meerdere correctie-pogingen parallel doen? (Nee, te complex voor v1)
 - Future optimization?
 
-❓ **Q11**: Configuratie persistence?
-- Slaan we threshold settings op in profile/config file?
-- Of alleen in session state?
-
-❓ **Q12**: Monitoring & Analytics?
+❓ **Q13**: Monitoring & Analytics?
 - Willen we iteration statistics bijhouden (avg iterations, convergence rate)?
 - Database of log files?
 
@@ -1337,3 +1595,4 @@ Gemiddelde verwachting (80% scenario 1, 15% scenario 2, 5% scenario 3):
 | Datum | Versie | Wijziging |
 |-------|--------|-----------|
 | 2025-01-28 | 1.0 | Initial feature document |
+| 2025-01-28 | 1.1 | Critical fixes na review: loop logica clarification, error handling sectie, best iteration algorithm fix (weighted scoring), file naming mapping table, early stopping logica, sectie hernummering, open vragen opgelost |
