@@ -90,6 +90,28 @@ ALL_PIPELINE_STEPS = [
     STEP_CORRECTION,
 ]
 
+# New step: combined validation with iterative correction
+STEP_VALIDATION_CORRECTION = "validation_correction"
+
+# Default quality thresholds for iterative correction loop
+DEFAULT_QUALITY_THRESHOLDS = {
+    "completeness_score": 0.90,  # ≥90% of PDF data extracted
+    "accuracy_score": 0.95,  # ≥95% correct data (max 5% errors)
+    "schema_compliance_score": 0.95,  # ≥95% schema compliant
+    "critical_issues": 0,  # Absolutely no critical errors
+}
+
+# Final status codes for iterative loop results
+FINAL_STATUS_CODES = {
+    "passed": "Quality thresholds met",
+    "max_iterations_reached": "Maximum iterations reached, using best result",
+    "early_stopped_degradation": "Stopped due to quality degradation",
+    "failed_schema_validation": "Schema validation failed",
+    "failed_llm_error": "LLM API error after retries",
+    "failed_invalid_json": "Correction produced invalid JSON",
+    "failed_unexpected_error": "Unexpected error occurred",
+}
+
 console = Console()
 
 
@@ -189,6 +211,144 @@ def _get_provider_name(llm: Any) -> str:
     elif "Claude" in class_name:
         return "claude"
     return "unknown"
+
+
+def is_quality_sufficient(validation_result: dict | None, thresholds: dict | None = None) -> bool:
+    """
+    Check if validation quality meets thresholds for stopping iteration.
+
+    Args:
+        validation_result: Validation JSON with verification_summary (can be None)
+        thresholds: Quality thresholds to check against (defaults to DEFAULT_QUALITY_THRESHOLDS)
+
+    Returns:
+        bool: True if ALL thresholds are met, False otherwise
+
+    Edge Cases:
+        - validation_result is None → False
+        - verification_summary missing → False
+        - Any score is None → treated as 0 (fails threshold)
+        - Empty dict → False (all scores default to 0)
+
+    Example:
+        >>> validation = {
+        ...     'verification_summary': {
+        ...         'completeness_score': 0.92,
+        ...         'accuracy_score': 0.98,
+        ...         'schema_compliance_score': 0.97,
+        ...         'critical_issues': 0
+        ...     }
+        ... }
+        >>> is_quality_sufficient(validation)  # True
+        >>> is_quality_sufficient(None)  # False
+        >>> is_quality_sufficient({})  # False
+    """
+    # Use default thresholds if not provided
+    if thresholds is None:
+        thresholds = DEFAULT_QUALITY_THRESHOLDS
+
+    # Handle None validation_result
+    if validation_result is None:
+        return False
+
+    summary = validation_result.get("verification_summary", {})
+
+    # Handle missing or empty summary
+    if not summary:
+        return False
+
+    # Helper to safely extract numeric scores (handle None values)
+    def safe_score(key: str, default: float = 0.0) -> float:
+        val = summary.get(key, default)
+        return val if isinstance(val, int | float) else default
+
+    # Check all thresholds
+    return (
+        safe_score("completeness_score") >= thresholds["completeness_score"]
+        and safe_score("accuracy_score") >= thresholds["accuracy_score"]
+        and safe_score("schema_compliance_score") >= thresholds["schema_compliance_score"]
+        and safe_score("critical_issues", 999) <= thresholds["critical_issues"]
+    )
+
+
+def _extract_metrics(validation_result: dict) -> dict:
+    """
+    Extract key metrics from validation result for comparison.
+
+    Used for:
+    - Best iteration selection (_select_best_iteration)
+    - Quality degradation detection (_detect_quality_degradation)
+    - Progress tracking and UI display
+
+    Returns dict with individual scores + computed 'overall_quality':
+        - 40% completeness (coverage of PDF data)
+        - 40% accuracy (correctness, no hallucinations)
+        - 20% schema compliance (structural correctness)
+    """
+    summary = validation_result.get("verification_summary", {})
+
+    return {
+        "completeness_score": summary.get("completeness_score", 0),
+        "accuracy_score": summary.get("accuracy_score", 0),
+        "schema_compliance_score": summary.get("schema_compliance_score", 0),
+        "critical_issues": summary.get("critical_issues", 0),
+        "total_issues": summary.get("total_issues", 0),
+        "overall_status": summary.get("overall_status", "unknown"),
+        # Derived composite score (used by ranking and degradation detection)
+        "overall_quality": (
+            summary.get("completeness_score", 0) * 0.4
+            + summary.get("accuracy_score", 0) * 0.4
+            + summary.get("schema_compliance_score", 0) * 0.2
+        ),
+    }
+
+
+def _detect_quality_degradation(iterations: list[dict], window: int = 2) -> bool:
+    """
+    Detect if quality has been degrading for the last N iterations.
+
+    Early stopping prevents wasted LLM calls when corrections are making things worse.
+
+    Args:
+        iterations: List of all iteration data (each with 'metrics' dict)
+        window: Number of consecutive degrading iterations to trigger stop (default: 2)
+
+    Returns:
+        True if quality degraded for 'window' consecutive iterations
+
+    Logic:
+        - Need at least (window + 1) iterations to detect trend
+        - Compare last 'window' iterations against the OVERALL best score seen so far
+        - Degradation = all iterations in window are worse than the peak quality
+        - This catches systematic degradation, not transient noise
+
+    Example:
+        iterations = [
+            {'metrics': {'overall_quality': 0.85}},  # iter 0
+            {'metrics': {'overall_quality': 0.88}},  # iter 1 (BEST - peak quality)
+            {'metrics': {'overall_quality': 0.86}},  # iter 2 (degraded from 0.88)
+            {'metrics': {'overall_quality': 0.84}}   # iter 3 (degraded again)
+        ]
+        _detect_quality_degradation(iterations, window=2) → True
+        # Last 2 iterations (0.86, 0.84) are BOTH worse than peak (0.88)
+        # This indicates systematic degradation → stop and use iteration 1
+    """
+    if len(iterations) < window + 1:
+        return False
+
+    # Get quality scores
+    scores = [it["metrics"].get("overall_quality", 0) for it in iterations]
+
+    # Find OVERALL peak quality (not just before window)
+    # This is the best score we've achieved across all iterations
+    peak_quality = max(scores)
+
+    # Check if last 'window' iterations are ALL worse than peak
+    # This indicates systematic degradation, not just a single bad iteration
+    window_scores = scores[-window:]
+    all_degraded = all(score < peak_quality for score in window_scores)
+
+    return all_degraded
 
 
 def _run_extraction_step(
