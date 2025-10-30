@@ -64,7 +64,8 @@ from rich.table import Table
 
 # Import pipeline functionality
 try:
-    from src.pipeline import run_four_step_pipeline
+    from src.pipeline import run_four_step_pipeline, run_single_step
+    from src.pipeline.file_manager import PipelineFileManager
 
     HAVE_LLM_SUPPORT = True
 except ImportError as e:
@@ -82,7 +83,12 @@ BREAKPOINT_AFTER_STEP = None  # Change this to move breakpoint
 
 def main():
     parser = argparse.ArgumentParser(
-        description="AI Podcast Pipeline (PDF → Classification → Extraction → Validation → Outputs)"
+        description=(
+            "PDFtoPodcast Pipeline - Extract structured data from medical research PDFs\n\n"
+            "Full Pipeline: python run_pipeline.py paper.pdf\n"
+            "Single Step: python run_pipeline.py paper.pdf --step validation_correction --max-iterations 2"
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("pdf", help="Pad naar de PDF")
     parser.add_argument(
@@ -96,6 +102,42 @@ def main():
         choices=["openai", "claude"],
         default="openai",
         help="Kies LLM provider (standaard: openai)",
+    )
+    parser.add_argument(
+        "--step",
+        choices=[
+            "classification",
+            "extraction",
+            "validation",
+            "correction",
+            "validation_correction",
+        ],
+        default=None,
+        help="Run specific pipeline step (default: run all steps)",
+    )
+    parser.add_argument(
+        "--max-iterations",
+        type=int,
+        default=3,
+        help="Maximum correction attempts for validation_correction step (default: 3)",
+    )
+    parser.add_argument(
+        "--completeness-threshold",
+        type=float,
+        default=0.90,
+        help="Minimum completeness score 0.0-0.99 (default: 0.90)",
+    )
+    parser.add_argument(
+        "--accuracy-threshold",
+        type=float,
+        default=0.95,
+        help="Minimum accuracy score 0.0-0.99 (default: 0.95)",
+    )
+    parser.add_argument(
+        "--schema-threshold",
+        type=float,
+        default=0.95,
+        help="Minimum schema compliance score 0.0-0.99 (default: 0.95)",
     )
     args = parser.parse_args()
 
@@ -115,32 +157,108 @@ def main():
     console.print("[blue]📁 Tussenbestanden worden opgeslagen in: tmp/ (DOI-gebaseerd)[/blue]")
     console.print(f"[blue]🤖 LLM Provider: {args.llm_provider.upper()}[/blue]")
 
-    # Updated pipeline steps for 4-component system
-    table = Table(title="Pipeline stappen (4-component systeem)", box=box.SIMPLE_HEAVY)
-    table.add_column("Stap", style="cyan", no_wrap=True)
-    table.add_column("Status", style="green")
-    steps = [
-        ("1. Classificatie", "⏳"),
-        ("2. Data extractie", ""),
-        ("3. Validatie", ""),
-        ("4. Correctie (indien nodig)", ""),
-        ("5. Finale outputs", ""),
-    ]
-    for s, st in steps:
-        table.add_row(s, st)
-    console.print(table)
+    # Check if running single step or full pipeline
+    if args.step:
+        # Single step execution
+        console.print(f"[yellow]🎯 Running single step:[/yellow] {args.step}")
 
-    # Run the four-step pipeline with selected LLM provider
-    with console.status(
-        "[bold cyan]Bezig met vier-staps extractie pipeline...[/bold cyan]", spinner="dots"
-    ):
-        results = run_four_step_pipeline(
-            pdf_path=pdf_path,
-            max_pages=args.max_pages,
-            llm_provider=args.llm_provider,
-            breakpoint_after_step=BREAKPOINT_AFTER_STEP,
-            have_llm_support=HAVE_LLM_SUPPORT,
-        )
+        # Create file manager
+        file_manager = PipelineFileManager(pdf_path)
+
+        # Build quality thresholds if validation_correction step
+        if args.step == "validation_correction":
+            quality_thresholds = {
+                "completeness_score": args.completeness_threshold,
+                "accuracy_score": args.accuracy_threshold,
+                "schema_compliance_score": args.schema_threshold,
+                "critical_issues": 0,
+            }
+            console.print(
+                f"[dim]Quality thresholds: completeness={args.completeness_threshold:.0%}, "
+                f"accuracy={args.accuracy_threshold:.0%}, "
+                f"schema={args.schema_threshold:.0%}[/dim]"
+            )
+            console.print(f"[dim]Max iterations: {args.max_iterations}[/dim]")
+        else:
+            quality_thresholds = None
+
+        # Run single step
+        with console.status(f"[bold cyan]Running step: {args.step}...[/bold cyan]", spinner="dots"):
+            result = run_single_step(
+                step_name=args.step,
+                pdf_path=pdf_path,
+                max_pages=args.max_pages,
+                llm_provider=args.llm_provider,
+                file_manager=file_manager,
+                progress_callback=None,  # CLI has no UI callback
+                previous_results=None,  # Load from disk if needed
+                max_correction_iterations=(
+                    args.max_iterations if args.step == "validation_correction" else None
+                ),
+                quality_thresholds=quality_thresholds,
+            )
+
+        # Print result summary
+        console.print(f"\n[bold green]✅ Step '{args.step}' completed[/bold green]")
+
+        # Display step-specific results
+        if args.step == "classification":
+            pub_type = result.get("publication_type", "—")
+            confidence = result.get("classification_confidence", 0)
+            doi = result.get("metadata", {}).get("doi", "—")
+            console.print(
+                f"[cyan]Publication type:[/cyan] {pub_type} (confidence: {confidence:.2f})"
+            )
+            console.print(f"[cyan]DOI:[/cyan] {doi}")
+        elif args.step == "validation_correction":
+            final_status = result.get("final_status", "unknown")
+            iteration_count = result.get("iteration_count", 0)
+            console.print(f"[cyan]Final status:[/cyan] {final_status}")
+            console.print(f"[cyan]Iterations:[/cyan] {iteration_count}")
+            if "iterations" in result and result["iterations"]:
+                best_iter = result.get("best_iteration", 0)
+                console.print(f"[cyan]Best iteration:[/cyan] {best_iter}")
+        elif args.step in ["validation"]:
+            validation_status = result.get("verification_summary", {}).get("overall_status", "—")
+            completeness = result.get("verification_summary", {}).get("completeness_score", 0)
+            accuracy = result.get("verification_summary", {}).get("accuracy_score", 0)
+            console.print(f"[cyan]Status:[/cyan] {validation_status}")
+            console.print(f"[cyan]Completeness:[/cyan] {completeness:.2%}")
+            console.print(f"[cyan]Accuracy:[/cyan] {accuracy:.2%}")
+        else:
+            console.print("[dim]Result saved to tmp/[/dim]")
+
+        # Store result for summary section
+        results = {args.step: result}
+
+    else:
+        # Full pipeline execution
+        # Updated pipeline steps for 4-component system
+        table = Table(title="Pipeline stappen (4-component systeem)", box=box.SIMPLE_HEAVY)
+        table.add_column("Stap", style="cyan", no_wrap=True)
+        table.add_column("Status", style="green")
+        steps = [
+            ("1. Classificatie", "⏳"),
+            ("2. Data extractie", ""),
+            ("3. Validatie", ""),
+            ("4. Correctie (indien nodig)", ""),
+            ("5. Finale outputs", ""),
+        ]
+        for s, st in steps:
+            table.add_row(s, st)
+        console.print(table)
+
+        # Run the four-step pipeline with selected LLM provider
+        with console.status(
+            "[bold cyan]Bezig met vier-staps extractie pipeline...[/bold cyan]", spinner="dots"
+        ):
+            results = run_four_step_pipeline(
+                pdf_path=pdf_path,
+                max_pages=args.max_pages,
+                llm_provider=args.llm_provider,
+                breakpoint_after_step=BREAKPOINT_AFTER_STEP,
+                have_llm_support=HAVE_LLM_SUPPORT,
+            )
 
     # Show detailed summary
     console.print("\n[bold green]✅ Pipeline voltooid[/bold green]")
