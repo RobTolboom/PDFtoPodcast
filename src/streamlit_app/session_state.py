@@ -75,8 +75,15 @@ def init_session_state():
         st.session_state.settings = {
             "llm_provider": "openai",
             "max_pages": None,
-            "steps_to_run": ["classification", "extraction", "validation", "correction"],
+            "steps_to_run": ["classification", "extraction", "validation_correction"],
             "cleanup_policy": "keep_forever",
             "breakpoint": None,
             "verbose_logging": False,
+            "max_correction_iterations": 3,
+            "quality_thresholds": {
+                "completeness_score": 0.90,
+                "accuracy_score": 0.95,
+                "schema_compliance_score": 0.95,
+                "critical_issues": 0,
+            },
         }

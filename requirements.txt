@@ -14,3 +14,4 @@ rich					# mooiere console-output
 
 # --- Web Interface ---
 streamlit>=1.28.0		# web interface voor pipeline
+pandas>=2.0.0			# dataframes voor iteration history tables

@@ -44,6 +44,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Implementation in `src/pipeline/orchestrator.py` (constant, list update, elif-branch, validation logic)
   - Non-breaking: Old validation/correction steps still work, new combined step integrates seamlessly
 
+- **Iterative Validation-Correction Loop (Fase 4)** - Streamlit UI integration with real-time updates
+  - Added pandas dependency (>=2.0.0) for iteration history tables
+  - Updated session state defaults: `max_correction_iterations=3`, quality thresholds (completeness=0.90, accuracy=0.95, schema=0.95)
+  - Settings screen: New "Validation & Correction" section with max iterations input and 3 threshold sliders (capped at 0.99 to prevent infinite loops)
+  - Execution screen: New `_display_validation_correction_result()` function (~75 lines) displays final status, iteration count, best iteration selection, history table (pandas DataFrame), and metrics
+  - Updated pipeline step display from 4 to 3 steps: Classification, Extraction, Validation & Correction
+  - Updated breakpoint options to include `validation_correction` step
+  - All step definitions updated to use new 3-step model throughout Streamlit app
+  - Implementation: `requirements.txt`, `session_state.py`, `settings.py` (step defs + UI section), `execution.py` (imports, display function, elif case, 3 display calls)
+  - Feature 100% complete: Backend (Phases 1-3) + UI (Phase 4) fully integrated
+  - All 152 unit tests passing, backward compatible with CLI
+
 - **Pipeline Execution Metadata** - Comprehensive metadata embedded in step JSON files
   - Added `_pipeline_metadata` field to all step outputs (classification, extraction, validation, correction)
   - Metadata includes: timestamp (ISO-8601 UTC), duration_seconds, LLM provider/model, max_pages, PDF filename, execution_mode (streamlit/cli), status (success/failed)

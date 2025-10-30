@@ -142,16 +142,10 @@ def show_settings_screen():
                 "help": "Extract structured data based on publication type",
             },
             {
-                "key": "validation",
+                "key": "validation_correction",
                 "number": "3",
-                "name": "Validation",
-                "help": "Validate quality and accuracy of extracted data",
-            },
-            {
-                "key": "correction",
-                "number": "4",
-                "name": "Correction",
-                "help": "Automatically fix issues identified during validation",
+                "name": "Validation & Correction",
+                "help": "Iterative validation and correction loop until quality thresholds are met",
             },
         ]
 
@@ -281,6 +275,74 @@ def show_settings_screen():
 
         st.markdown("---")
 
+        # ==================== VALIDATION & CORRECTION ====================
+        st.markdown("#### 🔁 Validation & Correction")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            max_iterations = st.number_input(
+                "Maximum correction iterations",
+                min_value=1,
+                max_value=5,
+                value=st.session_state.settings.get("max_correction_iterations", 3),
+                help="Maximum number of correction attempts if quality is insufficient",
+            )
+            st.session_state.settings["max_correction_iterations"] = max_iterations
+
+        with col2:
+            st.caption("**Quality Thresholds**")
+            st.caption("Loop stops when all thresholds are met or max iterations is reached")
+
+        # Get current thresholds from session state
+        current_thresholds = st.session_state.settings.get(
+            "quality_thresholds",
+            {
+                "completeness_score": 0.90,
+                "accuracy_score": 0.95,
+                "schema_compliance_score": 0.95,
+                "critical_issues": 0,
+            },
+        )
+
+        # Threshold sliders (cap at 0.99 to prevent infinite loops!)
+        completeness_threshold = st.slider(
+            "Completeness threshold",
+            min_value=0.5,
+            max_value=0.99,
+            value=current_thresholds.get("completeness_score", 0.90),
+            step=0.05,
+            help="Minimum required completeness score (0.90 = 90%). Max 99% - requiring perfect scores would prevent loop termination.",
+        )
+
+        accuracy_threshold = st.slider(
+            "Accuracy threshold",
+            min_value=0.5,
+            max_value=0.99,
+            value=current_thresholds.get("accuracy_score", 0.95),
+            step=0.05,
+            help="Minimum required accuracy score (0.95 = 95%). Max 99% - requiring perfect scores would prevent loop termination.",
+        )
+
+        schema_compliance_threshold = st.slider(
+            "Schema compliance threshold",
+            min_value=0.5,
+            max_value=0.99,
+            value=current_thresholds.get("schema_compliance_score", 0.95),
+            step=0.05,
+            help="Minimum required schema compliance score. Max 99% - requiring perfect scores would prevent loop termination.",
+        )
+
+        # Store thresholds in session state
+        st.session_state.settings["quality_thresholds"] = {
+            "completeness_score": completeness_threshold,
+            "accuracy_score": accuracy_threshold,
+            "schema_compliance_score": schema_compliance_threshold,
+            "critical_issues": 0,  # Fixed - always 0
+        }
+
+        st.markdown("---")
+
         # ==================== DEBUGGING & DEVELOPMENT ====================
         st.markdown("#### 🔧 Debugging & Development")
 
@@ -289,7 +351,7 @@ def show_settings_screen():
             None: "No breakpoint (run all steps)",
             "classification": "Stop after Classification",
             "extraction": "Stop after Extraction",
-            "validation": "Stop after Validation",
+            "validation_correction": "Stop after Validation & Correction",
         }
 
         breakpoint = st.selectbox(
