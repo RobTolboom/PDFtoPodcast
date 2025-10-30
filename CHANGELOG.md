@@ -8,6 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Iterative Validation-Correction Loop (Fase 1)** - Core loop logic with automatic quality improvement
+  - Added `run_validation_with_correction()` main loop function (~260 lines)
+  - Automatic iterative correction until quality thresholds met or max iterations reached
+  - Quality assessment: `is_quality_sufficient()` checks completeness (≥90%), accuracy (≥95%), schema compliance (≥95%), critical issues (0)
+  - Best iteration selection: `_select_best_iteration()` using weighted quality score (40% completeness + 40% accuracy + 20% schema)
+  - Early stopping: `_detect_quality_degradation()` stops loop when quality degrades for 2 consecutive iterations
+  - Metrics extraction: `_extract_metrics()` computes overall quality scores for comparison
+  - Error handling: Integrated retry logic with exponential backoff for LLM failures, graceful degradation for schema/JSON errors
+  - Constants: `STEP_VALIDATION_CORRECTION`, `DEFAULT_QUALITY_THRESHOLDS`, `FINAL_STATUS_CODES` (7 status codes)
+  - File naming: Iterations saved as `extraction_corrected1.json`, `validation_corrected1.json`, etc.
+  - Comprehensive test suite: 25 tests across 5 test classes with full edge case coverage
+  - Implementation in `src/pipeline/orchestrator.py` (5 helper functions + main loop)
+  - Tests in `tests/unit/test_iterative_validation_correction.py` (143 total unit tests, all passing)
+  - Non-breaking: Existing validation/correction steps remain unchanged for backward compatibility
+
 - **Pipeline Execution Metadata** - Comprehensive metadata embedded in step JSON files
   - Added `_pipeline_metadata` field to all step outputs (classification, extraction, validation, correction)
   - Metadata includes: timestamp (ISO-8601 UTC), duration_seconds, LLM provider/model, max_pages, PDF filename, execution_mode (streamlit/cli), status (success/failed)
