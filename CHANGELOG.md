@@ -17,11 +17,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Metrics extraction: `_extract_metrics()` computes overall quality scores for comparison
   - Error handling: Integrated retry logic with exponential backoff for LLM failures, graceful degradation for schema/JSON errors
   - Constants: `STEP_VALIDATION_CORRECTION`, `DEFAULT_QUALITY_THRESHOLDS`, `FINAL_STATUS_CODES` (7 status codes)
-  - File naming: Iterations saved as `extraction_corrected1.json`, `validation_corrected1.json`, etc.
+  - File naming: Iterations saved as `extraction-corrected1.json`, `validation-corrected1.json`, etc.
   - Comprehensive test suite: 25 tests across 5 test classes with full edge case coverage
   - Implementation in `src/pipeline/orchestrator.py` (5 helper functions + main loop)
   - Tests in `tests/unit/test_iterative_validation_correction.py` (143 total unit tests, all passing)
   - Non-breaking: Existing validation/correction steps remain unchanged for backward compatibility
+
+- **Iterative Validation-Correction Loop (Fase 2)** - File management and persistence
+  - Added logging after file saves for traceability (`console.print` statements)
+  - Fixed file naming pattern: `extraction-corrected{N}.json` (using `-` not `_` between step and status)
+  - Verified file persistence across all iterations (iteration 0 has no suffix, iterations 1+ have `-corrected{N}`)
+  - Test suite: 3 tests in `tests/unit/test_file_management_iterations.py` verifying correct file naming
+  - All iteration data kept in memory during loop execution (no lazy loading)
+  - Implementation in `src/pipeline/orchestrator.py` (2 logging statements added)
+  - Tests verify: iteration 0 naming, corrected suffix pattern, full multi-iteration save sequence
 
 - **Pipeline Execution Metadata** - Comprehensive metadata embedded in step JSON files
   - Added `_pipeline_metadata` field to all step outputs (classification, extraction, validation, correction)

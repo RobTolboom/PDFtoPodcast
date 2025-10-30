@@ -958,8 +958,9 @@ def run_validation_with_correction(
                 }
 
             # Save validation with iteration suffix
-            suffix = f"_corrected{iteration_num}" if iteration_num > 0 else ""
-            file_manager.save_json(validation_result, "validation", status=suffix or None)
+            suffix = f"corrected{iteration_num}" if iteration_num > 0 else None
+            validation_file = file_manager.save_json(validation_result, "validation", status=suffix)
+            console.print(f"[dim]Saved validation: {validation_file}[/dim]")
 
             # Store iteration data
             iteration_data = {
@@ -1078,9 +1079,10 @@ def run_validation_with_correction(
             )
 
             # Save corrected extraction
-            file_manager.save_json(
-                corrected_extraction, "extraction", status=f"_corrected{iteration_num}"
+            corrected_file = file_manager.save_json(
+                corrected_extraction, "extraction", status=f"corrected{iteration_num}"
             )
+            console.print(f"[dim]Saved corrected extraction: {corrected_file}[/dim]")
 
             # Update current extraction for next iteration
             current_extraction = corrected_extraction
