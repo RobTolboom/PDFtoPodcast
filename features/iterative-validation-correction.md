@@ -384,11 +384,11 @@ def run_validation_with_correction(...) -> dict:
                 }
 
             # Save validation with iteration suffix
-            suffix = f"_corrected{iteration_num}" if iteration_num > 0 else ""
+            suffix = f"corrected{iteration_num}" if iteration_num > 0 else None
             validation_file = file_manager.save_json(
                 validation_result,
                 "validation",
-                status=suffix or None
+                status=suffix  # FileManager adds '-' between step and status
             )
 
             # Store iteration data
@@ -505,7 +505,7 @@ def run_validation_with_correction(...) -> dict:
             corrected_file = file_manager.save_json(
                 corrected_extraction,
                 "extraction",
-                status=f"_corrected{iteration_num}"
+                status=f"corrected{iteration_num}"  # FileManager adds '-' between step and status
             )
 
             # Update current extraction for next iteration
@@ -824,14 +824,14 @@ tmp/
 ├── paper-123-extraction.json                  # Originele extractie (iteratie 0)
 ├── paper-123-validation.json                  # Eerste validatie (iteratie 0)
 │
-├── paper-123-extraction_corrected1.json       # Correctie iteratie 1
-├── paper-123-validation_corrected1.json       # Validatie van correctie 1
+├── paper-123-extraction-corrected1.json       # Correctie iteratie 1
+├── paper-123-validation-corrected1.json       # Validatie van correctie 1
 │
-├── paper-123-extraction_corrected2.json       # Correctie iteratie 2
-├── paper-123-validation_corrected2.json       # Validatie van correctie 2
+├── paper-123-extraction-corrected2.json       # Correctie iteratie 2
+├── paper-123-validation-corrected2.json       # Validatie van correctie 2
 │
-├── paper-123-extraction_corrected3.json       # Correctie iteratie 3 (MAX)
-└── paper-123-validation_corrected3.json       # Finale validatie (iteratie 3)
+├── paper-123-extraction-corrected3.json       # Correctie iteratie 3 (MAX)
+└── paper-123-validation-corrected3.json       # Finale validatie (iteratie 3)
 ```
 
 **Expliciete Mapping**:
@@ -839,11 +839,11 @@ tmp/
 | Iteration | Extraction File | Validatie File | Notes |
 |-----------|----------------|----------------|-------|
 | **0** (initial) | `extraction.json` | `validation.json` | Originele extractie + eerste validatie |
-| **1** (after 1st correction) | `extraction_corrected1.json` | `validation_corrected1.json` | Na 1e correctiepoging |
-| **2** (after 2nd correction) | `extraction_corrected2.json` | `validation_corrected2.json` | Na 2e correctiepoging |
-| **3** (after 3rd correction) | `extraction_corrected3.json` | `validation_corrected3.json` | Na 3e correctiepoging (MAX) |
+| **1** (after 1st correction) | `extraction-corrected1.json` | `validation-corrected1.json` | Na 1e correctiepoging |
+| **2** (after 2nd correction) | `extraction-corrected2.json` | `validation-corrected2.json` | Na 2e correctiepoging |
+| **3** (after 3rd correction) | `extraction-corrected3.json` | `validation-corrected3.json` | Na 3e correctiepoging (MAX) |
 
-**Belangrijk**: `validation_correctedN.json` valideert altijd `extraction_correctedN.json`
+**Belangrijk**: `validation-correctedN.json` valideert altijd `extraction-correctedN.json`
 
 **File Manager Updates**:
 
@@ -851,11 +851,11 @@ tmp/
 # src/pipeline/file_manager.py
 
 # Geen wijzigingen nodig - huidige API ondersteunt al status suffix:
-file_manager.save_json(data, "extraction", status="_corrected1")
-# → tmp/paper-123-extraction_corrected1.json
+file_manager.save_json(data, "extraction", status="corrected1")
+# → tmp/paper-123-extraction-corrected1.json (FileManager adds '-' separator)
 
 # In loop code:
-suffix = f"_corrected{iteration_num}" if iteration_num > 0 else ""
+suffix = f"corrected{iteration_num}" if iteration_num > 0 else None
 validation_file = file_manager.save_json(
     validation_result,
     "validation",
@@ -1489,7 +1489,8 @@ validation_correction:
      ```python
      def save_json(self, data: dict, file_type: str, status: str | None = None) -> Path:
          """
-         status="_corrected1" should produce: "paper-123-extraction_corrected1.json"
+         status="corrected1" should produce: "paper-123-extraction-corrected1.json"
+         (FileManager adds '-' separator automatically)
          """
      ```
    - [ ] Test in Python REPL:
@@ -1613,14 +1614,14 @@ pytest tests/unit/test_iterative_validation_correction.py --cov=src.pipeline.orc
 tmp/paper-123-extraction.json                  # Iteration 0 (initial)
 tmp/paper-123-validation.json                  # Iteration 0 validation
 
-tmp/paper-123-extraction_corrected1.json       # Iteration 1 (after 1st correction)
-tmp/paper-123-validation_corrected1.json       # Iteration 1 validation
+tmp/paper-123-extraction-corrected1.json       # Iteration 1 (after 1st correction)
+tmp/paper-123-validation-corrected1.json       # Iteration 1 validation
 
-tmp/paper-123-extraction_corrected2.json       # Iteration 2
-tmp/paper-123-validation_corrected2.json       # Iteration 2 validation
+tmp/paper-123-extraction-corrected2.json       # Iteration 2
+tmp/paper-123-validation-corrected2.json       # Iteration 2 validation
 
-tmp/paper-123-extraction_corrected3.json       # Iteration 3 (MAX)
-tmp/paper-123-validation_corrected3.json       # Iteration 3 validation
+tmp/paper-123-extraction-corrected3.json       # Iteration 3 (MAX)
+tmp/paper-123-validation-corrected3.json       # Iteration 3 validation
 ```
 
 #### Implementatie
@@ -1628,17 +1629,17 @@ tmp/paper-123-validation_corrected3.json       # Iteration 3 validation
 **File**: `src/pipeline/orchestrator.py` (binnen `run_validation_with_correction()`)
 
 1. **Verification** (Pre-Implementation Checklist already covers this):
-   - [ ] Verify `file_manager.save_json(data, type, status="_corrected1")` werkt
+   - [ ] Verify `file_manager.save_json(data, type, status="corrected1")` werkt
    - [ ] Check bestaande code in sectie 7 (regel 806-817) - geen wijzigingen nodig aan FileManager zelf
 
 2. **Implementeer File Saving in Loop** (sectie 3):
    - [ ] **Validation save** (regel 364-369):
      ```python
-     suffix = f"_corrected{iteration_num}" if iteration_num > 0 else ""
+     suffix = f"corrected{iteration_num}" if iteration_num > 0 else None
      validation_file = file_manager.save_json(
          validation_result,
          "validation",
-         status=suffix or None  # None = no suffix for iteration 0
+         status=suffix  # FileManager adds '-' between step and status
      )
      ```
    - [ ] **Extraction save** (regel 481-486):
@@ -1646,7 +1647,7 @@ tmp/paper-123-validation_corrected3.json       # Iteration 3 validation
      corrected_file = file_manager.save_json(
          corrected_extraction,
          "extraction",
-         status=f"_corrected{iteration_num}"
+         status=f"corrected{iteration_num}"  # FileManager adds '-'
      )
      ```
    - [ ] **Add logging** after each save:
@@ -1683,11 +1684,11 @@ class TestIterationFileNaming:
         assert path.name == "test-123-validation.json"
 
     def test_iteration_1_corrected_suffix(self, tmp_path):
-        """Iteration 1 krijgt _corrected1 suffix."""
+        """Iteration 1 krijgt corrected1 suffix (met -)."""
         fm = PipelineFileManager(output_dir=tmp_path, paper_id="test-123")
 
-        path = fm.save_json({"test": "data"}, "extraction", status="_corrected1")
-        assert path.name == "test-123-extraction_corrected1.json"
+        path = fm.save_json({"test": "data"}, "extraction", status="corrected1")
+        assert path.name == "test-123-extraction-corrected1.json"
 
     def test_all_iterations_saved(self, tmp_path):
         """Simuleer volledige loop - alle files moeten er zijn."""
@@ -1700,19 +1701,19 @@ class TestIterationFileNaming:
 
         # Save iterations 1-3
         for i in range(1, max_iterations + 1):
-            fm.save_json({"iter": i}, "validation", status=f"_corrected{i}")
-            fm.save_json({"iter": i}, "extraction", status=f"_corrected{i}")
+            fm.save_json({"iter": i}, "validation", status=f"-corrected{i}")
+            fm.save_json({"iter": i}, "extraction", status=f"-corrected{i}")
 
         # Verify all files exist
         expected_files = [
             "test-123-validation.json",
             "test-123-extraction.json",
-            "test-123-validation_corrected1.json",
-            "test-123-extraction_corrected1.json",
-            "test-123-validation_corrected2.json",
-            "test-123-extraction_corrected2.json",
-            "test-123-validation_corrected3.json",
-            "test-123-extraction_corrected3.json",
+            "test-123-validation-corrected1.json",
+            "test-123-extraction-corrected1.json",
+            "test-123-validation-corrected2.json",
+            "test-123-extraction-corrected2.json",
+            "test-123-validation-corrected3.json",
+            "test-123-extraction-corrected3.json",
         ]
 
         for filename in expected_files:
@@ -1732,7 +1733,7 @@ pytest tests/unit/test_file_management.py -v
 
 **Deliverable**:
 - ✅ File saving correct geïmplementeerd in loop
-- ✅ Alle iteraties opgeslagen met correcte naming (_correctedN suffix)
+- ✅ Alle iteraties opgeslagen met correcte naming (-correctedN suffix)
 - ✅ Logging toegevoegd voor traceability
 - ✅ Tests verifiëren file naming correctheid
 - ✅ **NO lazy loading** (verwarrende term verwijderd)
@@ -2103,10 +2104,10 @@ ls tmp/
 # Expected files (voor max_iterations=2):
 #   sample-extraction.json
 #   sample-validation.json
-#   sample-extraction_corrected1.json
-#   sample-validation_corrected1.json
-#   sample-extraction_corrected2.json
-#   sample-validation_corrected2.json
+#   sample-extraction-corrected1.json
+#   sample-validation-corrected1.json
+#   sample-extraction-corrected2.json
+#   sample-validation-corrected2.json
 
 # Test 5: Backward compat - old steps still work
 python -m src.cli run --pdf-path tests/data/sample.pdf --step validation
@@ -2162,7 +2163,7 @@ pytest tests/integration/test_cli.py -v
 - ✅ CLI `--step validation_correction` werkt
 - ✅ CLI arguments voor thresholds en max_iterations
 - ✅ Help text updated met examples
-- ✅ Output files correct aangemaakt (_correctedN suffixes)
+- ✅ Output files correct aangemaakt (-correctedN suffixes)
 - ✅ Backward compatibility verified (oude steps werken nog)
 - ✅ CLI tests (manual + optioneel automated)
 
@@ -3187,7 +3188,7 @@ Gemiddelde verwachting (80% scenario 1, 15% scenario 2, 5% scenario 3):
 **A**: Completeness ≥0.90, Accuracy ≥0.95, Schema Compliance ≥0.95, Critical Issues = 0
 
 ✅ **Q6**: File naming?
-**A**: `_corrected1`, `_corrected2`, `_corrected3` suffixes
+**A**: `-corrected1`, `-corrected2`, `-corrected3` suffixes
 
 ✅ **Q7**: Max iterations?
 **A**: Default 3, configureerbaar in settings (1-5 range)

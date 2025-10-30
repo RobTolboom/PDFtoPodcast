@@ -82,16 +82,15 @@ STEP_CLASSIFICATION = "classification"
 STEP_EXTRACTION = "extraction"
 STEP_VALIDATION = "validation"
 STEP_CORRECTION = "correction"
+STEP_VALIDATION_CORRECTION = "validation_correction"
 
+# Default pipeline steps (validation_correction replaces separate validation+correction)
 ALL_PIPELINE_STEPS = [
     STEP_CLASSIFICATION,
     STEP_EXTRACTION,
-    STEP_VALIDATION,
-    STEP_CORRECTION,
+    STEP_VALIDATION_CORRECTION,
 ]
-
-# New step: combined validation with iterative correction
-STEP_VALIDATION_CORRECTION = "validation_correction"
+# Note: STEP_VALIDATION and STEP_CORRECTION remain available for CLI backward compatibility
 
 # Default quality thresholds for iterative correction loop
 DEFAULT_QUALITY_THRESHOLDS = {
@@ -1395,7 +1394,12 @@ def run_single_step(
     supporting iterative workflows and better user feedback.
 
     Args:
-        step_name: Step to execute ("classification", "extraction", "validation", "correction")
+        step_name: Step to execute:
+            - "classification": Classify document type
+            - "extraction": Extract structured data
+            - "validation_correction": NEW - Iterative validation with automatic correction
+            - "validation": Legacy - Single validation run (backward compat)
+            - "correction": Legacy - Single correction run (backward compat)
         pdf_path: Path to PDF file to process
         max_pages: Maximum pages to process (None = all pages)
         llm_provider: LLM provider name ("openai" or "claude")
@@ -1407,8 +1411,10 @@ def run_single_step(
         Dictionary containing step result. Key depends on step:
         - classification: {"publication_type": str, "metadata": dict, ...}
         - extraction: {"data": dict, ...}
+        - validation_correction: {"final_status": str, "best_extraction": dict,
+                                  "best_validation": dict, "iterations": list, ...}
         - validation: {"verification_summary": dict, ...}
-        - correction: {"corrected_extraction": dict, "final_validation": dict}
+        - correction: {"extraction_corrected": dict, "validation_corrected": dict}
 
     Raises:
         ValueError: If step_name is invalid
@@ -1438,10 +1444,11 @@ def run_single_step(
         ...     previous_results={"classification": result1},
         ... )
     """
-    # Validate step name
-    if step_name not in ALL_PIPELINE_STEPS:
+    # Validate step name (allow both new and legacy steps)
+    valid_steps = ALL_PIPELINE_STEPS + [STEP_VALIDATION, STEP_CORRECTION]
+    if step_name not in valid_steps:
         raise ValueError(
-            f"Invalid step_name '{step_name}'. Must be one of: {', '.join(ALL_PIPELINE_STEPS)}"
+            f"Invalid step_name '{step_name}'. Must be one of: {', '.join(valid_steps)}"
         )
 
     # Initialize previous_results if not provided
@@ -1504,6 +1511,13 @@ def run_single_step(
                 "Correction step not needed - validation passed. "
                 "Only run correction when validation status is not 'passed'."
             )
+
+    elif step_name == STEP_VALIDATION_CORRECTION:
+        # New iterative validation-correction step requires same dependencies as STEP_EXTRACTION
+        classification_result = _get_or_load_result("classification")
+        extraction_result = _get_or_load_result("extraction")
+        previous_results[STEP_CLASSIFICATION] = classification_result
+        previous_results[STEP_EXTRACTION] = extraction_result
 
     # Check LLM support availability
     try:
@@ -1575,6 +1589,28 @@ def run_single_step(
             "extraction_corrected": corrected_extraction,
             "validation_corrected": final_validation,
         }
+
+    elif step_name == STEP_VALIDATION_CORRECTION:
+        # New iterative validation-correction workflow
+        classification_result = previous_results[STEP_CLASSIFICATION]
+        extraction_result = previous_results[STEP_EXTRACTION]
+        llm = get_llm_provider(llm_provider)
+
+        # Call the iterative loop with default or custom parameters
+        return run_validation_with_correction(
+            pdf_path=pdf_path,
+            extraction_result=extraction_result,
+            classification_result=classification_result,
+            llm_provider=llm,
+            file_manager=file_manager,
+            max_iterations=3,  # Could be parameterized in future
+            quality_thresholds=None,  # Uses DEFAULT_QUALITY_THRESHOLDS
+            progress_callback=progress_callback,
+        )
+
+    else:
+        # Should never reach here due to validation above
+        raise ValueError(f"Unknown step: {step_name}")
 
 
 def run_four_step_pipeline(

@@ -32,6 +32,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Implementation in `src/pipeline/orchestrator.py` (2 logging statements added)
   - Tests verify: iteration 0 naming, corrected suffix pattern, full multi-iteration save sequence
 
+- **Iterative Validation-Correction Loop (Fase 3)** - Backward compatibility and pipeline integration
+  - Added `STEP_VALIDATION_CORRECTION` constant to pipeline step constants
+  - Updated `ALL_PIPELINE_STEPS` to use new combined step (replaces separate validation+correction in default pipeline)
+  - Legacy steps (`STEP_VALIDATION`, `STEP_CORRECTION`) remain available for CLI backward compatibility
+  - Added elif-branch in `run_single_step()` to dispatch to `run_validation_with_correction()`
+  - Updated docstring with comprehensive step documentation including legacy step notes
+  - Test suite: 6 backward compatibility tests in `tests/unit/test_backward_compatibility.py`
+  - All 152 unit tests pass (including 6 new backward compat tests)
+  - Fixed 2 execution screen tests to expect 3 pipeline steps instead of 4
+  - Implementation in `src/pipeline/orchestrator.py` (constant, list update, elif-branch, validation logic)
+  - Non-breaking: Old validation/correction steps still work, new combined step integrates seamlessly
+
 - **Pipeline Execution Metadata** - Comprehensive metadata embedded in step JSON files
   - Added `_pipeline_metadata` field to all step outputs (classification, extraction, validation, correction)
   - Metadata includes: timestamp (ISO-8601 UTC), duration_seconds, LLM provider/model, max_pages, PDF filename, execution_mode (streamlit/cli), status (success/failed)
