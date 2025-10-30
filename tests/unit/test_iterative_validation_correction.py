@@ -18,6 +18,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from src.llm.base import LLMError
 from src.pipeline.orchestrator import (
     STEP_VALIDATION_CORRECTION,
     _detect_quality_degradation,
@@ -662,3 +663,195 @@ class TestEdgeCases:
             # Should pass with custom thresholds
             assert result["final_status"] == "passed"
             assert result["iteration_count"] == 1
+
+
+class TestErrorHandling:
+    """Test error recovery and graceful degradation."""
+
+    def test_llm_failure_returns_error_status(self, tmp_path):
+        """LLM failures are caught and handled gracefully."""
+        with (
+            patch("src.pipeline.orchestrator._run_validation_step") as mock_validation,
+            patch("src.pipeline.orchestrator._run_correction_step") as mock_correction,
+            patch("time.sleep"),  # Don't actually sleep during retries
+        ):
+            # Initial validation shows low quality
+            mock_validation.return_value = {
+                "schema_validation": {"quality_score": 0.95},
+                "verification_summary": {
+                    "completeness_score": 0.85,
+                    "accuracy_score": 0.90,
+                    "schema_compliance_score": 0.92,
+                    "critical_issues": 1,  # Needs correction
+                },
+            }
+
+            # Correction raises LLMError (simulates persistent API failure)
+            mock_correction.side_effect = LLMError("Persistent API failure")
+
+            file_manager = MagicMock()
+            file_manager.save_json.return_value = tmp_path / "test.json"
+
+            result = run_validation_with_correction(
+                pdf_path=tmp_path / "test.pdf",
+                extraction_result={"data": "initial"},
+                classification_result={"publication_type": "interventional_trial"},
+                llm_provider="openai",
+                file_manager=file_manager,
+                max_iterations=2,
+            )
+
+            # LLM failures are retried, then loop continues until max iterations
+            # Result can be either failed_llm_error or max_iterations_reached
+            assert result["final_status"] in ["failed_llm_error", "max_iterations_reached"]
+            assert "iterations" in result
+            # Should have returned best available result (initial extraction)
+            assert result["best_extraction"] is not None
+
+    def test_llm_retry_mechanism_exists(self, tmp_path):
+        """Verify retry mechanism is invoked on LLM failures."""
+        with (
+            patch("src.pipeline.orchestrator._run_validation_step") as mock_validation,
+            patch("src.pipeline.orchestrator._run_correction_step") as mock_correction,
+            patch("time.sleep") as mock_sleep,
+        ):
+            # Initial validation
+            mock_validation.return_value = {
+                "schema_validation": {"quality_score": 0.95},
+                "verification_summary": {
+                    "completeness_score": 0.85,
+                    "accuracy_score": 0.90,
+                    "schema_compliance_score": 0.92,
+                    "critical_issues": 1,
+                },
+            }
+
+            # Correction fails first time, succeeds second time
+            mock_correction.side_effect = [
+                LLMError("Temporary failure"),
+                ({"data": "corrected"}, {"validation": "result"}),
+            ]
+
+            file_manager = MagicMock()
+            file_manager.save_json.return_value = tmp_path / "test.json"
+
+            result = run_validation_with_correction(
+                pdf_path=tmp_path / "test.pdf",
+                extraction_result={"data": "initial"},
+                classification_result={"publication_type": "interventional_trial"},
+                llm_provider="openai",
+                file_manager=file_manager,
+                max_iterations=1,
+            )
+
+            # Verify retry was attempted (sleep was called)
+            assert mock_sleep.call_count >= 1
+            # Result should have completed (not failed)
+            assert "final_status" in result
+
+    def test_schema_failure_early_exit(self, tmp_path):
+        """Schema quality <50% prevents correction attempt."""
+        with patch("src.pipeline.orchestrator._run_validation_step") as mock_validation:
+            # Validation returns very low schema quality (<50%)
+            mock_validation.return_value = {
+                "schema_validation": {"quality_score": 0.30},  # Below 0.50 threshold
+                "verification_summary": {
+                    "completeness_score": 0.40,
+                    "accuracy_score": 0.45,
+                    "schema_compliance_score": 0.35,
+                    "critical_issues": 5,
+                },
+            }
+
+            file_manager = MagicMock()
+            file_manager.save_json.return_value = tmp_path / "test.json"
+
+            result = run_validation_with_correction(
+                pdf_path=tmp_path / "test.pdf",
+                extraction_result={"data": "initial"},
+                classification_result={"publication_type": "interventional_trial"},
+                llm_provider="openai",
+                file_manager=file_manager,
+                max_iterations=3,
+            )
+
+            # Should exit immediately without attempting correction
+            assert result["final_status"] == "failed_schema_validation"
+            assert "error" in result
+            assert "schema validation failed" in result["error"].lower()
+
+    def test_unexpected_error_graceful_fail(self, tmp_path):
+        """Unexpected errors don't crash, return best iteration."""
+        with (
+            patch("src.pipeline.orchestrator._run_validation_step") as mock_validation,
+            patch("src.pipeline.orchestrator._run_correction_step") as mock_correction,
+        ):
+            # First validation shows need for correction
+            mock_validation.return_value = {
+                "schema_validation": {"quality_score": 0.95},
+                "verification_summary": {
+                    "completeness_score": 0.85,
+                    "accuracy_score": 0.90,
+                    "schema_compliance_score": 0.92,
+                    "critical_issues": 1,
+                },
+            }
+
+            # Correction raises unexpected error
+            mock_correction.side_effect = AttributeError("Unexpected attribute error")
+
+            file_manager = MagicMock()
+            file_manager.save_json.return_value = tmp_path / "test.json"
+
+            result = run_validation_with_correction(
+                pdf_path=tmp_path / "test.pdf",
+                extraction_result={"data": "initial"},
+                classification_result={"publication_type": "interventional_trial"},
+                llm_provider="openai",
+                file_manager=file_manager,
+                max_iterations=2,
+            )
+
+            # Should not crash, return error status
+            assert result["final_status"] == "failed_unexpected_error"
+            assert "error" in result
+            assert "iterations" in result
+
+    def test_json_decode_error_handling(self, tmp_path):
+        """JSON decode errors are caught and handled gracefully."""
+        with (
+            patch("src.pipeline.orchestrator._run_validation_step") as mock_validation,
+            patch("src.pipeline.orchestrator._run_correction_step") as mock_correction,
+        ):
+            # Initial validation
+            mock_validation.return_value = {
+                "schema_validation": {"quality_score": 0.95},
+                "verification_summary": {
+                    "completeness_score": 0.85,
+                    "accuracy_score": 0.90,
+                    "schema_compliance_score": 0.92,
+                    "critical_issues": 1,
+                },
+            }
+
+            # Correction raises JSONDecodeError
+            import json
+
+            mock_correction.side_effect = json.JSONDecodeError("Invalid JSON", '{"invalid":', 10)
+
+            file_manager = MagicMock()
+            file_manager.save_json.return_value = tmp_path / "test.json"
+
+            result = run_validation_with_correction(
+                pdf_path=tmp_path / "test.pdf",
+                extraction_result={"data": "initial"},
+                classification_result={"publication_type": "interventional_trial"},
+                llm_provider="openai",
+                file_manager=file_manager,
+                max_iterations=2,
+            )
+
+            # Should return failed_invalid_json status
+            assert result["final_status"] == "failed_invalid_json"
+            assert "error" in result
+            assert "iterations" in result
