@@ -56,6 +56,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Feature 100% complete: Backend (Phases 1-3) + UI (Phase 4) fully integrated
   - All 152 unit tests passing, backward compatible with CLI
 
+- **Iterative Validation-Correction Loop (Fase 3.5)** - CLI support for single-step execution
+  - Added `--step` CLI argument with 5 choices: classification, extraction, validation, correction, validation_correction
+  - Added `--max-iterations` argument (default: 3) for configuring correction attempts
+  - Added threshold arguments: `--completeness-threshold`, `--accuracy-threshold`, `--schema-threshold` (defaults: 0.90, 0.95, 0.95)
+  - Implemented step selection logic: single step execution vs full pipeline
+  - Added step-specific result display for CLI output (classification, validation_correction, validation)
+  - Updated CLI help text with usage examples
+  - Exported `run_single_step` from `src.pipeline` module (was missing from public API)
+  - Implementation: `run_pipeline.py` (~148 lines added/modified), `src/pipeline/__init__.py` (1 export added)
+  - Backward compatible: Full pipeline runs when no `--step` specified
+  - Examples: `python run_pipeline.py paper.pdf --step validation_correction --max-iterations 2 --completeness-threshold 0.85`
+
+- **Iterative Validation-Correction Loop (Fase 5)** - Comprehensive error handling tests
+  - Added `TestErrorHandling` class with 5 new unit tests (193 lines)
+  - Test coverage: LLM failures, retry mechanism, schema failures, unexpected errors, JSON decode errors
+  - Verified error handling: LLM API failures retried 3 times with exponential backoff (1s, 2s, 4s)
+  - Verified graceful degradation: All error types preserve iterations and return meaningful status codes
+  - Test results: All 30 tests in `test_iterative_validation_correction.py` pass (25 existing + 5 new)
+  - Error scenarios covered: failed_llm_error, failed_schema_validation, failed_invalid_json, failed_unexpected_error
+  - Implementation: `tests/unit/test_iterative_validation_correction.py` (added TestErrorHandling class)
+  - Validation: Error handling already implemented in Phase 1, tests confirm correct behavior
+
+### Changed
+- **Documentation** - Updated architecture and design documentation
+  - Updated ARCHITECTURE.md: Pipeline Orchestrator section reflects 3-step model with 10 key functions listed
+  - Added new subsection "Iterative Validation-Correction Loop" with workflow, quality assessment formula, status codes, file naming, error handling
+  - Design decisions updated: Why 3 steps, why iterative correction, why keep 4-step option, why quality thresholds, why early stopping, why best iteration selection
+  - All documentation reflects new combined validation_correction step while maintaining backward compatibility notes
+
 - **Pipeline Execution Metadata** - Comprehensive metadata embedded in step JSON files
   - Added `_pipeline_metadata` field to all step outputs (classification, extraction, validation, correction)
   - Metadata includes: timestamp (ISO-8601 UTC), duration_seconds, LLM provider/model, max_pages, PDF filename, execution_mode (streamlit/cli), status (success/failed)

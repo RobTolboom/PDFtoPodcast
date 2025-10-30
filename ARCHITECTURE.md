@@ -83,7 +83,7 @@ PDFtoPodcast is a **medical literature data extraction pipeline** that uses LLM 
 ### 1. Pipeline Orchestrator (`src/pipeline/orchestrator.py`)
 
 **Responsibilities:**
-- Coordinate 4-step extraction workflow
+- Coordinate 3-step extraction workflow (with iterative correction)
 - Provide modular step execution API
 - Handle breakpoints for testing
 - Manage intermediate file I/O
@@ -92,14 +92,23 @@ PDFtoPodcast is a **medical literature data extraction pipeline** that uses LLM 
 **Key Functions:**
 - `run_single_step()`: Execute one pipeline step with dependency validation
 - `run_four_step_pipeline()`: Backwards-compatible wrapper for CLI/batch usage
+- `run_validation_with_correction()`: **NEW** - Iterative validation-correction loop
 - `_run_classification_step()`: Private classification logic
 - `_run_extraction_step()`: Private extraction logic
 - `_run_validation_step()`: Private validation logic
 - `_run_correction_step()`: Private correction logic
+- `is_quality_sufficient()`: Check if validation meets quality thresholds
+- `_select_best_iteration()`: Select best result when max iterations reached
+- `_detect_quality_degradation()`: Early stopping for degrading quality
 
 **Design Decisions:**
-- **Why 4 steps?** Separation of concerns: classify → extract → validate → correct
+- **Why 3 steps?** Default pipeline: classify → extract → validate_correct (iterative)
+- **Why iterative correction?** Progressive improvement until quality thresholds met
+- **Why keep 4-step option?** Backward compatibility for CLI and existing workflows
 - **Why modular functions?** Enables step-by-step execution with UI updates (Streamlit)
+- **Why quality thresholds?** Configurable stopping criteria (completeness, accuracy, schema compliance)
+- **Why early stopping?** Prevent wasted LLM calls when corrections degrade quality
+- **Why best iteration selection?** Ensure we always return highest quality result
 - **Why public API?** Single source of truth used by both CLI and web interface
 - **Why breakpoints?** Enable step-by-step testing without full pipeline runs
 - **Why PDF filename-based naming?** Consistent file tracking across pipeline stages, works without DOI
@@ -211,6 +220,60 @@ def run_four_step_pipeline(...) -> dict[str, Any]:
 2. **Testability:** Test `run_single_step()` once, both modes benefit
 3. **Maintainability:** Bug fixes apply to both CLI and Streamlit
 4. **Flexibility:** Easy to add new execution modes (API server, batch queue, etc.)
+
+---
+
+#### Iterative Validation-Correction Loop
+
+**Problem:** Single correction pass may not achieve sufficient quality.
+
+**Solution:** Iterative loop with quality assessment and early stopping.
+
+**Workflow:**
+1. Validate extraction (schema + LLM)
+2. Check quality against thresholds (completeness ≥0.90, accuracy ≥0.95, schema ≥0.95, critical_issues=0)
+3. If insufficient quality and iterations < max:
+   - Run correction with validation feedback
+   - Validate corrected extraction
+   - Repeat from step 2
+4. Early stopping if quality degrades for 2 consecutive iterations
+5. Select best iteration based on composite quality score
+
+**Quality Assessment:**
+```python
+# Composite quality score (used for ranking)
+overall_quality = (
+    completeness_score * 0.40 +      # Coverage of PDF data
+    accuracy_score * 0.40 +           # Correctness (no hallucinations)
+    schema_compliance_score * 0.20    # Structural correctness
+)
+```
+
+**Final Status Codes:**
+- `passed`: Quality thresholds met
+- `max_iterations_reached`: Max iterations reached, using best result
+- `early_stopped_degradation`: Stopped due to quality degradation
+- `failed_schema_validation`: Schema validation failed (<50% quality)
+- `failed_llm_error`: LLM API error after 3 retries
+- `failed_invalid_json`: Correction produced invalid JSON
+- `failed_unexpected_error`: Unexpected error occurred
+
+**File Naming Convention:**
+```
+tmp/
+├── paper-extraction.json                # Initial extraction (iter 0)
+├── paper-validation.json                # Initial validation (iter 0)
+├── paper-extraction-corrected1.json     # Corrected extraction (iter 1)
+├── paper-validation-corrected1.json     # Validation of corrected (iter 1)
+├── paper-extraction-corrected2.json     # Second correction (iter 2)
+└── paper-validation-corrected2.json     # Final validation (iter 2)
+```
+
+**Error Handling:**
+- LLM failures: 3 retries with exponential backoff (1s, 2s, 4s)
+- Schema failures (<50% quality): Immediate stop, no correction
+- Invalid JSON: Return best previous iteration
+- Unexpected errors: Graceful degradation, return best iteration so far
 
 ---
 
