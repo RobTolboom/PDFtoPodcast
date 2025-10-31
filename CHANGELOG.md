@@ -8,6 +8,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Best Extraction & Validation Selection** - Automatic quality-based selection with persistent "best" files
+  - Save best extraction + validation as `{id}-extraction-best.json` and `{id}-validation-best.json` after ALL exit paths
+  - Save selection metadata as `{id}-extraction-best-metadata.json` with iteration number, quality scores, and selection reason
+  - **6 Exit Paths covered:**
+    1. Direct success (quality sufficient at iteration 0) - saves iteration 0 as best
+    2. Early stop degradation - uses `_select_best_iteration()` weighted quality scoring
+    3. Max iterations reached - selects highest quality iteration
+    4. LLM error (retry exhausted) - best of completed iterations
+    5. JSON decode error - best of completed iterations
+    6. Unexpected error - best of completed iterations
+  - **Settings Screen Integration:** "View" buttons now show BEST extraction/validation (not iteration 0)
+    - Extraction step: Shows best extraction if exists, falls back to extraction0
+    - Validation step: Shows best validation if exists, falls back to validation0
+    - Validation & Correction step: Shows best validation (highest quality, not most recent)
+  - **Pipeline Loading Integration:** Future steps (appraisal) automatically load BEST extraction
+    - Updated `_get_or_load_result()` to prefer best files over iteration 0
+    - Console messages show which iteration is being used with quality score
+    - Full backward compatibility: falls back to iteration 0 if no best file exists
+  - **Metadata tracking:**
+    - `best_iteration_num`: Which iteration was selected (0, 1, 2, ...)
+    - `overall_quality`: Weighted quality score (0.0-1.0)
+    - `completeness_score`, `accuracy_score`, `schema_compliance_score`: Individual metrics
+    - `selection_reason`: "passed" | "early_stopped_degradation" | "max_iterations_reached" | "failed_llm_error" | "failed_invalid_json" | "failed_unexpected_error"
+    - `total_iterations`: Total number of iterations performed
+    - `timestamp`: Selection timestamp (ISO-8601)
+  - **Implementation:**
+    - orchestrator.py: 6 save locations (3 files each) + updated dependency loading
+    - result_checker.py: Updated file mapping for extraction, validation, validation_correction
+    - All 111 unit tests pass
+  - **User Impact:**
+    - Settings screen always shows the BEST extraction (quality-based, not chronological)
+    - Future appraisal step will use the BEST extraction automatically
+    - Complete traceability: know which iteration was selected and why
+    - No manual file selection needed
+
 - **Iterative Validation-Correction Loop (Fase 1)** - Core loop logic with automatic quality improvement
   - Added `run_validation_with_correction()` main loop function (~260 lines)
   - Automatic iterative correction until quality thresholds met or max iterations reached

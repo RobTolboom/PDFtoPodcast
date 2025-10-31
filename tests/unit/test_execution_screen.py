@@ -65,7 +65,7 @@ class TestStateManagement:
         assert execution["end_time"] is None
         assert execution["error"] is None
         assert execution["results"] is None
-        assert execution["auto_redirect_enabled"] is True
+        assert execution["auto_redirect_enabled"] is False  # Changed: timer disabled
         assert execution["redirect_cancelled"] is False
         assert execution["redirect_countdown"] is None
 
@@ -124,7 +124,7 @@ class TestStateManagement:
         assert execution["end_time"] is None
         assert execution["error"] is None
         assert execution["results"] is None
-        assert execution["auto_redirect_enabled"] is True
+        assert execution["auto_redirect_enabled"] is False  # Changed: timer disabled
         assert execution["redirect_cancelled"] is False
         assert execution["redirect_countdown"] is None
 
