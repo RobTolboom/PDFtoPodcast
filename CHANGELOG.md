@@ -79,6 +79,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Validation: Error handling already implemented in Phase 1, tests confirm correct behavior
 
 ### Changed
+- **Execution Screen Auto-Redirect** - Disabled automatic redirect to Settings screen after pipeline completion
+  - Changed `auto_redirect_enabled` from `True` to `False` in execution state initialization
+  - Users now stay on Execution screen after completion with full control
+  - No 30-second countdown timer
+  - Info message displayed: "Pipeline execution completed. View results in Settings screen or run again."
+  - Timer logic preserved for potential future re-enable
+  - Implementation: `src/streamlit_app/screens/execution.py` (2 locations)
+
 - **Interventional Extraction Prompt & Schema Alignment** - Strengthened validation instructions and aligned prompt with schema requirements
   - Enhanced CLOSED WORLD ASSUMPTION: Explicit messaging that "additionalProperties":false applies at ALL nesting levels
   - Added ALL-OR-NOTHING RULE: Omit entire parent object rather than emitting partial data when confidence is low
