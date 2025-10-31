@@ -64,67 +64,91 @@ class PipelineFileManager:
         self.identifier = pdf_path.stem
         console.print(f"[blue]📁 File identifier: {self.identifier}[/blue]")
 
-    def get_filename(self, step: str, status: str = "") -> Path:
+    def get_filename(
+        self, step: str, iteration_number: int | None = None, status: str = ""
+    ) -> Path:
         """
         Generate consistent filenames for pipeline steps.
 
         Args:
-            step: Pipeline step name (e.g., "classification", "extraction")
-            status: Optional status suffix (e.g., "corrected", "failed")
+            step: Pipeline step name (e.g., "classification", "extraction", "validation")
+            iteration_number: Optional iteration number for validation-correction loop (0, 1, 2, ...)
+            status: Optional status suffix for special cases (e.g., "failed")
 
         Returns:
             Path to file in tmp directory
 
-        Example:
+        Examples:
             >>> manager = PipelineFileManager(Path("paper.pdf"))
-            >>> manager.get_filename("extraction")
-            PosixPath('tmp/paper-extraction.json')
-            >>> manager.get_filename("extraction", "corrected")
-            PosixPath('tmp/paper-extraction-corrected.json')
+            >>> manager.get_filename("classification")
+            PosixPath('tmp/paper-classification.json')
+            >>> manager.get_filename("extraction", iteration_number=0)
+            PosixPath('tmp/paper-extraction0.json')
+            >>> manager.get_filename("validation", iteration_number=2)
+            PosixPath('tmp/paper-validation2.json')
+            >>> manager.get_filename("extraction", status="failed")
+            PosixPath('tmp/paper-extraction-failed.json')
         """
-        if status:
-            filename = f"{self.identifier}-{step}-{status}.json"
-        else:
-            filename = f"{self.identifier}-{step}.json"
+        # Build filename parts
+        parts = [self.identifier, step]
 
+        # Add iteration number if provided (extraction0, validation1, etc.)
+        if iteration_number is not None:
+            parts[-1] = f"{step}{iteration_number}"
+
+        # Add status if provided (for failed cases)
+        if status:
+            parts.append(status)
+
+        filename = "-".join(parts) + ".json"
         return self.tmp_dir / filename
 
-    def save_json(self, data: dict[Any, Any], step: str, status: str = "") -> Path:
+    def save_json(
+        self, data: dict[Any, Any], step: str, iteration_number: int | None = None, status: str = ""
+    ) -> Path:
         """
         Save JSON data with consistent filename-based naming.
 
         Args:
             data: Dictionary to save as JSON
             step: Pipeline step name
+            iteration_number: Optional iteration number for validation-correction loop
             status: Optional status suffix
 
         Returns:
             Path to saved JSON file
 
-        Example:
+        Examples:
             >>> manager = PipelineFileManager(Path("paper.pdf"))
             >>> result = {"publication_type": "interventional_trial"}
             >>> filepath = manager.save_json(result, "classification")
             >>> filepath.exists()
             True
+            >>> extraction = {"data": "test"}
+            >>> filepath = manager.save_json(extraction, "extraction", iteration_number=0)
+            >>> filepath.name
+            'paper-extraction0.json'
         """
-        filepath = self.get_filename(step, status)
+        filepath = self.get_filename(step, iteration_number, status)
         with open(filepath, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
         return filepath
 
-    def load_json(self, step: str, status: str = "") -> dict[str, Any] | None:
+    def load_json(
+        self, step: str, iteration_number: int | None = None, status: str = ""
+    ) -> dict[str, Any] | None:
         """
         Load JSON data from file if it exists.
 
         Args:
             step: Pipeline step name
+            iteration_number: Optional iteration number for validation-correction loop
             status: Optional status suffix
 
         Returns:
             Dictionary with loaded data, or None if file doesn't exist
 
-        Example:
+        Examples:
             >>> manager = PipelineFileManager(Path("paper.pdf"))
             >>> # Save data first
             >>> manager.save_json({"type": "trial"}, "classification")
@@ -133,11 +157,17 @@ class PipelineFileManager:
             >>> result = manager.load_json("classification")
             >>> result["type"]
             'trial'
+            >>> # Load iteration file
+            >>> manager.save_json({"data": "v1"}, "extraction", iteration_number=1)
+            PosixPath('tmp/paper-extraction1.json')
+            >>> result = manager.load_json("extraction", iteration_number=1)
+            >>> result["data"]
+            'v1'
             >>> # Non-existent file returns None
             >>> manager.load_json("nonexistent")
             None
         """
-        filepath = self.get_filename(step, status)
+        filepath = self.get_filename(step, iteration_number, status)
         if not filepath.exists():
             return None
 

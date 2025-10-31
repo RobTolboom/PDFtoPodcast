@@ -91,13 +91,10 @@ def check_existing_results(identifier: str | None) -> dict:
     tmp_dir = Path("tmp")
     results = {
         "classification": (tmp_dir / f"{identifier}-classification.json").exists(),
-        "extraction": (tmp_dir / f"{identifier}-extraction.json").exists(),
-        "validation": (tmp_dir / f"{identifier}-validation.json").exists(),
-        "correction": (tmp_dir / f"{identifier}-extraction-corrected.json").exists(),
-        "validation_correction": (
-            (tmp_dir / f"{identifier}-validation.json").exists()
-            or any(tmp_dir.glob(f"{identifier}-validation-corrected*.json"))
-        ),
+        "extraction": (tmp_dir / f"{identifier}-extraction0.json").exists(),
+        "validation": (tmp_dir / f"{identifier}-validation0.json").exists(),
+        "correction": (tmp_dir / f"{identifier}-extraction1.json").exists(),
+        "validation_correction": any(tmp_dir.glob(f"{identifier}-validation[0-9]*.json")),
     }
     return results
 
@@ -130,18 +127,26 @@ def get_result_file_info(identifier: str, step: str) -> dict | None:
     # Map step names to filenames
     file_map = {
         "classification": f"{identifier}-classification.json",
-        "extraction": f"{identifier}-extraction.json",
-        "validation": f"{identifier}-validation.json",
-        "correction": f"{identifier}-extraction-corrected.json",
-        "validation_correction": f"{identifier}-validation.json",
+        "extraction": f"{identifier}-extraction0.json",
+        "validation": f"{identifier}-validation0.json",
+        "correction": f"{identifier}-extraction1.json",
     }
 
-    if step not in file_map:
-        return None
+    # Special handling for validation_correction - find highest iteration
+    if step == "validation_correction":
+        # Find all validation iteration files
+        validation_files = list(tmp_dir.glob(f"{identifier}-validation[0-9]*.json"))
+        if not validation_files:
+            return None
+        # Use the most recent file (highest iteration number)
+        file_path = max(validation_files, key=lambda p: p.stat().st_mtime)
+    else:
+        if step not in file_map:
+            return None
 
-    file_path = tmp_dir / file_map[step]
-    if not file_path.exists():
-        return None
+        file_path = tmp_dir / file_map[step]
+        if not file_path.exists():
+            return None
 
     # Get file statistics
     stat = file_path.stat()

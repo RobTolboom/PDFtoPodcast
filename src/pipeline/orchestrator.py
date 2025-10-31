@@ -510,8 +510,10 @@ def _run_extraction_step(
             "publication_type": publication_type,
         }
 
-        # Save extraction result
-        extraction_file = file_manager.save_json(extraction_result, "extraction")
+        # Save extraction result (iteration 0)
+        extraction_file = file_manager.save_json(
+            extraction_result, "extraction", iteration_number=0
+        )
         console.print(f"[green]✅ Extractie opgeslagen: {extraction_file}[/green]")
 
         # Extraction completed successfully
@@ -630,7 +632,7 @@ def _run_validation_step(
         "validation_passed": validation_result.get("is_valid", False),
     }
 
-    validation_file = file_manager.save_json(validation_result, "validation")
+    validation_file = file_manager.save_json(validation_result, "validation", iteration_number=0)
     console.print(f"[green]✅ Validatie opgeslagen: {validation_file}[/green]")
 
     # Validation completed
@@ -952,9 +954,10 @@ def run_validation_with_correction(
                     "failed_at_iteration": iteration_num,
                 }
 
-            # Save validation with iteration suffix
-            suffix = f"corrected{iteration_num}" if iteration_num > 0 else None
-            validation_file = file_manager.save_json(validation_result, "validation", status=suffix)
+            # Save validation with iteration number
+            validation_file = file_manager.save_json(
+                validation_result, "validation", iteration_number=iteration_num
+            )
             console.print(f"[dim]Saved validation: {validation_file}[/dim]")
 
             # Store iteration data
@@ -1073,15 +1076,15 @@ def run_validation_with_correction(
                 progress_callback=progress_callback,
             )
 
-            # Save corrected extraction with iteration suffix
+            # Save corrected extraction with iteration number
             corrected_file = file_manager.save_json(
-                corrected_extraction, "extraction", status=f"corrected{iteration_num}"
+                corrected_extraction, "extraction", iteration_number=iteration_num
             )
             console.print(f"[dim]Saved corrected extraction: {corrected_file}[/dim]")
 
-            # Save post-correction validation with iteration suffix
+            # Save post-correction validation with iteration number
             validation_file = file_manager.save_json(
-                final_validation, "validation", status=f"corrected{iteration_num}"
+                final_validation, "validation", iteration_number=iteration_num
             )
             console.print(f"[dim]Saved post-correction validation: {validation_file}[/dim]")
 
@@ -1131,16 +1134,16 @@ def run_validation_with_correction(
                             progress_callback=progress_callback,
                         )
 
-                        # Save corrected extraction and post-correction validation with iteration suffix
+                        # Save corrected extraction and post-correction validation with iteration number
                         corrected_file = file_manager.save_json(
-                            corrected_extraction, "extraction", status=f"corrected{iteration_num}"
+                            corrected_extraction, "extraction", iteration_number=iteration_num
                         )
                         console.print(
                             f"[dim]Saved corrected extraction (retry): {corrected_file}[/dim]"
                         )
 
                         validation_file = file_manager.save_json(
-                            final_validation, "validation", status=f"corrected{iteration_num}"
+                            final_validation, "validation", iteration_number=iteration_num
                         )
                         console.print(
                             f"[dim]Saved post-correction validation (retry): {validation_file}[/dim]"
@@ -1607,11 +1610,13 @@ def run_single_step(
             progress_callback=progress_callback,
         )
 
-        # Save corrected extraction and post-correction validation (4-step pipeline)
-        corrected_file = file_manager.save_json(corrected_extraction, "extraction", "corrected")
+        # Save corrected extraction and post-correction validation (4-step pipeline, iteration 1)
+        corrected_file = file_manager.save_json(
+            corrected_extraction, "extraction", iteration_number=1
+        )
         console.print(f"[green]✅ Correctie opgeslagen: {corrected_file}[/green]")
 
-        validation_file = file_manager.save_json(final_validation, "validation", "corrected")
+        validation_file = file_manager.save_json(final_validation, "validation", iteration_number=1)
         console.print(f"[green]✅ Finale validatie opgeslagen: {validation_file}[/green]")
 
         # Return both corrected extraction and final validation

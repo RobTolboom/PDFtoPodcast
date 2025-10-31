@@ -90,7 +90,7 @@ def show_settings_screen():
 
     Note:
         - If no PDF is selected (pdf_path is None), shows error and back button
-        - Correction step uses special filename: {identifier}-extraction-corrected.json
+        - Iteration files use numbered naming: extraction0.json, extraction1.json, validation0.json, etc.
         - All result files stored in tmp/ directory
         - Modal dialogs opened via show_json_viewer() function
         - File deletion triggers immediate st.rerun() to update UI

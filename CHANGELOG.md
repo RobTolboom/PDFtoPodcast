@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Metrics extraction: `_extract_metrics()` computes overall quality scores for comparison
   - Error handling: Integrated retry logic with exponential backoff for LLM failures, graceful degradation for schema/JSON errors
   - Constants: `STEP_VALIDATION_CORRECTION`, `DEFAULT_QUALITY_THRESHOLDS`, `FINAL_STATUS_CODES` (7 status codes)
-  - File naming: Iterations saved as `extraction-corrected1.json`, `validation-corrected1.json`, etc.
+  - File naming: Iterations saved as `extraction0.json`, `extraction1.json`, `validation0.json`, `validation1.json`, etc.
   - Comprehensive test suite: 25 tests across 5 test classes with full edge case coverage
   - Implementation in `src/pipeline/orchestrator.py` (5 helper functions + main loop)
   - Tests in `tests/unit/test_iterative_validation_correction.py` (143 total unit tests, all passing)
@@ -79,6 +79,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Validation: Error handling already implemented in Phase 1, tests confirm correct behavior
 
 ### Changed
+- **File Naming Schema** - Changed iteration file naming to use consistent numbering across all iterations
+  - **BREAKING CHANGE**: Old iteration files will not be recognized by new code
+  - Old schema: `extraction.json`, `extraction-corrected1.json`, `validation.json`, `validation-corrected1.json`
+  - New schema: `extraction0.json`, `extraction1.json`, `validation0.json`, `validation1.json`
+  - All iterations now have explicit numbers (0, 1, 2, ...) for better clarity and consistency
+  - Updated file_manager.py: Changed `status` parameter to `iteration_number` in get_filename(), save_json(), and load_json()
+  - Updated orchestrator.py: All save_json() calls now use iteration_number parameter (8 locations)
+  - Updated result_checker.py: Glob patterns changed to match numbered files (`validation[0-9]*.json`)
+  - Updated tests: All filename assertions updated to new schema (3 test files)
+  - Updated documentation: settings.py docstring reflects new naming convention
+  - Migration note: Users should clear tmp/ directory or delete old iteration files before using new version
+  - Legacy 4-step pipeline now saves as extraction1.json/validation1.json (was extraction-corrected.json)
+  - Implementation: 6 core files + 3 test files modified
+  - All 111 unit tests pass with new naming scheme
+
 - **Streamlit UI** - Updated deprecated `use_container_width` parameter to new `width` parameter
   - Replaced `use_container_width=True` with `width="stretch"` (13 occurrences)
   - Replaced `use_container_width=False` with `width="content"` (1 occurrence)

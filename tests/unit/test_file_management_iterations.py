@@ -6,8 +6,8 @@
 Tests for iterative validation-correction file naming and persistence.
 
 Verifies that iteration files are saved with correct naming pattern:
-- Iteration 0: no suffix (extraction.json, validation.json)
-- Iteration N: _correctedN suffix (extraction_corrected1.json, etc.)
+- Iteration 0: extraction0.json, validation0.json
+- Iteration N: extractionN.json, validationN.json (where N = 1, 2, 3, ...)
 """
 
 import json
@@ -19,26 +19,26 @@ from src.pipeline.file_manager import PipelineFileManager
 class TestIterationFileNaming:
     """Test dat iteration files correct benaamd worden."""
 
-    def test_iteration_0_no_suffix(self, tmp_path):
-        """Iteration 0 krijgt geen suffix."""
+    def test_iteration_0_numbered(self, tmp_path):
+        """Iteration 0 krijgt nummer 0."""
         # Create a dummy PDF path - FileManager extracts identifier from filename
         pdf_path = tmp_path / "test-123.pdf"
         pdf_path.touch()  # Create empty file
 
         fm = PipelineFileManager(pdf_path)
 
-        path = fm.save_json({"test": "data"}, "validation", status=None)
-        assert path.name == "test-123-validation.json"
+        path = fm.save_json({"test": "data"}, "validation", iteration_number=0)
+        assert path.name == "test-123-validation0.json"
 
-    def test_iteration_1_corrected_suffix(self, tmp_path):
-        """Iteration 1 krijgt corrected1 suffix (met -)."""
+    def test_iteration_1_numbered(self, tmp_path):
+        """Iteration 1 krijgt nummer 1."""
         pdf_path = tmp_path / "test-123.pdf"
         pdf_path.touch()
 
         fm = PipelineFileManager(pdf_path)
 
-        path = fm.save_json({"test": "data"}, "extraction", status="corrected1")
-        assert path.name == "test-123-extraction-corrected1.json"
+        path = fm.save_json({"test": "data"}, "extraction", iteration_number=1)
+        assert path.name == "test-123-extraction1.json"
 
     def test_all_iterations_saved(self, tmp_path):
         """Simuleer volledige loop - alle files moeten er zijn."""
@@ -48,26 +48,22 @@ class TestIterationFileNaming:
         fm = PipelineFileManager(pdf_path)
         max_iterations = 3
 
-        # Save iteration 0
-        fm.save_json({"iter": 0}, "validation", status=None)
-        fm.save_json({"iter": 0}, "extraction", status=None)
+        # Save iterations 0-3 (all with iteration numbers)
+        for i in range(0, max_iterations + 1):
+            fm.save_json({"iter": i}, "validation", iteration_number=i)
+            fm.save_json({"iter": i}, "extraction", iteration_number=i)
 
-        # Save iterations 1-3
-        for i in range(1, max_iterations + 1):
-            fm.save_json({"iter": i}, "validation", status=f"corrected{i}")
-            fm.save_json({"iter": i}, "extraction", status=f"corrected{i}")
-
-        # Verify all files exist (FileManager adds - between step and status)
+        # Verify all files exist with numbered naming pattern
         # FileManager saves to tmp/ directory relative to CWD, not tmp_path
         expected_files = [
-            "test-123-validation.json",
-            "test-123-extraction.json",
-            "test-123-validation-corrected1.json",
-            "test-123-extraction-corrected1.json",
-            "test-123-validation-corrected2.json",
-            "test-123-extraction-corrected2.json",
-            "test-123-validation-corrected3.json",
-            "test-123-extraction-corrected3.json",
+            "test-123-validation0.json",
+            "test-123-extraction0.json",
+            "test-123-validation1.json",
+            "test-123-extraction1.json",
+            "test-123-validation2.json",
+            "test-123-extraction2.json",
+            "test-123-validation3.json",
+            "test-123-extraction3.json",
         ]
 
         # FileManager saves to tmp/ directory in current working directory
