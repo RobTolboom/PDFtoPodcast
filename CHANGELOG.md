@@ -148,6 +148,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated Streamlit: `_display_verbose_info()` in `src/streamlit_app/screens/execution.py`
 
 ### Fixed
+- **Iterative Validation-Correction Loop** - Fixed validation file overwrite bug where post-correction validations were lost
+  - **Bug**: After correction, validation{N}.json was saved with post-correction validation, then immediately overwritten when loop revalidated the same extraction with same iteration number
+  - **Example**: validation1.json (post-correction) was overwritten by re-validation of extraction1 in next loop iteration
+  - **Impact**: Initial validation data for each iteration was lost, making iteration history incomplete
+  - **Root cause**: Loop re-validated current_extraction at start of each iteration, even though correction step already validated it
+  - **Fix**: Reuse post-correction validation for next iteration quality check instead of re-validating
+  - **Implementation**: Added `current_validation` variable to track validation state, skip validation when already available from correction
+  - **Result**: Each iteration now preserves both extraction and validation files (extraction0 + validation0, extraction1 + validation1, etc.)
+  - **Location**: `src/pipeline/orchestrator.py` - run_validation_with_correction() function
+  - All 111 unit tests pass with fix
+
 - **Result Checker** - Fixed KeyError when accessing validation_correction step in Streamlit settings screen
   - Added `validation_correction` key to `check_existing_results()` return dictionary
   - Added `validation_correction` mapping to `get_result_file_info()` file_map

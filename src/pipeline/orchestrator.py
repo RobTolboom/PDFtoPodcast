@@ -905,6 +905,7 @@ def run_validation_with_correction(
     # Initialize
     iterations = []
     current_extraction = extraction_result
+    current_validation = None  # Will be set after first validation or from post-correction
     iteration_num = 0
 
     # Default thresholds
@@ -927,38 +928,46 @@ def run_validation_with_correction(
                 {"iteration": iteration_num, "step": "validation"},
             )
 
-            # STEP 1: Validate current extraction
-            validation_result = _run_validation_step(
-                extraction_result=current_extraction,
-                pdf_path=pdf_path,
-                max_pages=None,
-                classification_result=classification_result,
-                llm=llm,
-                file_manager=file_manager,
-                progress_callback=progress_callback,
-            )
+            # STEP 1: Validate current extraction (only if not already validated)
+            # After correction, we reuse the post-correction validation to avoid file overwrite
+            if current_validation is None:
+                validation_result = _run_validation_step(
+                    extraction_result=current_extraction,
+                    pdf_path=pdf_path,
+                    max_pages=None,
+                    classification_result=classification_result,
+                    llm=llm,
+                    file_manager=file_manager,
+                    progress_callback=progress_callback,
+                )
 
-            # Check schema validation failure (critical error)
-            schema_validation = validation_result.get("schema_validation", {})
-            quality_score = schema_validation.get("quality_score", 0)
+                # Check schema validation failure (critical error)
+                schema_validation = validation_result.get("schema_validation", {})
+                quality_score = schema_validation.get("quality_score", 0)
 
-            if quality_score < 0.5:  # Schema quality threshold
-                # CRITICAL: Schema validation failed - STOP
-                return {
-                    "best_extraction": None,
-                    "best_validation": validation_result,
-                    "iterations": iterations,
-                    "final_status": "failed_schema_validation",
-                    "iteration_count": iteration_num + 1,
-                    "error": f"Schema validation failed (quality: {quality_score:.2f}). Cannot proceed with correction.",
-                    "failed_at_iteration": iteration_num,
-                }
+                if quality_score < 0.5:  # Schema quality threshold
+                    # CRITICAL: Schema validation failed - STOP
+                    return {
+                        "best_extraction": None,
+                        "best_validation": validation_result,
+                        "iterations": iterations,
+                        "final_status": "failed_schema_validation",
+                        "iteration_count": iteration_num + 1,
+                        "error": f"Schema validation failed (quality: {quality_score:.2f}). Cannot proceed with correction.",
+                        "failed_at_iteration": iteration_num,
+                    }
 
-            # Save validation with iteration number
-            validation_file = file_manager.save_json(
-                validation_result, "validation", iteration_number=iteration_num
-            )
-            console.print(f"[dim]Saved validation: {validation_file}[/dim]")
+                # Save validation with iteration number
+                validation_file = file_manager.save_json(
+                    validation_result, "validation", iteration_number=iteration_num
+                )
+                console.print(f"[dim]Saved validation: {validation_file}[/dim]")
+            else:
+                # Reuse validation from previous correction step
+                validation_result = current_validation
+                console.print(
+                    f"[dim]Reusing post-correction validation for iteration {iteration_num}[/dim]"
+                )
 
             # Store iteration data
             iteration_data = {
@@ -1088,9 +1097,11 @@ def run_validation_with_correction(
             )
             console.print(f"[dim]Saved post-correction validation: {validation_file}[/dim]")
 
-            # Update current extraction for next iteration
+            # Update current extraction and validation for next iteration
             # Strip metadata (including correction_notes) to prevent leakage
             current_extraction = _strip_metadata_for_pipeline(corrected_extraction)
+            # Reuse post-correction validation for next iteration to avoid re-validating and file overwrite
+            current_validation = final_validation
 
             # Loop continues...
 
@@ -1149,9 +1160,11 @@ def run_validation_with_correction(
                             f"[dim]Saved post-correction validation (retry): {validation_file}[/dim]"
                         )
 
-                        # Update current extraction for next iteration
+                        # Update current extraction and validation for next iteration
                         # Strip metadata (including correction_notes) to prevent leakage
                         current_extraction = _strip_metadata_for_pipeline(corrected_extraction)
+                        # Reuse post-correction validation for next iteration to avoid re-validating and file overwrite
+                        current_validation = final_validation
 
                         retry_successful = True
                         break
