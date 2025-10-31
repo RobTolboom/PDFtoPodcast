@@ -79,6 +79,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Validation: Error handling already implemented in Phase 1, tests confirm correct behavior
 
 ### Changed
+- **Interventional Extraction Prompt & Schema Alignment** - Strengthened validation instructions and aligned prompt with schema requirements
+  - Enhanced CLOSED WORLD ASSUMPTION: Explicit messaging that "additionalProperties":false applies at ALL nesting levels
+  - Added ALL-OR-NOTHING RULE: Omit entire parent object rather than emitting partial data when confidence is low
+  - Type correctness enforcement: Booleans must be JSON booleans (true/false), never strings ("true"/"false")
+  - Numeric correctness: All numbers must be JSON numbers, never strings (no "1.5" or "95%")
+  - Primary outcome fallback logic: When no primary outcome is explicitly stated, mark first outcome as is_primary:true to satisfy schema's `contains` constraint
+  - P-value handling guidance: Exact numbers as JSON numbers (0.042), thresholds as strings ("<0.001"), no conversion
+  - Enhanced PRE-FLIGHT CHECKLIST: 13 checks (was 10) including type validation, metadata exclusion, and nested key validation
+  - Explicit disallowed keys: correction_notes, _metadata, _pipeline_metadata, vendor metadata
+  - Resolves conflict: Schema already required at least one primary outcome via `contains` constraint, prompt now handles fallback case
+  - Implementation: prompts/Extraction-prompt-interventional.txt (~220 lines)
+  - Impact: Better LLM adherence to schema, fewer validation failures, clearer error messages
+
 - **File Naming Schema** - Changed iteration file naming to use consistent numbering across all iterations
   - **BREAKING CHANGE**: Old iteration files will not be recognized by new code
   - Old schema: `extraction.json`, `extraction-corrected1.json`, `validation.json`, `validation-corrected1.json`

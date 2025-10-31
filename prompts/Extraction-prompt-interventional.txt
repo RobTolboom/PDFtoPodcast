@@ -8,11 +8,17 @@ EVIDENCE-LOCKED
 - Priority for data: Results > Methods > Tables/Figures > Abstract.
 - If information is absent: OMIT the field. Never emit null.
 - Every key datum carries a schema-legal `source` object (page; add table_id/figure_id; short anchor).
+- ALL-OR-NOTHING RULE: If you cannot extract a field with high confidence, omit the entire parent object rather than emitting partial data. For example, if a contrast lacks a point estimate, omit that contrast entirely.
 
 OUTPUT CONTRACT
 - Emit exactly one JSON object. No prose. No markdown fences in the answer.
-- Closed world: only the ALLOWED TOP-LEVEL KEYS below.
+- CLOSED WORLD ASSUMPTION: The schema uses "additionalProperties":false at ALL nesting levels. This means:
+  * Only emit keys that are explicitly defined in the schema.
+  * At the top level: only the ALLOWED TOP-LEVEL KEYS below.
+  * Within nested objects (e.g., study_design, population, each outcome, each contrast): only the keys defined in that schema fragment.
+  * Any extra key will cause validation to FAIL.
 - Numbers are JSON numbers (dot decimal; no thousands separators; no % symbol).
+- Booleans are JSON booleans (true/false), NEVER strings like "true" or "false".
 - CIs as { "lower": <number>, "upper": <number> }.
 - Stable IDs (arm_id, outcome_id, comparison_id) reused consistently.
 
@@ -46,7 +52,10 @@ extraction_warnings,
 truncated
 
 DISALLOWED ANYWHERE
-usage, choices, object, created, prompt/messages, vendor metadata, extra keys not in schema.
+- usage, choices, object, created, prompt/messages, vendor metadata
+- ANY extra keys not explicitly defined in the schema (top-level OR nested)
+- correction_notes, _metadata, _pipeline_metadata (internal fields)
+- Emitting any disallowed key will cause validation to FAIL.
 
 SECTION REQUIREMENTS
 
@@ -91,9 +100,14 @@ outcomes
     definition, measurement_method, direction_of_benefit ∈ {"higher_better","lower_better"} (when inferable from the scale text),
     unit/unit_ucum (if applicable),
     timepoint (verbatim) and/or timepoint_iso8601 (e.g., "P1D","PT30M"),
-    is_primary (ONLY if explicitly stated in the PDF),
+    is_primary (see PRIMARY OUTCOME RULE below),
     source
   }
+
+PRIMARY OUTCOME RULE:
+1. If the PDF explicitly designates a primary outcome by name (e.g., "the primary endpoint was...", "primary outcome measure"), set is_primary:true for that outcome.
+2. If NO outcome is explicitly designated as primary, mark the FIRST outcome in the outcomes array as is_primary:true to ensure schema compliance.
+3. Never infer primacy from importance, position in tables, or p-value alone — only from explicit language or the fallback rule above.
 
 results
 - Allowed only: per_arm[], contrasts[], harms[].
@@ -116,7 +130,7 @@ contrasts[]
       type ∈ {"RR","OR","HR","MD","SMD","RD","RMST","Other"},
       point:number,
       ci:{lower:number,upper:number},  # if reported
-      p_value:number | string          # if reported
+      p_value:number | string          # if reported — see P-VALUE HANDLING below
     },
     covariates[]                       # optional when adjusted
     cluster_adjusted:true/false?       # if cluster adjustment reported
@@ -124,6 +138,11 @@ contrasts[]
     source
   }
 - If the paper reports a simple test without a model, set model:"na" and adjusted:false.
+
+P-VALUE HANDLING:
+- If p-value is an exact number (e.g., "p=0.042"): emit as JSON number: "p_value": 0.042
+- If p-value is a threshold (e.g., "p<0.001", "p>0.05", "NS"): emit as JSON string verbatim: "p_value": "<0.001"
+- DO NOT convert strings to numbers or vice versa. Preserve the form as reported in the PDF.
 
 harms[]
 - Only include when RAW counts are present.
@@ -181,16 +200,19 @@ SOURCE PLACEMENT RULES (STRICT)
 - Do NOT place `source` on `consort_reporting` root or on `comparisons` root if the schema does not allow it.
 
 PRE-FLIGHT CHECKLIST (hard fail if any item fails)
-1) Only allowed top-level keys; zero nulls anywhere.
+1) Only allowed top-level keys; zero nulls anywhere. All nested objects contain only schema-defined keys (no extra keys).
 2) arms has ≥2 items with stable arm_id; outcomes length ≥1.
-3) If (and only if) the PDF explicitly names a primary outcome, set one or more outcomes with is_primary:true.
-4) Each per-arm/per-contrast datum links to a valid outcome_id and arm_id/comparison_id.
-5) contrasts[*].model uses the schema enum; unmodeled tests → model:"na", adjusted:false.
-6) sensitivity_analyses[*].effect contains BOTH type and point, else omit and log a warning.
-7) consort_reporting has NO root-level source; only items[*].source allowed.
-8) harms include integers for events and total; otherwise omit and warn.
-9) figures_summary entries include BOTH figure_id and caption; key_values numeric only.
-10) All emitted objects that include `source` have at least {page} and a concise anchor.
+3) At least one outcome has is_primary:true (either explicitly designated OR first outcome via fallback rule).
+4) All boolean fields emit JSON booleans (true/false), NEVER strings ("true"/"false").
+5) All numeric fields emit JSON numbers, NEVER strings (no "1.5" or "95%").
+6) Each per-arm/per-contrast datum links to a valid outcome_id and arm_id/comparison_id.
+7) contrasts[*].model uses the schema enum; unmodeled tests → model:"na", adjusted:false.
+8) sensitivity_analyses[*].effect contains BOTH type and point, else omit and log a warning.
+9) consort_reporting has NO root-level source; only items[*].source allowed.
+10) harms include integers for events and total; otherwise omit and warn.
+11) figures_summary entries include BOTH figure_id and caption; key_values numeric only.
+12) All emitted objects that include `source` have at least {page} and a concise anchor.
+13) NO disallowed keys anywhere: usage, choices, correction_notes, _metadata, _pipeline_metadata, or vendor metadata.
 
 OUTPUT
 - Respond with exactly one JSON object that validates against the interventional_trial v2 schema. No extra text.
