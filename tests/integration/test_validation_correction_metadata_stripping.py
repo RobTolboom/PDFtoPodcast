@@ -98,10 +98,13 @@ class TestIterativeValidationCorrection:
     @pytest.fixture
     def file_manager(self, tmp_path):
         """Create a temporary file manager for testing."""
-        return PipelineFileManager(
-            pdf_path=str(tmp_path / "test.pdf"),
-            output_dir=str(tmp_path / "output"),
-        )
+        from pathlib import Path
+
+        # Create dummy PDF file
+        pdf_path = tmp_path / "test.pdf"
+        pdf_path.touch()
+
+        return PipelineFileManager(pdf_path=Path(pdf_path))
 
     @patch("src.pipeline.orchestrator.run_correction")
     @patch("src.pipeline.orchestrator.run_validation")
