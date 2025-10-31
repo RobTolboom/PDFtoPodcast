@@ -79,6 +79,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Validation: Error handling already implemented in Phase 1, tests confirm correct behavior
 
 ### Changed
+- **Streamlit UI** - Updated deprecated `use_container_width` parameter to new `width` parameter
+  - Replaced `use_container_width=True` with `width="stretch"` (13 occurrences)
+  - Replaced `use_container_width=False` with `width="content"` (1 occurrence)
+  - Updated 4 screen files: intro.py, settings.py, upload.py, execution.py
+  - Affects st.button() and st.dataframe() components
+  - Follows Streamlit deprecation notice (parameter will be removed after 2025-12-31)
+  - No functional changes - maintains existing UI behavior
+
 - **Documentation** - Updated architecture and design documentation
   - Updated ARCHITECTURE.md: Pipeline Orchestrator section reflects 3-step model with 10 key functions listed
   - Added new subsection "Iterative Validation-Correction Loop" with workflow, quality assessment formula, status codes, file naming, error handling
@@ -112,6 +120,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated Streamlit: `_display_verbose_info()` in `src/streamlit_app/screens/execution.py`
 
 ### Fixed
+- **Result Checker** - Fixed KeyError when accessing validation_correction step in Streamlit settings screen
+  - Added `validation_correction` key to `check_existing_results()` return dictionary
+  - Added `validation_correction` mapping to `get_result_file_info()` file_map
+  - Checks for validation files including iterations (`{id}-validation*.json`)
+  - Aligns result checker with new 3-step pipeline architecture (classification, extraction, validation_correction)
+  - Fixes KeyError: 'validation_correction' crash in `src/streamlit_app/screens/settings.py:155`
+  - Implementation in `src/streamlit_app/result_checker.py`
+  - Maintains backward compatibility with legacy validation/correction keys
+
+- **Pipeline Orchestrator** - Fixed "Unsupported provider" error when running validation_correction step
+  - Fixed `run_single_step()` passing OpenAIProvider object instead of string to `run_validation_with_correction()`
+  - Removed unnecessary `llm = get_llm_provider(llm_provider)` call (line 1597)
+  - Changed `llm_provider=llm` to `llm_provider=llm_provider` (line 1603) to pass string parameter
+  - `run_validation_with_correction()` expects `llm_provider: str` and creates provider object internally
+  - Fixes "Unsupported provider: <src.llm.openai_provider.OpenAIProvider object at 0x...>" error
+  - Implementation in `src/pipeline/orchestrator.py` lines 1593-1608
+  - Aligns with validation/correction step patterns that also accept string parameters
+
+- **Metadata Stripping** - Fixed validation failure due to unexpected `correction_notes` field
+  - Added `correction_notes` to `_strip_metadata_for_pipeline()` stripping logic
+  - The correction step adds `correction_notes` for debugging (not part of extraction schema)
+  - Now stripped before validation along with `usage`, `_metadata`, `_pipeline_metadata`
+  - Fixes schema validation error: "Additional properties are not allowed ('correction_notes' was unexpected)"
+  - Implementation in `src/pipeline/orchestrator.py` (line 186 in `_strip_metadata_for_pipeline()`)
+  - Added unit test `test_strip_metadata_removes_correction_notes` in `tests/unit/test_orchestrator.py`
+  - Updated 3 existing tests to verify correction_notes stripping behavior
+
+- **File Naming Inconsistency** - Fixed validation files missing correct iteration suffix in validation-correction loop
+  - Removed duplicate file saves from `_run_correction_step()` (lines 751, 785)
+  - Loop now saves both extraction and validation files with iteration suffix `corrected{N}`
+  - Fixed issue where `validation-corrected.json` was overwritten each iteration instead of creating numbered versions
+  - Fixed missing `validation-corrected1.json` file (was only creating `validation-corrected.json`)
+  - Post-correction validation now properly saved with iteration number for each loop iteration
+  - Implementation in `src/pipeline/orchestrator.py`:
+    - Removed file saves from `_run_correction_step()` (function only returns data now)
+    - Added file saves in `run_validation_with_correction()` loop (lines 1076-1086, 1133-1142)
+    - Added file saves in old 4-step STEP_CORRECTION flow (lines 1604-1609)
+  - All 111 tests pass, backward compatible with 4-step pipeline
+
+- **Metadata Leakage in Final Results** - Fixed correction_notes leaking into final results returned from validation-correction loop
+  - Added `_strip_metadata_for_pipeline()` calls at 3 critical points to prevent correction_notes from appearing in final results:
+    1. After correction in main loop before storing in `current_extraction` (line 1090)
+    2. After correction in retry error handling path (line 1151)
+    3. In legacy 4-step pipeline return before returning corrected extraction (lines 1779-1781)
+  - Ensures `iterations[]` array only contains clean extraction data without correction_notes metadata
+  - Ensures `best_extraction` selected from iterations is clean (no correction_notes field)
+  - Ensures legacy 4-step pipeline returns clean corrected extraction
+  - Prevents correction_notes from appearing in validation prompts, LLM inputs, or final results
+  - Added comprehensive integration test suite: `tests/integration/test_validation_correction_metadata_stripping.py`
+    - Tests correction_notes stripped from final result (best_extraction)
+    - Tests correction_notes stripped from all stored iterations
+    - Tests all metadata fields stripped (usage, _metadata, _pipeline_metadata, correction_notes)
+  - Implementation in `src/pipeline/orchestrator.py` (3 stripping locations)
+  - All 111 unit tests + 3 new integration tests pass
+
 - Fixed schema bundler creating self-referencing definitions causing validation recursion errors
   - `schemas/json-bundler.py` - Replace local alias definitions with actual definitions from common schema
   - Prevents `ContrastEffect` and similar aliases from becoming `{"$ref": "#/$defs/ContrastEffect"}` self-references

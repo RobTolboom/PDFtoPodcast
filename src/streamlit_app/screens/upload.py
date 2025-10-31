@@ -322,7 +322,7 @@ def show_upload_screen():
                         "✅ Select",
                         key=f"select_{idx}",
                         type="primary" if is_highlighted else "secondary",
-                        use_container_width=True,
+                        width="stretch",
                     ):
                         # Set selected file in session state
                         st.session_state.pdf_path = file_info["path"]
@@ -348,12 +348,12 @@ def show_upload_screen():
         col1, col2, col3 = st.columns([1, 1, 1])
 
         with col1:
-            if st.button("⬅️ Back to Intro", use_container_width=True, key="nav_back"):
+            if st.button("⬅️ Back to Intro", width="stretch", key="nav_back"):
                 st.session_state.current_phase = "intro"
                 st.rerun()
 
         with col2:
-            if st.button("🔄 Select Different File", use_container_width=True, key="nav_reset"):
+            if st.button("🔄 Select Different File", width="stretch", key="nav_reset"):
                 # Reset session state and force file_uploader to clear
                 st.session_state.pdf_path = None
                 st.session_state.uploaded_file_info = None
@@ -365,7 +365,7 @@ def show_upload_screen():
             if st.button(
                 "➡️ Continue to Settings",
                 type="primary",
-                use_container_width=True,
+                width="stretch",
                 key="nav_continue",
             ):
                 st.session_state.current_phase = "settings"
@@ -373,6 +373,6 @@ def show_upload_screen():
     else:
         # Back button when no file selected
         st.markdown("---")
-        if st.button("⬅️ Back to Intro", use_container_width=False, key="nav_back_nofile"):
+        if st.button("⬅️ Back to Intro", width="content", key="nav_back_nofile"):
             st.session_state.current_phase = "intro"
             st.rerun()

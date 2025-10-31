@@ -155,6 +155,7 @@ def _strip_metadata_for_pipeline(data: dict) -> dict:
     - usage: LLM token usage (input/output/cached tokens)
     - _metadata: LLM API response metadata (response_id, model, etc.)
     - _pipeline_metadata: Pipeline execution metadata (timestamp, duration, etc.)
+    - correction_notes: Notes added by correction step (not part of extraction schema)
 
     This ensures:
     1. Schema validation doesn't fail on unexpected fields
@@ -182,6 +183,7 @@ def _strip_metadata_for_pipeline(data: dict) -> dict:
     clean_data.pop("usage", None)
     clean_data.pop("_metadata", None)
     clean_data.pop("_pipeline_metadata", None)
+    clean_data.pop("correction_notes", None)
     return clean_data
 
 
@@ -746,9 +748,6 @@ Systematically address all identified issues and produce corrected, complete,\
             "status": "success",
         }
 
-        corrected_file = file_manager.save_json(corrected_extraction, "extraction", "corrected")
-        console.print(f"[green]✅ Correctie opgeslagen: {corrected_file}[/green]")
-
         # Final validation of corrected extraction - use same dual validation approach
         console.print("[dim]Running final validation on corrected extraction...[/dim]")
 
@@ -780,9 +779,6 @@ Systematically address all identified issues and produce corrected, complete,\
             "status": "success",
         }
 
-        final_validation_file = file_manager.save_json(final_validation, "validation", "corrected")
-        console.print(f"[green]✅ Finale validatie opgeslagen: {final_validation_file}[/green]")
-
         # Correction completed successfully
         elapsed = time.time() - start_time
         _call_progress_callback(
@@ -792,8 +788,8 @@ Systematically address all identified issues and produce corrected, complete,\
             {
                 "result": corrected_extraction,
                 "elapsed_seconds": elapsed,
-                "extraction_file_path": str(corrected_file),
-                "validation_file_path": str(final_validation_file),
+                "extraction_file_path": None,  # Files will be saved by calling function
+                "validation_file_path": None,  # Files will be saved by calling function
                 "final_validation_status": final_validation.get("verification_summary", {}).get(
                     "overall_status"
                 ),
@@ -1066,7 +1062,7 @@ def run_validation_with_correction(
             )
 
             # Call correction step - returns tuple (corrected_extraction, final_validation)
-            corrected_extraction, _ = _run_correction_step(
+            corrected_extraction, final_validation = _run_correction_step(
                 extraction_result=current_extraction,
                 validation_result=validation_result,
                 pdf_path=pdf_path,
@@ -1077,14 +1073,21 @@ def run_validation_with_correction(
                 progress_callback=progress_callback,
             )
 
-            # Save corrected extraction
+            # Save corrected extraction with iteration suffix
             corrected_file = file_manager.save_json(
                 corrected_extraction, "extraction", status=f"corrected{iteration_num}"
             )
             console.print(f"[dim]Saved corrected extraction: {corrected_file}[/dim]")
 
+            # Save post-correction validation with iteration suffix
+            validation_file = file_manager.save_json(
+                final_validation, "validation", status=f"corrected{iteration_num}"
+            )
+            console.print(f"[dim]Saved post-correction validation: {validation_file}[/dim]")
+
             # Update current extraction for next iteration
-            current_extraction = corrected_extraction
+            # Strip metadata (including correction_notes) to prevent leakage
+            current_extraction = _strip_metadata_for_pipeline(corrected_extraction)
 
             # Loop continues...
 
@@ -1117,7 +1120,7 @@ def run_validation_with_correction(
                         break
                     else:
                         # Failed during correction - retry correction
-                        corrected_extraction, _ = _run_correction_step(
+                        corrected_extraction, final_validation = _run_correction_step(
                             extraction_result=current_extraction,
                             validation_result=validation_result,
                             pdf_path=pdf_path,
@@ -1127,6 +1130,26 @@ def run_validation_with_correction(
                             file_manager=file_manager,
                             progress_callback=progress_callback,
                         )
+
+                        # Save corrected extraction and post-correction validation with iteration suffix
+                        corrected_file = file_manager.save_json(
+                            corrected_extraction, "extraction", status=f"corrected{iteration_num}"
+                        )
+                        console.print(
+                            f"[dim]Saved corrected extraction (retry): {corrected_file}[/dim]"
+                        )
+
+                        validation_file = file_manager.save_json(
+                            final_validation, "validation", status=f"corrected{iteration_num}"
+                        )
+                        console.print(
+                            f"[dim]Saved post-correction validation (retry): {validation_file}[/dim]"
+                        )
+
+                        # Update current extraction for next iteration
+                        # Strip metadata (including correction_notes) to prevent leakage
+                        current_extraction = _strip_metadata_for_pipeline(corrected_extraction)
+
                         retry_successful = True
                         break
                 except LLMError:
@@ -1584,6 +1607,13 @@ def run_single_step(
             progress_callback=progress_callback,
         )
 
+        # Save corrected extraction and post-correction validation (4-step pipeline)
+        corrected_file = file_manager.save_json(corrected_extraction, "extraction", "corrected")
+        console.print(f"[green]✅ Correctie opgeslagen: {corrected_file}[/green]")
+
+        validation_file = file_manager.save_json(final_validation, "validation", "corrected")
+        console.print(f"[green]✅ Finale validatie opgeslagen: {validation_file}[/green]")
+
         # Return both corrected extraction and final validation
         return {
             "extraction_corrected": corrected_extraction,
@@ -1594,14 +1624,13 @@ def run_single_step(
         # New iterative validation-correction workflow
         classification_result = previous_results[STEP_CLASSIFICATION]
         extraction_result = previous_results[STEP_EXTRACTION]
-        llm = get_llm_provider(llm_provider)
 
         # Call the iterative loop with default or custom parameters
         return run_validation_with_correction(
             pdf_path=pdf_path,
             extraction_result=extraction_result,
             classification_result=classification_result,
-            llm_provider=llm,
+            llm_provider=llm_provider,
             file_manager=file_manager,
             max_iterations=3,  # Could be parameterized in future
             quality_thresholds=None,  # Uses DEFAULT_QUALITY_THRESHOLDS
@@ -1746,7 +1775,10 @@ def run_four_step_pipeline(
             # Store result
             if step_name == STEP_CORRECTION:
                 # Correction returns dict with extraction_corrected and validation_corrected
-                results["extraction_corrected"] = step_result["extraction_corrected"]
+                # Strip metadata (including correction_notes) from corrected extraction
+                results["extraction_corrected"] = _strip_metadata_for_pipeline(
+                    step_result["extraction_corrected"]
+                )
                 results["validation_corrected"] = step_result["validation_corrected"]
             else:
                 results[step_name] = step_result

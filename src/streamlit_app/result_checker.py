@@ -75,7 +75,8 @@ def check_existing_results(identifier: str | None) -> dict:
             'classification': True,
             'extraction': True,
             'validation': False,
-            'correction': False
+            'correction': False,
+            'validation_correction': False
         }
     """
     if not identifier:
@@ -84,6 +85,7 @@ def check_existing_results(identifier: str | None) -> dict:
             "extraction": False,
             "validation": False,
             "correction": False,
+            "validation_correction": False,
         }
 
     tmp_dir = Path("tmp")
@@ -92,6 +94,10 @@ def check_existing_results(identifier: str | None) -> dict:
         "extraction": (tmp_dir / f"{identifier}-extraction.json").exists(),
         "validation": (tmp_dir / f"{identifier}-validation.json").exists(),
         "correction": (tmp_dir / f"{identifier}-extraction-corrected.json").exists(),
+        "validation_correction": (
+            (tmp_dir / f"{identifier}-validation.json").exists()
+            or any(tmp_dir.glob(f"{identifier}-validation-corrected*.json"))
+        ),
     }
     return results
 
@@ -102,7 +108,7 @@ def get_result_file_info(identifier: str, step: str) -> dict | None:
 
     Args:
         identifier: File identifier (PDF filename stem)
-        step: Pipeline step name ('classification', 'extraction', 'validation', 'correction')
+        step: Pipeline step name ('classification', 'extraction', 'validation', 'correction', 'validation_correction')
 
     Returns:
         Dictionary with file metadata if file exists:
@@ -127,6 +133,7 @@ def get_result_file_info(identifier: str, step: str) -> dict | None:
         "extraction": f"{identifier}-extraction.json",
         "validation": f"{identifier}-validation.json",
         "correction": f"{identifier}-extraction-corrected.json",
+        "validation_correction": f"{identifier}-validation.json",
     }
 
     if step not in file_map:

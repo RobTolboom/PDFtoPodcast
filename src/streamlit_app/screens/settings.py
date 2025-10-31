@@ -401,7 +401,7 @@ def show_settings_screen():
     col1, col2, col3 = st.columns([1, 1, 1])
 
     with col1:
-        if st.button("⬅️ Back to Upload", use_container_width=True):
+        if st.button("⬅️ Back to Upload", width="stretch"):
             st.session_state.current_phase = "upload"
             st.rerun()
 
@@ -410,7 +410,7 @@ def show_settings_screen():
         if st.button(
             "▶️ Start Pipeline",
             type="primary",
-            use_container_width=True,
+            width="stretch",
             disabled=not can_start,
         ):
             st.session_state.current_phase = "execution"
