@@ -78,7 +78,7 @@ This pipeline extracts structured data from medical research PDFs with a focus o
 │  │      │ • Upload PDF for comparison                   │ │ │
 │  │      │ • Semantic accuracy check                     │ │ │
 │  │      │ • Completeness verification                   │ │ │
-│  │      │ Output: validation.json (or -correctedN)      │ │ │
+│  │      │ Output: validation{N}.json                    │ │ │
 │  │      └───────────────────────────────────────────────┘ │ │
 │  │                                                          │ │
 │  │  3b. Quality Assessment                                │ │
@@ -91,7 +91,7 @@ This pipeline extracts structured data from medical research PDFs with a focus o
 │  │      • Run correction with validation feedback         │ │
 │  │      • Upload PDF + validation report to LLM           │ │
 │  │      • Fix identified issues                           │ │
-│  │      • Output: extraction-correctedN.json              │ │
+│  │      • Output: extraction{N}.json                      │ │
 │  │      • Loop back to 3a (validate corrected)            │ │
 │  │                                                          │ │
 │  │  3d. Early Stopping:                                   │ │
@@ -324,11 +324,16 @@ All outputs are saved in `tmp/` directory with PDF filename-based naming:
 ```
 tmp/
 ├── sample_paper-classification.json
-├── sample_paper-extraction.json
-├── sample_paper-validation.json
-├── sample_paper-extraction-corrected.json  # If correction needed
-└── sample_paper-validation-corrected.json  # Final validation
+├── sample_paper-extraction0.json
+├── sample_paper-validation0.json
+├── sample_paper-extraction1.json          # Iteration 1 correction (if triggered)
+├── sample_paper-validation1.json          # Validation after correction 1
+├── sample_paper-extraction-best.json      # Best-scoring extraction (any iteration)
+├── sample_paper-validation-best.json      # Validation paired with best extraction
+└── sample_paper-extraction-best-metadata.json
 ```
+
+Iteration files are numbered (`extraction0`, `extraction1`, …) so you can track every correction pass. When the pipeline selects a best iteration it also writes `*-best.json` artefacts plus metadata about the choice. Failed runs may emit `*-failed.json` diagnostics.
 
 ### Output Format
 
@@ -370,7 +375,7 @@ Selecting the `validation_correction` step (CLI or Streamlit) triggers an iterat
 - Default thresholds (completeness ≥90%, accuracy ≥95%, schema ≥95%, critical issues = 0) are configurable via CLI flags or the Streamlit Settings sliders.
 - The first pass always runs schema validation; LLM validation only executes when schema quality is at least 50%.
 - Up to three correction attempts run after the initial extraction. The loop stops early if quality degrades, schema quality drops below 50%, or the provider repeatedly errors.
-- Every iteration writes JSON artefacts to `tmp/` (e.g., `paper-extraction-corrected1.json`, `paper-validation-corrected1.json`). The pipeline returns the best-scoring iteration.
+- Every iteration writes JSON artefacts to `tmp/` (e.g., `paper-extraction1.json`, `paper-validation1.json`). The pipeline returns the best-scoring iteration.
 
 Refer to [VALIDATION_STRATEGY.md](VALIDATION_STRATEGY.md) for scoring formulas, prompts, and trade-offs.
 
