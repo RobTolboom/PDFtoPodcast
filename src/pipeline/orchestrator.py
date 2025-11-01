@@ -1026,6 +1026,7 @@ def run_validation_with_correction(
                     "iterations": iterations,
                     "final_status": "passed",
                     "iteration_count": iteration_num + 1,
+                    "best_iteration": iteration_num,
                     "improvement_trajectory": [
                         it["metrics"]["overall_quality"] for it in iterations
                     ],
@@ -1086,6 +1087,7 @@ def run_validation_with_correction(
                         "iterations": iterations,
                         "final_status": "early_stopped_degradation",
                         "iteration_count": len(iterations),
+                        "best_iteration": best["iteration_num"],
                         "improvement_trajectory": [
                             it["metrics"]["overall_quality"] for it in iterations
                         ],
@@ -1140,6 +1142,7 @@ def run_validation_with_correction(
                     "iterations": iterations,
                     "final_status": "max_iterations_reached",
                     "iteration_count": len(iterations),
+                    "best_iteration": best["iteration_num"],
                     "improvement_trajectory": [
                         it["metrics"]["overall_quality"] for it in iterations
                     ],
@@ -1296,6 +1299,7 @@ def run_validation_with_correction(
                     "iterations": iterations,
                     "final_status": "failed_llm_error",
                     "iteration_count": len(iterations),
+                    "best_iteration": best["iteration_num"] if best else 0,
                     "error": f"LLM provider error after {max_retries} retries: {str(e)}",
                     "failed_at_iteration": iteration_num,
                 }
@@ -1339,6 +1343,7 @@ def run_validation_with_correction(
                 "iterations": iterations,
                 "final_status": "failed_invalid_json",
                 "iteration_count": len(iterations),
+                "best_iteration": best["iteration_num"] if best else 0,
                 "error": f"Correction produced invalid JSON: {str(e)}",
                 "failed_at_iteration": iteration_num,
             }
@@ -1380,6 +1385,7 @@ def run_validation_with_correction(
                 "iterations": iterations,
                 "final_status": "failed_unexpected_error",
                 "iteration_count": len(iterations),
+                "best_iteration": best["iteration_num"] if best else 0,
                 "error": f"Unexpected error: {str(e)}",
                 "failed_at_iteration": iteration_num,
             }

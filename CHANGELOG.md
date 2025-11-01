@@ -267,6 +267,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fixed step containers not showing during execution (only "⏳ Pipeline is executing..." was visible)
   - Fixed non-selected steps showing "pending" instead of "⏭️ Skipped"
   - Fixed first step showing "pending" instead of "🔄 Running" when pipeline starts
+
+- **Streamlit Execution Screen** - Fixed Settings screen showing wrong "BEST" iteration after pipeline completion
+  - Root cause: orchestrator.py return dictionaries missing `best_iteration` key
+  - UI tried to read `result.get("best_iteration", 0)` but key was undefined, always defaulting to iteration 0
+  - Backend correctly selected best iteration and saved correct files, but UI displayed wrong iteration as "BEST"
+  - Fix: Added `best_iteration` key to 6 return locations in `run_iterative_extraction_validation_correction()`:
+    1. Passed validation (early success) - returns current iteration number
+    2. Early stopped degradation - returns `best["iteration_num"]` from quality-based selection
+    3. Max iterations reached - returns `best["iteration_num"]` from quality-based selection
+    4. LLM error recovery - returns `best["iteration_num"]` if best exists, else 0
+    5. JSON decode error recovery - returns `best["iteration_num"]` if best exists, else 0
+    6. Unexpected error recovery - returns `best["iteration_num"]` if best exists, else 0
+  - Impact: Settings screen now correctly highlights which iteration was selected as "BEST" in iteration history table
+  - Location: `src/pipeline/orchestrator.py` (lines 1030, 1090, 1145, 1302, 1346, 1388)
+
+- **Streamlit Navigation** - Fixed "process already done" error when clicking "Back to Start" after pipeline completion
+  - Root cause: Execution state (status, results, step_status, current_step_index) persisted in session state after "Back to Start" navigation
+  - When user clicked "Back to Start" and re-ran pipeline with new PDF, old state indicated process was already complete
+  - State machine saw `current_step_index >= len(steps_to_run)` and immediately declared completion without running pipeline
+  - "Back" button in execution screen correctly called `reset_execution_state()`, but sidebar "Back to Start" button did not
+  - Fix: Added `reset_execution_state()` call to "Back to Start" button handler in sidebar
+  - State reset clears: execution.status → "idle", execution.results → None, all step_status → "pending", current_step_index → 0, errors, timestamps
+  - Impact: Users can now run multiple pipelines in same session without app restart, navigation is symmetric (both back buttons reset state)
+  - Location: `app.py` (lines 28, 75-76)
   - Fixed all steps now show "🔄 Running" status immediately before execution begins (added `st.rerun()` after status update)
   - Removed static "0.0s" elapsed time from running status (shown only for completed/failed)
   - Implemented proactive status updates to work within Streamlit's execution model constraints

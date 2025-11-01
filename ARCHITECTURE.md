@@ -275,6 +275,37 @@ tmp/
 - Invalid JSON: Return best previous iteration
 - Unexpected errors: Graceful degradation, return best iteration so far
 
+**Return Dictionary Structure:**
+
+All exit paths from `run_iterative_extraction_validation_correction()` return a consistent dictionary with 7 required keys:
+
+```python
+{
+    'best_extraction': dict,              # Best extraction result (quality-based selection)
+    'best_validation': dict,              # Validation report of best extraction
+    'iterations': list[dict],             # Full iteration history with metrics
+    'final_status': str,                  # Status code (see above: passed, max_iterations_reached, etc.)
+    'iteration_count': int,               # Total iterations performed (1-based count)
+    'best_iteration': int,                # Which iteration was selected as best (0-based index)
+    'improvement_trajectory': list[float] # Quality scores per iteration for analysis
+}
+```
+
+**Key Field - `best_iteration`:**
+- Integer index (0-based) indicating which iteration produced the best result
+- Example: `best_iteration: 2` means the third iteration (index 2) was selected
+- Used by Streamlit Settings screen to highlight correct "BEST" iteration in UI table
+- Always present in return dictionary - all 6 exit paths guarantee this key exists:
+  1. Passed validation → returns current iteration number
+  2. Early stopped degradation → returns `best["iteration_num"]` from quality selection
+  3. Max iterations reached → returns `best["iteration_num"]` from quality selection
+  4. LLM error recovery → returns `best["iteration_num"]` if available, else 0
+  5. JSON decode error → returns `best["iteration_num"]` if available, else 0
+  6. Unexpected error → returns `best["iteration_num"]` if available, else 0
+- Critical for UI display transparency and user understanding of which result was selected
+
+**Implementation Location:** `src/pipeline/orchestrator.py` (lines 1023-1391)
+
 ---
 
 ### 2. LLM Provider Layer (`src/llm/`)

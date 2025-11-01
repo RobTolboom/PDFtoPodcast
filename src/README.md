@@ -241,7 +241,7 @@ result = run_validation_with_correction(
     'iterations': list[dict],          # All iteration history with metrics
     'final_status': str,               # "passed" | "max_iterations_reached" | "failed_*"
     'iteration_count': int,            # Total iterations performed
-    'best_iteration': int,             # Iteration number of best result
+    'best_iteration': int,             # Iteration number of best result (0-based index)
     'improvement_trajectory': list[float]  # Quality scores per iteration
 }
 ```
