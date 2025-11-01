@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Files modified: `schemas/evidence_synthesis.schema.json` (source), regenerated `evidence_synthesis_bundled.json`
   - Location: schemas/evidence_synthesis.schema.json lines 948 (is_primary), 587 (risk_of_bias_summary source), 1711 (Synthesis source), 1231-1243 (PairwiseMetaAnalysis outcome_id removal)
 
+### Changed
+- Marked `COMMERCIAL_LICENSE.md` as a draft pending legal review to prevent accidental publication of unapproved contract language.
+
 ### Added
 - **Best Extraction & Validation Selection** - Automatic quality-based selection with persistent "best" files
   - Save best extraction + validation as `{id}-extraction-best.json` and `{id}-validation-best.json` after ALL exit paths

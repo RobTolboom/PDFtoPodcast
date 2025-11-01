@@ -1,4 +1,6 @@
-# Commercial Software License Agreement (Self-Hosted)
+# DRAFT – Commercial Software License Agreement (Self-Hosted)
+
+> **Status:** Draft for legal review. This document is not final and remains subject to change by counsel.
 
 This Commercial Software License Agreement ("Agreement") is between Tolboom Medical ("Licensor") and the customer identified in the Order Form ("Customer"). The Agreement becomes effective on the Effective Date stated in the Order Form.
 
