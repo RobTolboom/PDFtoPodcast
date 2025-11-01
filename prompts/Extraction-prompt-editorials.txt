@@ -16,6 +16,14 @@ OUTPUT CONTRACT
 - Closed world: only the TOP-LEVEL KEYS listed below are allowed.
 - Stable IDs (claim_id) must be reused consistently.
 
+CHARACTER ENCODING
+- Use UTF-8 characters directly in JSON strings; do NOT use escape sequences
+- Mathematical symbols: ≤, ≥, ±, ×, ÷, ≠, ≈, √ should appear as-is
+- Greek letters: α, β, γ, δ, μ, σ, etc. should appear as-is
+- Preserve special characters from PDF: don't convert ≤ to \u2264 or <=
+- Example CORRECT: "levels": ["≤60", ">60"]
+- Example WRONG: "levels": ["\u001460", ">60"] or "levels": ["<=60", ">60"]
+
 ALLOWED TOP-LEVEL KEYS (closed set)
 schema_version,
 document,
@@ -182,6 +190,7 @@ FINAL VALIDATION — PRE-FLIGHT CHECKLIST
 9) Every SourceRef has at least {page} and concise anchor.
 10) If metadata.vancouver_citation present, metadata.vancouver_source also present.
 11) No disallowed keys anywhere.
+12) Special characters (≤, ≥, ±, ×, etc.) appear as UTF-8 characters, NOT escape sequences (\u2264) or ASCII alternatives (<=).
 
 OUTPUT
 - Emit exactly one JSON object that validates against the editorials_opinion v2 schema. No extra text.

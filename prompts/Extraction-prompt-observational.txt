@@ -17,6 +17,14 @@ OUTPUT CONTRACT
 - Dates: ISO-8601 if possible; preserve partial precision if only Y or Y-M is available.
 - IDs (group_id, exposure_id, outcome_id, comparison_id) must be stable and reused consistently.
 
+CHARACTER ENCODING
+- Use UTF-8 characters directly in JSON strings; do NOT use escape sequences
+- Mathematical symbols: ≤, ≥, ±, ×, ÷, ≠, ≈, √ should appear as-is
+- Greek letters: α, β, γ, δ, μ, σ, etc. should appear as-is
+- Preserve special characters from PDF: don't convert ≤ to \u2264 or <=
+- Example CORRECT: "levels": ["≤60", ">60"]
+- Example WRONG: "levels": ["\u001460", ">60"] or "levels": ["<=60", ">60"]
+
 ALLOWED TOP-LEVEL KEYS (closed set)
 schema_version,
 document,
@@ -197,6 +205,7 @@ FINAL VALIDATION — PRE-FLIGHT CHECKLIST
 13) comparisons: EVERY comparison MUST include outcome_scope field.
 14) outcomes: use "name" field, NOT "label"; valid types exclude "continuous_change".
 15) exposures and outcomes: use measurement_time/measurement_method, NOT ascertainment/ascertainment_method.
+16) Special characters (≤, ≥, ±, ×, etc.) appear as UTF-8 characters, NOT escape sequences (\u2264) or ASCII alternatives (<=).
 
 OUTPUT
 - Emit the single JSON object. No markdown fencing. No commentary.

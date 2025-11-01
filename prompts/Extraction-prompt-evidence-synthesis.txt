@@ -17,6 +17,14 @@ OUTPUT CONTRACT
 - Dates: ISO-8601 if possible; preserve partial precision if only Y or Y-M is available.
 - IDs (study_label, outcome_id, synthesis_id) must be stable and reused consistently.
 
+CHARACTER ENCODING
+- Use UTF-8 characters directly in JSON strings; do NOT use escape sequences
+- Mathematical symbols: ≤, ≥, ±, ×, ÷, ≠, ≈, √ should appear as-is
+- Greek letters: α, β, γ, δ, μ, σ, etc. should appear as-is
+- Preserve special characters from PDF: don't convert ≤ to \u2264 or <=
+- Example CORRECT: "levels": ["≤60", ">60"]
+- Example WRONG: "levels": ["\u001460", ">60"] or "levels": ["<=60", ">60"]
+
 ALLOWED TOP-LEVEL KEYS (closed set)
 schema_version,
 document,
@@ -273,6 +281,7 @@ FINAL VALIDATION — PRE-FLIGHT CHECKLIST
 10) Every SourceRef has at least {page} and concise anchor.
 11) If metadata.vancouver_citation present, metadata.vancouver_source also present.
 12) No disallowed keys anywhere.
+13) Special characters (≤, ≥, ±, ×, etc.) appear as UTF-8 characters, NOT escape sequences (\u2264) or ASCII alternatives (<=).
 
 OUTPUT
 - Emit exactly one JSON object that validates against the evidence_synthesis v2 schema. No extra text.

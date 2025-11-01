@@ -17,6 +17,14 @@ OUTPUT CONTRACT
 - Confidence intervals: {"lower": <number>, "upper": <number>}.
 - IDs (predictor_id, outcome_id, dataset_id, model_id) must be stable and reused consistently.
 
+CHARACTER ENCODING
+- Use UTF-8 characters directly in JSON strings; do NOT use escape sequences
+- Mathematical symbols: ≤, ≥, ±, ×, ÷, ≠, ≈, √ should appear as-is
+- Greek letters: α, β, γ, δ, μ, σ, etc. should appear as-is
+- Preserve special characters from PDF: don't convert ≤ to \u2264 or <=
+- Example CORRECT: "levels": ["≤60", ">60"]
+- Example WRONG: "levels": ["\u001460", ">60"] or "levels": ["<=60", ">60"]
+
 ALLOWED TOP-LEVEL KEYS (closed set)
 schema_version,
 document,
@@ -275,6 +283,7 @@ FINAL VALIDATION — PRE-FLIGHT CHECKLIST
 10) If metadata.vancouver_citation present, metadata.vancouver_source also present.
 11) tables_parsed type uses correct enum: baseline/outcomes/harms/methods/other.
 12) No disallowed keys anywhere.
+13) Special characters (≤, ≥, ±, ×, etc.) appear as UTF-8 characters, NOT escape sequences (\u2264) or ASCII alternatives (<=).
 
 OUTPUT
 - Emit exactly one JSON object that validates against the prediction_prognosis v2 schema. No extra text.

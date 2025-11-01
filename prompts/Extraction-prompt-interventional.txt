@@ -22,6 +22,14 @@ OUTPUT CONTRACT
 - CIs as { "lower": <number>, "upper": <number> }.
 - Stable IDs (arm_id, outcome_id, comparison_id) reused consistently.
 
+CHARACTER ENCODING
+- Use UTF-8 characters directly in JSON strings; do NOT use escape sequences
+- Mathematical symbols: ≤, ≥, ±, ×, ÷, ≠, ≈, √ should appear as-is
+- Greek letters: α, β, γ, δ, μ, σ, etc. should appear as-is
+- Preserve special characters from PDF: don't convert ≤ to \u2264 or <=
+- Example CORRECT: "levels": ["≤60", ">60"]
+- Example WRONG: "levels": ["\u001460", ">60"] or "levels": ["<=60", ">60"]
+
 ALLOWED TOP-LEVEL KEYS (closed set)
 schema_version,
 document,
@@ -225,6 +233,7 @@ PRE-FLIGHT CHECKLIST (hard fail if any item fails)
 12) All emitted objects that include `source` have at least {page} and a concise anchor.
 13) NO disallowed keys anywhere: usage, choices, correction_notes, _metadata, _pipeline_metadata, or vendor metadata.
 14) Field names are EXACT: arm_id (NOT arm_id_id), outcome_id (NOT outcome_id_id), comparison_id (NOT comparison_id_id). Never duplicate suffixes.
+15) Special characters (≤, ≥, ±, ×, etc.) appear as UTF-8 characters, NOT escape sequences (\u2264) or ASCII alternatives (<=).
 
 OUTPUT
 - Respond with exactly one JSON object that validates against the interventional_trial v2 schema. No extra text.
