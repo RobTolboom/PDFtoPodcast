@@ -23,6 +23,15 @@ Return ONE corrected JSON object that:
 - Is internally consistent (IDs resolve, denominators match numerators, etc.).
 - Is ready to pass validation.
 
+CHARACTER ENCODING
+- Use UTF-8 characters directly in JSON strings; do NOT use escape sequences.
+- Mathematical symbols: ≤, ≥, ±, ×, ÷, ≠, ≈, √ should appear as-is (NOT \u2264, \u00B1, or ASCII <=, >=).
+- Greek letters: α, β, γ, δ, μ, σ, τ, etc. should appear as-is (NOT \u03B1).
+- When correcting data: preserve UTF-8 characters from ORIGINAL_EXTRACTION if they are valid and match PDF_CONTENT.
+- When extracting fresh from PDF_CONTENT: use UTF-8 characters directly.
+- Example CORRECT: "levels": ["≤60", ">60"]
+- Example WRONG: "levels": ["\u001460", ">60"] or "levels": ["<=60", ">60"]
+
 HARD RULES
 1. SCHEMA IS LAW
    - You MUST obey the SCHEMA over any assumptions.
@@ -40,7 +49,15 @@ HARD RULES
    - Never fabricate numbers, timepoints, scale names, measurement methods, or clinical conclusions.
    - If the PDF reports a qualitative statement without numeric values and SCHEMA requires numeric values in that object, you MUST remove that object instead of fabricating numbers. If SCHEMA supports an “extraction_warnings” / “notes” / similar field, add an item describing why it was removed.
 
-3. STRUCTURAL CONSISTENCY
+3. FIELD NAMING CONVENTIONS
+   - Study design, arms, groups, interventions: use "label" field
+   - Outcomes, exposures: use "name" field (NOT "label")
+   - ID fields: arm_id, outcome_id, comparison_id, exposure_id, group_id, predictor_id, dataset_id, model_id
+   - NEVER duplicate suffixes: arm_id_id, outcome_id_id, exposure_id_id are WRONG
+   - If VALIDATION_REPORT shows unexpected field errors (e.g., "label was unexpected" in outcomes), replace with correct schema field name ("name").
+   - If ORIGINAL_EXTRACTION has field name typos (e.g., arm_id_id), correct to schema-defined name (arm_id).
+
+4. STRUCTURAL CONSISTENCY
    - All cross-references must resolve:
      - Every group_id / arm_id referenced in results must exist in the appropriate top-level definition (e.g. groups[] for observational, arms[] for interventional).
      - Every outcome_id referenced in results must exist in outcomes[].
@@ -55,10 +72,34 @@ HARD RULES
 
 5. ENUM / FORMAT NORMALIZATION
    - All categorical fields must use exactly the enum strings defined in SCHEMA (e.g. model type, analysis population, outcome type).
-   - All numeric fields must be numeric JSON values (no % symbols, no “±”, no “n=” prefixes). Separate mean/sd, events/total, etc., into the correct fields.
+
+   ENUM VALUE FORMATTING:
+   - All enum values are case-sensitive and spacing-sensitive.
+   - Common patterns in medical schemas:
+     * Lowercase with underscores: "higher_better", "group_vs_group", "double_blind", "peer_reviewed"
+     * Title Case with hyphens: "Cluster-RCT", "Stepped-wedge", "Crossover-RCT"
+     * Title Case with spaces and parentheses: "Systematic review (no meta-analysis)", "Pairwise meta-analysis"
+     * Exact label strings: "Prediction/Prognosis" (study_design.label for prediction models)
+   - If VALIDATION_REPORT shows enum violation, check SCHEMA for EXACT string including:
+     * Capitalization: "Editorial" NOT "editorial"
+     * Spacing: "higher_better" NOT "higher better"
+     * Hyphens vs underscores: "Cluster-RCT" vs "double_blind"
+     * Parentheses and special chars: "Systematic review (no meta-analysis)" must include parentheses
+   - Do NOT normalize enum values (e.g., "Double-Blind" → "double_blind" is WRONG unless schema says so).
+   - When correcting, copy enum value EXACTLY from SCHEMA including case, spacing, punctuation.
+   - Numeric fields must be JSON numbers (no % symbols, no "±", no "n=" prefixes) EXCEPT `p_value` which can be number OR string per schema. Separate mean/sd, events/total, etc., into the correct fields.
    - Confidence intervals must use the exact structure required by SCHEMA (e.g. { "lower": <num>, "upper": <num> }).
    - Timepoints must follow SCHEMA (e.g. free-text timepoint plus ISO8601 duration field if the SCHEMA expects `timepoint_iso8601`).
    - If SCHEMA requires specific boolean flags (e.g. `is_primary`, `adjusted`), only set them to true/false if directly supported by PDF_CONTENT.
+
+   P-VALUE HANDLING:
+   - The schema allows `p_value` as EITHER number OR string (oneOf).
+   - If PDF reports exact p-value (e.g., "p=0.042"): emit as JSON number: "p_value": 0.042
+   - If PDF reports threshold (e.g., "p<0.001", "p>0.05", "NS"): emit as JSON string: "p_value": "<0.001"
+   - Valid string patterns: ^(<|>|≤|≥)?\s*0?\.?\d+(\\.\\d+)?$|^NS$|^n\.?s\.?$|^not significant$
+   - Do NOT convert string thresholds to numbers (e.g., "<0.001" should NOT become 0.001).
+   - Do NOT convert numbers to strings unless PDF explicitly uses threshold language.
+   - When correcting ORIGINAL_EXTRACTION: preserve the type (number vs string) if it matches PDF_CONTENT.
 
 6. HANDLING REQUIRED SUBFIELDS WITH PARTIAL DATA
    - Some array elements have required internal fields (example patterns you will see in SCHEMA):
@@ -70,15 +111,31 @@ HARD RULES
      - Do NOT invent values.
 
 7. STUDY TYPE BEHAVIOR
-   - You MUST infer the study type only from SCHEMA, not heuristics.
-   - If SCHEMA defines:
-     - observational-style structures (e.g. groups/exposures/comparisons/results.per_group/contrasts),
-       then respect that layout and naming.
-     - interventional-style structures (e.g. arms/interventions/comparisons/results.per_arm/contrasts/harms, consort_reporting, protocol_deviations, sensitivity_analyses),
-       then respect that layout and naming.
-     - editorial/opinion structures (e.g. article_thesis, claimed_position, argumentative_support, evidence_citations),
-       then respect that layout and naming.
-   - Do NOT force fields from one schema type into another (e.g. do not add “arms” to an observational schema if the schema does not define “arms”; do not add “risk_of_bias” if editorial schema does not define it; do not add “time_to_event outcome hazard ratio” structures into an editorial).
+   - You MUST infer the study type only from SCHEMA structure, not heuristics.
+   - Interventional trials (arms/interventions/harms present in SCHEMA):
+     * outcomes array MUST contain at least one outcome with is_primary:true (schema contains constraint)
+     * If VALIDATION_REPORT flags missing is_primary:true and PDF is ambiguous:
+       Set is_primary:true on the outcome used for sample size calculation, OR the first outcome listed
+       Add extraction_warnings entry documenting this assumption
+     * harms require both events (int) AND total (int); if only percentages reported, drop harm and warn
+     * Use "label" field for study_design, arms, interventions
+   - Observational studies (groups/exposures/comparisons present in SCHEMA):
+     * exposures array is REQUIRED (minItems:1); if missing, reconstruct from PDF_CONTENT
+     * comparisons MUST include outcome_scope field (enum: "all_outcomes"|"primary_only"|"specified_list")
+     * Use "name" field for exposures and outcomes (NOT "label")
+     * population uses n_total/n_cases/n_controls (NOT recruitment/N_screened/N_analyzed)
+   - Evidence synthesis (review_type/eligibility/search/prisma_flow present):
+     * review_type must use exact enum values with capitalization and parentheses
+     * eligibility requires all 5 PICO fields: population, intervention_or_exposure, comparators, outcomes, study_designs
+   - Prediction models (predictors/datasets/models/performance present):
+     * study_design.label must be exactly "Prediction/Prognosis"
+     * predictors use type "numeric" (NOT "continuous")
+     * dataset role is "derivation" (NOT "development")
+     * algorithm uses "logistic" (NOT "logistic_regression")
+   - Editorials/Opinion (article_type/stance_overall/arguments present):
+     * article_type uses Title Case: "Editorial", "Commentary" (NOT "editorial")
+     * arguments use "claim_id" and "text" fields (NOT "argument_id" and "claim")
+   - Do NOT force fields from one schema type into another.
 
 8. PRIMARY OUTCOME / PRIMARY EXPOSURE FLAGS
    - If SCHEMA supports flags such as `is_primary:true`:
