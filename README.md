@@ -1,4 +1,4 @@
-# 📄 PDFtoPodcast: Medical Literature Extraction Pipeline
+# PDFtoPodcast: Medical Literature Extraction Pipeline
 
 [![License: PPL 3.0.0](https://img.shields.io/badge/License-PPL%203.0.0-blue.svg)](LICENSE)
 [![Commercial License Available](https://img.shields.io/badge/Commercial-License%20Available-green.svg)](COMMERCIAL_LICENSE.md)
@@ -9,19 +9,19 @@ This pipeline extracts structured data from medical research PDFs with a focus o
 
 ---
 
-## 🔗 Quick Links
+## Quick Links
 
 | Documentation | Description |
 |---------------|-------------|
-| **[Installation](#-installation)** | Get started in 5 minutes |
-| **[Usage Guide](#-usage)** | Web UI and CLI instructions |
-| **[Architecture](#️-architecture)** | Pipeline design and flow |
+| **[Installation](#installation)** | Get started in 5 minutes |
+| **[Usage Guide](#usage)** | Web UI and CLI instructions |
+| **[Architecture](#architecture)** | Pipeline design and flow |
 | **[Contributing](CONTRIBUTING.md)** | Development guidelines |
 | **[API Reference](src/README.md)** | Module documentation |
 
 ---
 
-## ✨ Key Features
+## Key Features
 
 - Direct PDF-to-LLM processing (no intermediate text extraction) to preserve tables, figures, and layout.
 - Publication-type-aware schemas for interventional, observational, synthesis, prognosis, opinion, and other papers.
@@ -31,7 +31,7 @@ This pipeline extracts structured data from medical research PDFs with a focus o
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -112,7 +112,7 @@ This pipeline extracts structured data from medical research PDFs with a focus o
 
 ---
 
-## 📦 Installation
+## Installation
 
 ### Prerequisites
 - Python 3.10+ with `pip` and (optionally) `make` available on your PATH.
@@ -180,7 +180,7 @@ larger uploads (OpenAI and Claude currently cap at 32 MB).
 
 ---
 
-## 🚀 Usage
+## Usage
 
 ### Web Interface (Recommended)
 
@@ -191,16 +191,16 @@ streamlit run app.py
 ```
 
 **Features:**
-- 📤 **Drag-and-drop PDF upload** with duplicate detection
-- ⚙️ **Interactive pipeline configuration** (select steps, LLM provider, page limits)
-- 🚀 **Real-time execution screen** with live progress tracking per step
-- 👁️ **Inspect existing results** from the Settings screen with JSON syntax highlighting
-- 🔄 **Re-run specific phases** by deselecting completed steps in Settings and starting the run again
-- 📁 **Previously uploaded files library** for easy file selection
-- ⚠️ **Intelligent error handling** with actionable recovery guidance
-- 🔍 **Verbose logging toggle** for detailed pipeline diagnostics
+-  **Drag-and-drop PDF upload** with duplicate detection
+-  **Interactive pipeline configuration** (select steps, LLM provider, page limits)
+-  **Real-time execution screen** with live progress tracking per step
+-  **Inspect existing results** from the Settings screen with JSON syntax highlighting
+-  **Re-run specific phases** by deselecting completed steps in Settings and starting the run again
+-  **Previously uploaded files library** for easy file selection
+-  **Intelligent error handling** with actionable recovery guidance
+-  **Verbose logging toggle** for detailed pipeline diagnostics
 
-> ℹ️ The dedicated “Results” dashboard is still under development—after a run completes
+>  The dedicated “Results” dashboard is still under development—after a run completes
 > you return to Settings, where you can open or delete the generated JSON files.
 
 **Perfect for:**
@@ -300,7 +300,7 @@ print(f"Extracted fields: {len(results['extraction'])}")
 
 ---
 
-## 📊 Supported Publication Types
+## Supported Publication Types
 
 The pipeline supports 6 publication type categories:
 
@@ -317,7 +317,7 @@ Each type has a specialized extraction schema optimized for its data structure.
 
 ---
 
-## 📂 Output Structure
+## Output Structure
 
 All outputs are saved in `tmp/` directory with PDF filename-based naming:
 
@@ -368,7 +368,7 @@ Each JSON file contains structured data conforming to its schema:
 
 ---
 
-## 🔄 Iterative Validation-Correction
+## Iterative Validation-Correction
 
 Selecting the `validation_correction` step (CLI or Streamlit) triggers an iterative loop that validates each extraction and, if needed, re-prompts the LLM with targeted feedback.
 
@@ -381,14 +381,14 @@ Refer to [VALIDATION_STRATEGY.md](VALIDATION_STRATEGY.md) for scoring formulas, 
 
 ---
 
-## 💰 Cost Considerations
+## Cost Considerations
 
 ### PDF Upload vs Text Extraction
 
 | Approach | Tokens/Page | Data Quality | Best For |
 |----------|-------------|--------------|----------|
-| **Text extraction** (old) | ~500 | ❌ Tables lost | Simple documents |
-| **PDF upload** (current) | ~1,500-3,000 | ✅ Complete fidelity | Medical research |
+| **Text extraction** (old) | ~500 |  Tables lost | Simple documents |
+| **PDF upload** (current) | ~1,500-3,000 |  Complete fidelity | Medical research |
 
 ### Cost Example (20-page paper)
 
@@ -403,7 +403,7 @@ Refer to [VALIDATION_STRATEGY.md](VALIDATION_STRATEGY.md) for scoring formulas, 
 
 ---
 
-## 🎯 Validation Strategy (Summary)
+## Validation Strategy (Summary)
 
 - Tier 1: Local schema validation with `jsonschema` verifies structure and required fields in milliseconds.
 - Tier 2: Optional LLM validation cross-checks content against the PDF when schema quality meets the `SCHEMA_QUALITY_THRESHOLD` (default 0.5).
@@ -411,7 +411,7 @@ Refer to [VALIDATION_STRATEGY.md](VALIDATION_STRATEGY.md) for scoring formulas, 
 
 ---
 
-## 🛠️ Development
+## Development
 
 ### Project Structure
 
@@ -461,7 +461,7 @@ git push
 
 ---
 
-## 🔒 API Limits & Constraints
+## API Limits & Constraints
 
 ### OpenAI API Limits
 - **Provider limit:** 100 pages, 32 MB per PDF
@@ -477,7 +477,7 @@ git push
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 | Document | Purpose |
 |----------|---------|
@@ -493,7 +493,7 @@ git push
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions welcome! Please:
 
@@ -506,29 +506,29 @@ Contributions welcome! Please:
 
 ---
 
-## 📝 License
+## License
 
 This project uses a **dual-license model**:
 
 ### Free Use (Prosperity Public License 3.0.0)
-- ✅ **Academic research** - Free forever
-- ✅ **Non-commercial use** - Free forever
-- ✅ **Commercial trial** - Free for 30 days (company-wide)
-- 📄 See [LICENSE](LICENSE) for full terms
+-  **Academic research** - Free forever
+-  **Non-commercial use** - Free forever
+-  **Commercial trial** - Free for 30 days (company-wide)
+-  See [LICENSE](LICENSE) for full terms
 
 ### Commercial Use
-- 💼 After 30-day trial, commercial use requires a paid license
-- 📊 Flexible pricing: Subscription or Pay-per-PDF
-- 🏢 Self-hosted on your infrastructure
-- 📄 See [COMMERCIAL_LICENSE.md](COMMERCIAL_LICENSE.md) for terms
-- 📧 For commercial licensing inquiries: Open a GitHub issue or discussion
+-  After 30-day trial, commercial use requires a paid license
+-  Flexible pricing: Subscription or Pay-per-PDF
+-  Self-hosted on your infrastructure
+-  See [COMMERCIAL_LICENSE.md](COMMERCIAL_LICENSE.md) for terms
+-  For commercial licensing inquiries: Open a GitHub issue or discussion
 
 ---
 
-## 📧 Contact
+## Contact
 
 For questions or issues, please open a GitHub issue.
 
 ---
 
-**Built with ❤️ for medical research data extraction**
+**Built with  for medical research data extraction**
