@@ -68,6 +68,7 @@ from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
+import pandas as pd
 import streamlit as st
 
 from src.pipeline.file_manager import PipelineFileManager
@@ -77,6 +78,7 @@ from src.pipeline.orchestrator import (
     STEP_CORRECTION,
     STEP_EXTRACTION,
     STEP_VALIDATION,
+    STEP_VALIDATION_CORRECTION,
     run_single_step,
 )
 
@@ -120,7 +122,7 @@ def init_execution_state():
             "error": None,
             "results": None,
             "current_step_index": 0,  # Index of current step being executed (0-3)
-            "auto_redirect_enabled": True,  # Enable auto-redirect after completion
+            "auto_redirect_enabled": False,  # Disable auto-redirect after completion
             "redirect_cancelled": False,  # User cancelled auto-redirect
             "redirect_countdown": None,  # Countdown value (30, 29, ..., 0)
         }
@@ -177,7 +179,7 @@ def reset_execution_state():
         "error": None,
         "results": None,
         "current_step_index": 0,
-        "auto_redirect_enabled": True,
+        "auto_redirect_enabled": False,
         "redirect_cancelled": False,
         "redirect_countdown": None,
     }
@@ -773,6 +775,81 @@ def _display_correction_result(result: dict):
         st.write("✨ **Correction:** Not needed (validation passed)")
 
 
+def _display_validation_correction_result(result: dict):
+    """Display validation & correction iterative loop result summary."""
+    if not result:
+        return
+
+    final_status = result.get("final_status", "unknown")
+    iteration_count = result.get("iteration_count", 0)
+    iterations = result.get("iterations", [])
+
+    # Display final status with appropriate icon
+    status_messages = {
+        "passed": "✅ **Quality thresholds met!**",
+        "max_iterations_reached": f"⚠️ **Max iterations reached ({iteration_count})**",
+        "early_stopped_degradation": "⚠️ **Early stopping: quality degraded**",
+    }
+
+    status_msg = status_messages.get(final_status, f"❌ **Failed:** {final_status}")
+    st.write(status_msg)
+
+    # Show iteration count and best iteration
+    best_iteration = result.get("best_iteration", 0)
+    st.write(f"🔄 **Iterations completed:** {iteration_count}")
+    st.write(f"⭐ **Best iteration selected:** {best_iteration}")
+
+    # Display iteration history table
+    if iterations:
+        st.markdown("#### 📊 Iteration History")
+
+        # Build table data
+        table_data = []
+        for iter_data in iterations:
+            metrics = iter_data.get("metrics", {})
+            is_best = iter_data.get("iteration_num") == best_iteration
+
+            table_data.append(
+                {
+                    "Iteration": iter_data.get("iteration_num", 0),
+                    "Completeness": f"{metrics.get('completeness_score', 0):.1%}",
+                    "Accuracy": f"{metrics.get('accuracy_score', 0):.1%}",
+                    "Schema": f"{metrics.get('schema_compliance_score', 0):.1%}",
+                    "Critical": metrics.get("critical_issues", 0),
+                    "Overall": f"{metrics.get('overall_quality', 0):.1%}",
+                    "Status": "✅ BEST" if is_best else "",
+                }
+            )
+
+        # Display as DataFrame
+        df = pd.DataFrame(table_data)
+        st.dataframe(df, width="stretch", hide_index=True)
+
+    # Show metrics from best iteration
+    if iterations and best_iteration < len(iterations):
+        best_iter_data = iterations[best_iteration]
+        best_metrics = best_iter_data.get("metrics", {})
+
+        st.markdown("#### 📈 Best Iteration Metrics")
+        col1, col2, col3, col4 = st.columns(4)
+
+        with col1:
+            comp = best_metrics.get("completeness_score", 0)
+            st.metric("Completeness", f"{comp:.1%}")
+
+        with col2:
+            acc = best_metrics.get("accuracy_score", 0)
+            st.metric("Accuracy", f"{acc:.1%}")
+
+        with col3:
+            schema = best_metrics.get("schema_compliance_score", 0)
+            st.metric("Schema", f"{schema:.1%}")
+
+        with col4:
+            critical = best_metrics.get("critical_issues", 0)
+            st.metric("Critical Issues", critical)
+
+
 def display_step_status(step_name: str, step_label: str, step_number: int):
     """
     Display status UI for a single pipeline step.
@@ -866,6 +943,8 @@ def display_step_status(step_name: str, step_label: str, step_number: int):
                     _display_validation_result(result)
                 elif step_name == STEP_CORRECTION:
                     _display_correction_result(result)
+                elif step_name == STEP_VALIDATION_CORRECTION:
+                    _display_validation_correction_result(result)
 
             # Show file path if available (non-verbose always shows this)
             file_path = step.get("file_path")
@@ -975,7 +1054,7 @@ def show_execution_screen():
         status = st.session_state.execution["status"]
         if status == "running":
             # Show confirmation for navigation during execution
-            if st.button("⬅️ Back", key="back_top", use_container_width=True, type="secondary"):
+            if st.button("⬅️ Back", key="back_top", width="stretch", type="secondary"):
                 # Add confirmation state
                 if "confirm_navigation" not in st.session_state:
                     st.session_state.confirm_navigation = False
@@ -985,7 +1064,7 @@ def show_execution_screen():
                     st.rerun()
         else:
             # Direct back for non-running states
-            if st.button("⬅️ Back", key="back_top", use_container_width=True, type="secondary"):
+            if st.button("⬅️ Back", key="back_top", width="stretch", type="secondary"):
                 reset_execution_state()
                 st.session_state.current_phase = "settings"
                 st.rerun()
@@ -998,13 +1077,13 @@ def show_execution_screen():
         )
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("✅ Yes, go back", use_container_width=True):
+            if st.button("✅ Yes, go back", width="stretch"):
                 st.session_state.confirm_navigation = False
                 reset_execution_state()
                 st.session_state.current_phase = "settings"
                 st.rerun()
         with col2:
-            if st.button("❌ Cancel", use_container_width=True):
+            if st.button("❌ Cancel", width="stretch"):
                 st.session_state.confirm_navigation = False
                 st.rerun()
         st.markdown("---")
@@ -1071,8 +1150,7 @@ def show_execution_screen():
         st.markdown("### Pipeline Steps")
         display_step_status(STEP_CLASSIFICATION, "Classification", 1)
         display_step_status(STEP_EXTRACTION, "Extraction", 2)
-        display_step_status(STEP_VALIDATION, "Validation", 3)
-        display_step_status(STEP_CORRECTION, "Correction", 4)
+        display_step_status(STEP_VALIDATION_CORRECTION, "Validation & Correction", 3)
 
         # Check if all steps completed
         if current_step_index >= len(steps_to_run):
@@ -1170,8 +1248,7 @@ def show_execution_screen():
         st.markdown("### Pipeline Steps")
         display_step_status(STEP_CLASSIFICATION, "Classification", 1)
         display_step_status(STEP_EXTRACTION, "Extraction", 2)
-        display_step_status(STEP_VALIDATION, "Validation", 3)
-        display_step_status(STEP_CORRECTION, "Correction", 4)
+        display_step_status(STEP_VALIDATION_CORRECTION, "Validation & Correction", 3)
 
         st.markdown("---")
 
@@ -1193,7 +1270,7 @@ def show_execution_screen():
                         f"🔄 Redirecting to Settings screen in {countdown} second{'s' if countdown > 1 else ''}..."
                     )
                 with col2:
-                    if st.button("Cancel", key="cancel_redirect", use_container_width=True):
+                    if st.button("Cancel", key="cancel_redirect", width="stretch"):
                         execution["redirect_cancelled"] = True
                         st.rerun()
 
@@ -1250,7 +1327,6 @@ def show_execution_screen():
         st.markdown("### Pipeline Steps")
         display_step_status(STEP_CLASSIFICATION, "Classification", 1)
         display_step_status(STEP_EXTRACTION, "Extraction", 2)
-        display_step_status(STEP_VALIDATION, "Validation", 3)
-        display_step_status(STEP_CORRECTION, "Correction", 4)
+        display_step_status(STEP_VALIDATION_CORRECTION, "Validation & Correction", 3)
 
         st.markdown("---")

@@ -8,6 +8,162 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Best Extraction & Validation Selection** - Automatic quality-based selection with persistent "best" files
+  - Save best extraction + validation as `{id}-extraction-best.json` and `{id}-validation-best.json` after ALL exit paths
+  - Save selection metadata as `{id}-extraction-best-metadata.json` with iteration number, quality scores, and selection reason
+  - **6 Exit Paths covered:**
+    1. Direct success (quality sufficient at iteration 0) - saves iteration 0 as best
+    2. Early stop degradation - uses `_select_best_iteration()` weighted quality scoring
+    3. Max iterations reached - selects highest quality iteration
+    4. LLM error (retry exhausted) - best of completed iterations
+    5. JSON decode error - best of completed iterations
+    6. Unexpected error - best of completed iterations
+  - **Settings Screen Integration:** "View" buttons now show BEST extraction/validation (not iteration 0)
+    - Extraction step: Shows best extraction if exists, falls back to extraction0
+    - Validation step: Shows best validation if exists, falls back to validation0
+    - Validation & Correction step: Shows best validation (highest quality, not most recent)
+  - **Pipeline Loading Integration:** Future steps (appraisal) automatically load BEST extraction
+    - Updated `_get_or_load_result()` to prefer best files over iteration 0
+    - Console messages show which iteration is being used with quality score
+    - Full backward compatibility: falls back to iteration 0 if no best file exists
+  - **Metadata tracking:**
+    - `best_iteration_num`: Which iteration was selected (0, 1, 2, ...)
+    - `overall_quality`: Weighted quality score (0.0-1.0)
+    - `completeness_score`, `accuracy_score`, `schema_compliance_score`: Individual metrics
+    - `selection_reason`: "passed" | "early_stopped_degradation" | "max_iterations_reached" | "failed_llm_error" | "failed_invalid_json" | "failed_unexpected_error"
+    - `total_iterations`: Total number of iterations performed
+    - `timestamp`: Selection timestamp (ISO-8601)
+  - **Implementation:**
+    - orchestrator.py: 6 save locations (3 files each) + updated dependency loading
+    - result_checker.py: Updated file mapping for extraction, validation, validation_correction
+    - All 111 unit tests pass
+  - **User Impact:**
+    - Settings screen always shows the BEST extraction (quality-based, not chronological)
+    - Future appraisal step will use the BEST extraction automatically
+    - Complete traceability: know which iteration was selected and why
+    - No manual file selection needed
+
+- **Iterative Validation-Correction Loop (Fase 1)** - Core loop logic with automatic quality improvement
+  - Added `run_validation_with_correction()` main loop function (~260 lines)
+  - Automatic iterative correction until quality thresholds met or max iterations reached
+  - Quality assessment: `is_quality_sufficient()` checks completeness (≥90%), accuracy (≥95%), schema compliance (≥95%), critical issues (0)
+  - Best iteration selection: `_select_best_iteration()` using weighted quality score (40% completeness + 40% accuracy + 20% schema)
+  - Early stopping: `_detect_quality_degradation()` stops loop when quality degrades for 2 consecutive iterations
+  - Metrics extraction: `_extract_metrics()` computes overall quality scores for comparison
+  - Error handling: Integrated retry logic with exponential backoff for LLM failures, graceful degradation for schema/JSON errors
+  - Constants: `STEP_VALIDATION_CORRECTION`, `DEFAULT_QUALITY_THRESHOLDS`, `FINAL_STATUS_CODES` (7 status codes)
+  - File naming: Iterations saved as `extraction0.json`, `extraction1.json`, `validation0.json`, `validation1.json`, etc.
+  - Comprehensive test suite: 25 tests across 5 test classes with full edge case coverage
+  - Implementation in `src/pipeline/orchestrator.py` (5 helper functions + main loop)
+  - Tests in `tests/unit/test_iterative_validation_correction.py` (143 total unit tests, all passing)
+  - Non-breaking: Existing validation/correction steps remain unchanged for backward compatibility
+
+- **Iterative Validation-Correction Loop (Fase 2)** - File management and persistence
+  - Added logging after file saves for traceability (`console.print` statements)
+  - Fixed file naming pattern: `extraction-corrected{N}.json` (using `-` not `_` between step and status)
+  - Verified file persistence across all iterations (iteration 0 has no suffix, iterations 1+ have `-corrected{N}`)
+  - Test suite: 3 tests in `tests/unit/test_file_management_iterations.py` verifying correct file naming
+  - All iteration data kept in memory during loop execution (no lazy loading)
+  - Implementation in `src/pipeline/orchestrator.py` (2 logging statements added)
+  - Tests verify: iteration 0 naming, corrected suffix pattern, full multi-iteration save sequence
+
+- **Iterative Validation-Correction Loop (Fase 3)** - Backward compatibility and pipeline integration
+  - Added `STEP_VALIDATION_CORRECTION` constant to pipeline step constants
+  - Updated `ALL_PIPELINE_STEPS` to use new combined step (replaces separate validation+correction in default pipeline)
+  - Legacy steps (`STEP_VALIDATION`, `STEP_CORRECTION`) remain available for CLI backward compatibility
+  - Added elif-branch in `run_single_step()` to dispatch to `run_validation_with_correction()`
+  - Updated docstring with comprehensive step documentation including legacy step notes
+  - Test suite: 6 backward compatibility tests in `tests/unit/test_backward_compatibility.py`
+  - All 152 unit tests pass (including 6 new backward compat tests)
+  - Fixed 2 execution screen tests to expect 3 pipeline steps instead of 4
+  - Implementation in `src/pipeline/orchestrator.py` (constant, list update, elif-branch, validation logic)
+  - Non-breaking: Old validation/correction steps still work, new combined step integrates seamlessly
+
+- **Iterative Validation-Correction Loop (Fase 4)** - Streamlit UI integration with real-time updates
+  - Added pandas dependency (>=2.0.0) for iteration history tables
+  - Updated session state defaults: `max_correction_iterations=3`, quality thresholds (completeness=0.90, accuracy=0.95, schema=0.95)
+  - Settings screen: New "Validation & Correction" section with max iterations input and 3 threshold sliders (capped at 0.99 to prevent infinite loops)
+  - Execution screen: New `_display_validation_correction_result()` function (~75 lines) displays final status, iteration count, best iteration selection, history table (pandas DataFrame), and metrics
+  - Updated pipeline step display from 4 to 3 steps: Classification, Extraction, Validation & Correction
+  - Updated breakpoint options to include `validation_correction` step
+  - All step definitions updated to use new 3-step model throughout Streamlit app
+  - Implementation: `requirements.txt`, `session_state.py`, `settings.py` (step defs + UI section), `execution.py` (imports, display function, elif case, 3 display calls)
+  - Feature 100% complete: Backend (Phases 1-3) + UI (Phase 4) fully integrated
+  - All 152 unit tests passing, backward compatible with CLI
+
+- **Iterative Validation-Correction Loop (Fase 3.5)** - CLI support for single-step execution
+  - Added `--step` CLI argument with 5 choices: classification, extraction, validation, correction, validation_correction
+  - Added `--max-iterations` argument (default: 3) for configuring correction attempts
+  - Added threshold arguments: `--completeness-threshold`, `--accuracy-threshold`, `--schema-threshold` (defaults: 0.90, 0.95, 0.95)
+  - Implemented step selection logic: single step execution vs full pipeline
+  - Added step-specific result display for CLI output (classification, validation_correction, validation)
+  - Updated CLI help text with usage examples
+  - Exported `run_single_step` from `src.pipeline` module (was missing from public API)
+  - Implementation: `run_pipeline.py` (~148 lines added/modified), `src/pipeline/__init__.py` (1 export added)
+  - Backward compatible: Full pipeline runs when no `--step` specified
+  - Examples: `python run_pipeline.py paper.pdf --step validation_correction --max-iterations 2 --completeness-threshold 0.85`
+
+- **Iterative Validation-Correction Loop (Fase 5)** - Comprehensive error handling tests
+  - Added `TestErrorHandling` class with 5 new unit tests (193 lines)
+  - Test coverage: LLM failures, retry mechanism, schema failures, unexpected errors, JSON decode errors
+  - Verified error handling: LLM API failures retried 3 times with exponential backoff (1s, 2s, 4s)
+  - Verified graceful degradation: All error types preserve iterations and return meaningful status codes
+  - Test results: All 30 tests in `test_iterative_validation_correction.py` pass (25 existing + 5 new)
+  - Error scenarios covered: failed_llm_error, failed_schema_validation, failed_invalid_json, failed_unexpected_error
+  - Implementation: `tests/unit/test_iterative_validation_correction.py` (added TestErrorHandling class)
+  - Validation: Error handling already implemented in Phase 1, tests confirm correct behavior
+
+### Changed
+- **Execution Screen Auto-Redirect** - Disabled automatic redirect to Settings screen after pipeline completion
+  - Changed `auto_redirect_enabled` from `True` to `False` in execution state initialization
+  - Users now stay on Execution screen after completion with full control
+  - No 30-second countdown timer
+  - Info message displayed: "Pipeline execution completed. View results in Settings screen or run again."
+  - Timer logic preserved for potential future re-enable
+  - Implementation: `src/streamlit_app/screens/execution.py` (2 locations)
+
+- **Interventional Extraction Prompt & Schema Alignment** - Strengthened validation instructions and aligned prompt with schema requirements
+  - Enhanced CLOSED WORLD ASSUMPTION: Explicit messaging that "additionalProperties":false applies at ALL nesting levels
+  - Added ALL-OR-NOTHING RULE: Omit entire parent object rather than emitting partial data when confidence is low
+  - Type correctness enforcement: Booleans must be JSON booleans (true/false), never strings ("true"/"false")
+  - Numeric correctness: All numbers must be JSON numbers, never strings (no "1.5" or "95%")
+  - Primary outcome fallback logic: When no primary outcome is explicitly stated, mark first outcome as is_primary:true to satisfy schema's `contains` constraint
+  - P-value handling guidance: Exact numbers as JSON numbers (0.042), thresholds as strings ("<0.001"), no conversion
+  - Enhanced PRE-FLIGHT CHECKLIST: 13 checks (was 10) including type validation, metadata exclusion, and nested key validation
+  - Explicit disallowed keys: correction_notes, _metadata, _pipeline_metadata, vendor metadata
+  - Resolves conflict: Schema already required at least one primary outcome via `contains` constraint, prompt now handles fallback case
+  - Implementation: prompts/Extraction-prompt-interventional.txt (~220 lines)
+  - Impact: Better LLM adherence to schema, fewer validation failures, clearer error messages
+
+- **File Naming Schema** - Changed iteration file naming to use consistent numbering across all iterations
+  - **BREAKING CHANGE**: Old iteration files will not be recognized by new code
+  - Old schema: `extraction.json`, `extraction-corrected1.json`, `validation.json`, `validation-corrected1.json`
+  - New schema: `extraction0.json`, `extraction1.json`, `validation0.json`, `validation1.json`
+  - All iterations now have explicit numbers (0, 1, 2, ...) for better clarity and consistency
+  - Updated file_manager.py: Changed `status` parameter to `iteration_number` in get_filename(), save_json(), and load_json()
+  - Updated orchestrator.py: All save_json() calls now use iteration_number parameter (8 locations)
+  - Updated result_checker.py: Glob patterns changed to match numbered files (`validation[0-9]*.json`)
+  - Updated tests: All filename assertions updated to new schema (3 test files)
+  - Updated documentation: settings.py docstring reflects new naming convention
+  - Migration note: Users should clear tmp/ directory or delete old iteration files before using new version
+  - Legacy 4-step pipeline now saves as extraction1.json/validation1.json (was extraction-corrected.json)
+  - Implementation: 6 core files + 3 test files modified
+  - All 111 unit tests pass with new naming scheme
+
+- **Streamlit UI** - Updated deprecated `use_container_width` parameter to new `width` parameter
+  - Replaced `use_container_width=True` with `width="stretch"` (13 occurrences)
+  - Replaced `use_container_width=False` with `width="content"` (1 occurrence)
+  - Updated 4 screen files: intro.py, settings.py, upload.py, execution.py
+  - Affects st.button() and st.dataframe() components
+  - Follows Streamlit deprecation notice (parameter will be removed after 2025-12-31)
+  - No functional changes - maintains existing UI behavior
+
+- **Documentation** - Updated architecture and design documentation
+  - Updated ARCHITECTURE.md: Pipeline Orchestrator section reflects 3-step model with 10 key functions listed
+  - Added new subsection "Iterative Validation-Correction Loop" with workflow, quality assessment formula, status codes, file naming, error handling
+  - Design decisions updated: Why 3 steps, why iterative correction, why keep 4-step option, why quality thresholds, why early stopping, why best iteration selection
+  - All documentation reflects new combined validation_correction step while maintaining backward compatibility notes
+
 - **Pipeline Execution Metadata** - Comprehensive metadata embedded in step JSON files
   - Added `_pipeline_metadata` field to all step outputs (classification, extraction, validation, correction)
   - Metadata includes: timestamp (ISO-8601 UTC), duration_seconds, LLM provider/model, max_pages, PDF filename, execution_mode (streamlit/cli), status (success/failed)
@@ -35,6 +191,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated Streamlit: `_display_verbose_info()` in `src/streamlit_app/screens/execution.py`
 
 ### Fixed
+- **Iterative Validation-Correction Loop** - Fixed validation file overwrite bug where post-correction validations were lost
+  - **Bug**: After correction, validation{N}.json was saved with post-correction validation, then immediately overwritten when loop revalidated the same extraction with same iteration number
+  - **Example**: validation1.json (post-correction) was overwritten by re-validation of extraction1 in next loop iteration
+  - **Impact**: Initial validation data for each iteration was lost, making iteration history incomplete
+  - **Root cause**: Loop re-validated current_extraction at start of each iteration, even though correction step already validated it
+  - **Fix**: Reuse post-correction validation for next iteration quality check instead of re-validating
+  - **Implementation**: Added `current_validation` variable to track validation state, skip validation when already available from correction
+  - **Result**: Each iteration now preserves both extraction and validation files (extraction0 + validation0, extraction1 + validation1, etc.)
+  - **Location**: `src/pipeline/orchestrator.py` - run_validation_with_correction() function
+  - All 111 unit tests pass with fix
+
+- **Result Checker** - Fixed KeyError when accessing validation_correction step in Streamlit settings screen
+  - Added `validation_correction` key to `check_existing_results()` return dictionary
+  - Added `validation_correction` mapping to `get_result_file_info()` file_map
+  - Checks for validation files including iterations (`{id}-validation*.json`)
+  - Aligns result checker with new 3-step pipeline architecture (classification, extraction, validation_correction)
+  - Fixes KeyError: 'validation_correction' crash in `src/streamlit_app/screens/settings.py:155`
+  - Implementation in `src/streamlit_app/result_checker.py`
+  - Maintains backward compatibility with legacy validation/correction keys
+
+- **Pipeline Orchestrator** - Fixed "Unsupported provider" error when running validation_correction step
+  - Fixed `run_single_step()` passing OpenAIProvider object instead of string to `run_validation_with_correction()`
+  - Removed unnecessary `llm = get_llm_provider(llm_provider)` call (line 1597)
+  - Changed `llm_provider=llm` to `llm_provider=llm_provider` (line 1603) to pass string parameter
+  - `run_validation_with_correction()` expects `llm_provider: str` and creates provider object internally
+  - Fixes "Unsupported provider: <src.llm.openai_provider.OpenAIProvider object at 0x...>" error
+  - Implementation in `src/pipeline/orchestrator.py` lines 1593-1608
+  - Aligns with validation/correction step patterns that also accept string parameters
+
+- **Metadata Stripping** - Fixed validation failure due to unexpected `correction_notes` field
+  - Added `correction_notes` to `_strip_metadata_for_pipeline()` stripping logic
+  - The correction step adds `correction_notes` for debugging (not part of extraction schema)
+  - Now stripped before validation along with `usage`, `_metadata`, `_pipeline_metadata`
+  - Fixes schema validation error: "Additional properties are not allowed ('correction_notes' was unexpected)"
+  - Implementation in `src/pipeline/orchestrator.py` (line 186 in `_strip_metadata_for_pipeline()`)
+  - Added unit test `test_strip_metadata_removes_correction_notes` in `tests/unit/test_orchestrator.py`
+  - Updated 3 existing tests to verify correction_notes stripping behavior
+
+- **File Naming Inconsistency** - Fixed validation files missing correct iteration suffix in validation-correction loop
+  - Removed duplicate file saves from `_run_correction_step()` (lines 751, 785)
+  - Loop now saves both extraction and validation files with iteration suffix `corrected{N}`
+  - Fixed issue where `validation-corrected.json` was overwritten each iteration instead of creating numbered versions
+  - Fixed missing `validation-corrected1.json` file (was only creating `validation-corrected.json`)
+  - Post-correction validation now properly saved with iteration number for each loop iteration
+  - Implementation in `src/pipeline/orchestrator.py`:
+    - Removed file saves from `_run_correction_step()` (function only returns data now)
+    - Added file saves in `run_validation_with_correction()` loop (lines 1076-1086, 1133-1142)
+    - Added file saves in old 4-step STEP_CORRECTION flow (lines 1604-1609)
+  - All 111 tests pass, backward compatible with 4-step pipeline
+
+- **Metadata Leakage in Final Results** - Fixed correction_notes leaking into final results returned from validation-correction loop
+  - Added `_strip_metadata_for_pipeline()` calls at 3 critical points to prevent correction_notes from appearing in final results:
+    1. After correction in main loop before storing in `current_extraction` (line 1090)
+    2. After correction in retry error handling path (line 1151)
+    3. In legacy 4-step pipeline return before returning corrected extraction (lines 1779-1781)
+  - Ensures `iterations[]` array only contains clean extraction data without correction_notes metadata
+  - Ensures `best_extraction` selected from iterations is clean (no correction_notes field)
+  - Ensures legacy 4-step pipeline returns clean corrected extraction
+  - Prevents correction_notes from appearing in validation prompts, LLM inputs, or final results
+  - Added comprehensive integration test suite: `tests/integration/test_validation_correction_metadata_stripping.py`
+    - Tests correction_notes stripped from final result (best_extraction)
+    - Tests correction_notes stripped from all stored iterations
+    - Tests all metadata fields stripped (usage, _metadata, _pipeline_metadata, correction_notes)
+  - Implementation in `src/pipeline/orchestrator.py` (3 stripping locations)
+  - All 111 unit tests + 3 new integration tests pass
+
 - Fixed schema bundler creating self-referencing definitions causing validation recursion errors
   - `schemas/json-bundler.py` - Replace local alias definitions with actual definitions from common schema
   - Prevents `ContrastEffect` and similar aliases from becoming `{"$ref": "#/$defs/ContrastEffect"}` self-references
@@ -45,6 +267,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fixed step containers not showing during execution (only "⏳ Pipeline is executing..." was visible)
   - Fixed non-selected steps showing "pending" instead of "⏭️ Skipped"
   - Fixed first step showing "pending" instead of "🔄 Running" when pipeline starts
+
+- **Streamlit Execution Screen** - Fixed Settings screen showing wrong "BEST" iteration after pipeline completion
+  - Root cause: orchestrator.py return dictionaries missing `best_iteration` key
+  - UI tried to read `result.get("best_iteration", 0)` but key was undefined, always defaulting to iteration 0
+  - Backend correctly selected best iteration and saved correct files, but UI displayed wrong iteration as "BEST"
+  - Fix: Added `best_iteration` key to 6 return locations in `run_iterative_extraction_validation_correction()`:
+    1. Passed validation (early success) - returns current iteration number
+    2. Early stopped degradation - returns `best["iteration_num"]` from quality-based selection
+    3. Max iterations reached - returns `best["iteration_num"]` from quality-based selection
+    4. LLM error recovery - returns `best["iteration_num"]` if best exists, else 0
+    5. JSON decode error recovery - returns `best["iteration_num"]` if best exists, else 0
+    6. Unexpected error recovery - returns `best["iteration_num"]` if best exists, else 0
+  - Impact: Settings screen now correctly highlights which iteration was selected as "BEST" in iteration history table
+  - Location: `src/pipeline/orchestrator.py` (lines 1030, 1090, 1145, 1302, 1346, 1388)
+
+- **Streamlit Navigation** - Fixed "process already done" error when clicking "Back to Start" after pipeline completion
+  - Root cause: Execution state (status, results, step_status, current_step_index) persisted in session state after "Back to Start" navigation
+  - When user clicked "Back to Start" and re-ran pipeline with new PDF, old state indicated process was already complete
+  - State machine saw `current_step_index >= len(steps_to_run)` and immediately declared completion without running pipeline
+  - "Back" button in execution screen correctly called `reset_execution_state()`, but sidebar "Back to Start" button did not
+  - Fix: Added `reset_execution_state()` call to "Back to Start" button handler in sidebar
+  - State reset clears: execution.status → "idle", execution.results → None, all step_status → "pending", current_step_index → 0, errors, timestamps
+  - Impact: Users can now run multiple pipelines in same session without app restart, navigation is symmetric (both back buttons reset state)
+  - Location: `app.py` (lines 28, 75-76)
   - Fixed all steps now show "🔄 Running" status immediately before execution begins (added `st.rerun()` after status update)
   - Removed static "0.0s" elapsed time from running status (shown only for completed/failed)
   - Implemented proactive status updates to work within Streamlit's execution model constraints

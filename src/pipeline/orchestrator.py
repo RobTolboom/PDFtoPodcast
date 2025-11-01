@@ -82,13 +82,34 @@ STEP_CLASSIFICATION = "classification"
 STEP_EXTRACTION = "extraction"
 STEP_VALIDATION = "validation"
 STEP_CORRECTION = "correction"
+STEP_VALIDATION_CORRECTION = "validation_correction"
 
+# Default pipeline steps (validation_correction replaces separate validation+correction)
 ALL_PIPELINE_STEPS = [
     STEP_CLASSIFICATION,
     STEP_EXTRACTION,
-    STEP_VALIDATION,
-    STEP_CORRECTION,
+    STEP_VALIDATION_CORRECTION,
 ]
+# Note: STEP_VALIDATION and STEP_CORRECTION remain available for CLI backward compatibility
+
+# Default quality thresholds for iterative correction loop
+DEFAULT_QUALITY_THRESHOLDS = {
+    "completeness_score": 0.90,  # ≥90% of PDF data extracted
+    "accuracy_score": 0.95,  # ≥95% correct data (max 5% errors)
+    "schema_compliance_score": 0.95,  # ≥95% schema compliant
+    "critical_issues": 0,  # Absolutely no critical errors
+}
+
+# Final status codes for iterative loop results
+FINAL_STATUS_CODES = {
+    "passed": "Quality thresholds met",
+    "max_iterations_reached": "Maximum iterations reached, using best result",
+    "early_stopped_degradation": "Stopped due to quality degradation",
+    "failed_schema_validation": "Schema validation failed",
+    "failed_llm_error": "LLM API error after retries",
+    "failed_invalid_json": "Correction produced invalid JSON",
+    "failed_unexpected_error": "Unexpected error occurred",
+}
 
 console = Console()
 
@@ -134,6 +155,7 @@ def _strip_metadata_for_pipeline(data: dict) -> dict:
     - usage: LLM token usage (input/output/cached tokens)
     - _metadata: LLM API response metadata (response_id, model, etc.)
     - _pipeline_metadata: Pipeline execution metadata (timestamp, duration, etc.)
+    - correction_notes: Notes added by correction step (not part of extraction schema)
 
     This ensures:
     1. Schema validation doesn't fail on unexpected fields
@@ -161,6 +183,7 @@ def _strip_metadata_for_pipeline(data: dict) -> dict:
     clean_data.pop("usage", None)
     clean_data.pop("_metadata", None)
     clean_data.pop("_pipeline_metadata", None)
+    clean_data.pop("correction_notes", None)
     return clean_data
 
 
@@ -189,6 +212,216 @@ def _get_provider_name(llm: Any) -> str:
     elif "Claude" in class_name:
         return "claude"
     return "unknown"
+
+
+def is_quality_sufficient(validation_result: dict | None, thresholds: dict | None = None) -> bool:
+    """
+    Check if validation quality meets thresholds for stopping iteration.
+
+    Args:
+        validation_result: Validation JSON with verification_summary (can be None)
+        thresholds: Quality thresholds to check against (defaults to DEFAULT_QUALITY_THRESHOLDS)
+
+    Returns:
+        bool: True if ALL thresholds are met, False otherwise
+
+    Edge Cases:
+        - validation_result is None → False
+        - verification_summary missing → False
+        - Any score is None → treated as 0 (fails threshold)
+        - Empty dict → False (all scores default to 0)
+
+    Example:
+        >>> validation = {
+        ...     'verification_summary': {
+        ...         'completeness_score': 0.92,
+        ...         'accuracy_score': 0.98,
+        ...         'schema_compliance_score': 0.97,
+        ...         'critical_issues': 0
+        ...     }
+        ... }
+        >>> is_quality_sufficient(validation)  # True
+        >>> is_quality_sufficient(None)  # False
+        >>> is_quality_sufficient({})  # False
+    """
+    # Use default thresholds if not provided
+    if thresholds is None:
+        thresholds = DEFAULT_QUALITY_THRESHOLDS
+
+    # Handle None validation_result
+    if validation_result is None:
+        return False
+
+    summary = validation_result.get("verification_summary", {})
+
+    # Handle missing or empty summary
+    if not summary:
+        return False
+
+    # Helper to safely extract numeric scores (handle None values)
+    def safe_score(key: str, default: float = 0.0) -> float:
+        val = summary.get(key, default)
+        return val if isinstance(val, int | float) else default
+
+    # Check all thresholds
+    return (
+        safe_score("completeness_score") >= thresholds["completeness_score"]
+        and safe_score("accuracy_score") >= thresholds["accuracy_score"]
+        and safe_score("schema_compliance_score") >= thresholds["schema_compliance_score"]
+        and safe_score("critical_issues", 999) <= thresholds["critical_issues"]
+    )
+
+
+def _extract_metrics(validation_result: dict) -> dict:
+    """
+    Extract key metrics from validation result for comparison.
+
+    Used for:
+    - Best iteration selection (_select_best_iteration)
+    - Quality degradation detection (_detect_quality_degradation)
+    - Progress tracking and UI display
+
+    Returns dict with individual scores + computed 'overall_quality':
+        - 40% completeness (coverage of PDF data)
+        - 40% accuracy (correctness, no hallucinations)
+        - 20% schema compliance (structural correctness)
+    """
+    summary = validation_result.get("verification_summary", {})
+
+    return {
+        "completeness_score": summary.get("completeness_score", 0),
+        "accuracy_score": summary.get("accuracy_score", 0),
+        "schema_compliance_score": summary.get("schema_compliance_score", 0),
+        "critical_issues": summary.get("critical_issues", 0),
+        "total_issues": summary.get("total_issues", 0),
+        "overall_status": summary.get("overall_status", "unknown"),
+        # Derived composite score (used by ranking and degradation detection)
+        "overall_quality": (
+            summary.get("completeness_score", 0) * 0.4
+            + summary.get("accuracy_score", 0) * 0.4
+            + summary.get("schema_compliance_score", 0) * 0.2
+        ),
+    }
+
+
+def _detect_quality_degradation(iterations: list[dict], window: int = 2) -> bool:
+    """
+    Detect if quality has been degrading for the last N iterations.
+
+    Early stopping prevents wasted LLM calls when corrections are making things worse.
+
+    Args:
+        iterations: List of all iteration data (each with 'metrics' dict)
+        window: Number of consecutive degrading iterations to trigger stop (default: 2)
+
+    Returns:
+        True if quality degraded for 'window' consecutive iterations
+
+    Logic:
+        - Need at least (window + 1) iterations to detect trend
+        - Compare last 'window' iterations against the OVERALL best score seen so far
+        - Degradation = all iterations in window are worse than the peak quality
+        - This catches systematic degradation, not transient noise
+
+    Example:
+        iterations = [
+            {'metrics': {'overall_quality': 0.85}},  # iter 0
+            {'metrics': {'overall_quality': 0.88}},  # iter 1 (BEST - peak quality)
+            {'metrics': {'overall_quality': 0.86}},  # iter 2 (degraded from 0.88)
+            {'metrics': {'overall_quality': 0.84}}   # iter 3 (degraded again)
+        ]
+        _detect_quality_degradation(iterations, window=2) → True
+        # Last 2 iterations (0.86, 0.84) are BOTH worse than peak (0.88)
+        # This indicates systematic degradation → stop and use iteration 1
+    """
+    if len(iterations) < window + 1:
+        return False
+
+    # Get quality scores
+    scores = [it["metrics"].get("overall_quality", 0) for it in iterations]
+
+    # Find OVERALL peak quality (not just before window)
+    # This is the best score we've achieved across all iterations
+    peak_quality = max(scores)
+
+    # Check if last 'window' iterations are ALL worse than peak
+    # This indicates systematic degradation, not just a single bad iteration
+    window_scores = scores[-window:]
+    all_degraded = all(score < peak_quality for score in window_scores)
+
+    return all_degraded
+
+
+def _select_best_iteration(iterations: list[dict]) -> dict:
+    """
+    Select best iteration when max iterations reached but quality insufficient.
+
+    Selection strategy:
+        1. Priority 1: No critical issues (mandatory)
+        2. Priority 2: Highest weighted quality score (40% completeness + 40% accuracy + 20% schema)
+        3. Priority 3: If tied, prefer higher completeness
+        4. Usually selects last iteration due to progressive improvement
+
+    Args:
+        iterations: List of iteration data dicts
+
+    Returns:
+        dict: Best iteration data with reason
+
+    Example:
+        >>> iterations = [
+        ...     {'iteration_num': 0, 'metrics': {'overall_quality': 0.85, 'critical_issues': 0}},
+        ...     {'iteration_num': 1, 'metrics': {'overall_quality': 0.92, 'critical_issues': 0}},
+        ...     {'iteration_num': 2, 'metrics': {'overall_quality': 0.89, 'critical_issues': 1}},
+        ... ]
+        >>> best = _select_best_iteration(iterations)
+        >>> best['iteration_num']  # 1 (highest quality, no critical issues)
+    """
+    if not iterations:
+        raise ValueError("No iterations to select from")
+
+    # Get last iteration
+    last = iterations[-1]
+
+    # Check if last is acceptable (no regression)
+    if len(iterations) == 1:
+        return {**last, "selection_reason": "only_iteration"}
+
+    # Priority ranking for selection
+    def quality_rank(iteration: dict) -> tuple:
+        """
+        Create sortable quality tuple using weighted composite score.
+        Returns: (critical_ok, overall_quality, completeness_tiebreaker)
+
+        Overall quality = weighted average:
+        - 40% completeness (how much PDF data extracted)
+        - 40% accuracy (correctness, no hallucinations)
+        - 20% schema compliance (structural correctness)
+        """
+        metrics = iteration["metrics"]
+        overall_quality = (
+            metrics.get("completeness_score", 0) * 0.40
+            + metrics.get("accuracy_score", 0) * 0.40
+            + metrics.get("schema_compliance_score", 0) * 0.20
+        )
+        return (
+            metrics.get("critical_issues", 999) == 0,  # Priority 1: No critical issues
+            overall_quality,  # Priority 2: Composite quality
+            metrics.get("completeness_score", 0),  # Priority 3: Completeness as tiebreaker
+        )
+
+    # Sort all iterations by quality (best first)
+    sorted_iterations = sorted(iterations, key=quality_rank, reverse=True)
+
+    best = sorted_iterations[0]
+
+    # Determine reason
+    if best["iteration_num"] == last["iteration_num"]:
+        reason = "final_iteration_best"
+    else:
+        reason = f"quality_peaked_at_iteration_{best['iteration_num']}"
+
+    return {**best, "selection_reason": reason}
 
 
 def _run_extraction_step(
@@ -277,8 +510,10 @@ def _run_extraction_step(
             "publication_type": publication_type,
         }
 
-        # Save extraction result
-        extraction_file = file_manager.save_json(extraction_result, "extraction")
+        # Save extraction result (iteration 0)
+        extraction_file = file_manager.save_json(
+            extraction_result, "extraction", iteration_number=0
+        )
         console.print(f"[green]✅ Extractie opgeslagen: {extraction_file}[/green]")
 
         # Extraction completed successfully
@@ -397,7 +632,7 @@ def _run_validation_step(
         "validation_passed": validation_result.get("is_valid", False),
     }
 
-    validation_file = file_manager.save_json(validation_result, "validation")
+    validation_file = file_manager.save_json(validation_result, "validation", iteration_number=0)
     console.print(f"[green]✅ Validatie opgeslagen: {validation_file}[/green]")
 
     # Validation completed
@@ -515,9 +750,6 @@ Systematically address all identified issues and produce corrected, complete,\
             "status": "success",
         }
 
-        corrected_file = file_manager.save_json(corrected_extraction, "extraction", "corrected")
-        console.print(f"[green]✅ Correctie opgeslagen: {corrected_file}[/green]")
-
         # Final validation of corrected extraction - use same dual validation approach
         console.print("[dim]Running final validation on corrected extraction...[/dim]")
 
@@ -549,9 +781,6 @@ Systematically address all identified issues and produce corrected, complete,\
             "status": "success",
         }
 
-        final_validation_file = file_manager.save_json(final_validation, "validation", "corrected")
-        console.print(f"[green]✅ Finale validatie opgeslagen: {final_validation_file}[/green]")
-
         # Correction completed successfully
         elapsed = time.time() - start_time
         _call_progress_callback(
@@ -561,8 +790,8 @@ Systematically address all identified issues and produce corrected, complete,\
             {
                 "result": corrected_extraction,
                 "elapsed_seconds": elapsed,
-                "extraction_file_path": str(corrected_file),
-                "validation_file_path": str(final_validation_file),
+                "extraction_file_path": None,  # Files will be saved by calling function
+                "validation_file_path": None,  # Files will be saved by calling function
                 "final_validation_status": final_validation.get("verification_summary", {}).get(
                     "overall_status"
                 ),
@@ -603,6 +832,563 @@ Systematically address all identified issues and produce corrected, complete,\
             {"error": str(e), "error_type": type(e).__name__, "elapsed_seconds": elapsed},
         )
         raise
+
+
+def run_validation_with_correction(
+    pdf_path: Path,
+    extraction_result: dict,
+    classification_result: dict,
+    llm_provider: str,
+    file_manager: PipelineFileManager,
+    max_iterations: int = 3,
+    quality_thresholds: dict | None = None,
+    progress_callback: Callable | None = None,
+) -> dict:
+    """
+    Run validation with automatic iterative correction until quality is sufficient.
+
+    Workflow:
+        1. Validate extraction (schema + LLM)
+        2. If quality insufficient and iterations < max:
+           - Run correction
+           - Validate corrected output
+           - Repeat until quality OK or max iterations reached
+        3. Select best iteration based on quality metrics
+        4. Return best extraction + validation + iteration history
+
+    Args:
+        pdf_path: Path to source PDF
+        extraction_result: Initial extraction JSON
+        classification_result: Classification result (for publication type)
+        llm_provider: LLM provider name ("openai" | "claude")
+        file_manager: File manager for saving iterations
+        max_iterations: Maximum correction attempts (default: 3)
+            IMPORTANT: Total iterations = initial validation + max_iterations corrections
+            Example: max_iterations=3 means up to 4 total iterations (iter 0,1,2,3)
+            Rationale: Naming reflects "corrections" not "total validations" for clarity
+        quality_thresholds: Custom thresholds, defaults to:
+            {
+                'completeness_score': 0.90,
+                'accuracy_score': 0.95,
+                'schema_compliance_score': 0.95,
+                'critical_issues': 0
+            }
+        progress_callback: Optional callback for progress updates
+
+    Returns:
+        dict: {
+            'best_extraction': dict,  # Best extraction result
+            'best_validation': dict,  # Validation of best extraction
+            'iterations': list[dict],  # All iteration history with metrics
+            'final_status': str,  # "passed" | "max_iterations_reached" | "failed"
+            'iteration_count': int,  # Total iterations performed
+            'improvement_trajectory': list[float],  # Quality scores per iteration
+        }
+
+    Raises:
+        ValueError: If schema validation fails on any iteration
+        LLMError: If LLM calls fail
+
+    Example:
+        >>> result = run_validation_with_correction(
+        ...     pdf_path=Path("paper.pdf"),
+        ...     extraction_result=extraction,
+        ...     classification_result=classification,
+        ...     llm_provider="openai",
+        ...     file_manager=fm,
+        ...     max_iterations=3
+        ... )
+        >>> result['final_status']  # "passed"
+        >>> len(result['iterations'])  # 2 (initial + 1 correction)
+        >>> result['best_extraction']  # Best quality extraction
+    """
+    # Initialize
+    iterations = []
+    current_extraction = extraction_result
+    current_validation = None  # Will be set after first validation or from post-correction
+    iteration_num = 0
+
+    # Default thresholds
+    if quality_thresholds is None:
+        quality_thresholds = DEFAULT_QUALITY_THRESHOLDS
+
+    # Extract publication_type for correction step
+    publication_type = classification_result.get("publication_type", "unknown")
+
+    # Get LLM instance
+    llm = get_llm_provider(llm_provider)
+
+    while iteration_num <= max_iterations:
+        try:
+            # Progress callback
+            _call_progress_callback(
+                progress_callback,
+                STEP_VALIDATION_CORRECTION,
+                "starting",
+                {"iteration": iteration_num, "step": "validation"},
+            )
+
+            # STEP 1: Validate current extraction (only if not already validated)
+            # After correction, we reuse the post-correction validation to avoid file overwrite
+            if current_validation is None:
+                validation_result = _run_validation_step(
+                    extraction_result=current_extraction,
+                    pdf_path=pdf_path,
+                    max_pages=None,
+                    classification_result=classification_result,
+                    llm=llm,
+                    file_manager=file_manager,
+                    progress_callback=progress_callback,
+                )
+
+                # Check schema validation failure (critical error)
+                schema_validation = validation_result.get("schema_validation", {})
+                quality_score = schema_validation.get("quality_score", 0)
+
+                if quality_score < 0.5:  # Schema quality threshold
+                    # CRITICAL: Schema validation failed - STOP
+                    return {
+                        "best_extraction": None,
+                        "best_validation": validation_result,
+                        "iterations": iterations,
+                        "final_status": "failed_schema_validation",
+                        "iteration_count": iteration_num + 1,
+                        "error": f"Schema validation failed (quality: {quality_score:.2f}). Cannot proceed with correction.",
+                        "failed_at_iteration": iteration_num,
+                    }
+
+                # Save validation with iteration number
+                validation_file = file_manager.save_json(
+                    validation_result, "validation", iteration_number=iteration_num
+                )
+                console.print(f"[dim]Saved validation: {validation_file}[/dim]")
+            else:
+                # Reuse validation from previous correction step
+                validation_result = current_validation
+                console.print(
+                    f"[dim]Reusing post-correction validation for iteration {iteration_num}[/dim]"
+                )
+
+            # Store iteration data
+            iteration_data = {
+                "iteration_num": iteration_num,
+                "extraction": current_extraction,
+                "validation": validation_result,
+                "metrics": _extract_metrics(validation_result),
+                "timestamp": datetime.now().isoformat(),
+            }
+            iterations.append(iteration_data)
+
+            # STEP 2: Check quality
+            if is_quality_sufficient(validation_result, quality_thresholds):
+                # SUCCESS: Quality is sufficient
+
+                # Save best extraction + validation (current iteration is best)
+                best_extraction_file = file_manager.save_json(
+                    current_extraction, "extraction", status="best"
+                )
+                console.print(f"[green]✅ Best extraction saved: {best_extraction_file}[/green]")
+
+                best_validation_file = file_manager.save_json(
+                    validation_result, "validation", status="best"
+                )
+                console.print(f"[green]✅ Best validation saved: {best_validation_file}[/green]")
+
+                # Save metadata
+                metrics = _extract_metrics(validation_result)
+                selection_metadata = {
+                    "best_iteration_num": iteration_num,
+                    "overall_quality": metrics["overall_quality"],
+                    "completeness_score": metrics.get("completeness_score", 0),
+                    "accuracy_score": metrics.get("accuracy_score", 0),
+                    "schema_compliance_score": metrics.get("schema_compliance_score", 0),
+                    "selection_reason": "passed",
+                    "total_iterations": iteration_num + 1,
+                    "timestamp": datetime.now().isoformat(),
+                }
+                file_manager.save_json(selection_metadata, "extraction", status="best-metadata")
+                console.print("[dim]Saved best iteration metadata[/dim]")
+
+                _call_progress_callback(
+                    progress_callback,
+                    STEP_VALIDATION_CORRECTION,
+                    "completed",
+                    {
+                        "final_status": "passed",
+                        "iterations": iteration_num + 1,
+                        "reason": "quality_sufficient",
+                    },
+                )
+
+                return {
+                    "best_extraction": current_extraction,
+                    "best_validation": validation_result,
+                    "iterations": iterations,
+                    "final_status": "passed",
+                    "iteration_count": iteration_num + 1,
+                    "best_iteration": iteration_num,
+                    "improvement_trajectory": [
+                        it["metrics"]["overall_quality"] for it in iterations
+                    ],
+                }
+
+            # STEP 3A: Check for quality degradation (early stopping)
+            if iteration_num >= 2:  # Need at least 3 iterations to detect trend
+                if _detect_quality_degradation(iterations, window=2):
+                    # EARLY STOP: Quality is degrading
+                    best = _select_best_iteration(iterations)
+
+                    # Save best extraction + validation
+                    best_extraction_file = file_manager.save_json(
+                        best["extraction"], "extraction", status="best"
+                    )
+                    console.print(
+                        f"[green]✅ Best extraction saved: {best_extraction_file}[/green]"
+                    )
+
+                    best_validation_file = file_manager.save_json(
+                        best["validation"], "validation", status="best"
+                    )
+                    console.print(
+                        f"[green]✅ Best validation saved: {best_validation_file}[/green]"
+                    )
+
+                    # Save metadata
+                    selection_metadata = {
+                        "best_iteration_num": best["iteration_num"],
+                        "overall_quality": best["metrics"]["overall_quality"],
+                        "completeness_score": best["metrics"].get("completeness_score", 0),
+                        "accuracy_score": best["metrics"].get("accuracy_score", 0),
+                        "schema_compliance_score": best["metrics"].get(
+                            "schema_compliance_score", 0
+                        ),
+                        "selection_reason": "early_stopped_degradation",
+                        "total_iterations": len(iterations),
+                        "timestamp": datetime.now().isoformat(),
+                    }
+                    file_manager.save_json(selection_metadata, "extraction", status="best-metadata")
+                    console.print("[dim]Saved best iteration metadata[/dim]")
+
+                    _call_progress_callback(
+                        progress_callback,
+                        STEP_VALIDATION_CORRECTION,
+                        "completed",
+                        {
+                            "final_status": "early_stopped_degradation",
+                            "iterations": len(iterations),
+                            "best_iteration": best["iteration_num"],
+                            "reason": "quality_degradation",
+                        },
+                    )
+
+                    return {
+                        "best_extraction": best["extraction"],
+                        "best_validation": best["validation"],
+                        "iterations": iterations,
+                        "final_status": "early_stopped_degradation",
+                        "iteration_count": len(iterations),
+                        "best_iteration": best["iteration_num"],
+                        "improvement_trajectory": [
+                            it["metrics"]["overall_quality"] for it in iterations
+                        ],
+                        "warning": f'Early stopping triggered: quality degraded for 2 consecutive iterations. Using best result (iteration {best["iteration_num"]}).',
+                    }
+
+            # STEP 3B: Check if we can do another correction
+            if iteration_num >= max_iterations:
+                # MAX REACHED: Select best iteration
+                best = _select_best_iteration(iterations)
+
+                # Save best extraction + validation
+                best_extraction_file = file_manager.save_json(
+                    best["extraction"], "extraction", status="best"
+                )
+                console.print(f"[green]✅ Best extraction saved: {best_extraction_file}[/green]")
+
+                best_validation_file = file_manager.save_json(
+                    best["validation"], "validation", status="best"
+                )
+                console.print(f"[green]✅ Best validation saved: {best_validation_file}[/green]")
+
+                # Save metadata
+                selection_metadata = {
+                    "best_iteration_num": best["iteration_num"],
+                    "overall_quality": best["metrics"]["overall_quality"],
+                    "completeness_score": best["metrics"].get("completeness_score", 0),
+                    "accuracy_score": best["metrics"].get("accuracy_score", 0),
+                    "schema_compliance_score": best["metrics"].get("schema_compliance_score", 0),
+                    "selection_reason": "max_iterations_reached",
+                    "total_iterations": len(iterations),
+                    "timestamp": datetime.now().isoformat(),
+                }
+                file_manager.save_json(selection_metadata, "extraction", status="best-metadata")
+                console.print("[dim]Saved best iteration metadata[/dim]")
+
+                _call_progress_callback(
+                    progress_callback,
+                    STEP_VALIDATION_CORRECTION,
+                    "completed",
+                    {
+                        "final_status": "max_iterations_reached",
+                        "iterations": len(iterations),
+                        "best_iteration": best["iteration_num"],
+                        "reason": "max_iterations",
+                    },
+                )
+
+                return {
+                    "best_extraction": best["extraction"],
+                    "best_validation": best["validation"],
+                    "iterations": iterations,
+                    "final_status": "max_iterations_reached",
+                    "iteration_count": len(iterations),
+                    "best_iteration": best["iteration_num"],
+                    "improvement_trajectory": [
+                        it["metrics"]["overall_quality"] for it in iterations
+                    ],
+                    "warning": f'Maximum iterations ({max_iterations}) reached. Using best result (iteration {best["iteration_num"]}).',
+                }
+
+            # STEP 4: Run correction for next iteration
+            iteration_num += 1
+
+            _call_progress_callback(
+                progress_callback,
+                STEP_VALIDATION_CORRECTION,
+                "starting",
+                {"iteration": iteration_num, "step": "correction"},
+            )
+
+            # Call correction step - returns tuple (corrected_extraction, final_validation)
+            corrected_extraction, final_validation = _run_correction_step(
+                extraction_result=current_extraction,
+                validation_result=validation_result,
+                pdf_path=pdf_path,
+                max_pages=None,
+                publication_type=publication_type,
+                llm=llm,
+                file_manager=file_manager,
+                progress_callback=progress_callback,
+            )
+
+            # Save corrected extraction with iteration number
+            corrected_file = file_manager.save_json(
+                corrected_extraction, "extraction", iteration_number=iteration_num
+            )
+            console.print(f"[dim]Saved corrected extraction: {corrected_file}[/dim]")
+
+            # Save post-correction validation with iteration number
+            validation_file = file_manager.save_json(
+                final_validation, "validation", iteration_number=iteration_num
+            )
+            console.print(f"[dim]Saved post-correction validation: {validation_file}[/dim]")
+
+            # Update current extraction and validation for next iteration
+            # Strip metadata (including correction_notes) to prevent leakage
+            current_extraction = _strip_metadata_for_pipeline(corrected_extraction)
+            # Reuse post-correction validation for next iteration to avoid re-validating and file overwrite
+            current_validation = final_validation
+
+            # Loop continues...
+
+        except LLMError as e:
+            # LLM API failure - retry with exponential backoff
+            max_retries = 3
+            retry_successful = False
+
+            for retry in range(max_retries):
+                wait_time = 2**retry  # 1s, 2s, 4s
+                console.print(
+                    f"[yellow]⚠️  LLM call failed, retrying in {wait_time}s... (attempt {retry+1}/{max_retries})[/yellow]"
+                )
+                time.sleep(wait_time)
+
+                try:
+                    # Retry the current step based on iteration stage
+                    if iteration_num == len(iterations):
+                        # Failed during validation - retry validation
+                        validation_result = _run_validation_step(
+                            extraction_result=current_extraction,
+                            pdf_path=pdf_path,
+                            max_pages=None,
+                            classification_result=classification_result,
+                            llm=llm,
+                            file_manager=file_manager,
+                            progress_callback=progress_callback,
+                        )
+                        retry_successful = True
+                        break
+                    else:
+                        # Failed during correction - retry correction
+                        corrected_extraction, final_validation = _run_correction_step(
+                            extraction_result=current_extraction,
+                            validation_result=validation_result,
+                            pdf_path=pdf_path,
+                            max_pages=None,
+                            publication_type=publication_type,
+                            llm=llm,
+                            file_manager=file_manager,
+                            progress_callback=progress_callback,
+                        )
+
+                        # Save corrected extraction and post-correction validation with iteration number
+                        corrected_file = file_manager.save_json(
+                            corrected_extraction, "extraction", iteration_number=iteration_num
+                        )
+                        console.print(
+                            f"[dim]Saved corrected extraction (retry): {corrected_file}[/dim]"
+                        )
+
+                        validation_file = file_manager.save_json(
+                            final_validation, "validation", iteration_number=iteration_num
+                        )
+                        console.print(
+                            f"[dim]Saved post-correction validation (retry): {validation_file}[/dim]"
+                        )
+
+                        # Update current extraction and validation for next iteration
+                        # Strip metadata (including correction_notes) to prevent leakage
+                        current_extraction = _strip_metadata_for_pipeline(corrected_extraction)
+                        # Reuse post-correction validation for next iteration to avoid re-validating and file overwrite
+                        current_validation = final_validation
+
+                        retry_successful = True
+                        break
+                except LLMError:
+                    continue
+
+            if not retry_successful:
+                # All retries exhausted
+                best = _select_best_iteration(iterations) if iterations else None
+
+                # Save best extraction + validation if available
+                if best:
+                    best_extraction_file = file_manager.save_json(
+                        best["extraction"], "extraction", status="best"
+                    )
+                    console.print(
+                        f"[green]✅ Best extraction saved: {best_extraction_file}[/green]"
+                    )
+
+                    best_validation_file = file_manager.save_json(
+                        best["validation"], "validation", status="best"
+                    )
+                    console.print(
+                        f"[green]✅ Best validation saved: {best_validation_file}[/green]"
+                    )
+
+                    # Save metadata
+                    selection_metadata = {
+                        "best_iteration_num": best["iteration_num"],
+                        "overall_quality": best["metrics"]["overall_quality"],
+                        "completeness_score": best["metrics"].get("completeness_score", 0),
+                        "accuracy_score": best["metrics"].get("accuracy_score", 0),
+                        "schema_compliance_score": best["metrics"].get(
+                            "schema_compliance_score", 0
+                        ),
+                        "selection_reason": "failed_llm_error",
+                        "total_iterations": len(iterations),
+                        "timestamp": datetime.now().isoformat(),
+                    }
+                    file_manager.save_json(selection_metadata, "extraction", status="best-metadata")
+                    console.print("[dim]Saved best iteration metadata[/dim]")
+
+                return {
+                    "best_extraction": best["extraction"] if best else current_extraction,
+                    "best_validation": best["validation"] if best else None,
+                    "iterations": iterations,
+                    "final_status": "failed_llm_error",
+                    "iteration_count": len(iterations),
+                    "best_iteration": best["iteration_num"] if best else 0,
+                    "error": f"LLM provider error after {max_retries} retries: {str(e)}",
+                    "failed_at_iteration": iteration_num,
+                }
+
+        except json.JSONDecodeError as e:
+            # Invalid JSON from correction - treat as critical error
+            console.print(
+                f"[red]❌ Correction returned invalid JSON at iteration {iteration_num}[/red]"
+            )
+            best = _select_best_iteration(iterations) if iterations else None
+
+            # Save best extraction + validation if available
+            if best:
+                best_extraction_file = file_manager.save_json(
+                    best["extraction"], "extraction", status="best"
+                )
+                console.print(f"[green]✅ Best extraction saved: {best_extraction_file}[/green]")
+
+                best_validation_file = file_manager.save_json(
+                    best["validation"], "validation", status="best"
+                )
+                console.print(f"[green]✅ Best validation saved: {best_validation_file}[/green]")
+
+                # Save metadata
+                selection_metadata = {
+                    "best_iteration_num": best["iteration_num"],
+                    "overall_quality": best["metrics"]["overall_quality"],
+                    "completeness_score": best["metrics"].get("completeness_score", 0),
+                    "accuracy_score": best["metrics"].get("accuracy_score", 0),
+                    "schema_compliance_score": best["metrics"].get("schema_compliance_score", 0),
+                    "selection_reason": "failed_invalid_json",
+                    "total_iterations": len(iterations),
+                    "timestamp": datetime.now().isoformat(),
+                }
+                file_manager.save_json(selection_metadata, "extraction", status="best-metadata")
+                console.print("[dim]Saved best iteration metadata[/dim]")
+
+            return {
+                "best_extraction": best["extraction"] if best else current_extraction,
+                "best_validation": best["validation"] if best else None,
+                "iterations": iterations,
+                "final_status": "failed_invalid_json",
+                "iteration_count": len(iterations),
+                "best_iteration": best["iteration_num"] if best else 0,
+                "error": f"Correction produced invalid JSON: {str(e)}",
+                "failed_at_iteration": iteration_num,
+            }
+
+        except Exception as e:
+            # Unexpected error - fail gracefully
+            console.print(f"[red]❌ Unexpected error at iteration {iteration_num}: {str(e)}[/red]")
+            best = _select_best_iteration(iterations) if len(iterations) > 0 else None
+
+            # Save best extraction + validation if available
+            if best:
+                best_extraction_file = file_manager.save_json(
+                    best["extraction"], "extraction", status="best"
+                )
+                console.print(f"[green]✅ Best extraction saved: {best_extraction_file}[/green]")
+
+                best_validation_file = file_manager.save_json(
+                    best["validation"], "validation", status="best"
+                )
+                console.print(f"[green]✅ Best validation saved: {best_validation_file}[/green]")
+
+                # Save metadata
+                selection_metadata = {
+                    "best_iteration_num": best["iteration_num"],
+                    "overall_quality": best["metrics"]["overall_quality"],
+                    "completeness_score": best["metrics"].get("completeness_score", 0),
+                    "accuracy_score": best["metrics"].get("accuracy_score", 0),
+                    "schema_compliance_score": best["metrics"].get("schema_compliance_score", 0),
+                    "selection_reason": "failed_unexpected_error",
+                    "total_iterations": len(iterations),
+                    "timestamp": datetime.now().isoformat(),
+                }
+                file_manager.save_json(selection_metadata, "extraction", status="best-metadata")
+                console.print("[dim]Saved best iteration metadata[/dim]")
+
+            return {
+                "best_extraction": best["extraction"] if best else current_extraction,
+                "best_validation": best["validation"] if best else None,
+                "iterations": iterations,
+                "final_status": "failed_unexpected_error",
+                "iteration_count": len(iterations),
+                "best_iteration": best["iteration_num"] if best else 0,
+                "error": f"Unexpected error: {str(e)}",
+                "failed_at_iteration": iteration_num,
+            }
 
 
 def _should_run_step(step_name: str, steps_to_run: list[str] | None) -> bool:
@@ -823,7 +1609,12 @@ def run_single_step(
     supporting iterative workflows and better user feedback.
 
     Args:
-        step_name: Step to execute ("classification", "extraction", "validation", "correction")
+        step_name: Step to execute:
+            - "classification": Classify document type
+            - "extraction": Extract structured data
+            - "validation_correction": NEW - Iterative validation with automatic correction
+            - "validation": Legacy - Single validation run (backward compat)
+            - "correction": Legacy - Single correction run (backward compat)
         pdf_path: Path to PDF file to process
         max_pages: Maximum pages to process (None = all pages)
         llm_provider: LLM provider name ("openai" or "claude")
@@ -835,8 +1626,10 @@ def run_single_step(
         Dictionary containing step result. Key depends on step:
         - classification: {"publication_type": str, "metadata": dict, ...}
         - extraction: {"data": dict, ...}
+        - validation_correction: {"final_status": str, "best_extraction": dict,
+                                  "best_validation": dict, "iterations": list, ...}
         - validation: {"verification_summary": dict, ...}
-        - correction: {"corrected_extraction": dict, "final_validation": dict}
+        - correction: {"extraction_corrected": dict, "validation_corrected": dict}
 
     Raises:
         ValueError: If step_name is invalid
@@ -866,10 +1659,11 @@ def run_single_step(
         ...     previous_results={"classification": result1},
         ... )
     """
-    # Validate step name
-    if step_name not in ALL_PIPELINE_STEPS:
+    # Validate step name (allow both new and legacy steps)
+    valid_steps = ALL_PIPELINE_STEPS + [STEP_VALIDATION, STEP_CORRECTION]
+    if step_name not in valid_steps:
         raise ValueError(
-            f"Invalid step_name '{step_name}'. Must be one of: {', '.join(ALL_PIPELINE_STEPS)}"
+            f"Invalid step_name '{step_name}'. Must be one of: {', '.join(valid_steps)}"
         )
 
     # Initialize previous_results if not provided
@@ -880,6 +1674,9 @@ def run_single_step(
     def _get_or_load_result(dep_step: str) -> dict[str, Any]:
         """
         Try to get step result from previous_results first, then load from disk.
+
+        For extraction and validation steps, tries to load BEST files first (quality-selected),
+        falling back to iteration 0 if no best file exists.
 
         Args:
             dep_step: Dependency step name to load
@@ -895,7 +1692,41 @@ def run_single_step(
             return previous_results[dep_step]
 
         # Try loading from disk (previous run)
-        result = file_manager.load_json(dep_step)
+        result = None
+
+        # For extraction: try BEST file first, then fall back to extraction0
+        if dep_step == "extraction":
+            result = file_manager.load_json("extraction", status="best")
+            if result:
+                console.print("[yellow]📂 Loaded BEST extraction (quality-selected)[/yellow]")
+                # Show metadata if available
+                metadata = file_manager.load_json("extraction", status="best-metadata")
+                if metadata:
+                    console.print(
+                        f"[dim]   Best iteration: {metadata.get('best_iteration_num')}, "
+                        f"Quality: {metadata.get('overall_quality', 0):.2f}[/dim]"
+                    )
+                return result
+
+            # Fallback: try extraction0
+            console.print("[yellow]📂 No best extraction found, loading extraction0[/yellow]")
+            result = file_manager.load_json("extraction", iteration_number=0)
+
+        # For validation: try BEST file first, then fall back to validation0
+        elif dep_step == "validation":
+            result = file_manager.load_json("validation", status="best")
+            if result:
+                console.print("[yellow]📂 Loaded BEST validation (quality-selected)[/yellow]")
+                return result
+
+            # Fallback: try validation0
+            console.print("[yellow]📂 No best validation found, loading validation0[/yellow]")
+            result = file_manager.load_json("validation", iteration_number=0)
+
+        # For other steps: load normally
+        else:
+            result = file_manager.load_json(dep_step)
+
         if result is None:
             raise ValueError(
                 f"{dep_step.title()} step result not found. "
@@ -903,7 +1734,9 @@ def run_single_step(
                 f"tmp/{file_manager.identifier}-{dep_step}.json exists."
             )
 
-        console.print(f"[yellow]📂 Loaded {dep_step} result from disk[/yellow]")
+        if dep_step not in ["extraction", "validation"]:
+            console.print(f"[yellow]📂 Loaded {dep_step} result from disk[/yellow]")
+
         return result
 
     # Validate dependencies based on step and load if needed
@@ -932,6 +1765,13 @@ def run_single_step(
                 "Correction step not needed - validation passed. "
                 "Only run correction when validation status is not 'passed'."
             )
+
+    elif step_name == STEP_VALIDATION_CORRECTION:
+        # New iterative validation-correction step requires same dependencies as STEP_EXTRACTION
+        classification_result = _get_or_load_result("classification")
+        extraction_result = _get_or_load_result("extraction")
+        previous_results[STEP_CLASSIFICATION] = classification_result
+        previous_results[STEP_EXTRACTION] = extraction_result
 
     # Check LLM support availability
     try:
@@ -998,11 +1838,41 @@ def run_single_step(
             progress_callback=progress_callback,
         )
 
+        # Save corrected extraction and post-correction validation (4-step pipeline, iteration 1)
+        corrected_file = file_manager.save_json(
+            corrected_extraction, "extraction", iteration_number=1
+        )
+        console.print(f"[green]✅ Correctie opgeslagen: {corrected_file}[/green]")
+
+        validation_file = file_manager.save_json(final_validation, "validation", iteration_number=1)
+        console.print(f"[green]✅ Finale validatie opgeslagen: {validation_file}[/green]")
+
         # Return both corrected extraction and final validation
         return {
             "extraction_corrected": corrected_extraction,
             "validation_corrected": final_validation,
         }
+
+    elif step_name == STEP_VALIDATION_CORRECTION:
+        # New iterative validation-correction workflow
+        classification_result = previous_results[STEP_CLASSIFICATION]
+        extraction_result = previous_results[STEP_EXTRACTION]
+
+        # Call the iterative loop with default or custom parameters
+        return run_validation_with_correction(
+            pdf_path=pdf_path,
+            extraction_result=extraction_result,
+            classification_result=classification_result,
+            llm_provider=llm_provider,
+            file_manager=file_manager,
+            max_iterations=3,  # Could be parameterized in future
+            quality_thresholds=None,  # Uses DEFAULT_QUALITY_THRESHOLDS
+            progress_callback=progress_callback,
+        )
+
+    else:
+        # Should never reach here due to validation above
+        raise ValueError(f"Unknown step: {step_name}")
 
 
 def run_four_step_pipeline(
@@ -1138,7 +2008,10 @@ def run_four_step_pipeline(
             # Store result
             if step_name == STEP_CORRECTION:
                 # Correction returns dict with extraction_corrected and validation_corrected
-                results["extraction_corrected"] = step_result["extraction_corrected"]
+                # Strip metadata (including correction_notes) from corrected extraction
+                results["extraction_corrected"] = _strip_metadata_for_pipeline(
+                    step_result["extraction_corrected"]
+                )
                 results["validation_corrected"] = step_result["validation_corrected"]
             else:
                 results[step_name] = step_result

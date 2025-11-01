@@ -75,7 +75,8 @@ def check_existing_results(identifier: str | None) -> dict:
             'classification': True,
             'extraction': True,
             'validation': False,
-            'correction': False
+            'correction': False,
+            'validation_correction': False
         }
     """
     if not identifier:
@@ -84,14 +85,16 @@ def check_existing_results(identifier: str | None) -> dict:
             "extraction": False,
             "validation": False,
             "correction": False,
+            "validation_correction": False,
         }
 
     tmp_dir = Path("tmp")
     results = {
         "classification": (tmp_dir / f"{identifier}-classification.json").exists(),
-        "extraction": (tmp_dir / f"{identifier}-extraction.json").exists(),
-        "validation": (tmp_dir / f"{identifier}-validation.json").exists(),
-        "correction": (tmp_dir / f"{identifier}-extraction-corrected.json").exists(),
+        "extraction": (tmp_dir / f"{identifier}-extraction0.json").exists(),
+        "validation": (tmp_dir / f"{identifier}-validation0.json").exists(),
+        "correction": (tmp_dir / f"{identifier}-extraction1.json").exists(),
+        "validation_correction": any(tmp_dir.glob(f"{identifier}-validation[0-9]*.json")),
     }
     return results
 
@@ -102,7 +105,7 @@ def get_result_file_info(identifier: str, step: str) -> dict | None:
 
     Args:
         identifier: File identifier (PDF filename stem)
-        step: Pipeline step name ('classification', 'extraction', 'validation', 'correction')
+        step: Pipeline step name ('classification', 'extraction', 'validation', 'correction', 'validation_correction')
 
     Returns:
         Dictionary with file metadata if file exists:
@@ -121,20 +124,57 @@ def get_result_file_info(identifier: str, step: str) -> dict | None:
     """
     tmp_dir = Path("tmp")
 
-    # Map step names to filenames
-    file_map = {
-        "classification": f"{identifier}-classification.json",
-        "extraction": f"{identifier}-extraction.json",
-        "validation": f"{identifier}-validation.json",
-        "correction": f"{identifier}-extraction-corrected.json",
-    }
+    # Determine file path based on step
+    # For extraction and validation: prefer BEST file, fall back to iteration 0
+    # For validation_correction: prefer BEST validation, fall back to most recent
 
-    if step not in file_map:
-        return None
+    if step == "extraction":
+        # Try best extraction first
+        best_path = tmp_dir / f"{identifier}-extraction-best.json"
+        if best_path.exists():
+            file_path = best_path
+        else:
+            # Fallback to extraction0
+            file_path = tmp_dir / f"{identifier}-extraction0.json"
+            if not file_path.exists():
+                return None
 
-    file_path = tmp_dir / file_map[step]
-    if not file_path.exists():
-        return None
+    elif step == "validation":
+        # Try best validation first
+        best_path = tmp_dir / f"{identifier}-validation-best.json"
+        if best_path.exists():
+            file_path = best_path
+        else:
+            # Fallback to validation0
+            file_path = tmp_dir / f"{identifier}-validation0.json"
+            if not file_path.exists():
+                return None
+
+    elif step == "validation_correction":
+        # Try best validation first
+        best_path = tmp_dir / f"{identifier}-validation-best.json"
+        if best_path.exists():
+            file_path = best_path
+        else:
+            # Fallback: find most recent validation iteration
+            validation_files = list(tmp_dir.glob(f"{identifier}-validation[0-9]*.json"))
+            if not validation_files:
+                return None
+            file_path = max(validation_files, key=lambda p: p.stat().st_mtime)
+
+    else:
+        # Map step names to filenames for other steps
+        file_map = {
+            "classification": f"{identifier}-classification.json",
+            "correction": f"{identifier}-extraction1.json",
+        }
+
+        if step not in file_map:
+            return None
+
+        file_path = tmp_dir / file_map[step]
+        if not file_path.exists():
+            return None
 
     # Get file statistics
     stat = file_path.stat()

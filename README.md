@@ -65,41 +65,45 @@ This pipeline extracts structured data from medical research PDFs with a focus o
                             │
                             ↓
 ┌──────────────────────────────────────────────────────────────┐
-│  STEP 3: Validation (Dual-Tier)                              │
+│  STEP 3: Validation & Correction (Iterative Loop)           │
 │  ┌────────────────────────────────────────────────────────┐ │
-│  │ 3a. Schema Validation (Fast, Local, Free)             │ │
-│  │     • Check structure & types                          │ │
-│  │     • Calculate quality score (0.0-1.0)                │ │
-│  │     • Completeness analysis                            │ │
+│  │ While quality insufficient AND iterations < max:       │ │
+│  │                                                          │ │
+│  │  3a. Validation (Dual-Tier)                            │ │
+│  │      ┌───────────────────────────────────────────────┐ │ │
+│  │      │ Schema validation (fast, free)                │ │ │
+│  │      │ • Check structure & types                     │ │ │
+│  │      │ • Quality score ≥50% → proceed to LLM         │ │ │
+│  │      │ • Quality score <50% → fail immediately       │ │ │
+│  │      └───────────────────────────────────────────────┘ │ │
+│  │      ┌───────────────────────────────────────────────┐ │ │
+│  │      │ LLM validation (if schema passed)             │ │ │
+│  │      │ • Upload PDF for comparison                   │ │ │
+│  │      │ • Semantic accuracy check                     │ │ │
+│  │      │ • Completeness verification                   │ │ │
+│  │      │ Output: validation.json (or -correctedN)      │ │ │
+│  │      └───────────────────────────────────────────────┘ │ │
+│  │                                                          │ │
+│  │  3b. Quality Assessment                                │ │
+│  │      • Check completeness ≥90%                         │ │
+│  │      • Check accuracy ≥95%                             │ │
+│  │      • Check schema compliance ≥95%                    │ │
+│  │      • Check critical_issues = 0                       │ │
+│  │                                                          │ │
+│  │  3c. If quality insufficient:                          │ │
+│  │      • Run correction with validation feedback         │ │
+│  │      • Upload PDF + validation report to LLM           │ │
+│  │      • Fix identified issues                           │ │
+│  │      • Output: extraction-correctedN.json              │ │
+│  │      • Loop back to 3a (validate corrected)            │ │
+│  │                                                          │ │
+│  │  3d. Early Stopping:                                   │ │
+│  │      • If quality degrades 2 consecutive iterations    │ │
+│  │      • Select best iteration and exit                  │ │
 │  └────────────────────────────────────────────────────────┘ │
-│                            │                                  │
-│                 Quality ≥ 50%? ─────No─────→ Skip LLM        │
-│                            │                                  │
-│                           Yes                                 │
-│                            ↓                                  │
-│  ┌────────────────────────────────────────────────────────┐ │
-│  │ 3b. LLM Validation (Slow, Expensive, Thorough)         │ │
-│  │     • Upload PDF for comparison                        │ │
-│  │     • Semantic accuracy check                          │ │
-│  │     • Hallucination detection                          │ │
-│  │     • Completeness verification                        │ │
-│  │     Output: validation.json                            │ │
-│  └────────────────────────────────────────────────────────┘ │
-└──────────────────────────────────────────────────────────────┘
-                            │
-                    Validation Failed?
-                            │
-                           Yes
-                            ↓
-┌──────────────────────────────────────────────────────────────┐
-│  STEP 4: Correction (Conditional)                            │
-│  ┌────────────────────────────────────────────────────────┐ │
-│  │ • Upload PDF with validation report                    │ │
-│  │ • Fix identified issues                                │ │
-│  │ • Re-extract missing data                              │ │
-│  │ • Re-validate corrected output                         │ │
-│  │ Output: extraction-corrected.json                      │ │
-│  └────────────────────────────────────────────────────────┘ │
+│                                                               │
+│  Output: Best extraction + validation from all iterations    │
+│  Status: passed / max_iterations_reached / early_stopped     │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -192,7 +196,7 @@ streamlit run app.py
 For automation and batch processing, use the CLI:
 
 ```bash
-# Run with OpenAI (default)
+# Run full pipeline (all 3 steps)
 python run_pipeline.py path/to/paper.pdf
 
 # Run with Claude
@@ -200,6 +204,15 @@ python run_pipeline.py path/to/paper.pdf --llm-provider claude
 
 # Process only first 10 pages (for testing)
 python run_pipeline.py path/to/paper.pdf --max-pages 10
+
+# Run single step only
+python run_pipeline.py path/to/paper.pdf --step classification
+
+# Run iterative validation-correction with custom settings
+python run_pipeline.py path/to/paper.pdf --step validation_correction \
+    --max-iterations 2 \
+    --completeness-threshold 0.85 \
+    --accuracy-threshold 0.90
 
 # Keep intermediate files
 python run_pipeline.py path/to/paper.pdf --keep-tmp
@@ -209,7 +222,13 @@ python run_pipeline.py path/to/paper.pdf --keep-tmp
 
 ```
 usage: run_pipeline.py [-h] [--max-pages MAX_PAGES] [--keep-tmp]
-                       [--llm-provider {openai,claude}] pdf
+                       [--llm-provider {openai,claude}]
+                       [--step {classification,extraction,validation,correction,validation_correction}]
+                       [--max-iterations MAX_ITERATIONS]
+                       [--completeness-threshold FLOAT]
+                       [--accuracy-threshold FLOAT]
+                       [--schema-threshold FLOAT]
+                       pdf
 
 positional arguments:
   pdf                   Path to PDF file
@@ -220,6 +239,16 @@ optional arguments:
   --keep-tmp            Keep intermediate files in tmp/
   --llm-provider {openai,claude}
                         Choose LLM provider (default: openai)
+  --step {classification,extraction,validation,correction,validation_correction}
+                        Run specific pipeline step (default: run all steps)
+  --max-iterations MAX_ITERATIONS
+                        Maximum correction attempts for validation_correction (default: 3)
+  --completeness-threshold FLOAT
+                        Minimum completeness score 0.0-0.99 (default: 0.90)
+  --accuracy-threshold FLOAT
+                        Minimum accuracy score 0.0-0.99 (default: 0.95)
+  --schema-threshold FLOAT
+                        Minimum schema compliance score 0.0-0.99 (default: 0.95)
 ```
 
 ### Programmatic Usage
@@ -305,6 +334,75 @@ Each JSON file contains structured data conforming to its schema:
   "results": {...}
 }
 ```
+
+---
+
+## 🔄 Iterative Validation-Correction
+
+The pipeline uses an **iterative correction loop** to progressively improve extraction quality until it meets your requirements.
+
+### How It Works
+
+1. **Initial Validation**: Extract data, then validate (schema + LLM)
+2. **Quality Assessment**: Check if extraction meets quality thresholds:
+   - Completeness ≥90% (how much of PDF data extracted)
+   - Accuracy ≥95% (correctness, no hallucinations)
+   - Schema compliance ≥95% (structural correctness)
+   - Critical issues = 0 (no critical errors)
+3. **Correction If Needed**: If quality insufficient, run correction with validation feedback
+4. **Re-validate**: Validate corrected extraction
+5. **Repeat**: Continue until quality sufficient OR max iterations reached (default: 3)
+6. **Best Result**: Always returns highest quality iteration
+
+### Early Stopping
+
+The loop automatically stops early if:
+- Quality degrades for 2 consecutive iterations
+- Schema validation fails (<50% quality)
+- LLM API failures after 3 retries with exponential backoff (1s, 2s, 4s)
+
+### Configuration
+
+**Default Settings:**
+- Max iterations: 3 (total of 4 attempts: initial + 3 corrections)
+- Completeness threshold: 0.90 (90%)
+- Accuracy threshold: 0.95 (95%)
+- Schema compliance threshold: 0.95 (95%)
+
+**Customize via CLI:**
+```bash
+python run_pipeline.py paper.pdf --step validation_correction \
+    --max-iterations 2 \
+    --completeness-threshold 0.85 \
+    --accuracy-threshold 0.90
+```
+
+**Customize via Web UI:**
+Settings screen → "Validation & Correction" section → Adjust sliders
+
+### Output Files
+
+Each iteration is saved for traceability:
+```
+tmp/
+├── paper-extraction.json              # Initial extraction (iteration 0)
+├── paper-validation.json              # Initial validation
+├── paper-extraction-corrected1.json   # First correction (iteration 1)
+├── paper-validation-corrected1.json   # Validation of correction
+├── paper-extraction-corrected2.json   # Second correction (iteration 2)
+└── paper-validation-corrected2.json   # Final validation
+```
+
+The pipeline returns the **best extraction** based on composite quality score (40% completeness + 40% accuracy + 20% schema).
+
+**Final Status Codes:**
+- `passed`: Quality thresholds met
+- `max_iterations_reached`: Max iterations reached, using best result
+- `early_stopped_degradation`: Stopped due to quality degradation
+- `failed_schema_validation`: Schema validation failed (<50% quality)
+- `failed_llm_error`: LLM API error after retries
+- `failed_invalid_json`: Correction produced invalid JSON
+- `failed_unexpected_error`: Unexpected error occurred
 
 ---
 

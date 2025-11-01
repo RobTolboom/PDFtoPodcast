@@ -36,13 +36,14 @@ Public API:
 """
 
 from .file_manager import PipelineFileManager
-from .orchestrator import run_four_step_pipeline
+from .orchestrator import run_four_step_pipeline, run_single_step
 from .utils import check_breakpoint, doi_to_safe_filename, get_file_identifier, get_next_step
 from .validation_runner import SCHEMA_QUALITY_THRESHOLD, run_dual_validation
 
 __all__ = [
     # Main pipeline orchestration
     "run_four_step_pipeline",
+    "run_single_step",
     # File management
     "PipelineFileManager",
     # Validation

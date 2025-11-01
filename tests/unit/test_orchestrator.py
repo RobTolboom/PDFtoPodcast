@@ -60,6 +60,20 @@ class TestStripMetadataForPipeline:
         assert "_pipeline_metadata" not in clean
         assert "publication_type" in clean
 
+    def test_strip_metadata_removes_correction_notes(self):
+        """Test that correction_notes field is removed."""
+        data = {
+            "publication_type": "interventional_trial",
+            "metadata": {"title": "Test Study"},
+            "correction_notes": "Corrections applied based on validation feedback",
+        }
+
+        clean = _strip_metadata_for_pipeline(data)
+
+        assert "correction_notes" not in clean
+        assert "publication_type" in clean
+        assert "metadata" in clean
+
     def test_strip_metadata_handles_missing_fields(self):
         """Test that function works when metadata fields are absent."""
         data = {
@@ -82,6 +96,7 @@ class TestStripMetadataForPipeline:
             "usage": {"input_tokens": 1000},
             "_metadata": {"response_id": "resp_123"},
             "_pipeline_metadata": {"step": "extraction"},
+            "correction_notes": "Corrections applied based on validation feedback",
         }
 
         clean = _strip_metadata_for_pipeline(data)
@@ -96,14 +111,16 @@ class TestStripMetadataForPipeline:
         assert "usage" not in clean
         assert "_metadata" not in clean
         assert "_pipeline_metadata" not in clean
+        assert "correction_notes" not in clean
 
     def test_strip_metadata_removes_all_metadata_fields_together(self):
-        """Test that all three metadata fields are removed in one call."""
+        """Test that all four metadata fields are removed in one call."""
         data = {
             "field": "value",
             "usage": {"tokens": 100},
             "_metadata": {"model": "gpt-5"},
             "_pipeline_metadata": {"step": "classification"},
+            "correction_notes": "Corrections applied",
         }
 
         clean = _strip_metadata_for_pipeline(data)

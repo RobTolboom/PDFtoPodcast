@@ -65,15 +65,15 @@ class TestStateManagement:
         assert execution["end_time"] is None
         assert execution["error"] is None
         assert execution["results"] is None
-        assert execution["auto_redirect_enabled"] is True
+        assert execution["auto_redirect_enabled"] is False  # Changed: timer disabled
         assert execution["redirect_cancelled"] is False
         assert execution["redirect_countdown"] is None
 
-        # Assert: Step status initialized for all 4 steps
+        # Assert: Step status initialized for all 3 steps
         assert "step_status" in mock_st.session_state
         step_status = mock_st.session_state["step_status"]
-        assert len(step_status) == 4
-        for step_name in ["classification", "extraction", "validation", "correction"]:
+        assert len(step_status) == 3
+        for step_name in ["classification", "extraction", "validation_correction"]:
             assert step_name in step_status
             step = step_status[step_name]
             assert step["status"] == "pending"
@@ -124,14 +124,14 @@ class TestStateManagement:
         assert execution["end_time"] is None
         assert execution["error"] is None
         assert execution["results"] is None
-        assert execution["auto_redirect_enabled"] is True
+        assert execution["auto_redirect_enabled"] is False  # Changed: timer disabled
         assert execution["redirect_cancelled"] is False
         assert execution["redirect_countdown"] is None
 
-        # Assert: Step status reset for all 4 steps
+        # Assert: Step status reset for all 3 steps
         step_status = mock_st.session_state["step_status"]
-        assert len(step_status) == 4
-        for step_name in ["classification", "extraction", "validation", "correction"]:
+        assert len(step_status) == 3
+        for step_name in ["classification", "extraction", "validation_correction"]:
             assert step_name in step_status
             step = step_status[step_name]
             assert step["status"] == "pending"

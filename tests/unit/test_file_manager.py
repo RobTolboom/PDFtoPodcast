@@ -111,17 +111,17 @@ class TestPipelineFileManager:
         expected = tmp_path / "study_paper-extraction.json"
         assert filepath == expected
 
-    def test_get_filename_with_status(self, tmp_path):
-        """Test that get_filename with status creates correct filename."""
+    def test_get_filename_with_iteration_number(self, tmp_path):
+        """Test that get_filename with iteration_number creates correct filename."""
         pdf_path = tmp_path / "paper.pdf"
         pdf_path.touch()
 
         manager = PipelineFileManager(pdf_path)
         manager.tmp_dir = tmp_path
 
-        filepath = manager.get_filename("extraction", "corrected")
+        filepath = manager.get_filename("extraction", iteration_number=1)
 
-        expected = tmp_path / "paper-extraction-corrected.json"
+        expected = tmp_path / "paper-extraction1.json"
         assert filepath == expected
 
     def test_identifier_property(self, tmp_path):
@@ -165,20 +165,20 @@ class TestPipelineFileManager:
 
         assert result is None
 
-    def test_load_json_with_status_suffix(self, tmp_path):
-        """Test that load_json works with status suffix."""
+    def test_load_json_with_iteration_number(self, tmp_path):
+        """Test that load_json works with iteration_number."""
         pdf_path = tmp_path / "test.pdf"
         pdf_path.touch()
 
         manager = PipelineFileManager(pdf_path)
         manager.tmp_dir = tmp_path
 
-        # Save data with status
+        # Save data with iteration number
         data = {"corrected": True, "validation_passed": True}
-        manager.save_json(data, "extraction", "corrected")
+        manager.save_json(data, "extraction", iteration_number=2)
 
-        # Load it back with status
-        loaded_data = manager.load_json("extraction", "corrected")
+        # Load it back with iteration number
+        loaded_data = manager.load_json("extraction", iteration_number=2)
 
         assert loaded_data is not None
         assert loaded_data["corrected"] is True

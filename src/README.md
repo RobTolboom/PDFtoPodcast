@@ -210,8 +210,54 @@ results = run_four_step_pipeline(
 **Pipeline Steps:**
 1. Classification - Identify publication type
 2. Extraction - Schema-based data extraction
-3. Validation - Dual validation (schema + LLM)
-4. Correction - Fix issues (conditional)
+3. Validation & Correction - Iterative loop until quality sufficient
+
+**Iterative Validation-Correction:**
+
+```python
+from src.pipeline.orchestrator import run_validation_with_correction
+from pathlib import Path
+
+result = run_validation_with_correction(
+    pdf_path=Path("paper.pdf"),
+    extraction_result=extraction,
+    classification_result=classification,
+    llm_provider="openai",
+    file_manager=file_manager,
+    max_iterations=3,  # Default: 3 correction attempts
+    quality_thresholds={
+        'completeness_score': 0.90,
+        'accuracy_score': 0.95,
+        'schema_compliance_score': 0.95,
+        'critical_issues': 0
+    },
+    progress_callback=None  # Optional: UI progress callback
+)
+
+# Returns:
+{
+    'best_extraction': dict,           # Best extraction result
+    'best_validation': dict,           # Validation of best extraction
+    'iterations': list[dict],          # All iteration history with metrics
+    'final_status': str,               # "passed" | "max_iterations_reached" | "failed_*"
+    'iteration_count': int,            # Total iterations performed
+    'best_iteration': int,             # Iteration number of best result (0-based index)
+    'improvement_trajectory': list[float]  # Quality scores per iteration
+}
+```
+
+**Final Status Codes:**
+- `passed`: Quality thresholds met
+- `max_iterations_reached`: Max iterations reached, using best result
+- `early_stopped_degradation`: Stopped due to quality degradation (2 consecutive)
+- `failed_schema_validation`: Schema validation failed (<50% quality)
+- `failed_llm_error`: LLM API error after 3 retries
+- `failed_invalid_json`: Correction produced invalid JSON
+- `failed_unexpected_error`: Unexpected error occurred
+
+**Quality Assessment:**
+- Composite score: 40% completeness + 40% accuracy + 20% schema compliance
+- Best iteration selected based on: (1) no critical issues, (2) highest quality score, (3) highest completeness
 
 ---
 
