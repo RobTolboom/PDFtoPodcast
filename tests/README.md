@@ -1,9 +1,6 @@
 # Test Suite
 
-> **📖 For complete testing guidelines, see [CONTRIBUTING.md](../CONTRIBUTING.md)**
-> This document provides quick reference for running and writing tests.
-
-Comprehensive test suite for PDFtoPodcast medical literature extraction pipeline.
+For full contributor expectations, read [CONTRIBUTING.md](../CONTRIBUTING.md). This page is a quick-reference for running and extending the automated tests that exercise the PDFtoPodcast pipeline.
 
 ---
 
@@ -12,6 +9,9 @@ Comprehensive test suite for PDFtoPodcast medical literature extraction pipeline
 ```bash
 # Run all tests
 make test
+
+# Quick feedback (unit tests without slow marker)
+make test-fast
 
 # Fast unit tests only
 make test-unit
@@ -47,22 +47,6 @@ tests/
 
 ## Running Tests
 
-### Using Make Commands
-
-```bash
-# All tests
-make test
-
-# Unit tests only (fast)
-make test-unit
-
-# Integration tests only
-make test-integration
-
-# With coverage
-make test-coverage
-```
-
 ### Using Pytest Directly
 
 ```bash
@@ -74,6 +58,9 @@ pytest tests/unit/test_schemas.py -v
 
 # Specific test function
 pytest tests/unit/test_schemas.py::test_load_classification_schema -v
+
+# Pattern match on node IDs
+pytest tests -k "classification and not slow"
 
 # With output capture disabled
 pytest tests/ -v -s
@@ -214,7 +201,7 @@ Mock LLM calls to avoid API costs during testing:
 ```python
 from unittest.mock import Mock, patch
 
-@patch('src.llm.OpenAIProvider.generate_json_with_pdf')
+@patch("src.llm.OpenAIProvider.generate_json_with_pdf")
 def test_with_mock(mock_generate):
     """Test with mocked LLM response."""
     mock_generate.return_value = {
@@ -259,7 +246,7 @@ def test_something(sample_pdf, mock_openai_provider):
 
 ## Coverage
 
-Aim for >80% code coverage:
+Aim for 80%+ line coverage across `src/`:
 
 ```bash
 # Run tests with coverage
