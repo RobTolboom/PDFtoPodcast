@@ -583,6 +583,9 @@
             }
           },
           "additionalProperties": false
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/SourceRef"
         }
       }
     },
@@ -945,6 +948,9 @@
         "measurement_method": {
           "type": "string"
         },
+        "is_primary": {
+          "type": "boolean"
+        },
         "scale_min": {
           "type": "number"
         },
@@ -1228,16 +1234,12 @@
       "additionalProperties": false,
       "required": [
         "comparison_label",
-        "outcome_id",
         "pooled"
       ],
       "properties": {
         "comparison_label": {
           "type": "string",
           "description": "e.g., Drug A vs placebo"
-        },
-        "outcome_id": {
-          "type": "string"
         },
         "per_study_effects": {
           "type": "array",
@@ -1701,6 +1703,9 @@
               "$ref": "common.schema.json#/$defs/SourceRef"
             }
           }
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/SourceRef"
         }
       }
     },
