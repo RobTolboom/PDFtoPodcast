@@ -75,13 +75,13 @@ study_design
   each with `source`.
 
 population
-- Eligibility (inclusion/exclusion), recruitment, N_randomized, N_analyzed (per population if reported: ITT/mITT/PP/Safety).
+- Eligibility (inclusion/exclusion), recruitment, n_randomised, n_analysed (per population if reported: ITT/mITT/PP/Safety).
 
 interventions
 - Per arm (link via arm_id): dose_regimen, route_timing, anesthesia_technique, airway_management, monitoring, analgesia_strategy, co-interventions, deviations (summary), source.
 
 arms
-- [{ arm_id, label, description, n_planned?, n_randomized?, n_analyzed?, source }]
+- [{ arm_id, label, description, n_assigned?, n_analysed?, source }]
 - Use simple stable IDs: "A","B","C",…
 
 comparisons
@@ -95,7 +95,7 @@ comparisons
 
 outcomes
 - Each: {
-    outcome_id, label,
+    outcome_id, name,
     type ∈ {"binary","continuous","time_to_event","ordinal","count"},
     definition, measurement_method, direction_of_benefit ∈ {"higher_better","lower_better"} (when inferable from the scale text),
     unit/unit_ucum (if applicable),
@@ -108,6 +108,15 @@ PRIMARY OUTCOME RULE:
 1. If the PDF explicitly designates a primary outcome by name (e.g., "the primary endpoint was...", "primary outcome measure"), set is_primary:true for that outcome.
 2. If NO outcome is explicitly designated as primary, mark the FIRST outcome in the outcomes array as is_primary:true to ensure schema compliance.
 3. Never infer primacy from importance, position in tables, or p-value alone — only from explicit language or the fallback rule above.
+
+OUTCOME FIELD VALIDATION:
+- REQUIRED fields: outcome_id (string), name (string), type (enum)
+- ALLOWED optional fields: definition, is_primary, direction_of_benefit, unit, unit_ucum, timepoint, timepoint_iso8601, measurement_method, scale_min, scale_max, event_competing_risks_present, censoring_informative_risk, ontology_terms, provenance, source
+- is_primary MUST be JSON boolean (true/false), NEVER a string ("true"/"false")
+- direction_of_benefit MUST be one of: "higher_better", "lower_better", "neutral_or_na"
+- type MUST be one of: "binary", "continuous", "time_to_event", "ordinal", "count"
+- DO NOT add any fields not explicitly listed above (schema has additionalProperties:false)
+- censoring_informative_risk must use enum: "low", "moderate", "high", "unclear"
 
 results
 - Allowed only: per_arm[], contrasts[], harms[].
@@ -127,7 +136,7 @@ contrasts[]
     adjusted: <bool> (if applicable),
     model ∈ {"fixed","random","cox","logistic","linear","poisson","nb","gee","mixed","other","na"},
     effect: {
-      type ∈ {"RR","OR","HR","MD","SMD","RD","RMST","Other"},
+      type ∈ {"RR","IRR","OR","HR","MD","SMD","RD","RMST","Other"},
       point:number,
       ci:{lower:number,upper:number},  # if reported
       p_value:number | string          # if reported — see P-VALUE HANDLING below
@@ -142,7 +151,9 @@ contrasts[]
 P-VALUE HANDLING:
 - If p-value is an exact number (e.g., "p=0.042"): emit as JSON number: "p_value": 0.042
 - If p-value is a threshold (e.g., "p<0.001", "p>0.05", "NS"): emit as JSON string verbatim: "p_value": "<0.001"
-- DO NOT convert strings to numbers or vice versa. Preserve the form as reported in the PDF.
+- Both number and string types are valid per schema (oneOf).
+- Preserve the form as reported in the PDF: exact numbers → number, thresholds → string.
+- Valid string patterns: "<0.001", ">0.05", "NS", "not significant"
 
 harms[]
 - Only include when RAW counts are present.
@@ -213,6 +224,7 @@ PRE-FLIGHT CHECKLIST (hard fail if any item fails)
 11) figures_summary entries include BOTH figure_id and caption; key_values numeric only.
 12) All emitted objects that include `source` have at least {page} and a concise anchor.
 13) NO disallowed keys anywhere: usage, choices, correction_notes, _metadata, _pipeline_metadata, or vendor metadata.
+14) Field names are EXACT: arm_id (NOT arm_id_id), outcome_id (NOT outcome_id_id), comparison_id (NOT comparison_id_id). Never duplicate suffixes.
 
 OUTPUT
 - Respond with exactly one JSON object that validates against the interventional_trial v2 schema. No extra text.

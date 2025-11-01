@@ -431,10 +431,20 @@
         "ci": { "$ref": "#/$defs/EffectCI" },
         "credible_interval": { "$ref": "#/$defs/BayesianInterval" },
         "p_value": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Statistical significance p-value"
+          "oneOf": [
+            {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "Exact p-value as a number"
+            },
+            {
+              "type": "string",
+              "pattern": "^(<|>|≤|≥)?\\s*0?\\.?\\d+(\\.\\d+)?$|^NS$|^n\\.?s\\.?$|^not significant$",
+              "description": "P-value as threshold string (e.g., '<0.001', '>0.05', 'NS')"
+            }
+          ],
+          "description": "Statistical significance p-value (number or threshold string as reported)"
         },
         "bayes_factor": {
           "type": "number",
