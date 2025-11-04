@@ -25,6 +25,7 @@ from src.streamlit_app.screens import (
     show_settings_screen,
     show_upload_screen,
 )
+from src.streamlit_app.screens.execution import reset_execution_state
 
 # Page configuration - must be first Streamlit command
 st.set_page_config(
@@ -70,6 +71,9 @@ def main():
             st.session_state.uploaded_file_info = None
             st.session_state.highlighted_file = None
             st.session_state.uploader_key += 1  # Force file_uploader widget reset
+
+            # Reset execution state to prevent "process already done" issue
+            reset_execution_state()
 
             st.rerun()
 

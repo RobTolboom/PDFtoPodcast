@@ -122,7 +122,7 @@ def init_execution_state():
             "error": None,
             "results": None,
             "current_step_index": 0,  # Index of current step being executed (0-3)
-            "auto_redirect_enabled": True,  # Enable auto-redirect after completion
+            "auto_redirect_enabled": False,  # Disable auto-redirect after completion
             "redirect_cancelled": False,  # User cancelled auto-redirect
             "redirect_countdown": None,  # Countdown value (30, 29, ..., 0)
         }
@@ -179,7 +179,7 @@ def reset_execution_state():
         "error": None,
         "results": None,
         "current_step_index": 0,
-        "auto_redirect_enabled": True,
+        "auto_redirect_enabled": False,
         "redirect_cancelled": False,
         "redirect_countdown": None,
     }

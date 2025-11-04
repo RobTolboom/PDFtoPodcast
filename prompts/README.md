@@ -1,336 +1,91 @@
-# Extraction Prompts - Medical Literature Data Extraction
+# Prompt Library
 
-> **📖 For system architecture and design decisions, see [ARCHITECTURE.md](../ARCHITECTURE.md)**
+This directory stores the large-language-model prompt templates used across the PDFtoPodcast pipeline. Prompts are paired with JSON schemas so that every LLM response can be validated deterministically.
 
-This directory contains LLM prompts for extracting structured data from medical research PDFs. Each prompt is optimized for a specific publication type and works together with its corresponding JSON schema.
+- Loading helpers live in `src/prompts.py` (`load_classification_prompt`, `load_extraction_prompt`, `load_validation_prompt`, `load_correction_prompt`).
+- Schemas are bundled under `schemas/` with matching filenames (for example, `interventional_trial_bundled.json` accompanies `Extraction-prompt-interventional.txt`).
+- Tests covering prompt integrity reside in `tests/unit/test_prompts.py`.
 
----
+## Prompt Inventory
 
-## 🚀 Quick Start
+| Publication type | Prompt file | Schema file | Typical studies |
+|------------------|-------------|-------------|-----------------|
+| Classification (all PDFs) | `Classification.txt` | `classification_bundled.json` | Identifies publication type and metadata |
+| Interventional trials | `Extraction-prompt-interventional.txt` | `interventional_trial_bundled.json` | Randomised, cluster, crossover trials |
+| Observational analytic | `Extraction-prompt-observational.txt` | `observational_analytic_bundled.json` | Cohort, case-control, cross-sectional studies |
+| Evidence synthesis | `Extraction-prompt-evidence-synthesis.txt` | `evidence_synthesis_bundled.json` | Systematic reviews, meta-analyses, guideline syntheses |
+| Prediction and prognosis | `Extraction-prompt-prediction.txt` | `prediction_prognosis_bundled.json` | Risk prediction, prognostic modelling, ML studies |
+| Editorials and opinion | `Extraction-prompt-editorials.txt` | `editorials_opinion_bundled.json` | Editorials, commentaries, expert opinion |
+| Validation | `Extraction-validation.txt` | `validation_bundled.json` | Used for semantic quality checks after extraction |
+| Correction | `Extraction-correction.txt` | Uses same schema as extraction prompt | Repairs failed extractions using validation feedback |
 
-### Which Prompt for Which Study?
+If classification returns `overig`, no extraction prompt is run; the pipeline exits after metadata capture.
 
-| Study Type | Prompt File | Schema File | Use For |
-|------------|-------------|-------------|---------|
-| **RCT/Clinical Trial** | `Extraction-prompt-interventional.txt` | `interventional_trial_bundled.json` | Randomized trials, clinical studies |
-| **Cohort/Case-Control** | `Extraction-prompt-observational.txt` | `observational_analytic_bundled.json` | Observational studies |
-| **Meta-analysis/Review** | `Extraction-prompt-evidence-synthesis.txt` | `evidence_synthesis_bundled.json` | Systematic reviews |
-| **Prediction Model** | `Extraction-prompt-prediction.txt` | `prediction_prognosis_bundled.json` | Risk models, prognostic studies |
-| **Editorial/Opinion** | `Extraction-prompt-editorials.txt` | `editorials_opinion_bundled.json` | Commentaries, editorials |
-
-### Basic Usage
-
-```python
-# 1. Load prompt and schema
-prompt = open('prompts/Extraction-prompt-interventional.txt').read()
-schema = json.load(open('schemas/interventional_trial_bundled.json'))
-
-# 2. Extract with LLM
-result = llm.generate(prompt + "\n\n" + pdf_text)
-
-# 3. Validate
-jsonschema.validate(json.loads(result), schema)
-```
-
----
-
-## 📋 Prompt System Overview
-
-### Complete Four-Component Framework
-
-This extraction system consists of **four prompt types** that work together:
-
-| Component | File | Purpose | When Used |
-|-----------|------|---------|-----------|
-| **Classification** | `Classification.txt` | Identify publication type & extract metadata | First step (always) |
-| **Extraction** | `Extraction-prompt-{type}.txt` | Extract structured data from PDF | After classification |
-| **Validation** | `Extraction-validation.txt` | Verify accuracy and completeness | After extraction |
-| **Correction** | `Extraction-correction.txt` | Fix identified issues | Only if validation fails |
-
-### Pipeline Flow
-
-```
-PDF → Classification Prompt → Type Identified
-                                     ↓
-                      Select Extraction Prompt + Schema
-                                     ↓
-                      Extraction Prompt → Structured JSON
-                                     ↓
-                      Validation Prompt → Quality Report
-                                     ↓
-                      (if failed) → Correction Prompt
-```
-
----
-
-## 📝 Prompt Types
-
-### 1. Classification (`Classification.txt`)
-
-**Purpose**: Pre-processing step to identify publication type and extract metadata.
-
-**Output**: Publication type selection + metadata (authors, DOI, journal, etc.)
-
-**Six Publication Categories:**
-1. `interventional_trial` - RCTs, clinical trials
-2. `observational_analytic` - Cohort, case-control studies
-3. `evidence_synthesis` - Systematic reviews, meta-analyses
-4. `prediction_prognosis` - Prediction models, ML algorithms
-5. `editorials_opinion` - Editorials, commentaries
-6. `overig` - Case reports, guidelines (no extraction prompt available)
-
-**Key Features:**
-- Automated metadata extraction (title, authors, DOI, PMID)
-- Confidence scoring (0.0-1.0)
-- Vancouver citation formatting
-- Early publication handling
-- Anesthesiology domain specialization
-
----
-
-### 2. Extraction Prompts (5 Type-Specific)
-
-Each extraction prompt is tailored to its publication type's unique data structure.
-
-#### `Extraction-prompt-interventional.txt`
-- **For**: RCTs, cluster-RCTs, crossover trials
-- **Key Fields**: `arms`, `interventions`, `results.per_arm`, `results.contrasts`
-- **Standards**: CONSORT 2010, TIDieR, RoB 2.0
-- **Focus**: Randomization, sample sizes, primary outcomes
-
-#### `Extraction-prompt-observational.txt`
-- **For**: Cohort studies, case-control studies
-- **Key Fields**: `exposures`, `groups`, `results.per_group`, `results.contrasts`
-- **Standards**: STROBE, ROBINS-I
-- **Focus**: Exposure groups, confounding, causal inference
-
-#### `Extraction-prompt-evidence-synthesis.txt`
-- **For**: Systematic reviews, meta-analyses
-- **Key Fields**: `review_type`, `eligibility`, `search`, `prisma_flow`, `syntheses`
-- **Standards**: PRISMA 2020, AMSTAR-2, GRADE
-- **Focus**: Search strategy, PRISMA flow, meta-analysis results
-
-#### `Extraction-prompt-prediction.txt`
-- **For**: Prediction models, prognostic studies
-- **Key Fields**: `predictors`, `datasets`, `models`, `performance`
-- **Standards**: TRIPOD, PROBAST
-- **Focus**: Model development, validation, performance metrics
-
-#### `Extraction-prompt-editorials.txt`
-- **For**: Editorials, commentaries, opinion pieces
-- **Key Fields**: `article_type`, `stance_overall`, `arguments`
-- **Focus**: Argument structure, evidence linking, rhetorical analysis
-
----
-
-### 3. Validation (`Extraction-validation.txt`)
-
-**Purpose**: Universal quality assurance for all extraction types.
-
-**Key Features:**
-- Hallucination detection
-- Completeness scoring
-- Accuracy verification
-- Structured quality report
-
-**Output Format:**
-```json
-{
-  "verification_summary": {
-    "overall_status": "passed|warning|failed",
-    "completeness_score": 0.95,
-    "accuracy_score": 0.98
-  },
-  "issues": [...],
-  "recommendations": [...]
-}
-```
-
----
-
-### 4. Correction (`Extraction-correction.txt`)
-
-**Purpose**: Fix issues identified by validation prompt.
-
-**When Used**: Only when validation fails or returns warnings.
-
-**Process:**
-1. Takes original extraction + validation report
-2. Re-extracts missing data
-3. Fixes identified inaccuracies
-4. Re-validates corrected output
-
----
-
-## 💻 Integration Examples
-
-### Complete Pipeline Example
+## End-to-End Usage
 
 ```python
-import json
-import jsonschema
 from pathlib import Path
+from src.prompts import (
+    load_classification_prompt,
+    load_extraction_prompt,
+    load_validation_prompt,
+    load_correction_prompt,
+)
+from src.schemas_loader import load_schema
 
-# Step 1: Classify
-classification_prompt = open('prompts/Classification.txt').read()
-classification = llm.generate(classification_prompt + "\n\n" + pdf_text)
-pub_type = json.loads(classification)['publication_type']
+pdf_path = Path("paper.pdf")
 
-# Step 2: Select appropriate extraction prompt and schema
-prompt_map = {
-    'interventional_trial': ('Extraction-prompt-interventional.txt',
-                            'interventional_trial_bundled.json'),
-    'observational_analytic': ('Extraction-prompt-observational.txt',
-                               'observational_analytic_bundled.json'),
-    # ... other types
-}
+# 1. Classification
+classification_prompt = load_classification_prompt()
+classification_schema = load_schema("classification")
 
-if pub_type == 'overig':
-    print("No extraction prompt for 'overig' type")
-    exit()
+# 2. Type-specific extraction
+extraction_prompt = load_extraction_prompt("interventional_trial")
+extraction_schema = load_schema("interventional_trial")
 
-prompt_file, schema_file = prompt_map[pub_type]
-extraction_prompt = open(f'prompts/{prompt_file}').read()
-schema = json.load(open(f'schemas/{schema_file}'))
-
-# Step 3: Extract
-extraction = llm.generate(extraction_prompt + "\n\n" + pdf_text)
-extracted_data = json.loads(extraction)
-
-# Step 4: Validate against schema
-try:
-    jsonschema.validate(extracted_data, schema)
-    print("✅ Schema validation passed")
-except jsonschema.ValidationError as e:
-    print(f"❌ Schema validation failed: {e.message}")
-    exit()
-
-# Step 5: LLM validation (optional but recommended)
-validation_prompt = open('prompts/Extraction-validation.txt').read()
-validation_input = f"""
-EXTRACTED_JSON: {json.dumps(extracted_data, indent=2)}
-PDF_CONTENT: {pdf_text}
-SCHEMA: {json.dumps(schema, indent=2)}
-"""
-quality_report = llm.generate(validation_prompt + "\n\n" + validation_input)
-quality = json.loads(quality_report)
-
-if quality['verification_summary']['overall_status'] == 'passed':
-    print("✅ Quality verification passed")
-else:
-    print("⚠️ Quality verification has issues")
-    # Optionally: run correction step
+# 3. Validation and optional correction
+validation_prompt = load_validation_prompt()
+correction_prompt = load_correction_prompt()
 ```
 
-### Batch Processing Example
+In production the pipeline concatenates these prompts with PDF context and hands them to the selected provider (OpenAI or Claude). Always keep prompts and schemas synchronised so that required fields remain aligned.
 
-```python
-def process_literature_batch(pdf_files):
-    """Process multiple PDFs with appropriate prompts."""
-    results = []
+## Maintenance Guidelines
 
-    for pdf_file in pdf_files:
-        # Classify
-        pub_type = classify_pdf(pdf_file)
+1. **Version headers** - Every prompt starts with a version string (for example, "v2 STRICT"). Update the version when you change intent, instructions, or output fields. Reflect the change under "Version History" in this README.
+2. **Schema alignment** - Verify that field names, nested structures, and required sections exactly match the companion schema. Use `make test-fast` (or `pytest tests/unit/test_prompts.py`) after edits.
+3. **Language consistency** - Prompts are English instructions even when the target PDFs contain international terminology. Preserve the tone and explicit JSON requirements.
+4. **Source referencing** - Extraction prompts mandate inline references (page numbers, tables, figures). Do not remove this requirement; validation relies on it.
+5. **Cost sensitivity** - Keep prompts concise. Remove redundant prose and prefer bullet lists when adding new guidance.
+6. **LLM neutrality** - Avoid provider-specific syntax. The same prompt text is sent to both OpenAI and Claude via the shared abstraction in `src/llm/`.
+7. **Testing strategy** - When prompts change, regenerate or adjust fixtures under `tests/fixtures/expected_outputs/` if expected JSON differs. Integration tests (`tests/integration/test_pipeline.py`) should continue to pass with mocked providers.
 
-        if pub_type == 'overig':
-            continue
+## Prompt Lifecycle
 
-        # Extract with appropriate prompt
-        extracted = extract_with_prompt(pdf_file, pub_type)
-
-        # Validate
-        if validate_extraction(extracted, pub_type):
-            results.append(extracted)
-
-    return results
+```
+PDF -> Classification prompt -> publication_type, metadata
+        |
+        +--> Extraction prompt (type-specific) -> extracted JSON
+                |
+                +--> Validation prompt -> quality report
+                        |
+                        +--> Correction prompt (optional) -> revised JSON
 ```
 
----
+The validation report feeds structured feedback into the correction prompt when thresholds fail. See `VALIDATION_STRATEGY.md` for details on scoring and iteration limits.
 
-## 🎯 Prompt Design Principles
+## Version History
 
-### 1. Evidence-Locked Extraction
-- **Only extract from PDF content** - No external knowledge
-- **Main text priority** - Methods/Results/Discussion over Abstract
-- **Source references required** - Page, table, figure citations
+- **v2.3 (September 2025)** - Prioritised main-text sources over abstracts, strengthened section prompts for completeness.
+- **v2.2 (September 2025)** - Added dedicated validation and correction prompt pair, moving to a four-stage pipeline.
+- **v2.1 (September 2025)** - Removed Markdown formatting to cut token usage by roughly 20% while preserving instruction clarity.
+- **v2.0 (September 2025)** - Introduced type-specific extraction prompts and bundled schemas for five publication categories.
+- **v1.x** - Single interventional-only prompt; superseded by v2.0.
 
-### 2. Data Source Prioritization (v2.3)
-All prompts prioritize main text over abstracts:
+## Related Documentation
 
-**Priority Order:**
-1. Results sections - Primary source for numerical data
-2. Methods sections - Complete methodology
-3. Discussion sections - Context, limitations
-4. Tables/Figures - Detailed results
-5. Abstract - Only for verification
-
-### 3. Schema Alignment
-- Each prompt matches its corresponding schema structure
-- Field names identical between prompt and schema
-- Validation rules embedded in prompts
-
-### 4. Token Optimization (v2.1)
-- Markdown formatting removed for 15-25% token reduction
-- Plain text structure maintained
-- All instructions preserved
-
----
-
-## 🔧 Troubleshooting
-
-### Common Issues
-
-**Problem**: Schema validation fails
-- **Solution**: Ensure using correct prompt for study type
-- **Check**: Prompt-schema pairing is correct
-
-**Problem**: Low completeness scores
-- **Solution**: Verify PDF has full Methods/Results sections (not just abstract)
-- **Check**: PDF quality and OCR accuracy
-
-**Problem**: Missing required fields
-- **Solution**: Check if PDF contains necessary information
-- **Check**: Prompt is extracting from main text, not just abstract
-
-**Problem**: Extraction warnings
-- **Solution**: Review PDF quality and completeness
-- **Check**: Parsing warnings in validation output
-
----
-
-## 📚 Version History
-
-### v2.3 (Current) - September 2025
-- **Data Source Prioritization** - Main text priority over abstract
-- **Completeness improvements** - Systematic section extraction
-- **Section-specific instructions** - Methods/Results/Tables priority
-
-### v2.2 - September 2025
-- **Quality assurance** - Added Extraction-validation.txt
-- **Correction prompt** - Added Extraction-correction.txt
-- **Three-component system** → Four-component system
-
-### v2.1 - September 2025
-- **Token optimization** - Removed markdown formatting
-- **15-25% efficiency** - Reduced API costs
-- **Content preservation** - All functionality maintained
-
-### v2.0 - September 2025
-- **Schema specialization** - Created 5 type-specific prompts
-- **Structural alignment** - Matched schema requirements
-- **Validation rules** - Type-specific validation
-
-### v1.0 - Previous
-- **Single prompt** - Interventional trial focus only
-- **Limited scope** - Not compatible with other types
-
----
-
-## 🔗 Related Documentation
-
-- **[../schemas/readme.md](../schemas/readme.md)** - Schema design and LLM integration
-- **[../ARCHITECTURE.md](../ARCHITECTURE.md)** - System architecture
-- **[../src/README.md](../src/README.md)** - Module API documentation
-- **[../CONTRIBUTING.md](../CONTRIBUTING.md)** - Development guidelines
-- **[../README.md](../README.md)** - Project overview
+- `../schemas/readme.md` - Schema definitions and bundling process.
+- `../ARCHITECTURE.md` - High-level system design.
+- `../src/README.md` - Module overview and public API.
+- `../CONTRIBUTING.md` - Contribution expectations, testing requirements.
+- `../README.md` - Project introduction and quick start.

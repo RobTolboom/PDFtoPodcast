@@ -7,7 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Evidence Synthesis Schema Validation** - Fixed 6 schema validation errors for meta-analysis/systematic review extractions
+  - **Fix 1:** Added `is_primary` boolean field to `SynthesisOutcome` schema - prompt was requesting this field but schema didn't allow it
+  - **Fix 2:** Added `source` field to `risk_of_bias_summary` - LLM was adding source references but schema rejected them
+  - **Fix 3:** Added `source` field to `Synthesis` top-level object - prompt explicitly requested this field but schema was missing it
+  - **Fix 4:** Removed redundant `outcome_id` requirement from nested `PairwiseMetaAnalysis` - parent `Synthesis` object already has `outcome_id`, nested requirement caused validation failures
+  - **Fix 5:** Added `synthesis_id` string field to `Synthesis` schema - prompt explicitly requested stable IDs (line 18, 167) but schema rejected this field
+  - **Fix 6:** Clarified `authors` extraction in prompt - added explicit instruction that `last_name` is REQUIRED (schema requires it but prompt didn't mention it)
+  - Root cause: Schema-prompt misalignment where prompt instructions requested fields that schema `additionalProperties: false` rejected, or schema required fields that prompt didn't instruct
+  - Impact: Meta-analysis extractions now validate successfully, quality scores improved from 37.5-38.9% (failed) to passing
+  - Files modified: `schemas/evidence_synthesis.schema.json` (source), `prompts/Extraction-prompt-evidence-synthesis.txt`, regenerated `evidence_synthesis_bundled.json`
+  - Location: schemas/evidence_synthesis.schema.json lines 948 (is_primary), 587 (risk_of_bias_summary source), 1711 (Synthesis source), 1231-1243 (PairwiseMetaAnalysis outcome_id removal), 1707-1710 (synthesis_id); prompts/Extraction-prompt-evidence-synthesis.txt line 66 (authors instruction)
+
+### Changed
+- Marked `COMMERCIAL_LICENSE.md` as a draft pending legal review to prevent accidental publication of unapproved contract language.
+
 ### Added
+- **Best Extraction & Validation Selection** - Automatic quality-based selection with persistent "best" files
+  - Save best extraction + validation as `{id}-extraction-best.json` and `{id}-validation-best.json` after ALL exit paths
+  - Save selection metadata as `{id}-extraction-best-metadata.json` with iteration number, quality scores, and selection reason
+  - **6 Exit Paths covered:**
+    1. Direct success (quality sufficient at iteration 0) - saves iteration 0 as best
+    2. Early stop degradation - uses `_select_best_iteration()` weighted quality scoring
+    3. Max iterations reached - selects highest quality iteration
+    4. LLM error (retry exhausted) - best of completed iterations
+    5. JSON decode error - best of completed iterations
+    6. Unexpected error - best of completed iterations
+  - **Settings Screen Integration:** "View" buttons now show BEST extraction/validation (not iteration 0)
+    - Extraction step: Shows best extraction if exists, falls back to extraction0
+    - Validation step: Shows best validation if exists, falls back to validation0
+    - Validation & Correction step: Shows best validation (highest quality, not most recent)
+  - **Pipeline Loading Integration:** Future steps (appraisal) automatically load BEST extraction
+    - Updated `_get_or_load_result()` to prefer best files over iteration 0
+    - Console messages show which iteration is being used with quality score
+    - Full backward compatibility: falls back to iteration 0 if no best file exists
+  - **Metadata tracking:**
+    - `best_iteration_num`: Which iteration was selected (0, 1, 2, ...)
+    - `overall_quality`: Weighted quality score (0.0-1.0)
+    - `completeness_score`, `accuracy_score`, `schema_compliance_score`: Individual metrics
+    - `selection_reason`: "passed" | "early_stopped_degradation" | "max_iterations_reached" | "failed_llm_error" | "failed_invalid_json" | "failed_unexpected_error"
+    - `total_iterations`: Total number of iterations performed
+    - `timestamp`: Selection timestamp (ISO-8601)
+  - **Implementation:**
+    - orchestrator.py: 6 save locations (3 files each) + updated dependency loading
+    - result_checker.py: Updated file mapping for extraction, validation, validation_correction
+    - All 111 unit tests pass
+  - **User Impact:**
+    - Settings screen always shows the BEST extraction (quality-based, not chronological)
+    - Future appraisal step will use the BEST extraction automatically
+    - Complete traceability: know which iteration was selected and why
+    - No manual file selection needed
+
 - **Iterative Validation-Correction Loop (Fase 1)** - Core loop logic with automatic quality improvement
   - Added `run_validation_with_correction()` main loop function (~260 lines)
   - Automatic iterative correction until quality thresholds met or max iterations reached
@@ -79,6 +130,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Validation: Error handling already implemented in Phase 1, tests confirm correct behavior
 
 ### Changed
+- **Execution Screen Auto-Redirect** - Disabled automatic redirect to Settings screen after pipeline completion
+  - Changed `auto_redirect_enabled` from `True` to `False` in execution state initialization
+  - Users now stay on Execution screen after completion with full control
+  - No 30-second countdown timer
+  - Info message displayed: "Pipeline execution completed. View results in Settings screen or run again."
+  - Timer logic preserved for potential future re-enable
+  - Implementation: `src/streamlit_app/screens/execution.py` (2 locations)
+
+- **Interventional Extraction Prompt & Schema Alignment** - Strengthened validation instructions and aligned prompt with schema requirements
+  - Enhanced CLOSED WORLD ASSUMPTION: Explicit messaging that "additionalProperties":false applies at ALL nesting levels
+  - Added ALL-OR-NOTHING RULE: Omit entire parent object rather than emitting partial data when confidence is low
+  - Type correctness enforcement: Booleans must be JSON booleans (true/false), never strings ("true"/"false")
+  - Numeric correctness: All numbers must be JSON numbers, never strings (no "1.5" or "95%")
+  - Primary outcome fallback logic: When no primary outcome is explicitly stated, mark first outcome as is_primary:true to satisfy schema's `contains` constraint
+  - P-value handling guidance: Exact numbers as JSON numbers (0.042), thresholds as strings ("<0.001"), no conversion
+  - Enhanced PRE-FLIGHT CHECKLIST: 13 checks (was 10) including type validation, metadata exclusion, and nested key validation
+  - Explicit disallowed keys: correction_notes, _metadata, _pipeline_metadata, vendor metadata
+  - Resolves conflict: Schema already required at least one primary outcome via `contains` constraint, prompt now handles fallback case
+  - Implementation: prompts/Extraction-prompt-interventional.txt (~220 lines)
+  - Impact: Better LLM adherence to schema, fewer validation failures, clearer error messages
+
 - **File Naming Schema** - Changed iteration file naming to use consistent numbering across all iterations
   - **BREAKING CHANGE**: Old iteration files will not be recognized by new code
   - Old schema: `extraction.json`, `extraction-corrected1.json`, `validation.json`, `validation-corrected1.json`
@@ -135,6 +207,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated Streamlit: `_display_verbose_info()` in `src/streamlit_app/screens/execution.py`
 
 ### Fixed
+- **Iterative Validation-Correction Loop** - Fixed validation file overwrite bug where post-correction validations were lost
+  - **Bug**: After correction, validation{N}.json was saved with post-correction validation, then immediately overwritten when loop revalidated the same extraction with same iteration number
+  - **Example**: validation1.json (post-correction) was overwritten by re-validation of extraction1 in next loop iteration
+  - **Impact**: Initial validation data for each iteration was lost, making iteration history incomplete
+  - **Root cause**: Loop re-validated current_extraction at start of each iteration, even though correction step already validated it
+  - **Fix**: Reuse post-correction validation for next iteration quality check instead of re-validating
+  - **Implementation**: Added `current_validation` variable to track validation state, skip validation when already available from correction
+  - **Result**: Each iteration now preserves both extraction and validation files (extraction0 + validation0, extraction1 + validation1, etc.)
+  - **Location**: `src/pipeline/orchestrator.py` - run_validation_with_correction() function
+  - All 111 unit tests pass with fix
+
 - **Result Checker** - Fixed KeyError when accessing validation_correction step in Streamlit settings screen
   - Added `validation_correction` key to `check_existing_results()` return dictionary
   - Added `validation_correction` mapping to `get_result_file_info()` file_map
@@ -200,6 +283,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fixed step containers not showing during execution (only "⏳ Pipeline is executing..." was visible)
   - Fixed non-selected steps showing "pending" instead of "⏭️ Skipped"
   - Fixed first step showing "pending" instead of "🔄 Running" when pipeline starts
+
+- **Streamlit Execution Screen** - Fixed Settings screen showing wrong "BEST" iteration after pipeline completion
+  - Root cause: orchestrator.py return dictionaries missing `best_iteration` key
+  - UI tried to read `result.get("best_iteration", 0)` but key was undefined, always defaulting to iteration 0
+  - Backend correctly selected best iteration and saved correct files, but UI displayed wrong iteration as "BEST"
+  - Fix: Added `best_iteration` key to 6 return locations in `run_iterative_extraction_validation_correction()`:
+    1. Passed validation (early success) - returns current iteration number
+    2. Early stopped degradation - returns `best["iteration_num"]` from quality-based selection
+    3. Max iterations reached - returns `best["iteration_num"]` from quality-based selection
+    4. LLM error recovery - returns `best["iteration_num"]` if best exists, else 0
+    5. JSON decode error recovery - returns `best["iteration_num"]` if best exists, else 0
+    6. Unexpected error recovery - returns `best["iteration_num"]` if best exists, else 0
+  - Impact: Settings screen now correctly highlights which iteration was selected as "BEST" in iteration history table
+  - Location: `src/pipeline/orchestrator.py` (lines 1030, 1090, 1145, 1302, 1346, 1388)
+
+- **Streamlit Navigation** - Fixed "process already done" error when clicking "Back to Start" after pipeline completion
+  - Root cause: Execution state (status, results, step_status, current_step_index) persisted in session state after "Back to Start" navigation
+  - When user clicked "Back to Start" and re-ran pipeline with new PDF, old state indicated process was already complete
+  - State machine saw `current_step_index >= len(steps_to_run)` and immediately declared completion without running pipeline
+  - "Back" button in execution screen correctly called `reset_execution_state()`, but sidebar "Back to Start" button did not
+  - Fix: Added `reset_execution_state()` call to "Back to Start" button handler in sidebar
+  - State reset clears: execution.status → "idle", execution.results → None, all step_status → "pending", current_step_index → 0, errors, timestamps
+  - Impact: Users can now run multiple pipelines in same session without app restart, navigation is symmetric (both back buttons reset state)
+  - Location: `app.py` (lines 28, 75-76)
   - Fixed all steps now show "🔄 Running" status immediately before execution begins (added `st.rerun()` after status update)
   - Removed static "0.0s" elapsed time from running status (shown only for completed/failed)
   - Implemented proactive status updates to work within Streamlit's execution model constraints

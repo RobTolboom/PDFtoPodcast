@@ -126,16 +126,20 @@
       "minItems": 1,
       "uniqueItems": false,
       "contains": {
-        "type": "object",
-        "properties": {
-          "is_primary": {
-            "const": true
+        "allOf": [
+          { "$ref": "#/$defs/Outcome" },
+          {
+            "type": "object",
+            "properties": {
+              "is_primary": {
+                "const": true
+              }
+            },
+            "required": [
+              "is_primary"
+            ]
           }
-        },
-        "required": [
-          "is_primary"
-        ],
-        "additionalProperties": false
+        ]
       }
     },
     "results": {

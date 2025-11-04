@@ -1,9 +1,9 @@
 # Feature: Iterative Validation & Correction Loop
 
-**Status**: In Progress - Phases 1-3 Complete ✅, Phase 4 (UI Integration) Next
+**Status**: Complete ✅ - All Phases Implemented + Bug Fixes
 **Branch**: `feature/iterative-validation-correction`
 **Created**: 2025-01-28
-**Updated**: 2025-10-30 (v1.4 - Phases 1-3 implemented and tested, backward compatibility verified)
+**Updated**: 2025-11-01 (v1.5 - Bug fixes: best_iteration display + navigation state reset)
 **Author**: Rob Tolboom (met Claude Code)
 
 ---
@@ -3277,3 +3277,4 @@ Gemiddelde verwachting (80% scenario 1, 15% scenario 2, 5% scenario 3):
 | 2025-01-28 | 1.2 | Added st.empty() real-time UI update strategy: nieuwe sectie 4 onder UI/UX Ontwerp met complete implementatie van in-place updates binnen iterative loop (zero reruns tussen iteraties), updated Fase 4 implementatie strategie |
 | 2025-10-29 | 1.3 | **Implementation-Ready Revision**: Resolved critical architecture conflicts and code issues. **CRITICAL FIXES**: (1) Integrated error handling directly into loop (Sectie 3) with try/except and retry logic, (2) Fixed `_run_correction_step()` return type (tuple unpacking instead of dict access), (3) Added missing `publication_type` parameter, (4) Resolved duplicate loop execution - UI now calls orchestrator with callbacks instead of reimplementing loop logic. **ALGORITHM FIXES**: (5) Fixed early stopping to check against overall peak (not peak before window), (6) Updated docstrings and examples for clarity. **ROBUSTNESS**: (7) Added None-checks and edge case handling in `is_quality_sufficient()`, (8) Capped quality threshold sliders at 0.99 (not 1.0) to prevent infinite loops, (9) Strengthened max_iterations semantics documentation. **TESTING**: (10) Expanded test strategy with comprehensive edge case tests (None handling, tie-breaking, schema failures, tuple unpacking). Document now implementation-ready zonder blocking issues. |
 | 2025-10-30 | 1.4 | **Implementation Completed - Phases 1-3**: ✅ Fase 1 (Core Loop Logic) - Implemented all 5 helper functions + main loop with 25 passing tests. ✅ Fase 2 (File Management) - Fixed file naming pattern (corrected{N}), added logging, 3 tests passing. ✅ Fase 3 (Backward Compatibility) - Added STEP_VALIDATION_CORRECTION to pipeline, updated ALL_PIPELINE_STEPS, 6 backward compat tests, all 152 unit tests passing. Feature fully integrated into pipeline with complete backward compatibility. Ready for Fase 4 (UI Integration). |
+| 2025-11-01 | 1.5 | **Bug Fixes - UI Display & Navigation**: ✅ Fixed Streamlit execution screen showing wrong "BEST" iteration - Added `best_iteration` key to 6 return locations in `run_iterative_extraction_validation_correction()` (lines 1030, 1090, 1145, 1302, 1346, 1388). Backend was selecting correct best iteration, but UI defaulted to iteration 0 when key was missing. ✅ Fixed "process already done" error when clicking "Back to Start" - Added `reset_execution_state()` call to sidebar "Back to Start" button in `app.py`. Execution state (status, results, step_status, current_step_index) was persisting after navigation, causing state machine to skip pipeline execution on subsequent runs. Both bugs resolved, users can now run multiple pipelines in same session and see correct best iteration highlighted. |

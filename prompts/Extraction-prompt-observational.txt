@@ -17,6 +17,14 @@ OUTPUT CONTRACT
 - Dates: ISO-8601 if possible; preserve partial precision if only Y or Y-M is available.
 - IDs (group_id, exposure_id, outcome_id, comparison_id) must be stable and reused consistently.
 
+CHARACTER ENCODING
+- Use UTF-8 characters directly in JSON strings; do NOT use escape sequences
+- Mathematical symbols: ≤, ≥, ±, ×, ÷, ≠, ≈, √ should appear as-is
+- Greek letters: α, β, γ, δ, μ, σ, etc. should appear as-is
+- Preserve special characters from PDF: don't convert ≤ to \u2264 or <=
+- Example CORRECT: "levels": ["≤60", ">60"]
+- Example WRONG: "levels": ["\u001460", ">60"] or "levels": ["<=60", ">60"]
+
 ALLOWED TOP-LEVEL KEYS (closed set)
 schema_version,
 document,
@@ -28,7 +36,7 @@ analysis_plan_registered,   # include ONLY if you have a string/URL; otherwise o
 study_design,
 population,
 groups,               # TOP-LEVEL array; NOT nested under exposures
-exposures,
+exposures,            # REQUIRED: minimum 1 exposure variable
 comparisons,          # declarative specs that results.contrasts[] will reference
 outcomes,
 results,              # per_group, contrasts, harms
@@ -55,38 +63,83 @@ study_design
 - { design_label, setting, period{start,end}, prospective_or_retrospective }
 
 population
-- { eligibility{inclusion[],exclusion[]}, recruitment, N_screened, N_included, N_analyzed, baseline_characteristics{...} or table anchors }
+- {
+    n_total,                # Total cohort/sample size (int)
+    n_cases,                # For case-control designs (int)
+    n_controls,             # For case-control designs (int)
+    person_time_total,      # Total person-time, e.g., person-years (number)
+    age_mean, age_sd,       # Population age statistics
+    sex_female_pct,         # Percentage female (0-100)
+    inclusion_criteria,     # String description
+    exclusion_criteria,     # String description
+    follow_up_duration_iso8601,  # ISO 8601 duration for cohort studies
+    loss_to_follow_up_pct,  # Percentage lost (0-100)
+    missing_data: { variables_with_missing[], imputation },
+    source                  # SourceRef
+  }
+- Do NOT use: recruitment, N_screened, N_included, N_analyzed, baseline_characteristics, eligibility
 
 groups  (TOP-LEVEL)
 - Array of { group_id, label, n (int), description, exposure_levels{...} if applicable }
 - Do NOT add a `source` field here if the schema does not permit it.
 
-exposures
-- Each: { exposure_id, label, type, definition, ascertainment, timing_window, unit, categories/coding_map if categorical, misclassification_notes, source }
+exposures  (REQUIRED - minimum 1)
+- Each: {
+    exposure_id,            # REQUIRED
+    name,                   # REQUIRED (NOT "label")
+    type,                   # REQUIRED: "binary"|"continuous"|"categorical"|"time_varying"
+    definition,
+    categories[],           # For categorical: ordered list of level strings
+    unit,
+    per_unit_effect,
+    measurement_time ∈ {"baseline"|"time_varying"|"unknown"},
+    time_window_iso8601,    # NOT "timing_window"
+    instrumental_variable_used,
+    instrumental_variable,
+    misclassification_risk ∈ {"low"|"moderate"|"high"|"unclear"},  # NOT "misclassification_notes"
+    ontology_terms[],
+    provenance,
+    source
+  }
 - type ∈ { "binary", "continuous", "categorical", "time_varying" }.
 - Do NOT use "time_to_event" here.
+- Do NOT use: label, ascertainment, timing_window, coding_map, misclassification_notes
 
 comparisons
 - Each: {
-    comparison_id,
-    comparison_type ∈ {"group_vs_group"|"exposure_contrast"|"trend"},
-    # supply the appropriate identifiers for the chosen type:
-    # group_vs_group: { left_group_ids[], right_group_ids[] }
-    # exposure_contrast: { exposure_id, left_level_ids[], right_level_ids[] }
-    # trend: { exposure_id, ordering_of_levels[] }
-    # No free-text fields that the schema does not define.
+    comparison_id,                 # REQUIRED
+    comparison_type,               # REQUIRED: "group_vs_group"|"exposure_contrast"|"trend"
+    outcome_scope,                 # REQUIRED: "all_outcomes"|"primary_only"|"specified_list"
+    specified_outcomes[],          # Array of outcome_ids (required if outcome_scope = "specified_list")
+    is_primary,                    # Boolean, default false
+    # Supply additional fields based on comparison_type:
+    # For "group_vs_group": group_a, group_b (both are group_id strings)
+    # For "exposure_contrast": exposure_contrast: { exposure_id, level_a, level_b, per_unit? }
+    # For "trend": trend_spec: { exposure_id, coding ∈ {"ordinal"|"quantile"|"spline"|"other"} }
   }
-- Do NOT add `description` or `SourceRef` if not defined by the schema.
+- Do NOT use: left_group_ids, right_group_ids, left_level_ids, right_level_ids, ordering_of_levels, description, SourceRef
 
 outcomes
 - Each: {
-    outcome_id, label,
-    type ∈ {"binary"|"continuous"|"continuous_change"|"time_to_event"|"count"|"ordinal"},
-    definition, ascertainment_method, measurement_timepoints (if applicable),
-    unit (for continuous), censoring_definition (for time_to_event),
+    outcome_id,                    # REQUIRED
+    name,                          # REQUIRED (NOT "label")
+    type,                          # REQUIRED: "binary"|"continuous"|"time_to_event"|"count"|"ordinal"
+    definition,
+    direction_of_benefit ∈ {"higher_better"|"lower_better"|"neutral_or_na"},
+    unit,
+    timepoint,                     # String description
+    timepoint_iso8601,             # ISO 8601 duration
+    measurement_method,            # NOT "ascertainment_method"
+    scale_min, scale_max,
+    misclassification_risk ∈ {"low"|"moderate"|"high"|"unclear"},
+    event_competing_risks_present, # Boolean for time_to_event
+    censoring_informative_risk ∈ {"low"|"moderate"|"high"|"unclear"},  # NOT "censoring_definition"
+    ontology_terms[],
+    provenance,
     source
   }
 - "time_to_event" is allowed ONLY here (not in exposures).
+- Do NOT use: label, continuous_change, ascertainment_method, measurement_timepoints, censoring_definition
 
 results
 - Allowed keys inside results: per_group[], contrasts[], harms[] (nothing else).
@@ -147,6 +200,12 @@ FINAL VALIDATION — PRE-FLIGHT CHECKLIST
 8) Every numeric datum used in results/per_group has a SourceRef-compatible `source` object.
 9) If metadata.vancouver_citation is present, metadata.vancouver_source is present.
 10) Internal checks: group Ns align with totals; units consistent across outcomes.
+11) exposures MUST be present with at least 1 item; each uses "name" not "label".
+12) population fields: use n_total/n_cases/n_controls, NOT recruitment/N_screened/N_included/N_analyzed/baseline_characteristics/eligibility.
+13) comparisons: EVERY comparison MUST include outcome_scope field.
+14) outcomes: use "name" field, NOT "label"; valid types exclude "continuous_change".
+15) exposures and outcomes: use measurement_time/measurement_method, NOT ascertainment/ascertainment_method.
+16) Special characters (≤, ≥, ±, ×, etc.) appear as UTF-8 characters, NOT escape sequences (\u2264) or ASCII alternatives (<=).
 
 OUTPUT
 - Emit the single JSON object. No markdown fencing. No commentary.

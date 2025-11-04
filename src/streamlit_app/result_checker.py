@@ -124,23 +124,51 @@ def get_result_file_info(identifier: str, step: str) -> dict | None:
     """
     tmp_dir = Path("tmp")
 
-    # Map step names to filenames
-    file_map = {
-        "classification": f"{identifier}-classification.json",
-        "extraction": f"{identifier}-extraction0.json",
-        "validation": f"{identifier}-validation0.json",
-        "correction": f"{identifier}-extraction1.json",
-    }
+    # Determine file path based on step
+    # For extraction and validation: prefer BEST file, fall back to iteration 0
+    # For validation_correction: prefer BEST validation, fall back to most recent
 
-    # Special handling for validation_correction - find highest iteration
-    if step == "validation_correction":
-        # Find all validation iteration files
-        validation_files = list(tmp_dir.glob(f"{identifier}-validation[0-9]*.json"))
-        if not validation_files:
-            return None
-        # Use the most recent file (highest iteration number)
-        file_path = max(validation_files, key=lambda p: p.stat().st_mtime)
+    if step == "extraction":
+        # Try best extraction first
+        best_path = tmp_dir / f"{identifier}-extraction-best.json"
+        if best_path.exists():
+            file_path = best_path
+        else:
+            # Fallback to extraction0
+            file_path = tmp_dir / f"{identifier}-extraction0.json"
+            if not file_path.exists():
+                return None
+
+    elif step == "validation":
+        # Try best validation first
+        best_path = tmp_dir / f"{identifier}-validation-best.json"
+        if best_path.exists():
+            file_path = best_path
+        else:
+            # Fallback to validation0
+            file_path = tmp_dir / f"{identifier}-validation0.json"
+            if not file_path.exists():
+                return None
+
+    elif step == "validation_correction":
+        # Try best validation first
+        best_path = tmp_dir / f"{identifier}-validation-best.json"
+        if best_path.exists():
+            file_path = best_path
+        else:
+            # Fallback: find most recent validation iteration
+            validation_files = list(tmp_dir.glob(f"{identifier}-validation[0-9]*.json"))
+            if not validation_files:
+                return None
+            file_path = max(validation_files, key=lambda p: p.stat().st_mtime)
+
     else:
+        # Map step names to filenames for other steps
+        file_map = {
+            "classification": f"{identifier}-classification.json",
+            "correction": f"{identifier}-extraction1.json",
+        }
+
         if step not in file_map:
             return None
 
