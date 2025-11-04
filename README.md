@@ -1,4 +1,4 @@
-# 📄 PDFtoPodcast: Medical Literature Extraction Pipeline
+# PDFtoPodcast: Medical Literature Extraction Pipeline
 
 [![License: PPL 3.0.0](https://img.shields.io/badge/License-PPL%203.0.0-blue.svg)](LICENSE)
 [![Commercial License Available](https://img.shields.io/badge/Commercial-License%20Available-green.svg)](COMMERCIAL_LICENSE.md)
@@ -9,32 +9,29 @@ This pipeline extracts structured data from medical research PDFs with a focus o
 
 ---
 
-## 🔗 Quick Links
+## Quick Links
 
 | Documentation | Description |
 |---------------|-------------|
-| **[Installation](#-installation)** | Get started in 5 minutes |
-| **[Usage Guide](#-usage)** | Web UI and CLI instructions |
-| **[Architecture](#️-architecture)** | Pipeline design and flow |
+| **[Installation](#installation)** | Get started in 5 minutes |
+| **[Usage Guide](#usage)** | Web UI and CLI instructions |
+| **[Architecture](#architecture)** | Pipeline design and flow |
 | **[Contributing](CONTRIBUTING.md)** | Development guidelines |
 | **[API Reference](src/README.md)** | Module documentation |
 
 ---
 
-## ✨ Key Features
+## Key Features
 
-- **🎯 Direct PDF Upload** - No text extraction, LLMs analyze PDFs directly using vision capabilities
-- **📊 Complete Data Preservation** - Tables, figures, charts fully analyzed and extracted
-- **🏥 Medical Literature Focused** - Optimized for clinical trials, systematic reviews, observational studies
-- **🔄 Four-Step Pipeline** - Classification → Extraction → Validation → Correction
-- **✅ Dual Validation** - Schema validation + LLM semantic validation for quality assurance
-- **🤖 Multi-Provider** - Supports both OpenAI (GPT-5) and Claude (Opus/Sonnet)
-- **📐 Schema-Based** - JSON Schema enforcement for structured outputs
-- **💾 Smart File Management** - Automatic file naming using PDF filename
+- Direct PDF-to-LLM processing (no intermediate text extraction) to preserve tables, figures, and layout.
+- Publication-type-aware schemas for interventional, observational, synthesis, prognosis, opinion, and other papers.
+- Iterative validation/correction loop with configurable accuracy, completeness, and schema thresholds.
+- Dual entry points: Streamlit dashboard for guided runs and CLI module for automation and scripting.
+- Structured JSON outputs with deterministic file naming in `tmp/` for each pipeline step.
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -81,7 +78,7 @@ This pipeline extracts structured data from medical research PDFs with a focus o
 │  │      │ • Upload PDF for comparison                   │ │ │
 │  │      │ • Semantic accuracy check                     │ │ │
 │  │      │ • Completeness verification                   │ │ │
-│  │      │ Output: validation.json (or -correctedN)      │ │ │
+│  │      │ Output: validation{N}.json                    │ │ │
 │  │      └───────────────────────────────────────────────┘ │ │
 │  │                                                          │ │
 │  │  3b. Quality Assessment                                │ │
@@ -94,7 +91,7 @@ This pipeline extracts structured data from medical research PDFs with a focus o
 │  │      • Run correction with validation feedback         │ │
 │  │      • Upload PDF + validation report to LLM           │ │
 │  │      • Fix identified issues                           │ │
-│  │      • Output: extraction-correctedN.json              │ │
+│  │      • Output: extraction{N}.json                      │ │
 │  │      • Loop back to 3a (validate corrected)            │ │
 │  │                                                          │ │
 │  │  3d. Early Stopping:                                   │ │
@@ -109,13 +106,20 @@ This pipeline extracts structured data from medical research PDFs with a focus o
 
 **For detailed architecture and design decisions, see [ARCHITECTURE.md](ARCHITECTURE.md)**
 
+> The diagram shows provider hard limits (32 MB, 100 pages). By default the pipeline caps uploads at 10 MB
+> to match the Streamlit uploader and `MAX_PDF_SIZE_MB` setting—raise it in your `.env` only if your provider
+> account allows larger PDFs.
+
 ---
 
-## 📦 Installation
+## Installation
 
-### Requirements
-- Python 3.10+
-- OpenAI API key (for GPT-5) or Anthropic API key (for Claude)
+### Prerequisites
+- Python 3.10+ with `pip` and (optionally) `make` available on your PATH.
+- Access to an OpenAI or Anthropic account with document/vision models enabled and a valid API key.
+- Internet connectivity for LLM API calls and PDF uploads (approx. 1–3K tokens per PDF page).
+- Local environment capable of opening a browser window for Streamlit (or a remote session that supports it).
+- De-identify PDFs before processing; documents are transmitted to external LLM providers.
 
 ### Setup
 
@@ -124,13 +128,18 @@ This pipeline extracts structured data from medical research PDFs with a focus o
 git clone https://github.com/RobTolboom/PDFtoPodcast.git
 cd PDFtoPodcast
 
+# (Optional) Create an isolated virtual environment
+python -m venv .venv
+source .venv/bin/activate  # Windows: .\.venv\Scripts\activate
+
 # Install dependencies
 pip install -r requirements.txt
-
-# Configure environment
-cp .env.example .env
-# Edit .env with your API keys
 ```
+
+Create a `.env` file in the project root (there is no committed template) and add your provider
+credentials using the sample below.
+
+Alternatively, run `make install` (or `make install-dev` for tooling) to reuse the Makefile targets.
 
 ### Environment Variables
 
@@ -146,23 +155,32 @@ OPENAI_MODEL=gpt-5           # Default: gpt-5 (vision support)
 ANTHROPIC_MODEL=claude-3-5-sonnet-20241022  # Default: Sonnet 4.5
 
 # Optional: Token limits
-OPENAI_MAX_TOKENS=4096
+OPENAI_MAX_TOKENS=128000     # Default in config; lower if your account has tighter limits
 ANTHROPIC_MAX_TOKENS=4096
 
 # Optional: Temperature (0.0 = deterministic)
 LLM_TEMPERATURE=0.0
 
 # Optional: Timeout (seconds)
-LLM_TIMEOUT=120
+LLM_TIMEOUT=600              # Config default, rounded up to allow long extractions
 
 # Optional: PDF limits (API constraints)
 MAX_PDF_PAGES=100             # Default: 100 (API limit)
-MAX_PDF_SIZE_MB=32            # Default: 32 (API limit)
+MAX_PDF_SIZE_MB=10            # Pipeline default (increase up to 32 MB if your provider allows it)
 ```
+
+You can omit any optional keys—those shown above match the defaults baked into
+`src/config.py`. Increase `MAX_PDF_SIZE_MB` only if your LLM provider account allows
+larger uploads (OpenAI and Claude currently cap at 32 MB).
+
+#### Obtaining API keys
+- OpenAI: create a key from the [API Keys dashboard](https://platform.openai.com/account/api-keys).
+- Anthropic: generate a key via the [Claude console](https://console.anthropic.com/settings/keys).
+- Store keys securely (e.g., password manager) and avoid committing `.env` to version control.
 
 ---
 
-## 🚀 Usage
+## Usage
 
 ### Web Interface (Recommended)
 
@@ -173,14 +191,17 @@ streamlit run app.py
 ```
 
 **Features:**
-- 📤 **Drag-and-drop PDF upload** with duplicate detection
-- ⚙️ **Interactive pipeline configuration** (select steps, LLM provider, page limits)
-- 🚀 **Real-time execution screen** with live progress tracking per step
-- 👁️ **View results** for each pipeline step with JSON syntax highlighting
-- 🔄 **Re-run individual steps** without full pipeline execution
-- 📁 **Previously uploaded files library** for easy file selection
-- ⚠️ **Intelligent error handling** with actionable recovery guidance
-- 🔍 **Verbose logging toggle** for detailed pipeline diagnostics
+-  **Drag-and-drop PDF upload** with duplicate detection
+-  **Interactive pipeline configuration** (select steps, LLM provider, page limits)
+-  **Real-time execution screen** with live progress tracking per step
+-  **Inspect existing results** from the Settings screen with JSON syntax highlighting
+-  **Re-run specific phases** by deselecting completed steps in Settings and starting the run again
+-  **Previously uploaded files library** for easy file selection
+-  **Intelligent error handling** with actionable recovery guidance
+-  **Verbose logging toggle** for detailed pipeline diagnostics
+
+>  The dedicated “Results” dashboard is still under development—after a run completes
+> you return to Settings, where you can open or delete the generated JSON files.
 
 **Perfect for:**
 - First-time users
@@ -217,6 +238,11 @@ python run_pipeline.py path/to/paper.pdf --step validation_correction \
 # Keep intermediate files
 python run_pipeline.py path/to/paper.pdf --keep-tmp
 ```
+
+#### Logs & troubleshooting
+- CLI runs stream to the terminal via Rich—rerun with `--keep-tmp` to inspect intermediate JSON under `tmp/`.
+- In Streamlit, enable **Verbose logging** in Settings to display per-step token usage and metadata in the Execution screen.
+- Errors always include a concise remediation checklist; review the linked JSON artefacts for deeper context.
 
 ### Command-Line Options
 
@@ -274,7 +300,7 @@ print(f"Extracted fields: {len(results['extraction'])}")
 
 ---
 
-## 📊 Supported Publication Types
+## Supported Publication Types
 
 The pipeline supports 6 publication type categories:
 
@@ -291,18 +317,23 @@ Each type has a specialized extraction schema optimized for its data structure.
 
 ---
 
-## 📂 Output Structure
+## Output Structure
 
 All outputs are saved in `tmp/` directory with PDF filename-based naming:
 
 ```
 tmp/
 ├── sample_paper-classification.json
-├── sample_paper-extraction.json
-├── sample_paper-validation.json
-├── sample_paper-extraction-corrected.json  # If correction needed
-└── sample_paper-validation-corrected.json  # Final validation
+├── sample_paper-extraction0.json
+├── sample_paper-validation0.json
+├── sample_paper-extraction1.json          # Iteration 1 correction (if triggered)
+├── sample_paper-validation1.json          # Validation after correction 1
+├── sample_paper-extraction-best.json      # Best-scoring extraction (any iteration)
+├── sample_paper-validation-best.json      # Validation paired with best extraction
+└── sample_paper-extraction-best-metadata.json
 ```
+
+Iteration files are numbered (`extraction0`, `extraction1`, …) so you can track every correction pass. When the pipeline selects a best iteration it also writes `*-best.json` artefacts plus metadata about the choice. Failed runs may emit `*-failed.json` diagnostics.
 
 ### Output Format
 
@@ -337,83 +368,27 @@ Each JSON file contains structured data conforming to its schema:
 
 ---
 
-## 🔄 Iterative Validation-Correction
+## Iterative Validation-Correction
 
-The pipeline uses an **iterative correction loop** to progressively improve extraction quality until it meets your requirements.
+Selecting the `validation_correction` step (CLI or Streamlit) triggers an iterative loop that validates each extraction and, if needed, re-prompts the LLM with targeted feedback.
 
-### How It Works
+- Default thresholds (completeness ≥90%, accuracy ≥95%, schema ≥95%, critical issues = 0) are configurable via CLI flags or the Streamlit Settings sliders.
+- The first pass always runs schema validation; LLM validation only executes when schema quality is at least 50%.
+- Up to three correction attempts run after the initial extraction. The loop stops early if quality degrades, schema quality drops below 50%, or the provider repeatedly errors.
+- Every iteration writes JSON artefacts to `tmp/` (e.g., `paper-extraction1.json`, `paper-validation1.json`). The pipeline returns the best-scoring iteration.
 
-1. **Initial Validation**: Extract data, then validate (schema + LLM)
-2. **Quality Assessment**: Check if extraction meets quality thresholds:
-   - Completeness ≥90% (how much of PDF data extracted)
-   - Accuracy ≥95% (correctness, no hallucinations)
-   - Schema compliance ≥95% (structural correctness)
-   - Critical issues = 0 (no critical errors)
-3. **Correction If Needed**: If quality insufficient, run correction with validation feedback
-4. **Re-validate**: Validate corrected extraction
-5. **Repeat**: Continue until quality sufficient OR max iterations reached (default: 3)
-6. **Best Result**: Always returns highest quality iteration
-
-### Early Stopping
-
-The loop automatically stops early if:
-- Quality degrades for 2 consecutive iterations
-- Schema validation fails (<50% quality)
-- LLM API failures after 3 retries with exponential backoff (1s, 2s, 4s)
-
-### Configuration
-
-**Default Settings:**
-- Max iterations: 3 (total of 4 attempts: initial + 3 corrections)
-- Completeness threshold: 0.90 (90%)
-- Accuracy threshold: 0.95 (95%)
-- Schema compliance threshold: 0.95 (95%)
-
-**Customize via CLI:**
-```bash
-python run_pipeline.py paper.pdf --step validation_correction \
-    --max-iterations 2 \
-    --completeness-threshold 0.85 \
-    --accuracy-threshold 0.90
-```
-
-**Customize via Web UI:**
-Settings screen → "Validation & Correction" section → Adjust sliders
-
-### Output Files
-
-Each iteration is saved for traceability:
-```
-tmp/
-├── paper-extraction.json              # Initial extraction (iteration 0)
-├── paper-validation.json              # Initial validation
-├── paper-extraction-corrected1.json   # First correction (iteration 1)
-├── paper-validation-corrected1.json   # Validation of correction
-├── paper-extraction-corrected2.json   # Second correction (iteration 2)
-└── paper-validation-corrected2.json   # Final validation
-```
-
-The pipeline returns the **best extraction** based on composite quality score (40% completeness + 40% accuracy + 20% schema).
-
-**Final Status Codes:**
-- `passed`: Quality thresholds met
-- `max_iterations_reached`: Max iterations reached, using best result
-- `early_stopped_degradation`: Stopped due to quality degradation
-- `failed_schema_validation`: Schema validation failed (<50% quality)
-- `failed_llm_error`: LLM API error after retries
-- `failed_invalid_json`: Correction produced invalid JSON
-- `failed_unexpected_error`: Unexpected error occurred
+Refer to [VALIDATION_STRATEGY.md](VALIDATION_STRATEGY.md) for scoring formulas, prompts, and trade-offs.
 
 ---
 
-## 💰 Cost Considerations
+## Cost Considerations
 
 ### PDF Upload vs Text Extraction
 
 | Approach | Tokens/Page | Data Quality | Best For |
 |----------|-------------|--------------|----------|
-| **Text extraction** (old) | ~500 | ❌ Tables lost | Simple documents |
-| **PDF upload** (current) | ~1,500-3,000 | ✅ Complete fidelity | Medical research |
+| **Text extraction** (old) | ~500 |  Tables lost | Simple documents |
+| **PDF upload** (current) | ~1,500-3,000 |  Complete fidelity | Medical research |
 
 ### Cost Example (20-page paper)
 
@@ -424,31 +399,19 @@ The pipeline returns the **best extraction** based on composite quality score (4
 
 **Full pipeline (4 steps):** ~$3-12 per paper depending on provider and corrections needed.
 
----
-
-## 🎯 Validation Strategy
-
-The pipeline uses a **two-tier validation approach** for cost-effectiveness:
-
-### Tier 1: Schema Validation (Always runs)
-- ⚡ Fast (milliseconds)
-- 💰 Free (local validation)
-- 🎯 Catches ~80% of errors (structural issues)
-- Uses `jsonschema` library
-
-### Tier 2: LLM Validation (Conditional)
-- 🐌 Slow (30-60 seconds)
-- 💸 Expensive (API cost)
-- 🧠 Catches ~20% of errors (semantic issues)
-- Only runs if schema quality ≥ 50%
-
-**Threshold:** `SCHEMA_QUALITY_THRESHOLD = 0.5` (configurable in `run_pipeline.py`)
-
-**For detailed validation strategy, see [VALIDATION_STRATEGY.md](VALIDATION_STRATEGY.md)**
+> Pricing snapshot: October 2024 public rate cards. Recalculate with your provider’s latest pricing and negotiated discounts.
 
 ---
 
-## 🛠️ Development
+## Validation Strategy (Summary)
+
+- Tier 1: Local schema validation with `jsonschema` verifies structure and required fields in milliseconds.
+- Tier 2: Optional LLM validation cross-checks content against the PDF when schema quality meets the `SCHEMA_QUALITY_THRESHOLD` (default 0.5).
+- Thresholds, retries, and correction prompts are documented in [VALIDATION_STRATEGY.md](VALIDATION_STRATEGY.md). Start there before altering validation behaviour.
+
+---
+
+## Development
 
 ### Project Structure
 
@@ -457,7 +420,7 @@ PDFtoPodcast/
 ├── run_pipeline.py              # Main CLI entry point
 ├── app.py                       # Streamlit web UI entry point
 ├── requirements.txt             # Dependencies
-├── .env                         # Configuration (create from .env.example)
+├── .env                         # Configuration (create manually; see README)
 ├── src/                         # Core modules
 │   ├── config.py                # Settings & configuration
 │   ├── prompts.py               # Prompt loading
@@ -498,23 +461,23 @@ git push
 
 ---
 
-## 🔒 API Limits & Constraints
+## API Limits & Constraints
 
 ### OpenAI API Limits
-- **Max pages:** 100 per PDF
-- **Max file size:** 32 MB
+- **Provider limit:** 100 pages, 32 MB per PDF
+- **Pipeline default upload size:** 10 MB (adjust with `MAX_PDF_SIZE_MB`)
 - **Models:** gpt-5 (vision-capable model)
 - **Format:** Base64-encoded PDF
 
 ### Claude API Limits
-- **Max pages:** 100 per PDF
-- **Max file size:** 32 MB
+- **Provider limit:** 100 pages, 32 MB per PDF
+- **Pipeline default upload size:** 10 MB (adjust with `MAX_PDF_SIZE_MB`)
 - **Models:** Claude Opus 4.1, Sonnet 4.5, Haiku 3.5
 - **Format:** Base64-encoded PDF with `application/pdf` media type
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 | Document | Purpose |
 |----------|---------|
@@ -530,7 +493,7 @@ git push
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions welcome! Please:
 
@@ -543,29 +506,29 @@ Contributions welcome! Please:
 
 ---
 
-## 📝 License
+## License
 
 This project uses a **dual-license model**:
 
 ### Free Use (Prosperity Public License 3.0.0)
-- ✅ **Academic research** - Free forever
-- ✅ **Non-commercial use** - Free forever
-- ✅ **Commercial trial** - Free for 30 days (company-wide)
-- 📄 See [LICENSE](LICENSE) for full terms
+-  **Academic research** - Free forever
+-  **Non-commercial use** - Free forever
+-  **Commercial trial** - Free for 30 days (company-wide)
+-  See [LICENSE](LICENSE) for full terms
 
 ### Commercial Use
-- 💼 After 30-day trial, commercial use requires a paid license
-- 📊 Flexible pricing: Subscription or Pay-per-PDF
-- 🏢 Self-hosted on your infrastructure
-- 📄 See [COMMERCIAL_LICENSE.md](COMMERCIAL_LICENSE.md) for terms
-- 📧 For commercial licensing inquiries: Open a GitHub issue or discussion
+-  After 30-day trial, commercial use requires a paid license
+-  Flexible pricing: Subscription or Pay-per-PDF
+-  Self-hosted on your infrastructure
+-  See [COMMERCIAL_LICENSE.md](COMMERCIAL_LICENSE.md) for terms
+-  For commercial licensing inquiries: Open a GitHub issue or discussion
 
 ---
 
-## 📧 Contact
+## Contact
 
 For questions or issues, please open a GitHub issue.
 
 ---
 
-**Built with ❤️ for medical research data extraction**
+**Built with  for medical research data extraction**
