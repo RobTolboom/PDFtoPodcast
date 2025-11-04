@@ -1704,6 +1704,10 @@
             }
           }
         },
+        "synthesis_id": {
+          "type": "string",
+          "description": "Unique identifier for this synthesis (stable across document versions)"
+        },
         "source": {
           "$ref": "common.schema.json#/$defs/SourceRef"
         }

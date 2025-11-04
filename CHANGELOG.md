@@ -8,15 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- **Evidence Synthesis Schema Validation** - Fixed 4 schema validation errors for meta-analysis/systematic review extractions
+- **Evidence Synthesis Schema Validation** - Fixed 6 schema validation errors for meta-analysis/systematic review extractions
   - **Fix 1:** Added `is_primary` boolean field to `SynthesisOutcome` schema - prompt was requesting this field but schema didn't allow it
   - **Fix 2:** Added `source` field to `risk_of_bias_summary` - LLM was adding source references but schema rejected them
   - **Fix 3:** Added `source` field to `Synthesis` top-level object - prompt explicitly requested this field but schema was missing it
   - **Fix 4:** Removed redundant `outcome_id` requirement from nested `PairwiseMetaAnalysis` - parent `Synthesis` object already has `outcome_id`, nested requirement caused validation failures
-  - Root cause: Schema-prompt misalignment where prompt instructions requested fields that schema `additionalProperties: false` rejected
-  - Impact: Meta-analysis extractions now validate successfully, quality scores improved from 38.9% (failed) to passing
-  - Files modified: `schemas/evidence_synthesis.schema.json` (source), regenerated `evidence_synthesis_bundled.json`
-  - Location: schemas/evidence_synthesis.schema.json lines 948 (is_primary), 587 (risk_of_bias_summary source), 1711 (Synthesis source), 1231-1243 (PairwiseMetaAnalysis outcome_id removal)
+  - **Fix 5:** Added `synthesis_id` string field to `Synthesis` schema - prompt explicitly requested stable IDs (line 18, 167) but schema rejected this field
+  - **Fix 6:** Clarified `authors` extraction in prompt - added explicit instruction that `last_name` is REQUIRED (schema requires it but prompt didn't mention it)
+  - Root cause: Schema-prompt misalignment where prompt instructions requested fields that schema `additionalProperties: false` rejected, or schema required fields that prompt didn't instruct
+  - Impact: Meta-analysis extractions now validate successfully, quality scores improved from 37.5-38.9% (failed) to passing
+  - Files modified: `schemas/evidence_synthesis.schema.json` (source), `prompts/Extraction-prompt-evidence-synthesis.txt`, regenerated `evidence_synthesis_bundled.json`
+  - Location: schemas/evidence_synthesis.schema.json lines 948 (is_primary), 587 (risk_of_bias_summary source), 1711 (Synthesis source), 1231-1243 (PairwiseMetaAnalysis outcome_id removal), 1707-1710 (synthesis_id); prompts/Extraction-prompt-evidence-synthesis.txt line 66 (authors instruction)
 
 ### Changed
 - Marked `COMMERCIAL_LICENSE.md` as a draft pending legal review to prevent accidental publication of unapproved contract language.
