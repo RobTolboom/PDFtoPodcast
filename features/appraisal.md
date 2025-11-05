@@ -6,6 +6,22 @@
 **Updated**: 2025-11-04 (v1.0 - Initial specification)
 **Author**: Rob Tolboom (met Claude Code)
 
+**Samenvatting**
+- Iteratieve critical appraisal-stap beoordeelt automatisch risk of bias, GRADE en toepasbaarheid voor alle ondersteunde publicatietypes en levert gestandaardiseerde JSON-output.
+- Grootste risico is inconsistent LLM-gedrag; mitigaties omvatten strikte validation/correction prompts, configurabele kwaliteitsdrempels en regressietests per tool.
+
+## Scope
+
+**In scope**
+- Iteratieve appraisal-stap na extraction/validation, inclusief validatie- en correctieprompts.
+- Ondersteuning voor interventional, observational, evidence synthesis, prediction_prognosis én diagnostic (gedeelde prompt), plus editorials.
+- Opslag, selectie en rapportage van appraisal-iteraties in CLI en Streamlit UI.
+
+**Out of scope**
+- Nieuwe LLM-providers of non-LLM rule engines voor appraisal.
+- Uitbreiding van extraction-stap of schema’s buiten `appraisal.schema.json`.
+- Volledige automatisering van evidence grading voor diagnostische workflows buiten PROBAST/QUADAS.
+
 ---
 
 ## Probleemstelling
@@ -52,6 +68,12 @@ Evidence-based medicine vereist **systematische critical appraisal**:
 - Iteratieve correctie verhoogt appraisal betrouwbaarheid
 - Essentieel voor geautomatiseerde evidence synthesis en rapporten
 
+### User Stories
+
+- Als clinicus wil ik direct zien hoe betrouwbaar de gevonden studies zijn zodat ik sneller evidence kan wegen tijdens MDO’s.
+- Als data-analist wil ik appraisal-scores en rationales in JSON zodat ik downstream analyses en dashboards kan voeden zonder handwerk.
+- Als product owner wil ik automatisch inzicht in kwaliteitsproblemen zodat ik kan beslissen of een podcastscript door mag naar publicatie.
+
 ---
 
 ## Gewenste Situatie
@@ -80,7 +102,7 @@ Evidence-based medicine vereist **systematische critical appraisal**:
            ├─ interventional_trial → Appraisal-interventional.txt (RoB 2 / ROBINS-I)
            ├─ observational_analytic → Appraisal-observational.txt (ROBINS-I/E)
            ├─ evidence_synthesis → Appraisal-evidence-synthesis.txt (AMSTAR 2 + ROBIS)
-           ├─ prediction_prognosis → Appraisal-prediction.txt (PROBAST)
+          ├─ prediction_prognosis | diagnostic → Appraisal-prediction.txt (PROBAST)
            └─ editorials_opinion → Appraisal-editorials.txt (Argument quality)
            │
            ▼
@@ -124,7 +146,7 @@ Evidence-based medicine vereist **systematische critical appraisal**:
 ### Belangrijkste Veranderingen
 
 1. **Nieuwe Pipeline Stap**: Appraisal na validation/correction, vóór report/podcast
-2. **Study Type Routing**: 5 publication types → 5 appraisal prompts (tool-specific)
+2. **Study Type Routing**: 5 publication types → 5 appraisal prompts (tool-specific; diagnostic valt samen met prediction)
 3. **Iteratieve Loop**: Appraisal → Validation → Correction → ... tot kwaliteit voldoende
 4. **Tool-Specific Assessment**:
    - RCTs → RoB 2 (5 domains: randomization, deviations, missing data, measurement, selection)
@@ -145,7 +167,7 @@ Evidence-based medicine vereist **systematische critical appraisal**:
 
 - ✅ **Self-contained**: No external $refs to common.schema.json → **NO bundling needed**
 - ✅ **Study type support**: 6 types (interventional, observational, diagnostic, prediction_prognosis, evidence_synthesis, editorial_opinion)
-  - Note: Pipeline uses 5 types (diagnostic not yet implemented)
+  - Note: Pipeline routeert diagnostic studies via prediction_prognosis (zelfde prompt)
 - ✅ **Tool coverage**:
   - RoB 2 / ROBINS-I/E (interventional/observational)
   - QUADAS-2/C (diagnostic accuracy)
@@ -192,7 +214,7 @@ Evidence-based medicine vereist **systematische critical appraisal**:
 - `prompts/Appraisal-interventional.txt` - RoB 2 critical appraisal (70 lines)
 - `prompts/Appraisal-observational.txt` - ROBINS-I/E assessment (61 lines)
 - `prompts/Appraisal-evidence-synthesis.txt` - AMSTAR 2 + meta-analysis quality (73 lines)
-- `prompts/Appraisal-prediction.txt` - PROBAST + performance evaluation (69 lines)
+- `prompts/Appraisal-prediction.txt` - PROBAST + performance evaluation (69 lines, gedeeld door prediction_prognosis en diagnostic)
 - `prompts/Appraisal-editorials.txt` - Argument quality assessment (53 lines)
 
 **New Prompts Needed**:
@@ -262,10 +284,17 @@ Evidence-based medicine vereist **systematische critical appraisal**:
 - `schema_compliance_score >= 0.95`
 - `critical_issues == 0`
 
+**Scoreberekening**:
+- Iedere subscoreschaal loopt van 0.0-1.0 en wordt afgerond op twee decimalen in het rapport.
+- `quality_score = 0.35 * logical_consistency_score + 0.25 * completeness_score + 0.25 * evidence_support_score + 0.15 * schema_compliance_score`.
+- Zodra `critical_issues > 0` wordt `overall_status` direct `failed` en wordt `quality_score` begrensd op maximaal 0.69 (iteratie kan niet als beste geselecteerd worden).
+- `overall_status = passed` wanneer alle drempels gehaald worden, `warning` bij maximaal twee lichte afwijkingen (<=0.05 onder drempel) zonder critical issues, `failed` in alle overige gevallen.
+- De orchestrator gebruikt `quality_score` als primaire ranking voor iteraties, met de bestaande tie-breakers voor consistentiecontrole.
+
 **Overall Status**:
-- "passed": All thresholds met
-- "warning": 1-2 thresholds slightly below, no critical issues
-- "failed": ≥3 thresholds below OR critical_issues > 0
+- "passed": Alle drempels gehaald.
+- "warning": Maximaal twee drempels <=0.05 onder target en geen critical issues.
+- "failed": Meer afwijkingen of `critical_issues > 0` (heeft prioriteit boven score).
 
 #### B. `prompts/Appraisal-correction.txt`
 **Purpose**: Correct appraisal JSON based on validation issues
@@ -551,18 +580,11 @@ with open(appraisal_schema_path) as f:
 **Goal**: Write new validation and correction prompts
 
 **Deliverables**:
-- [ ] `prompts/Appraisal-validation.txt`:
-  - Logical consistency checks (overall = worst domain)
-  - Completeness checks (all domains, all outcomes)
-  - Evidence support checks (rationales match extraction)
-  - Schema compliance checks
-  - Scoring methodology (4 scores + quality_score)
-- [ ] `prompts/Appraisal-correction.txt`:
-  - Fix logical inconsistencies
-  - Complete missing domains/outcomes
-  - Strengthen evidence support
-  - Schema compliance fixes
-  - Input/output specification
+
+| Prompt | Doel | Kerninput | Output |
+| --- | --- | --- | --- |
+| `prompts/Appraisal-validation.txt` | Controleert appraisal op logische consistentie, volledigheid, evidence support en schema-compliance | `APPRAISAL_JSON`, `EXTRACTION_JSON`, `APPRAISAL_SCHEMA` | Validation report met scores, issues-lijst en overall status |
+| `prompts/Appraisal-correction.txt` | Corrigeert appraisal o.b.v. validation issues, vult ontbrekende elementen aan en herstelt schemafouten | `VALIDATION_REPORT`, `ORIGINAL_APPRAISAL`, `EXTRACTION_JSON`, `APPRAISAL_SCHEMA` | Verbeterde appraisal JSON klaar voor her-validatie |
 
 **Testing**:
 - Manual validation with test cases (RCT with RoB 2 issues, meta-analysis with AMSTAR issues)
@@ -714,11 +736,12 @@ python run_pipeline.py paper.pdf --appraisal-max-iter 5
   - Update `ARCHITECTURE.md` (appraisal component)
   - Update `API.md` (new orchestrator functions)
   - Add `docs/appraisal.md` (detailed guide with tool descriptions)
+- [ ] CHANGELOG.md bijwerken onder “Unreleased” en de verplichte acties uit `change_management` in `CLAUDE.md` uitvoeren (inclusief communicatie naar stakeholders).
 - [ ] Test data:
   - Sample appraisals for each study type
   - Known issues for validation testing
 
-**Testing Strategy**:
+**Teststrategie**:
 1. **Unit Tests**: Each function isolated
 2. **Integration Tests**: Full appraisal loop
 3. **End-to-End Tests**: CLI + UI with real PDFs
@@ -800,40 +823,40 @@ python run_pipeline.py paper.pdf --appraisal-max-iter 5
 
 ### Functioneel
 
-1. ✅ **Appraisal runs for all 5 study types** with correct tool selection
-2. ✅ **Iterative correction** improves quality scores across iterations
-3. ✅ **Best iteration selected** based on validation scores
-4. ✅ **Quality thresholds enforced** (logical consistency, completeness, evidence support, schema compliance)
-5. ✅ **File management** saves all iterations with correct naming
-6. ✅ **UI integration** displays appraisal results clearly
-7. ✅ **CLI support** runs appraisal step standalone or in full pipeline
-8. ✅ **Backward compatibility** supports standalone appraisal without iteration
+1. **Appraisal runs voor alle 5 study types** met correcte toolselectie, inclusief gedeelde PROBAST-prompt voor prediction_prognosis + diagnostic
+2. **Iterative correction** improves quality scores across iterations
+3. **Best iteration selected** based on validation scores
+4. **Quality thresholds enforced** (logical consistency, completeness, evidence support, schema compliance)
+5. **File management** saves all iterations with correct naming
+6. **UI integration** displays appraisal results clearly
+7. **CLI support** runs appraisal step standalone or in full pipeline
+8. **Backward compatibility** supports standalone appraisal without iteration
 
 ### Technisch
 
-1. ✅ **No schema bundling** required (appraisal.schema.json is self-contained)
-2. ✅ **Prompt routing** correctly maps publication_type to appraisal prompt
-3. ✅ **Validation prompt** identifies all issue categories
-4. ✅ **Correction prompt** fixes issues without breaking schema
-5. ✅ **Error handling** graceful failures with clear messages
-6. ✅ **Test coverage** ≥ 90% for appraisal code
-7. ✅ **Documentation** complete (README, ARCHITECTURE, API, appraisal guide)
+1. **No schema bundling** required (appraisal.schema.json is self-contained)
+2. **Prompt routing** correctly maps publication_type to appraisal prompt
+3. **Validation prompt** identifies all issue categories
+4. **Correction prompt** fixes issues without breaking schema en houdt rekening met gedeelde prediction/diagnostic logica
+5. **Error handling** graceful failures with clear messages
+6. **Test coverage** ≥ 90% voor appraisal code
+7. **Documentation** complete (README, ARCHITECTURE, API, appraisal guide)
 
 ### Kwaliteit
 
-1. ✅ **Logical consistency**: Overall judgement matches worst domain (RoB 2/ROBINS-I rule)
-2. ✅ **Completeness**: All required domains assessed, all outcomes appraised
-3. ✅ **Evidence support**: Rationales reference extraction data with source_refs
-4. ✅ **Schema compliance**: Enum values exact, required fields present
-5. ✅ **GRADE alignment**: Downgrades consistent with RoB assessment
+1. **Logical consistency**: Overall judgement matches worst domain (RoB 2/ROBINS-I rule)
+2. **Completeness**: All required domains assessed, all outcomes appraised
+3. **Evidence support**: Rationales reference extraction data with source_refs
+4. **Schema compliance**: Enum values exact, required fields present
+5. **GRADE alignment**: Downgrades consistent with RoB assessment
 
 ### Gebruikerservaring
 
-1. ✅ **Clear progress indicators** during appraisal iterations
-2. ✅ **Intuitive results display** (risk of bias summary, GRADE ratings)
-3. ✅ **Iteration history accessible** for transparency
-4. ✅ **Bottom line generated** for podcast script integration
-5. ✅ **Error messages actionable** when appraisal fails
+1. **Clear progress indicators** during appraisal iterations
+2. **Intuitive results display** (risk of bias summary, GRADE ratings)
+3. **Iteration history accessible** for transparency
+4. **Bottom line generated** for podcast script integration
+5. **Error messages actionable** when appraisal fails
 
 ---
 
@@ -904,6 +927,12 @@ python run_pipeline.py paper.pdf --appraisal-max-iter 5
 - Correction prompt quantifies downgrades (e.g., "Imprecision: CI crosses null and MID")
 - Consider rule-based GRADE assistance (CI width → imprecision)
 - Document GRADE criteria in prompt with examples
+
+---
+
+## Open Vragen & Afhankelijkheden
+
+Momenteel geen open vragen. Thresholds zijn vastgesteld, benodigde LLM-accounts zijn beschikbaar, UI-ontwerp volgt bestaande validatie/correctie-stijl en stakeholdercommunicatie valt binnen de bestaande change_management-afspraken.
 
 ---
 
