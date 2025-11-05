@@ -3,7 +3,7 @@
 **Status**: Planned - Feature Document Complete, Implementation Pending
 **Branch**: `feature/appraisal`
 **Created**: 2025-11-04
-**Updated**: 2025-11-04 (v1.0 - Initial specification)
+**Updated**: 2025-11-05 (v1.1 - Post-review refinements: terminologie alignment, routing logic, validation criteria, diagnostic handling)
 **Author**: Rob Tolboom (met Claude Code)
 
 **Samenvatting**
@@ -70,9 +70,26 @@ Evidence-based medicine vereist **systematische critical appraisal**:
 
 ### User Stories
 
-- Als clinicus wil ik direct zien hoe betrouwbaar de gevonden studies zijn zodat ik sneller evidence kan wegen tijdens MDO’s.
+**US1: Snelle kwaliteitsbeoordeling voor clinici**
+- Als clinicus wil ik direct zien hoe betrouwbaar de gevonden studies zijn zodat ik sneller evidence kan wegen tijdens MDO's.
+- **Acceptance Criteria**:
+  - Risk of bias summary zichtbaar binnen 2 clicks in UI
+  - Overall judgement kleurgecodeerd (groen=Low risk, geel=Some concerns, rood=High risk)
+  - Appraisal voltooid binnen 2 minuten na extraction
+
+**US2: Gestructureerde data voor analyse**
 - Als data-analist wil ik appraisal-scores en rationales in JSON zodat ik downstream analyses en dashboards kan voeden zonder handwerk.
+- **Acceptance Criteria**:
+  - JSON output bevat alle scores (logical_consistency, completeness, evidence_support, schema_compliance)
+  - Rationales bevatten source_refs naar extraction (page numbers, tables)
+  - Schema-compliant output (validate against appraisal.schema.json)
+
+**US3: Automatische kwaliteitscontrole voor publicatie**
 - Als product owner wil ik automatisch inzicht in kwaliteitsproblemen zodat ik kan beslissen of een podcastscript door mag naar publicatie.
+- **Acceptance Criteria**:
+  - Overall appraisal status ("passed"/"warning"/"failed") duidelijk weergegeven
+  - Bottom line for podcast gegenereerd (1-2 zinnen samenvatting)
+  - Iteration history toont kwaliteitsverbetering over iteraties
 
 ---
 
@@ -102,8 +119,10 @@ Evidence-based medicine vereist **systematische critical appraisal**:
            ├─ interventional_trial → Appraisal-interventional.txt (RoB 2 / ROBINS-I)
            ├─ observational_analytic → Appraisal-observational.txt (ROBINS-I/E)
            ├─ evidence_synthesis → Appraisal-evidence-synthesis.txt (AMSTAR 2 + ROBIS)
-          ├─ prediction_prognosis | diagnostic → Appraisal-prediction.txt (PROBAST)
+           ├─ prediction_prognosis OR diagnostic → Appraisal-prediction.txt (PROBAST)
            └─ editorials_opinion → Appraisal-editorials.txt (Argument quality)
+
+**Note**: `diagnostic` study type uses the same prediction_prognosis prompt (shared PROBAST-like assessment).
            │
            ▼
   ┌────────────────────────┐
@@ -146,7 +165,9 @@ Evidence-based medicine vereist **systematische critical appraisal**:
 ### Belangrijkste Veranderingen
 
 1. **Nieuwe Pipeline Stap**: Appraisal na validation/correction, vóór report/podcast
-2. **Study Type Routing**: 5 publication types → 5 appraisal prompts (tool-specific; diagnostic valt samen met prediction)
+2. **Study Type Routing**: 5 classification types → 5 appraisal prompts (tool-specific)
+   - Classification types: `interventional_trial`, `observational_analytic`, `evidence_synthesis`, `prediction_prognosis`, `editorials_opinion`
+   - Note: `diagnostic` studies in extraction schema share the `prediction_prognosis` appraisal prompt
 3. **Iteratieve Loop**: Appraisal → Validation → Correction → ... tot kwaliteit voldoende
 4. **Tool-Specific Assessment**:
    - RCTs → RoB 2 (5 domains: randomization, deviations, missing data, measurement, selection)
@@ -166,8 +187,9 @@ Evidence-based medicine vereist **systematische critical appraisal**:
 **Existing Schema**: `schemas/appraisal.schema.json` (v1.0, 462 lines)
 
 - ✅ **Self-contained**: No external $refs to common.schema.json → **NO bundling needed**
-- ✅ **Study type support**: 6 types (interventional, observational, diagnostic, prediction_prognosis, evidence_synthesis, editorial_opinion)
-  - Note: Pipeline routeert diagnostic studies via prediction_prognosis (zelfde prompt)
+- ✅ **Study type support**: 6 types in schema (`interventional_trial`, `observational_analytic`, `diagnostic`, `prediction_prognosis`, `evidence_synthesis`, `editorials_opinion`)
+  - Note: Schema study_type values must align with classification output
+  - `diagnostic` is valid in extraction schema and uses prediction_prognosis appraisal prompt
 - ✅ **Tool coverage**:
   - RoB 2 / ROBINS-I/E (interventional/observational)
   - QUADAS-2/C (diagnostic accuracy)
@@ -181,7 +203,7 @@ Evidence-based medicine vereist **systematische critical appraisal**:
 {
   "appraisal_version": "v1.0",
   "study_id": "...",
-  "study_type": "interventional|observational|...",
+  "study_type": "interventional_trial|observational_analytic|evidence_synthesis|prediction_prognosis|editorials_opinion|diagnostic",
   "tool": {
     "name": "RoB 2|ROBINS-I|PROBAST|...",
     "version": "...",
@@ -231,13 +253,19 @@ Evidence-based medicine vereist **systematische critical appraisal**:
 1. **Logical Consistency**
    - Overall judgement = worst domain judgement? (RoB 2/ROBINS-I rule)
    - GRADE downgrades consistent with RoB assessment?
+     - **Note**: Full GRADE validation is complex (requires MID thresholds, I² interpretation, publication bias assessment)
+     - Initial validation: Check basic consistency (RoB "High risk" → GRADE downgrade for risk of bias)
+     - Future enhancement: Rule-based GRADE assistance (CI width → imprecision, I² → inconsistency)
    - Tool choice appropriate for study design? (RCT → RoB 2, Nonrandomized → ROBINS-I)
    - Predicted bias direction consistent with domain rationale?
 
 2. **Completeness Assessment**
    - All required domains assessed? (RoB 2: 5, ROBINS-I: 7, PROBAST: 4, AMSTAR 2: 16)
    - All outcomes from extraction appraised? (grade_per_outcome matches outcomes[])
-   - Rationales present and substantive? (>20 chars, not boilerplate)
+   - Rationales present and substantive?
+     - Minimum length: 50 characters (not 20)
+     - Domain-specific keywords present (e.g., RoB 2 randomization → "allocation", "sequence generation", "baseline")
+     - Boilerplate detection: Flag phrases like "No information provided", "Unclear from paper", "Not reported"
    - Applicability fields populated when relevant?
 
 3. **Evidence Support**
@@ -284,10 +312,19 @@ Evidence-based medicine vereist **systematische critical appraisal**:
 - `schema_compliance_score >= 0.95`
 - `critical_issues == 0`
 
+**Note on Scoring Architecture**:
+- **Thresholds** = Minimum requirements for stopping (all must pass to reach "passed" status)
+- **Weights** = Relative importance for ranking iterations (used in quality_score formula)
+- Example: `schema_compliance_score` has high threshold (0.95) but low weight (0.15) because it's a strict requirement but less important for differentiating between passing iterations
+
 **Scoreberekening**:
 - Iedere subscoreschaal loopt van 0.0-1.0 en wordt afgerond op twee decimalen in het rapport.
 - `quality_score = 0.35 * logical_consistency_score + 0.25 * completeness_score + 0.25 * evidence_support_score + 0.15 * schema_compliance_score`.
-- Zodra `critical_issues > 0` wordt `overall_status` direct `failed` en wordt `quality_score` begrensd op maximaal 0.69 (iteratie kan niet als beste geselecteerd worden).
+- **Critical issues handling**:
+  - Zodra `critical_issues > 0`:
+    - `overall_status` → `"failed"` (overrides all other checks)
+    - `schema_compliance_score` → `0.0` (reflects schema failure)
+    - `quality_score` capped at 0.69 (prevents selection as best iteration)
 - `overall_status = passed` wanneer alle drempels gehaald worden, `warning` bij maximaal twee lichte afwijkingen (<=0.05 onder drempel) zonder critical issues, `failed` in alle overige gevallen.
 - De orchestrator gebruikt `quality_score` als primaire ranking voor iteraties, met de bestaande tie-breakers voor consistentiecontrole.
 
@@ -364,8 +401,11 @@ def run_appraisal_with_correction(
         classification_result: Classification result (for publication_type routing)
         llm_provider: LLM provider name ("openai" | "claude")
         file_manager: File manager for saving appraisal iterations
-        max_iterations: Maximum correction attempts (default: 3)
-            Example: max_iterations=3 means up to 4 total iterations (iter 0,1,2,3)
+        max_iterations: Maximum correction attempts after initial appraisal (default: 3)
+            Iteration 0: Initial appraisal + validation
+            Iterations 1-N: Correction attempts (if quality insufficient)
+            Example: max_iterations=3 → up to 4 total LLM calls (iter 0,1,2,3)
+            Note: Also called "max_correction_iterations" conceptually
         quality_thresholds: Custom thresholds, defaults to:
             {
                 'logical_consistency_score': 0.90,
@@ -387,6 +427,7 @@ def run_appraisal_with_correction(
         }
 
     Raises:
+        SchemaLoadError: If appraisal.schema.json cannot be loaded or is invalid
         ValueError: If schema validation fails on any iteration
         LLMProviderError: If LLM calls fail
         UnsupportedPublicationType: If publication_type not in {interventional_trial, observational_analytic, evidence_synthesis, prediction_prognosis, editorials_opinion}
@@ -418,14 +459,35 @@ def run_appraisal(
     """
     Run single appraisal (no iteration).
 
-    Routes to appropriate prompt:
-    - interventional_trial → Appraisal-interventional.txt
-    - observational_analytic → Appraisal-observational.txt
-    - evidence_synthesis → Appraisal-evidence-synthesis.txt
-    - prediction_prognosis → Appraisal-prediction.txt
-    - editorials_opinion → Appraisal-editorials.txt
+    Routes to appropriate prompt based on publication_type using _get_appraisal_prompt_name().
 
     Returns: appraisal JSON
+
+    Raises:
+        UnsupportedPublicationType: If publication_type not supported for appraisal
+    """
+
+def _get_appraisal_prompt_name(publication_type: str) -> str:
+    """
+    Map publication_type to appraisal prompt filename.
+
+    Args:
+        publication_type: Classification result publication type
+
+    Returns:
+        Prompt filename (without .txt extension)
+
+    Raises:
+        UnsupportedPublicationType: If publication_type has no appraisal support
+
+    Mapping:
+        - interventional_trial → Appraisal-interventional
+        - observational_analytic → Appraisal-observational
+        - evidence_synthesis → Appraisal-evidence-synthesis
+        - prediction_prognosis → Appraisal-prediction
+        - editorials_opinion → Appraisal-editorials
+
+    Note: Classification type 'overig' is not supported and will raise exception.
     """
 
 def validate_appraisal(
@@ -467,13 +529,18 @@ def correct_appraisal(
 
 def select_best_appraisal_iteration(iterations: list[dict]) -> dict:
     """
-    Select best appraisal iteration based on validation scores.
+    Select best appraisal iteration using quality_score ranking.
 
-    Ranking:
-    1. Highest logical_consistency_score (most important)
-    2. Lowest critical_issues
-    3. Highest completeness_score
-    4. Highest evidence_support_score
+    Primary ranking metric: quality_score (weighted composite)
+        quality_score = 0.35 * logical_consistency_score
+                      + 0.25 * completeness_score
+                      + 0.25 * evidence_support_score
+                      + 0.15 * schema_compliance_score
+
+    Tie-breakers (in order):
+        1. No critical_issues (mandatory filter)
+        2. Highest completeness_score
+        3. Lowest iteration number (prefer earlier success)
 
     Returns: best iteration dict with appraisal + validation
     """
@@ -499,6 +566,8 @@ def select_best_appraisal_iteration(iterations: list[dict]) -> dict:
   ├── appraisal_best.json            # Selected best appraisal (NEW)
   └── appraisal_validation_best.json
 ```
+
+**Important**: Verify that PipelineFileManager uses `_iter_0` convention (not `0` or `-iter-0`). The naming pattern MUST match the existing extraction/validation pattern exactly to maintain consistency across the pipeline.
 
 **File Manager Methods** (extend existing PipelineFileManager):
 
@@ -548,6 +617,34 @@ with open(appraisal_schema_path) as f:
 ```
 
 **No bundling required** ✅
+
+### 6. Diagnostic Study Routing (Special Case)
+
+**Context**: Diagnostic accuracy studies have a unique workflow:
+
+- **Extraction**: Uses diagnostic-specific schema with QUADAS-2/QUADAS-C tools
+- **Classification**: May output `diagnostic` as publication_type (not in standard 5 types)
+- **Appraisal**: Shares the **prediction_prognosis prompt** (`Appraisal-prediction.txt`)
+
+**Rationale**: PROBAST (for prediction models) and QUADAS (for diagnostic tests) have similar structure:
+- Both assess Risk of Bias and Applicability across multiple domains
+- Both evaluate performance (discrimination for prediction, sensitivity/specificity for diagnostic)
+- Shared prompt handles both via tool-specific language
+
+**Implementation**:
+```python
+# In _get_appraisal_prompt_name():
+if publication_type == 'diagnostic':
+    return 'Appraisal-prediction'  # Shared with prediction_prognosis
+```
+
+**Schema handling**:
+- `study_type` in extraction: `"diagnostic"`
+- `study_type` in appraisal output: `"diagnostic"` (preserved from extraction)
+- `tool.name` in appraisal: `"QUADAS-2"` or `"QUADAS-C"` (diagnostic-specific)
+- Prompt used: `Appraisal-prediction.txt` (shared with PROBAST)
+
+**Note**: This is distinct from `prediction_prognosis` classification output, which uses the same prompt but for prediction models (PROBAST tool).
 
 ---
 
@@ -759,18 +856,27 @@ python run_pipeline.py paper.pdf --appraisal-max-iter 5
 ### Test Cases by Study Type
 
 #### 1. Interventional Trial (RoB 2)
-**Test PDF**: RCT with clear RoB domains
-**Expected**:
-- Tool: RoB 2
-- 5 domains assessed
-- Overall judgement = worst domain
-- GRADE per outcome (starts at High for RCT)
+**Test PDF**: RCT with clear RoB domains (e.g., parallel-group trial with patient-reported outcomes)
+
+**Expected Output**:
+- `tool.name`: "RoB 2"
+- `tool.variant`: "parallel-RCT" (or "cluster-RCT", "crossover-RCT" depending on design)
+- `risk_of_bias.domains`: 5 domains assessed:
+  1. randomization_process (judgement + rationale + source_refs)
+  2. deviations_from_intended_interventions
+  3. missing_outcome_data
+  4. measurement_of_outcome
+  5. selection_of_reported_result
+- `risk_of_bias.overall`: Worst domain judgement (e.g., "Some concerns" if any domain has concerns)
+- `grade_per_outcome`: Array with GRADE rating for each outcome (starts at "High" certainty for RCTs, downgraded if RoB issues)
+- Rationales: ≥50 chars, domain-specific keywords present, source_refs to extraction
 
 **Validation Issues to Test**:
-- Overall judgement inconsistent with domain
-- Missing domain assessment
-- Rationale missing/sparse
+- Overall judgement inconsistent with domain (e.g., overall="Low risk" but domain="High risk")
+- Missing domain assessment (only 4 of 5 domains present)
+- Rationale missing/sparse (<50 chars or boilerplate "Not reported")
 - Incorrect enum casing ("low risk" vs "Low risk")
+- GRADE inconsistency (RoB "High risk" but no GRADE downgrade for risk of bias)
 
 #### 2. Observational Analytic (ROBINS-I)
 **Test PDF**: Cohort study with confounding issues
@@ -879,10 +985,11 @@ python run_pipeline.py paper.pdf --appraisal-max-iter 5
 **Impact**: Medium - appraisal reflects extraction errors, not study quality
 
 **Mitigatie**:
-- Require extraction quality_score ≥ 0.90 before appraisal
-- Appraisal prompt includes PDF_CONTENT (optional) for direct verification
-- Validation checks extraction-appraisal alignment
-- Document extraction dependencies in appraisal warnings
+- Log warning if extraction quality_score < 0.90, but proceed with appraisal (don't block)
+- Flag low-confidence appraisals for manual review (add `extraction_quality_warning` field)
+- Appraisal prompt includes PDF_CONTENT (optional) for direct verification when extraction quality marginal
+- Validation checks extraction-appraisal alignment (evidence support score)
+- Document extraction dependencies in appraisal metadata and warnings
 
 ### Risico 3: Validation Too Lenient/Strict
 **Beschrijving**: Quality thresholds not calibrated → too many iterations or false passes

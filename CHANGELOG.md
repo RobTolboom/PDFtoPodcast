@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Appraisal Feature Specification (v1.1)** - Refined feature document with technical corrections and clarifications
+  - Fixed critical study type terminology alignment (interventional_trial vs interventional mismatch between classification and appraisal schemas)
+  - Added explicit routing function `_get_appraisal_prompt_name()` with error handling for unsupported publication types
+  - Clarified quality_score logic with critical_issues handling (schema_compliance_score → 0.0, not just quality_score cap)
+  - Added comprehensive diagnostic study routing section explaining QUADAS-2/C → prediction_prognosis prompt mapping
+  - Sharpened validation criteria (50 char rationale minimum, boilerplate detection, domain-specific keywords)
+  - Aligned best iteration selection algorithm documentation with implementation (quality_score weighted composite)
+  - Clarified max_iterations semantics (iter 0 = initial appraisal, 1-N = corrections)
+  - Added error handling documentation (SchemaLoadError for schema loading failures)
+  - Documented scoring architecture (thresholds = minimum requirements, weights = ranking importance)
+  - Added GRADE validation future enhancement note for complex validation rules
+  - Enhanced user stories with concrete, measurable acceptance criteria
+  - Made test case expected output more explicit with full field specifications
+  - Improved risk mitigation strategy (extraction quality warning instead of hard block)
+  - Fixed workflow diagram syntax (pipe → "OR" for clarity)
+  - Location: features/appraisal.md (v1.0 → v1.1, +15 improvements)
+
 ### Fixed
 - **Evidence Synthesis Schema Validation** - Fixed 6 schema validation errors for meta-analysis/systematic review extractions
   - **Fix 1:** Added `is_primary` boolean field to `SynthesisOutcome` schema - prompt was requesting this field but schema didn't allow it
