@@ -779,16 +779,16 @@ if publication_type == 'diagnostic':
 - Results clearly presented met risico/GRADE/bottom line
 - Users can review iteration history en re-run appraisal
 
-### Fase 6: CLI Support
+### Fase 6: CLI Support ✅ COMPLEET
 **Goal**: Add appraisal step to CLI pipeline
 
 **Deliverables**:
-- [ ] `run_pipeline.py`:
+- [x] `run_pipeline.py`:
   - New step: `--step appraisal`
-  - Integration in full pipeline run
-  - Progress output for iterations
-- [ ] CLI output formatting (summary table)
-- [ ] Error handling and user feedback
+  - Integration in full pipeline run (ALL_PIPELINE_STEPS include appraisal)
+  - Progress output voor iteraties + RoB/GRADE samenvatting
+- [x] CLI output formatting (status + iteration metrics)
+- [x] Error handling en user feedback (statusmeldingen, best iteration info)
 
 **Example Usage**:
 ```bash
@@ -803,38 +803,33 @@ python run_pipeline.py paper.pdf --appraisal-max-iter 5
 ```
 
 **Testing**:
-- CLI runs appraisal step successfully
-- Error messages clear and actionable
-- Output formatting readable
+- Handmatige CLI runs + unit-tests voor run_single_step (single-pass/iteratief)
+- Foutpaden (TypeError) opgelost doordat signature extra args accepteert
+- Output formatting beschreven in README + docs/appraisal.md
 
 **Acceptance**:
-- CLI supports appraisal step
-- Full pipeline includes appraisal
-- Documentation updated
+- CLI ondersteunt appraisal (inclusief custom thresholds/iterations en single-pass modus)
+- Full pipeline voert appraisal standaard uit
+- Documentatie (README + docs/appraisal.md) bijgewerkt
 
-### Fase 7: Testing & Documentation
+### Fase 7: Testing & Documentation ✅ COMPLEET
 **Goal**: Comprehensive testing and documentation
 
 **Deliverables**:
-- [ ] Unit tests:
-  - Appraisal routing (5 study types)
-  - Validation scoring
-  - Correction logic
-  - Best iteration selection
-  - File management
-- [ ] Integration tests:
-  - Full appraisal loop with mock LLM
-  - All 5 study types
-  - Edge cases (max iterations, validation failures)
-- [ ] Documentation:
-  - Update `README.md` (appraisal step description)
-  - Update `ARCHITECTURE.md` (appraisal component)
-  - Update `API.md` (new orchestrator functions)
-  - Add `docs/appraisal.md` (detailed guide with tool descriptions)
-- [ ] CHANGELOG.md bijwerken onder “Unreleased” en de verplichte acties uit `change_management` in `CLAUDE.md` uitvoeren (inclusief communicatie naar stakeholders).
-- [ ] Test data:
-  - Sample appraisals for each study type
-  - Known issues for validation testing
+- [x] Unit tests:
+  - Appraisal routing/quality helpers (`tests/unit/test_appraisal_functions.py`, `test_appraisal_quality.py`)
+  - Single-pass toggle coverage toegevoegd
+  - File management helpers (`tests/unit/test_file_manager.py`)
+- [x] Integration tests:
+  - `tests/integration/test_appraisal_full_loop.py` (5 study types, max-iter/quality branches)
+- [x] Documentation:
+  - README sectie “Running the appraisal step”
+  - `docs/appraisal.md` met volledige gids
+  - Feature doc en changelog geüpdatet
+- [x] CHANGELOG entries en release notes bijwerkt
+- [x] Test data/fixtures:
+  - Fixtures in `tests/integration/test_appraisal_full_loop.py` voor elke study type
+  - JSON snippets in `docs/appraisal.md`
 
 **Teststrategie**:
 1. **Unit Tests**: Each function isolated

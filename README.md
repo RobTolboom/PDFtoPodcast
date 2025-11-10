@@ -153,7 +153,17 @@ This pipeline extracts structured data from medical research PDFs with a focus o
 *Tip:* Moet je voor legacy-workflows slechts één appraisal-run zonder iteratieve correcties draaien? Gebruik dan
 `python run_pipeline.py paper.pdf --step appraisal --appraisal-single-pass` of schakel in de Streamlit settings de optie
 “Enable iterative appraisal correction” uit. Dit schrijft de klassieke `paper-appraisal.json` / `paper-appraisal_validation.json`
-bestanden weg naast de gebruikelijke `*-best.json` artefacten.
+bestanden weg naast de gebruikelijke `*-best.json` artefacten. Voor een complete handleiding zie [`docs/appraisal.md`](docs/appraisal.md).
+
+### Running the appraisal step
+
+| Mode        | Command / Action                                                                                          |
+|-------------|-----------------------------------------------------------------------------------------------------------|
+| CLI (full)  | `python run_pipeline.py paper.pdf --llm openai` – voert alle stappen incl. appraisal uit                  |
+| CLI (only)  | `python run_pipeline.py paper.pdf --step appraisal --appraisal-max-iter 5 --appraisal-logical-threshold 0.92` |
+| CLI legacy  | `python run_pipeline.py paper.pdf --step appraisal --appraisal-single-pass`                                |
+| Streamlit   | Settings → enable “Appraisal” step, configure thresholds/iterations, optioneel single-pass toggle          |
+| Retry only  | In de Execution UI op “Re-run appraisal” klikken – draait enkel de appraisal-stap opnieuw                  |
 
 > The diagram shows provider hard limits (32 MB, 100 pages). By default the pipeline caps uploads at 10 MB
 > to match the Streamlit uploader and `MAX_PDF_SIZE_MB` setting—raise it in your `.env` only if your provider

@@ -15,14 +15,21 @@ Note: Full integration testing is in test_appraisal_full_loop.py
 These unit tests focus on edge cases and internal logic.
 """
 
+from pathlib import Path
+
 import pytest
 
+from src.pipeline.file_manager import PipelineFileManager
 from src.pipeline.orchestrator import (
+    STEP_APPRAISAL,
+    STEP_CLASSIFICATION,
+    STEP_EXTRACTION,
     UnsupportedPublicationType,
     _extract_appraisal_metrics,
     _get_appraisal_prompt_name,
     _select_best_appraisal_iteration,
     is_appraisal_quality_sufficient,
+    run_single_step,
 )
 
 
@@ -286,3 +293,96 @@ class TestBestAppraisalSelection:
         """Test empty list raises ValueError."""
         with pytest.raises(ValueError):
             _select_best_appraisal_iteration([])
+
+
+class TestRunSingleStepAppraisalModes:
+    """Ensure run_single_step respects iterative vs single-pass toggles."""
+
+    @pytest.fixture
+    def dummy_file_manager(self, tmp_path):
+        pdf_path = tmp_path / "dummy.pdf"
+        pdf_path.touch()
+        return PipelineFileManager(pdf_path)
+
+    @pytest.fixture
+    def base_previous_results(self):
+        return {
+            STEP_CLASSIFICATION: {"publication_type": "interventional_trial"},
+            STEP_EXTRACTION: {"study_id": "S1"},
+        }
+
+    def test_single_pass_mode(self, monkeypatch, dummy_file_manager, base_previous_results):
+        called = {"single": False, "iter": False}
+
+        def fake_single_pass(**kwargs):
+            called["single"] = True
+            return {
+                "best_appraisal": {},
+                "best_validation": {},
+                "iterations": [],
+                "best_iteration": 0,
+                "final_status": "single_pass",
+                "iteration_count": 1,
+                "improvement_trajectory": [],
+            }
+
+        def fake_iterative(**kwargs):
+            called["iter"] = True
+            return {}
+
+        monkeypatch.setattr("src.pipeline.orchestrator.run_appraisal_single_pass", fake_single_pass)
+        monkeypatch.setattr(
+            "src.pipeline.orchestrator.run_appraisal_with_correction", fake_iterative
+        )
+
+        run_single_step(
+            step_name=STEP_APPRAISAL,
+            pdf_path=Path(dummy_file_manager.pdf_path),
+            max_pages=None,
+            llm_provider="openai",
+            file_manager=dummy_file_manager,
+            progress_callback=None,
+            previous_results=base_previous_results.copy(),
+            enable_iterative_correction=False,
+        )
+
+        assert called["single"] is True
+        assert called["iter"] is False
+
+    def test_iterative_mode(self, monkeypatch, dummy_file_manager, base_previous_results):
+        called = {"single": False, "iter": False}
+
+        def fake_single_pass(**kwargs):
+            called["single"] = True
+            return {}
+
+        def fake_iterative(**kwargs):
+            called["iter"] = True
+            return {
+                "best_appraisal": {},
+                "best_validation": {},
+                "iterations": [],
+                "best_iteration": 0,
+                "final_status": "passed",
+                "iteration_count": 1,
+                "improvement_trajectory": [],
+            }
+
+        monkeypatch.setattr("src.pipeline.orchestrator.run_appraisal_single_pass", fake_single_pass)
+        monkeypatch.setattr(
+            "src.pipeline.orchestrator.run_appraisal_with_correction", fake_iterative
+        )
+
+        run_single_step(
+            step_name=STEP_APPRAISAL,
+            pdf_path=Path(dummy_file_manager.pdf_path),
+            max_pages=None,
+            llm_provider="openai",
+            file_manager=dummy_file_manager,
+            progress_callback=None,
+            previous_results=base_previous_results.copy(),
+            enable_iterative_correction=True,
+        )
+
+        assert called["iter"] is True
+        assert called["single"] is False
