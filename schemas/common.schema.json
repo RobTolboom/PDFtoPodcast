@@ -1626,7 +1626,7 @@
             "tissue_type": { "type": "string" },
             "expression_level": { "type": "number" },
             "fold_change": { "type": "number" },
-            "p_value": { "type": "number", "minimum": 0, "maximum": 1 }
+            "p_value": { "$ref": "#/$defs/p_value" }
           }
         },
         "therapeutic_implications": {

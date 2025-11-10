@@ -46,9 +46,8 @@
         },
         "judgement_scale": {
           "type": ["string", "null"],
-          "description": "Optional scale label that determines the expected judgement values (e.g., 'rob2', 'robins', 'quadas', 'probast')."
           "enum": ["rob2", "robins", "probast", "amstar2", "robis", null],
-          "description": "Optional scale label with a controlled vocabulary (rob2, robins, probast, amstar2, robis)."
+          "description": "Optional scale label met gecontroleerde vocabulaire (rob2, robins, probast, amstar2, robis)."
         }
       }
     },
@@ -57,9 +56,6 @@
       "description": "For evidence syntheses that report multiple instruments (e.g., AMSTAR 2 + ROBIS + GRADE).",
       "additionalProperties": false,
       "properties": {
-        "amstar2": { "type": ["boolean", "null"] },
-        "robis": { "type": ["boolean", "null"] },
-        "grade": { "type": ["boolean", "null"] }
         "amstar2": { "type": "boolean" },
         "robis": { "type": "boolean" },
         "grade": { "type": "boolean" }
