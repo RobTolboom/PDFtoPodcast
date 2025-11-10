@@ -16,6 +16,7 @@ Covers all 5 study types:
     - editorials_opinion (Argument quality)
 """
 
+from copy import deepcopy
 from unittest.mock import Mock, patch
 
 import pytest
@@ -215,8 +216,8 @@ class TestAppraisalFullLoop:
             # Setup mock LLM
             mock_llm = Mock()
             mock_llm.generate_json_with_schema.side_effect = [
-                {"result": mock_appraisal_response},  # Appraisal call
-                {"result": mock_validation_passed},  # Validation call
+                mock_appraisal_response,  # Appraisal call
+                mock_validation_passed,  # Validation call
             ]
             mock_get_provider.return_value = mock_llm
 
@@ -256,10 +257,10 @@ class TestAppraisalFullLoop:
             # Setup mock LLM
             mock_llm = Mock()
             mock_llm.generate_json_with_schema.side_effect = [
-                {"result": mock_appraisal_response},  # Initial appraisal
-                {"result": mock_validation_failed},  # Initial validation (fails)
-                {"result": mock_corrected_appraisal},  # Correction
-                {"result": mock_validation_passed},  # Re-validation (passes)
+                mock_appraisal_response,  # Initial appraisal
+                mock_validation_failed,  # Initial validation (fails)
+                mock_corrected_appraisal,  # Correction
+                mock_validation_passed,  # Re-validation (passes)
             ]
             mock_get_provider.return_value = mock_llm
 
@@ -298,22 +299,22 @@ class TestAppraisalFullLoop:
             mock_llm = Mock()
 
             # Create progressively improving quality scores
-            validation_iter0 = mock_validation_failed.copy()
+            validation_iter0 = deepcopy(mock_validation_failed)
             validation_iter0["validation_summary"]["quality_score"] = 0.60
 
-            validation_iter1 = mock_validation_failed.copy()
+            validation_iter1 = deepcopy(mock_validation_failed)
             validation_iter1["validation_summary"]["quality_score"] = 0.70
 
-            validation_iter2 = mock_validation_failed.copy()
+            validation_iter2 = deepcopy(mock_validation_failed)
             validation_iter2["validation_summary"]["quality_score"] = 0.75
 
             mock_llm.generate_json_with_schema.side_effect = [
-                {"result": mock_appraisal_response},  # iter 0 appraisal
-                {"result": validation_iter0},  # iter 0 validation (fail)
-                {"result": mock_appraisal_response},  # iter 1 correction
-                {"result": validation_iter1},  # iter 1 validation (fail)
-                {"result": mock_appraisal_response},  # iter 2 correction
-                {"result": validation_iter2},  # iter 2 validation (fail)
+                mock_appraisal_response,  # iter 0 appraisal
+                validation_iter0,  # iter 0 validation (fail)
+                mock_appraisal_response,  # iter 1 correction
+                validation_iter1,  # iter 1 validation (fail)
+                mock_appraisal_response,  # iter 2 correction
+                validation_iter2,  # iter 2 validation (fail)
             ]
             mock_get_provider.return_value = mock_llm
 
@@ -363,13 +364,15 @@ class TestAppraisalFullLoop:
         with patch("src.pipeline.orchestrator.get_llm_provider") as mock_get_provider:
             mock_llm = Mock()
             mock_llm.generate_json_with_schema.side_effect = [
-                {"result": mock_appraisal},
-                {"result": mock_validation},
+                mock_appraisal,
+                mock_validation,
             ]
             mock_get_provider.return_value = mock_llm
 
-            with patch("src.pipeline.orchestrator.load_prompt") as mock_load_prompt:
-                mock_load_prompt.return_value = "Test prompt"
+            with patch(
+                "src.pipeline.orchestrator.load_appraisal_prompt"
+            ) as mock_load_appraisal_prompt:
+                mock_load_appraisal_prompt.return_value = "Test prompt"
 
                 result = run_appraisal_with_correction(
                     extraction_result=mock_extraction_interventional,
@@ -380,7 +383,7 @@ class TestAppraisalFullLoop:
                 )
 
                 # Verify correct prompt loaded
-                mock_load_prompt.assert_any_call("Appraisal-observational")
+                mock_load_appraisal_prompt.assert_called_with("observational_analytic")
                 assert result["final_status"] == "passed"
 
     def test_appraisal_routing_evidence_synthesis(
@@ -414,13 +417,15 @@ class TestAppraisalFullLoop:
         with patch("src.pipeline.orchestrator.get_llm_provider") as mock_get_provider:
             mock_llm = Mock()
             mock_llm.generate_json_with_schema.side_effect = [
-                {"result": mock_appraisal},
-                {"result": mock_validation},
+                mock_appraisal,
+                mock_validation,
             ]
             mock_get_provider.return_value = mock_llm
 
-            with patch("src.pipeline.orchestrator.load_prompt") as mock_load_prompt:
-                mock_load_prompt.return_value = "Test prompt"
+            with patch(
+                "src.pipeline.orchestrator.load_appraisal_prompt"
+            ) as mock_load_appraisal_prompt:
+                mock_load_appraisal_prompt.return_value = "Test prompt"
 
                 result = run_appraisal_with_correction(
                     extraction_result=mock_extraction_interventional,
@@ -431,7 +436,7 @@ class TestAppraisalFullLoop:
                 )
 
                 # Verify correct prompt loaded
-                mock_load_prompt.assert_any_call("Appraisal-evidence-synthesis")
+                mock_load_appraisal_prompt.assert_called_with("evidence_synthesis")
                 assert result["final_status"] == "passed"
 
     def test_file_management_iterations(
@@ -448,10 +453,10 @@ class TestAppraisalFullLoop:
         with patch("src.pipeline.orchestrator.get_llm_provider") as mock_get_provider:
             mock_llm = Mock()
             mock_llm.generate_json_with_schema.side_effect = [
-                {"result": mock_appraisal_response},  # iter 0 appraisal
-                {"result": mock_validation_failed},  # iter 0 validation (fail)
-                {"result": mock_corrected_appraisal},  # iter 1 correction
-                {"result": mock_validation_passed},  # iter 1 validation (pass)
+                mock_appraisal_response,  # iter 0 appraisal
+                mock_validation_failed,  # iter 0 validation (fail)
+                mock_corrected_appraisal,  # iter 1 correction
+                mock_validation_passed,  # iter 1 validation (pass)
             ]
             mock_get_provider.return_value = mock_llm
 
@@ -515,8 +520,8 @@ class TestAppraisalFullLoop:
         with patch("src.pipeline.orchestrator.get_llm_provider") as mock_get_provider:
             mock_llm = Mock()
             mock_llm.generate_json_with_schema.side_effect = [
-                {"result": mock_appraisal_response},
-                {"result": validation_marginal},
+                mock_appraisal_response,
+                validation_marginal,
             ]
             mock_get_provider.return_value = mock_llm
 
@@ -545,7 +550,7 @@ class TestAppraisalEdgeCases:
             mock_llm = Mock()
             mock_get_provider.return_value = mock_llm
 
-            with pytest.raises(ValueError, match="unsupported.*publication.*type"):
+            with pytest.raises(ValueError, match="not supported.*publication type"):
                 run_appraisal_with_correction(
                     extraction_result=mock_extraction_interventional,
                     classification_result=classification,
@@ -557,27 +562,49 @@ class TestAppraisalEdgeCases:
     def test_schema_validation_error_handling(
         self, mock_extraction_interventional, mock_classification_interventional, file_manager
     ):
-        """Test handling of schema validation errors."""
+        """Test handling of invalid/incomplete appraisal data."""
         # Invalid appraisal (missing required fields)
         invalid_appraisal = {
             "appraisal_version": "v1.0"
             # Missing study_id, study_type, etc.
         }
 
+        # Validation result for invalid data (all zeros)
+        invalid_validation = {
+            "validation_version": "v1.0",
+            "validation_summary": {
+                "overall_status": "failed",
+                "logical_consistency_score": 0.0,
+                "completeness_score": 0.0,
+                "evidence_support_score": 0.0,
+                "schema_compliance_score": 0.0,
+                "critical_issues": 5,
+                "quality_score": 0.0,
+            },
+            "issues": [],
+        }
+
         with patch("src.pipeline.orchestrator.get_llm_provider") as mock_get_provider:
             mock_llm = Mock()
-            mock_llm.generate_json_with_schema.return_value = {"result": invalid_appraisal}
+            # Appraisal + validation repeated for max iterations
+            mock_llm.generate_json_with_schema.side_effect = [
+                invalid_appraisal,  # iter 0 appraisal
+                invalid_validation,  # iter 0 validation
+            ] * 4  # Repeat for iterations 0-3
             mock_get_provider.return_value = mock_llm
 
-            # Should handle schema error gracefully
-            with pytest.raises((ValueError, KeyError)):
-                run_appraisal_with_correction(
-                    extraction_result=mock_extraction_interventional,
-                    classification_result=mock_classification_interventional,
-                    llm_provider="openai",
-                    file_manager=file_manager,
-                    max_iterations=3,
-                )
+            # Should handle gracefully and return max_iterations_reached
+            result = run_appraisal_with_correction(
+                extraction_result=mock_extraction_interventional,
+                classification_result=mock_classification_interventional,
+                llm_provider="openai",
+                file_manager=file_manager,
+                max_iterations=3,
+            )
+
+            # Verify it completed and selected best available
+            assert result["final_status"] == "max_iterations_reached"
+            assert result["improvement_trajectory"] == [0.0, 0.0, 0.0, 0.0]
 
     def test_quality_degradation_early_stop(
         self,
@@ -634,12 +661,12 @@ class TestAppraisalEdgeCases:
             }
 
             mock_llm.generate_json_with_schema.side_effect = [
-                {"result": mock_appraisal_response},  # iter 0
-                {"result": validation1},  # iter 0 validation
-                {"result": mock_appraisal_response},  # iter 1 correction
-                {"result": validation2},  # iter 1 validation (degraded)
-                {"result": mock_appraisal_response},  # iter 2 correction
-                {"result": validation3},  # iter 2 validation (degraded more)
+                mock_appraisal_response,  # iter 0
+                validation1,  # iter 0 validation
+                mock_appraisal_response,  # iter 1 correction
+                validation2,  # iter 1 validation (degraded)
+                mock_appraisal_response,  # iter 2 correction
+                validation3,  # iter 2 validation (degraded more)
             ]
             mock_get_provider.return_value = mock_llm
 

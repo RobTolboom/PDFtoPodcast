@@ -2300,6 +2300,7 @@ def run_appraisal_with_correction(
         dict: {
             'best_appraisal': dict,  # Best appraisal result
             'best_validation': dict,  # Validation of best appraisal
+            'best_iteration': int,  # Iteration number of best result (for non-passed statuses)
             'iterations': list[dict],  # All iteration history with metrics
             'final_status': str,  # "passed" | "max_iterations_reached" | "early_stopped_degradation" | "failed"
             'iteration_count': int,  # Total iterations performed
@@ -2519,6 +2520,7 @@ def run_appraisal_with_correction(
                 return {
                     "best_appraisal": best_appraisal,
                     "best_validation": best_validation,
+                    "best_iteration": best["iteration_num"],
                     "iterations": iterations,
                     "final_status": "early_stopped_degradation",
                     "iteration_count": len(iterations),
@@ -2564,6 +2566,7 @@ def run_appraisal_with_correction(
                 return {
                     "best_appraisal": best_appraisal,
                     "best_validation": best_validation,
+                    "best_iteration": best["iteration_num"],
                     "iterations": iterations,
                     "final_status": "max_iterations_reached",
                     "iteration_count": len(iterations),
