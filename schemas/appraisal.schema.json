@@ -47,6 +47,8 @@
         "judgement_scale": {
           "type": ["string", "null"],
           "description": "Optional scale label that determines the expected judgement values (e.g., 'rob2', 'robins', 'quadas', 'probast')."
+          "enum": ["rob2", "robins", "probast", "amstar2", "robis", null],
+          "description": "Optional scale label with a controlled vocabulary (rob2, robins, probast, amstar2, robis)."
         }
       }
     },
@@ -58,6 +60,9 @@
         "amstar2": { "type": ["boolean", "null"] },
         "robis": { "type": ["boolean", "null"] },
         "grade": { "type": ["boolean", "null"] }
+        "amstar2": { "type": "boolean" },
+        "robis": { "type": "boolean" },
+        "grade": { "type": "boolean" }
       }
     },
     "risk_of_bias": {
@@ -211,7 +216,13 @@
       "additionalProperties": false,
       "properties": {
         "overall_confidence": { "type": "string", "enum": ["high", "moderate", "low", "critically_low"] },
-        "critical_items_failed": { "type": "array", "items": { "type": "string" } },
+        "critical_items_failed": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"]
+          }
+        },
         "rationale": { "type": ["string", "null"] },
         "source_refs": { "type": "array", "items": { "$ref": "#/$defs/SourceRef" } }
       }
@@ -282,7 +293,11 @@
             "funnel_inspection": { "type": ["string", "null"], "enum": ["symmetrical", "asymmetrical", "unclear", null] }
           }
         },
-        "sensitivity_analyses": { "type": "array", "items": { "type": "string" } },
+        "sensitivity_analyses": {
+          "type": "array",
+          "minItems": 0,
+          "items": { "type": "string" }
+        },
         "notes": { "type": ["string", "null"] },
         "source_refs": { "type": "array", "items": { "$ref": "#/$defs/SourceRef" } }
       }
@@ -342,6 +357,7 @@
       "properties": {
         "population": { "type": ["string", "null"] },
         "intervention": { "type": ["string", "null"] },
+        "exposure": { "type": ["string", "null"] },
         "comparator": { "type": ["string", "null"] },
         "outcome": { "type": ["string", "null"] },
         "setting": { "type": ["string", "null"] },
@@ -410,6 +426,19 @@
       }
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "study_type": { "const": "editorial_opinion" }
+        },
+        "required": ["study_type"]
+      },
+      "then": {
+        "not": { "required": ["risk_of_bias"] }
+      }
+    }
+  ],
   "$defs": {
     "SourceRef": {
       "type": "object",

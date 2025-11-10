@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Appraisal Feature Specification (v1.1)** - Refined feature document with technical corrections and clarifications
+  - Fixed critical study type terminology alignment (interventional_trial vs interventional mismatch between classification and appraisal schemas)
+  - Added explicit routing function `_get_appraisal_prompt_name()` with error handling for unsupported publication types
+  - Clarified quality_score logic with critical_issues handling (schema_compliance_score → 0.0, not just quality_score cap)
+  - Added comprehensive diagnostic study routing section explaining QUADAS-2/C → prediction_prognosis prompt mapping
+  - Sharpened validation criteria (50 char rationale minimum, boilerplate detection, domain-specific keywords)
+  - Aligned best iteration selection algorithm documentation with implementation (quality_score weighted composite)
+  - Clarified max_iterations semantics (iter 0 = initial appraisal, 1-N = corrections)
+  - Added error handling documentation (SchemaLoadError for schema loading failures)
+  - Documented scoring architecture (thresholds = minimum requirements, weights = ranking importance)
+  - Added GRADE validation future enhancement note for complex validation rules
+  - Enhanced user stories with concrete, measurable acceptance criteria
+  - Made test case expected output more explicit with full field specifications
+  - Improved risk mitigation strategy (extraction quality warning instead of hard block)
+  - Fixed workflow diagram syntax (pipe → "OR" for clarity)
+  - Location: features/appraisal.md (v1.0 → v1.1, +15 improvements)
+
 ### Fixed
 - **Evidence Synthesis Schema Validation** - Fixed 6 schema validation errors for meta-analysis/systematic review extractions
   - **Fix 1:** Added `is_primary` boolean field to `SynthesisOutcome` schema - prompt was requesting this field but schema didn't allow it
@@ -46,6 +64,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Documentation:** Complete feature specification (features/appraisal.md), updated README architecture diagram, CLI help text with examples
   - **Backward compatibility:** Step is optional; existing 3-step pipelines continue to work unchanged
 - **Appraisal Validation Schema** - Introduced dedicated `appraisal_validation.schema.json` to enforce the new appraisal-validation contract (scores, issue taxonomy, metadata) and wired orchestrator to load it via `load_schema("appraisal_validation")`, ensuring structured outputs remain aligned with OpenAI structured-output requirements.
+- **Appraisal Validation Schema** - Introduced dedicated `appraisal_validation.schema.json` to enforce the new appraisal-validation contract (scores, issue taxonomy, metadata) and wired orchestrator to load it via `load_schema("appraisal_validation")`, ensuring structured outputs remain aligned with OpenAI structured-output requirements.
+- **Appraisal prompt/schema alignment**
+  - Restricted `tool.judgement_scale` to a controlled enum (`rob2`, `robins`, `probast`, `amstar2`, `robis`) and made `tools.{amstar2|robis|grade}` strict booleans.
+  - Added `applicability.exposure`, causal-strategy enums, and AMSTAR2 critical-item enumeraties zodat output exact schema-conform blijft.
+  - Clarified diagnostic routing in `Appraisal-prediction.txt` (incl. `tool.variant="diagnostic"`) zodat diagnostic studies emit `study_type="diagnostic"`.
+  - Schema blokkeert nu `risk_of_bias` voor `study_type="editorial_opinion"` en de interventional prompt verduidelijkt wanneer `analysis_issues.notes` mag worden gezet.
+  - Synced bias-direction terminologie tussen `Appraisal-validation.txt` en het schema.
 - **Best Extraction & Validation Selection** - Automatic quality-based selection with persistent "best" files
   - Save best extraction + validation as `{id}-extraction-best.json` and `{id}-validation-best.json` after ALL exit paths
   - Save selection metadata as `{id}-extraction-best-metadata.json` with iteration number, quality scores, and selection reason

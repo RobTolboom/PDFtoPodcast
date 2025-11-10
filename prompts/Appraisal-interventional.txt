@@ -40,6 +40,7 @@ METHOD (evidence-locked; use EXTRACTED_JSON only)
   - itt_vs_pp: infer from estimands/analysis sections (treatment_policy→"ITT"; per-protocol signals→"PP"); else "unclear".
   - crossovers: from arms[].crossovers_to or notes → "present"/"none"/"unclear".
   - multiplicity: use consort_reporting.multiplicity_control or analysis notes → "addressed"/"not_addressed"/"unclear".
+  - notes: include only when substantive context exists; omit the field entirely if there is nothing meaningful to add.
 - applicability: brief notes on PICO fit (population/intervention/comparator/outcome) using metadata & outcomes.
 - grade_per_outcome:
   - For RCTs start at "High"; for Nonrandomized start at "Low".
