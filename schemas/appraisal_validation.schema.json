@@ -1,0 +1,245 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Appraisal Validation Report Schema",
+  "description": "Structured validation report for critical appraisal quality control (logical consistency, completeness, evidence support, schema compliance).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "validation_version",
+    "validation_summary",
+    "issues"
+  ],
+  "properties": {
+    "validation_version": {
+      "type": "string",
+      "description": "Semantic version of the validation report contract (e.g., v1.0).",
+      "minLength": 1
+    },
+    "validation_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "overall_status",
+        "logical_consistency_score",
+        "completeness_score",
+        "evidence_support_score",
+        "schema_compliance_score",
+        "critical_issues",
+        "quality_score"
+      ],
+      "properties": {
+        "overall_status": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "warning",
+            "failed"
+          ],
+          "description": "Overall appraisal validation decision after applying thresholds."
+        },
+        "logical_consistency_score": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Score reflecting adherence to tool-specific logic (overall judgement rules, GRADE alignment, bias direction)."
+        },
+        "completeness_score": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Score assessing domain coverage, rationale quality, and outcome completeness."
+        },
+        "evidence_support_score": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Score indicating how well judgements are supported by extraction data."
+        },
+        "schema_compliance_score": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Score reflecting adherence to appraisal.schema.json (required fields, enums, references)."
+        },
+        "critical_issues": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Count of blocking issues. Must be 0 for 'passed' overall status."
+        },
+        "quality_score": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Weighted composite score (0.35 logical consistency, 0.25 completeness, 0.25 evidence support, 0.15 schema compliance)."
+        },
+        "thresholds_failed": {
+          "type": "array",
+          "description": "Optional list of threshold identifiers that were not met.",
+          "items": {
+            "type": "string",
+            "enum": [
+              "logical_consistency",
+              "completeness",
+              "evidence_support",
+              "schema_compliance",
+              "critical_issues"
+            ]
+          }
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional free-form notes summarizing how the appraisal performed."
+        }
+      }
+    },
+    "issues": {
+      "type": "array",
+      "description": "Detailed list of problems discovered during validation.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "severity",
+          "category",
+          "field_path",
+          "description",
+          "recommendation"
+        ],
+        "properties": {
+          "issue_id": {
+            "type": "string",
+            "description": "Optional stable identifier for the issue (e.g., I001).",
+            "pattern": "^I\\d{3,}$"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "critical",
+              "moderate",
+              "minor"
+            ],
+            "description": "Severity classification describing the impact of the issue."
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "logical_inconsistency",
+              "missing_domain",
+              "unsupported_judgement",
+              "schema_violation",
+              "weak_rationale",
+              "missing_outcome",
+              "other"
+            ],
+            "description": "Issue category aligned with validation prompt taxonomy."
+          },
+          "field_path": {
+            "type": "string",
+            "description": "JSON pointer-like path to the problematic field (e.g., risk_of_bias.overall)."
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable explanation of the problem."
+          },
+          "recommendation": {
+            "type": "string",
+            "description": "Actionable fix the correction prompt should apply."
+          },
+          "related_tool_domain": {
+            "type": "string",
+            "description": "Name of the tool domain/item affected (e.g., randomization_process, AMSTAR item 7)."
+          },
+          "outcome_id": {
+            "type": "string",
+            "description": "Referenced outcome identifier when the issue is outcome-specific."
+          },
+          "source_refs": {
+            "type": "array",
+            "description": "List of page/table/figure references supporting the issue.",
+            "items": {
+              "type": "string"
+            }
+          },
+          "evidence_excerpt": {
+            "type": "string",
+            "description": "Optional short excerpt from the extraction data supporting the finding."
+          }
+        }
+      }
+    },
+    "recommendations": {
+      "type": "array",
+      "description": "Optional prioritized list of next actions.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "validation_metadata": {
+      "type": "object",
+      "description": "Optional metadata about the validation execution.",
+      "additionalProperties": false,
+      "properties": {
+        "publication_type": {
+          "type": "string",
+          "enum": [
+            "interventional_trial",
+            "observational_analytic",
+            "evidence_synthesis",
+            "prediction_prognosis",
+            "diagnostic",
+            "editorials_opinion",
+            "other"
+          ]
+        },
+        "tool": {
+          "type": "string",
+          "description": "Critical appraisal tool evaluated (e.g., RoB 2, ROBINS-I)."
+        },
+        "llm_model": {
+          "type": "string",
+          "description": "LLM model identifier used for validation."
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO-8601 timestamp when validation completed."
+        },
+        "thresholds": {
+          "type": "object",
+          "description": "Thresholds applied during validation for transparency.",
+          "additionalProperties": false,
+          "properties": {
+            "logical_consistency_score": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            "completeness_score": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            "evidence_support_score": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            "schema_compliance_score": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            "critical_issues": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional free-form notes outside of formal recommendations."
+    }
+  }
+}

@@ -273,6 +273,7 @@ def discover_schema_files(directory: str = ".") -> list[Path]:
         "common.schema.json",
         "classification.schema.json",
         "validation.schema.json",
+        "appraisal_validation.schema.json",
     }
     for file_path in schema_dir.glob("*.schema.json"):
         if file_path.name not in excluded_schemas:  # Exclude schemas that don't need bundling
