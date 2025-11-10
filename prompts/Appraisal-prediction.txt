@@ -9,6 +9,7 @@ INPUTS
 
 OUTPUT FORMAT (STRICT)
 Return ONLY JSON conforming to appraisal_v1 with:
+- Required: appraisal_version="v1.0", study_id, study_type="prediction_prognosis"
 - Required: appraisal_version="v1.0", study_id, study_type determined by classification:
   * if CLASSIFICATION.publication_type == "diagnostic" → study_type="diagnostic"
   * otherwise → study_type="prediction_prognosis"
@@ -16,6 +17,7 @@ Return ONLY JSON conforming to appraisal_v1 with:
 - Do NOT emit fields not in schema.
 
 METHOD (evidence-locked)
+- tool: {"name":"PROBAST","version":"2019","variant":null,"judgement_scale":"probast"}.
 - tool: {"name":"PROBAST","version":"2019","variant":null,"judgement_scale":"probast"} for prediction/prognosis studies.
 - Diagnostic routing: wanneer CLASSIFICATION.publication_type == "diagnostic", zet `study_type="diagnostic"` en `tool.variant="diagnostic"` maar behoud dezelfde PROBAST structuur; benoem in de rationale dat het om een diagnostische toepassing gaat.
 - Map the study subtype implicitly from EXTRACTED_JSON (e.g., models[], datasets[], performance[], decision_curves):
@@ -35,6 +37,7 @@ METHOD (evidence-locked)
 
 PRE-FLIGHT
 - appraisal_version="v1.0"
+- study_type="prediction_prognosis"
 - study_type = "prediction_prognosis" (of "diagnostic" wanneer de classificatie dat aangeeft)
 - All enums EXACT casing.
 - Only allowed properties; unknowns as null/“Unclear”.

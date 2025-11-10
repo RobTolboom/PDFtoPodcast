@@ -147,6 +147,12 @@ def show_settings_screen():
                 "name": "Validation & Correction",
                 "help": "Iterative validation and correction loop until quality thresholds are met",
             },
+            {
+                "key": "appraisal",
+                "number": "4",
+                "name": "Critical Appraisal",
+                "help": "Assess study quality with RoB 2, ROBINS-I, PROBAST, AMSTAR 2, and GRADE ratings",
+            },
         ]
 
         # Smart defaults: auto-select steps that don't have results yet
@@ -343,6 +349,87 @@ def show_settings_screen():
 
         st.markdown("---")
 
+        # ==================== APPRAISAL ====================
+        st.markdown("#### 🎯 Critical Appraisal")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            max_appraisal_iterations = st.number_input(
+                "Maximum appraisal iterations",
+                min_value=1,
+                max_value=5,
+                value=st.session_state.settings.get("max_appraisal_iterations", 3),
+                help="Maximum number of correction attempts for appraisal if quality is insufficient",
+            )
+            st.session_state.settings["max_appraisal_iterations"] = max_appraisal_iterations
+
+        with col2:
+            st.caption("**Quality Thresholds**")
+            st.caption(
+                "Appraisal loop stops when all thresholds are met or max iterations is reached"
+            )
+
+        # Get current appraisal thresholds from session state
+        current_appraisal_thresholds = st.session_state.settings.get(
+            "appraisal_quality_thresholds",
+            {
+                "logical_consistency_score": 0.90,
+                "completeness_score": 0.85,
+                "evidence_support_score": 0.90,
+                "schema_compliance_score": 0.95,
+                "critical_issues": 0,
+            },
+        )
+
+        # Appraisal threshold sliders
+        logical_consistency_threshold = st.slider(
+            "Logical consistency threshold (appraisal)",
+            min_value=0.5,
+            max_value=0.99,
+            value=current_appraisal_thresholds.get("logical_consistency_score", 0.90),
+            step=0.05,
+            help="Minimum required logical consistency (e.g., overall RoB matches worst domain). Max 99%.",
+        )
+
+        appraisal_completeness_threshold = st.slider(
+            "Completeness threshold (appraisal)",
+            min_value=0.5,
+            max_value=0.99,
+            value=current_appraisal_thresholds.get("completeness_score", 0.85),
+            step=0.05,
+            help="Minimum required completeness (all domains assessed, rationales substantive). Max 99%.",
+        )
+
+        evidence_support_threshold = st.slider(
+            "Evidence support threshold",
+            min_value=0.5,
+            max_value=0.99,
+            value=current_appraisal_thresholds.get("evidence_support_score", 0.90),
+            step=0.05,
+            help="Minimum required evidence support (judgements traceable to extraction). Max 99%.",
+        )
+
+        appraisal_schema_compliance_threshold = st.slider(
+            "Schema compliance threshold (appraisal)",
+            min_value=0.5,
+            max_value=0.99,
+            value=current_appraisal_thresholds.get("schema_compliance_score", 0.95),
+            step=0.05,
+            help="Minimum required schema compliance for appraisal. Max 99%.",
+        )
+
+        # Store appraisal thresholds in session state
+        st.session_state.settings["appraisal_quality_thresholds"] = {
+            "logical_consistency_score": logical_consistency_threshold,
+            "completeness_score": appraisal_completeness_threshold,
+            "evidence_support_score": evidence_support_threshold,
+            "schema_compliance_score": appraisal_schema_compliance_threshold,
+            "critical_issues": 0,  # Fixed - always 0
+        }
+
+        st.markdown("---")
+
         # ==================== DEBUGGING & DEVELOPMENT ====================
         st.markdown("#### 🔧 Debugging & Development")
 
@@ -352,6 +439,7 @@ def show_settings_screen():
             "classification": "Stop after Classification",
             "extraction": "Stop after Extraction",
             "validation_correction": "Stop after Validation & Correction",
+            "appraisal": "Stop after Critical Appraisal",
         }
 
         breakpoint = st.selectbox(

@@ -49,6 +49,7 @@ C. Tool Selection Appropriateness:
 
 D. Predicted Bias Direction Consistency:
    - If domain rationale mentions specific bias direction (e.g., "likely overestimates effect"), predicted_bias_direction should match
+   - Direction should be "towards_null" / "away_from_null" / "unpredictable" / "not_applicable"
    - Direction must use schema enums: "Favors intervention" / "Favors control" / "Unpredictable" / "N/A"
 
 2. COMPLETENESS ASSESSMENT (Weight: 25%)
