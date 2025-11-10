@@ -18,7 +18,6 @@ These unit tests focus on edge cases and internal logic.
 import pytest
 
 from src.pipeline.orchestrator import (
-    APPRAISAL_QUALITY_THRESHOLDS,
     UnsupportedPublicationType,
     _extract_appraisal_metrics,
     _get_appraisal_prompt_name,
@@ -184,17 +183,29 @@ class TestBestAppraisalSelection:
             {
                 "iteration_num": 0,
                 "appraisal": {"study_id": "iter0"},
-                "metrics": {"quality_score": 0.75, "critical_issues": 0, "completeness_score": 0.80},
+                "metrics": {
+                    "quality_score": 0.75,
+                    "critical_issues": 0,
+                    "completeness_score": 0.80,
+                },
             },
             {
                 "iteration_num": 1,
                 "appraisal": {"study_id": "iter1"},
-                "metrics": {"quality_score": 0.90, "critical_issues": 0, "completeness_score": 0.85},  # Best
+                "metrics": {
+                    "quality_score": 0.90,
+                    "critical_issues": 0,
+                    "completeness_score": 0.85,
+                },  # Best
             },
             {
                 "iteration_num": 2,
                 "appraisal": {"study_id": "iter2"},
-                "metrics": {"quality_score": 0.82, "critical_issues": 0, "completeness_score": 0.83},
+                "metrics": {
+                    "quality_score": 0.82,
+                    "critical_issues": 0,
+                    "completeness_score": 0.83,
+                },
             },
         ]
 
@@ -207,12 +218,20 @@ class TestBestAppraisalSelection:
             {
                 "iteration_num": 0,
                 "appraisal": {"study_id": "iter0"},
-                "metrics": {"quality_score": 0.95, "critical_issues": 2, "completeness_score": 0.90},  # Highest but has issues
+                "metrics": {
+                    "quality_score": 0.95,
+                    "critical_issues": 2,
+                    "completeness_score": 0.90,
+                },  # Highest but has issues
             },
             {
                 "iteration_num": 1,
                 "appraisal": {"study_id": "iter1"},
-                "metrics": {"quality_score": 0.80, "critical_issues": 0, "completeness_score": 0.85},  # Selected
+                "metrics": {
+                    "quality_score": 0.80,
+                    "critical_issues": 0,
+                    "completeness_score": 0.85,
+                },  # Selected
             },
         ]
 
@@ -225,12 +244,20 @@ class TestBestAppraisalSelection:
             {
                 "iteration_num": 0,
                 "appraisal": {},
-                "metrics": {"quality_score": 0.85, "critical_issues": 0, "completeness_score": 0.75},
+                "metrics": {
+                    "quality_score": 0.85,
+                    "critical_issues": 0,
+                    "completeness_score": 0.75,
+                },
             },
             {
                 "iteration_num": 1,
                 "appraisal": {},
-                "metrics": {"quality_score": 0.85, "critical_issues": 0, "completeness_score": 0.90},  # Higher completeness
+                "metrics": {
+                    "quality_score": 0.85,
+                    "critical_issues": 0,
+                    "completeness_score": 0.90,
+                },  # Higher completeness
             },
         ]
 
@@ -243,7 +270,11 @@ class TestBestAppraisalSelection:
             {
                 "iteration_num": 0,
                 "appraisal": {},
-                "metrics": {"quality_score": 0.50, "critical_issues": 5, "completeness_score": 0.40},  # Bad but only option
+                "metrics": {
+                    "quality_score": 0.50,
+                    "critical_issues": 5,
+                    "completeness_score": 0.40,
+                },  # Bad but only option
             }
         ]
 

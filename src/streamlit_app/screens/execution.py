@@ -857,7 +857,6 @@ def _display_appraisal_result(result: dict):
         return
 
     best_appraisal = result.get("best_appraisal", {})
-    best_validation = result.get("best_validation", {})
     final_status = result.get("final_status", "unknown")
     iteration_count = result.get("iteration_count", 0)
     iterations = result.get("iterations", [])
@@ -923,7 +922,9 @@ def _display_appraisal_result(result: dict):
             certainty = grade.get("certainty", "—")
             downgrades = grade.get("downgrades", [])
 
-            downgrade_summary = ", ".join([d.get("factor", "?") for d in downgrades]) if downgrades else "None"
+            downgrade_summary = (
+                ", ".join([d.get("factor", "?") for d in downgrades]) if downgrades else "None"
+            )
             st.write(f"  • {outcome_id}: **{certainty}** (downgrades: {downgrade_summary})")
 
         if len(grade_outcomes) > 3:

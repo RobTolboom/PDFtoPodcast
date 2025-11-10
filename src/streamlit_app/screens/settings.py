@@ -366,7 +366,9 @@ def show_settings_screen():
 
         with col2:
             st.caption("**Quality Thresholds**")
-            st.caption("Appraisal loop stops when all thresholds are met or max iterations is reached")
+            st.caption(
+                "Appraisal loop stops when all thresholds are met or max iterations is reached"
+            )
 
         # Get current appraisal thresholds from session state
         current_appraisal_thresholds = st.session_state.settings.get(

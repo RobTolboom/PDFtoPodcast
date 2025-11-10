@@ -16,12 +16,12 @@ Covers all 5 study types:
     - editorials_opinion (Argument quality)
 """
 
-import json
+from unittest.mock import Mock, patch
+
 import pytest
-from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
-from src.pipeline.orchestrator import run_appraisal_with_correction
+
 from src.pipeline.file_manager import PipelineFileManager
+from src.pipeline.orchestrator import run_appraisal_with_correction
 
 
 @pytest.fixture
@@ -46,27 +46,24 @@ def mock_extraction_interventional():
             "design_type": "parallel-RCT",
             "randomization": {
                 "method": "computer-generated sequence",
-                "allocation_concealment": "central randomization"
-            }
+                "allocation_concealment": "central randomization",
+            },
         },
         "outcomes": [
             {
                 "outcome_id": "outcome1",
                 "is_primary": True,
                 "name": "Pain at 24 hours",
-                "results": {"effect_size": 0.5, "ci_lower": 0.2, "ci_upper": 0.8}
+                "results": {"effect_size": 0.5, "ci_lower": 0.2, "ci_upper": 0.8},
             }
-        ]
+        ],
     }
 
 
 @pytest.fixture
 def mock_classification_interventional():
     """Mock classification result for interventional trial."""
-    return {
-        "publication_type": "interventional_trial",
-        "confidence": 0.95
-    }
+    return {"publication_type": "interventional_trial", "confidence": 0.95}
 
 
 @pytest.fixture
@@ -80,7 +77,7 @@ def mock_appraisal_response():
             "name": "RoB 2",
             "version": "2019-08-22",
             "variant": "parallel-RCT",
-            "judgement_scale": "rob2"
+            "judgement_scale": "rob2",
         },
         "risk_of_bias": {
             "overall": "Some concerns",
@@ -89,47 +86,51 @@ def mock_appraisal_response():
                     "domain": "randomization_process",
                     "judgement": "Low risk",
                     "rationale": "Computer-generated sequence with central randomization provides adequate allocation concealment",
-                    "source_refs": [{"page": 3}]
+                    "source_refs": [{"page": 3}],
                 },
                 {
                     "domain": "deviations_from_intended_interventions",
                     "judgement": "Low risk",
                     "rationale": "No deviations reported and double-blind design maintained",
-                    "source_refs": [{"page": 4}]
+                    "source_refs": [{"page": 4}],
                 },
                 {
                     "domain": "missing_outcome_data",
                     "judgement": "Some concerns",
                     "rationale": "15% loss to follow-up with no sensitivity analysis",
-                    "source_refs": [{"page": 5}]
+                    "source_refs": [{"page": 5}],
                 },
                 {
                     "domain": "measurement_of_outcome",
                     "judgement": "Low risk",
                     "rationale": "Validated pain scale used with blinded outcome assessors",
-                    "source_refs": [{"page": 4}]
+                    "source_refs": [{"page": 4}],
                 },
                 {
                     "domain": "selection_of_reported_result",
                     "judgement": "Low risk",
                     "rationale": "Pre-registered outcomes reported as specified",
-                    "source_refs": [{"page": 2}]
-                }
-            ]
+                    "source_refs": [{"page": 2}],
+                },
+            ],
         },
         "grade_per_outcome": [
             {
                 "outcome_id": "outcome1",
                 "certainty": "Moderate",
                 "downgrades": [
-                    {"factor": "imprecision", "levels": -1, "rationale": "Confidence interval crosses null"}
-                ]
+                    {
+                        "factor": "imprecision",
+                        "levels": -1,
+                        "rationale": "Confidence interval crosses null",
+                    }
+                ],
             }
         ],
         "bottom_line": {
             "short": "RCT with some concerns about missing data",
-            "for_podcast": "This randomized trial had generally low risk of bias but some concerns about participant dropout"
-        }
+            "for_podcast": "This randomized trial had generally low risk of bias but some concerns about participant dropout",
+        },
     }
 
 
@@ -145,9 +146,9 @@ def mock_validation_passed():
             "evidence_support_score": 0.90,
             "schema_compliance_score": 1.0,
             "critical_issues": 0,
-            "quality_score": 0.94
+            "quality_score": 0.94,
         },
-        "issues": []
+        "issues": [],
     }
 
 
@@ -163,7 +164,7 @@ def mock_validation_failed():
             "evidence_support_score": 0.60,
             "schema_compliance_score": 0.80,
             "critical_issues": 2,
-            "quality_score": 0.69
+            "quality_score": 0.69,
         },
         "issues": [
             {
@@ -171,9 +172,9 @@ def mock_validation_failed():
                 "category": "logical_inconsistency",
                 "field_path": "risk_of_bias.overall",
                 "description": "Overall judgement 'Low risk' contradicts domain 'missing_outcome_data: Some concerns'",
-                "recommendation": "Set overall to 'Some concerns' per RoB 2 worst-domain rule"
+                "recommendation": "Set overall to 'Some concerns' per RoB 2 worst-domain rule",
             }
-        ]
+        ],
     }
 
 
@@ -183,7 +184,9 @@ def mock_corrected_appraisal(mock_appraisal_response):
     corrected = mock_appraisal_response.copy()
     # Add more detailed rationales
     for domain in corrected["risk_of_bias"]["domains"]:
-        domain["rationale"] = domain["rationale"] + " [Corrected with additional evidence from extraction data]"
+        domain["rationale"] = (
+            domain["rationale"] + " [Corrected with additional evidence from extraction data]"
+        )
     return corrected
 
 
@@ -197,7 +200,7 @@ class TestAppraisalFullLoop:
         mock_classification_interventional,
         file_manager,
         mock_appraisal_response,
-        mock_validation_passed
+        mock_validation_passed,
     ):
         """Test appraisal that passes quality check on first iteration."""
         with patch("src.pipeline.orchestrator.get_llm_provider") as mock_get_provider:
@@ -205,7 +208,7 @@ class TestAppraisalFullLoop:
             mock_llm = Mock()
             mock_llm.generate_json_with_schema.side_effect = [
                 {"result": mock_appraisal_response},  # Appraisal call
-                {"result": mock_validation_passed}     # Validation call
+                {"result": mock_validation_passed},  # Validation call
             ]
             mock_get_provider.return_value = mock_llm
 
@@ -215,7 +218,7 @@ class TestAppraisalFullLoop:
                 classification_result=mock_classification_interventional,
                 llm_provider="openai",
                 file_manager=file_manager,
-                max_iterations=3
+                max_iterations=3,
             )
 
             # Assertions
@@ -238,17 +241,17 @@ class TestAppraisalFullLoop:
         mock_appraisal_response,
         mock_validation_failed,
         mock_validation_passed,
-        mock_corrected_appraisal
+        mock_corrected_appraisal,
     ):
         """Test appraisal that requires correction iteration."""
         with patch("src.pipeline.orchestrator.get_llm_provider") as mock_get_provider:
             # Setup mock LLM
             mock_llm = Mock()
             mock_llm.generate_json_with_schema.side_effect = [
-                {"result": mock_appraisal_response},    # Initial appraisal
-                {"result": mock_validation_failed},      # Initial validation (fails)
-                {"result": mock_corrected_appraisal},    # Correction
-                {"result": mock_validation_passed}       # Re-validation (passes)
+                {"result": mock_appraisal_response},  # Initial appraisal
+                {"result": mock_validation_failed},  # Initial validation (fails)
+                {"result": mock_corrected_appraisal},  # Correction
+                {"result": mock_validation_passed},  # Re-validation (passes)
             ]
             mock_get_provider.return_value = mock_llm
 
@@ -258,7 +261,7 @@ class TestAppraisalFullLoop:
                 classification_result=mock_classification_interventional,
                 llm_provider="openai",
                 file_manager=file_manager,
-                max_iterations=3
+                max_iterations=3,
             )
 
             # Assertions
@@ -279,7 +282,7 @@ class TestAppraisalFullLoop:
         mock_classification_interventional,
         file_manager,
         mock_appraisal_response,
-        mock_validation_failed
+        mock_validation_failed,
     ):
         """Test appraisal that reaches max iterations without passing."""
         with patch("src.pipeline.orchestrator.get_llm_provider") as mock_get_provider:
@@ -298,11 +301,11 @@ class TestAppraisalFullLoop:
 
             mock_llm.generate_json_with_schema.side_effect = [
                 {"result": mock_appraisal_response},  # iter 0 appraisal
-                {"result": validation_iter0},         # iter 0 validation (fail)
+                {"result": validation_iter0},  # iter 0 validation (fail)
                 {"result": mock_appraisal_response},  # iter 1 correction
-                {"result": validation_iter1},         # iter 1 validation (fail)
+                {"result": validation_iter1},  # iter 1 validation (fail)
                 {"result": mock_appraisal_response},  # iter 2 correction
-                {"result": validation_iter2}          # iter 2 validation (fail)
+                {"result": validation_iter2},  # iter 2 validation (fail)
             ]
             mock_get_provider.return_value = mock_llm
 
@@ -312,7 +315,7 @@ class TestAppraisalFullLoop:
                 classification_result=mock_classification_interventional,
                 llm_provider="openai",
                 file_manager=file_manager,
-                max_iterations=2
+                max_iterations=2,
             )
 
             # Assertions
@@ -323,11 +326,7 @@ class TestAppraisalFullLoop:
             assert result["best_iteration"] == 2
             assert result["improvement_trajectory"] == [0.60, 0.70, 0.75]
 
-    def test_appraisal_routing_observational(
-        self,
-        mock_extraction_interventional,
-        file_manager
-    ):
+    def test_appraisal_routing_observational(self, mock_extraction_interventional, file_manager):
         """Test correct routing for observational study."""
         classification = {"publication_type": "observational_analytic"}
 
@@ -336,7 +335,7 @@ class TestAppraisalFullLoop:
             "study_id": "test",
             "study_type": "observational",
             "tool": {"name": "ROBINS-I", "version": "2016", "judgement_scale": "robins"},
-            "risk_of_bias": {"overall": "Moderate risk", "domains": []}
+            "risk_of_bias": {"overall": "Moderate risk", "domains": []},
         }
 
         mock_validation = {
@@ -348,16 +347,16 @@ class TestAppraisalFullLoop:
                 "evidence_support_score": 0.90,
                 "schema_compliance_score": 0.95,
                 "critical_issues": 0,
-                "quality_score": 0.91
+                "quality_score": 0.91,
             },
-            "issues": []
+            "issues": [],
         }
 
         with patch("src.pipeline.orchestrator.get_llm_provider") as mock_get_provider:
             mock_llm = Mock()
             mock_llm.generate_json_with_schema.side_effect = [
                 {"result": mock_appraisal},
-                {"result": mock_validation}
+                {"result": mock_validation},
             ]
             mock_get_provider.return_value = mock_llm
 
@@ -369,7 +368,7 @@ class TestAppraisalFullLoop:
                     classification_result=classification,
                     llm_provider="openai",
                     file_manager=file_manager,
-                    max_iterations=3
+                    max_iterations=3,
                 )
 
                 # Verify correct prompt loaded
@@ -377,9 +376,7 @@ class TestAppraisalFullLoop:
                 assert result["final_status"] == "passed"
 
     def test_appraisal_routing_evidence_synthesis(
-        self,
-        mock_extraction_interventional,
-        file_manager
+        self, mock_extraction_interventional, file_manager
     ):
         """Test correct routing for evidence synthesis."""
         classification = {"publication_type": "evidence_synthesis"}
@@ -389,7 +386,7 @@ class TestAppraisalFullLoop:
             "study_id": "test",
             "study_type": "evidence_synthesis",
             "tool": {"name": "AMSTAR 2", "version": "2017", "judgement_scale": "amstar2"},
-            "amstar2": {"overall_confidence": "Moderate", "critical_weaknesses": 1}
+            "amstar2": {"overall_confidence": "Moderate", "critical_weaknesses": 1},
         }
 
         mock_validation = {
@@ -401,16 +398,16 @@ class TestAppraisalFullLoop:
                 "evidence_support_score": 0.90,
                 "schema_compliance_score": 0.95,
                 "critical_issues": 0,
-                "quality_score": 0.91
+                "quality_score": 0.91,
             },
-            "issues": []
+            "issues": [],
         }
 
         with patch("src.pipeline.orchestrator.get_llm_provider") as mock_get_provider:
             mock_llm = Mock()
             mock_llm.generate_json_with_schema.side_effect = [
                 {"result": mock_appraisal},
-                {"result": mock_validation}
+                {"result": mock_validation},
             ]
             mock_get_provider.return_value = mock_llm
 
@@ -422,7 +419,7 @@ class TestAppraisalFullLoop:
                     classification_result=classification,
                     llm_provider="openai",
                     file_manager=file_manager,
-                    max_iterations=3
+                    max_iterations=3,
                 )
 
                 # Verify correct prompt loaded
@@ -437,16 +434,16 @@ class TestAppraisalFullLoop:
         mock_appraisal_response,
         mock_validation_failed,
         mock_validation_passed,
-        mock_corrected_appraisal
+        mock_corrected_appraisal,
     ):
         """Test that all iteration files are correctly saved and can be loaded."""
         with patch("src.pipeline.orchestrator.get_llm_provider") as mock_get_provider:
             mock_llm = Mock()
             mock_llm.generate_json_with_schema.side_effect = [
-                {"result": mock_appraisal_response},    # iter 0 appraisal
-                {"result": mock_validation_failed},      # iter 0 validation (fail)
-                {"result": mock_corrected_appraisal},    # iter 1 correction
-                {"result": mock_validation_passed}       # iter 1 validation (pass)
+                {"result": mock_appraisal_response},  # iter 0 appraisal
+                {"result": mock_validation_failed},  # iter 0 validation (fail)
+                {"result": mock_corrected_appraisal},  # iter 1 correction
+                {"result": mock_validation_passed},  # iter 1 validation (pass)
             ]
             mock_get_provider.return_value = mock_llm
 
@@ -456,7 +453,7 @@ class TestAppraisalFullLoop:
                 classification_result=mock_classification_interventional,
                 llm_provider="openai",
                 file_manager=file_manager,
-                max_iterations=3
+                max_iterations=3,
             )
 
             # Test file_manager methods
@@ -481,7 +478,7 @@ class TestAppraisalFullLoop:
         mock_extraction_interventional,
         mock_classification_interventional,
         file_manager,
-        mock_appraisal_response
+        mock_appraisal_response,
     ):
         """Test appraisal with custom quality thresholds."""
         custom_thresholds = {
@@ -489,7 +486,7 @@ class TestAppraisalFullLoop:
             "completeness_score": 0.95,
             "evidence_support_score": 0.95,
             "schema_compliance_score": 0.98,
-            "critical_issues": 0
+            "critical_issues": 0,
         }
 
         # Validation that would pass default thresholds but fails custom
@@ -498,20 +495,20 @@ class TestAppraisalFullLoop:
             "validation_summary": {
                 "overall_status": "warning",
                 "logical_consistency_score": 0.92,  # Below custom 0.95
-                "completeness_score": 0.93,         # Below custom 0.95
-                "evidence_support_score": 0.91,     # Below custom 0.95
-                "schema_compliance_score": 0.96,    # Below custom 0.98
+                "completeness_score": 0.93,  # Below custom 0.95
+                "evidence_support_score": 0.91,  # Below custom 0.95
+                "schema_compliance_score": 0.96,  # Below custom 0.98
                 "critical_issues": 0,
-                "quality_score": 0.93
+                "quality_score": 0.93,
             },
-            "issues": []
+            "issues": [],
         }
 
         with patch("src.pipeline.orchestrator.get_llm_provider") as mock_get_provider:
             mock_llm = Mock()
             mock_llm.generate_json_with_schema.side_effect = [
                 {"result": mock_appraisal_response},
-                {"result": validation_marginal}
+                {"result": validation_marginal},
             ]
             mock_get_provider.return_value = mock_llm
 
@@ -521,7 +518,7 @@ class TestAppraisalFullLoop:
                 llm_provider="openai",
                 file_manager=file_manager,
                 max_iterations=0,  # No corrections, just check threshold
-                quality_thresholds=custom_thresholds
+                quality_thresholds=custom_thresholds,
             )
 
             # Should fail with strict thresholds
@@ -532,11 +529,7 @@ class TestAppraisalFullLoop:
 class TestAppraisalEdgeCases:
     """Test edge cases and error handling."""
 
-    def test_unsupported_publication_type(
-        self,
-        mock_extraction_interventional,
-        file_manager
-    ):
+    def test_unsupported_publication_type(self, mock_extraction_interventional, file_manager):
         """Test that unsupported publication type raises error."""
         classification = {"publication_type": "overig"}  # Not supported
 
@@ -550,14 +543,11 @@ class TestAppraisalEdgeCases:
                     classification_result=classification,
                     llm_provider="openai",
                     file_manager=file_manager,
-                    max_iterations=3
+                    max_iterations=3,
                 )
 
     def test_schema_validation_error_handling(
-        self,
-        mock_extraction_interventional,
-        mock_classification_interventional,
-        file_manager
+        self, mock_extraction_interventional, mock_classification_interventional, file_manager
     ):
         """Test handling of schema validation errors."""
         # Invalid appraisal (missing required fields)
@@ -578,7 +568,7 @@ class TestAppraisalEdgeCases:
                     classification_result=mock_classification_interventional,
                     llm_provider="openai",
                     file_manager=file_manager,
-                    max_iterations=3
+                    max_iterations=3,
                 )
 
     def test_quality_degradation_early_stop(
@@ -586,7 +576,7 @@ class TestAppraisalEdgeCases:
         mock_extraction_interventional,
         mock_classification_interventional,
         file_manager,
-        mock_appraisal_response
+        mock_appraisal_response,
     ):
         """Test early stopping when quality degrades."""
         with patch("src.pipeline.orchestrator.get_llm_provider") as mock_get_provider:
@@ -602,9 +592,9 @@ class TestAppraisalEdgeCases:
                     "evidence_support_score": 0.85,
                     "schema_compliance_score": 0.95,
                     "critical_issues": 0,
-                    "quality_score": 0.87
+                    "quality_score": 0.87,
                 },
-                "issues": []
+                "issues": [],
             }
 
             validation2 = {
@@ -616,9 +606,9 @@ class TestAppraisalEdgeCases:
                     "evidence_support_score": 0.75,
                     "schema_compliance_score": 0.85,
                     "critical_issues": 0,
-                    "quality_score": 0.77
+                    "quality_score": 0.77,
                 },
-                "issues": []
+                "issues": [],
             }
 
             validation3 = {
@@ -630,18 +620,18 @@ class TestAppraisalEdgeCases:
                     "evidence_support_score": 0.65,
                     "schema_compliance_score": 0.75,
                     "critical_issues": 0,
-                    "quality_score": 0.67
+                    "quality_score": 0.67,
                 },
-                "issues": []
+                "issues": [],
             }
 
             mock_llm.generate_json_with_schema.side_effect = [
                 {"result": mock_appraisal_response},  # iter 0
-                {"result": validation1},               # iter 0 validation
+                {"result": validation1},  # iter 0 validation
                 {"result": mock_appraisal_response},  # iter 1 correction
-                {"result": validation2},               # iter 1 validation (degraded)
+                {"result": validation2},  # iter 1 validation (degraded)
                 {"result": mock_appraisal_response},  # iter 2 correction
-                {"result": validation3}                # iter 2 validation (degraded more)
+                {"result": validation3},  # iter 2 validation (degraded more)
             ]
             mock_get_provider.return_value = mock_llm
 
@@ -650,7 +640,7 @@ class TestAppraisalEdgeCases:
                 classification_result=mock_classification_interventional,
                 llm_provider="openai",
                 file_manager=file_manager,
-                max_iterations=5
+                max_iterations=5,
             )
 
             # Should stop early due to degradation

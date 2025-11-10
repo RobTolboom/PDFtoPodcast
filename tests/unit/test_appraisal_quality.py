@@ -197,12 +197,8 @@ class TestAppraisalQualityAssessment:
                     "logical_consistency_score"
                 ],
                 "completeness_score": APPRAISAL_QUALITY_THRESHOLDS["completeness_score"],
-                "evidence_support_score": APPRAISAL_QUALITY_THRESHOLDS[
-                    "evidence_support_score"
-                ],
-                "schema_compliance_score": APPRAISAL_QUALITY_THRESHOLDS[
-                    "schema_compliance_score"
-                ],
+                "evidence_support_score": APPRAISAL_QUALITY_THRESHOLDS["evidence_support_score"],
+                "schema_compliance_score": APPRAISAL_QUALITY_THRESHOLDS["schema_compliance_score"],
                 "critical_issues": APPRAISAL_QUALITY_THRESHOLDS["critical_issues"],
             }
         }
@@ -218,16 +214,11 @@ class TestAppraisalPromptRouting:
 
     def test_observational_analytic_routing(self):
         """Test observational analytic routes to ROBINS-I prompt."""
-        assert (
-            _get_appraisal_prompt_name("observational_analytic") == "Appraisal-observational"
-        )
+        assert _get_appraisal_prompt_name("observational_analytic") == "Appraisal-observational"
 
     def test_evidence_synthesis_routing(self):
         """Test evidence synthesis routes to AMSTAR 2 + ROBIS prompt."""
-        assert (
-            _get_appraisal_prompt_name("evidence_synthesis")
-            == "Appraisal-evidence-synthesis"
-        )
+        assert _get_appraisal_prompt_name("evidence_synthesis") == "Appraisal-evidence-synthesis"
 
     def test_prediction_prognosis_routing(self):
         """Test prediction/prognosis routes to PROBAST prompt."""
