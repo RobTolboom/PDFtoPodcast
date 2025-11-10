@@ -74,6 +74,7 @@ import streamlit as st
 from src.pipeline.file_manager import PipelineFileManager
 from src.pipeline.orchestrator import (
     ALL_PIPELINE_STEPS,
+    STEP_APPRAISAL,
     STEP_CLASSIFICATION,
     STEP_CORRECTION,
     STEP_EXTRACTION,
@@ -850,6 +851,150 @@ def _display_validation_correction_result(result: dict):
             st.metric("Critical Issues", critical)
 
 
+def _display_appraisal_result(result: dict):
+    """Display appraisal result summary with RoB, GRADE, and iteration history."""
+    if not result:
+        return
+
+    best_appraisal = result.get("best_appraisal", {})
+    best_validation = result.get("best_validation", {})
+    final_status = result.get("final_status", "unknown")
+    iteration_count = result.get("iteration_count", 0)
+    iterations = result.get("iterations", [])
+
+    # Display final status
+    status_messages = {
+        "passed": "✅ **Appraisal quality thresholds met!**",
+        "max_iterations_reached": f"⚠️ **Max iterations reached ({iteration_count})**",
+        "early_stopped_degradation": "⚠️ **Early stopping: quality degraded**",
+    }
+
+    status_msg = status_messages.get(final_status, f"❌ **Failed:** {final_status}")
+    st.write(status_msg)
+
+    # Show iteration count and best iteration
+    best_iteration = result.get("best_iteration", 0)
+    st.write(f"🔄 **Iterations completed:** {iteration_count}")
+    st.write(f"⭐ **Best iteration selected:** {best_iteration}")
+
+    # Display Risk of Bias Summary
+    if "risk_of_bias" in best_appraisal:
+        st.markdown("#### 🎯 Risk of Bias Assessment")
+
+        rob = best_appraisal["risk_of_bias"]
+        tool_info = best_appraisal.get("tool", {})
+        tool_name = tool_info.get("name", "Unknown")
+        tool_variant = tool_info.get("variant", "")
+
+        col1, col2 = st.columns([1, 2])
+        with col1:
+            st.metric("Tool", tool_name)
+        with col2:
+            if tool_variant:
+                st.metric("Variant", tool_variant)
+
+        # Overall judgement
+        overall = rob.get("overall", "—")
+        st.write(f"**Overall Risk of Bias:** {overall}")
+
+        # Domain assessments
+        domains = rob.get("domains", [])
+        if domains:
+            st.markdown(f"**Domains Assessed:** {len(domains)}")
+
+            # Show first few domains
+            for domain in domains[:5]:
+                domain_name = domain.get("domain", "Unknown")
+                judgement = domain.get("judgement", "—")
+                st.write(f"  • {domain_name}: {judgement}")
+
+            if len(domains) > 5:
+                st.caption(f"_...and {len(domains) - 5} more domains (view full JSON for details)_")
+
+    # Display GRADE Certainty
+    grade_outcomes = best_appraisal.get("grade_per_outcome", [])
+    if grade_outcomes:
+        st.markdown("#### 📊 GRADE Certainty of Evidence")
+        st.write(f"**Outcomes Rated:** {len(grade_outcomes)}")
+
+        # Show first few outcomes
+        for grade in grade_outcomes[:3]:
+            outcome_id = grade.get("outcome_id", "Unknown")
+            certainty = grade.get("certainty", "—")
+            downgrades = grade.get("downgrades", [])
+
+            downgrade_summary = ", ".join([d.get("factor", "?") for d in downgrades]) if downgrades else "None"
+            st.write(f"  • {outcome_id}: **{certainty}** (downgrades: {downgrade_summary})")
+
+        if len(grade_outcomes) > 3:
+            st.caption(f"_...and {len(grade_outcomes) - 3} more outcomes_")
+
+    # Display Applicability
+    applicability = best_appraisal.get("applicability", {})
+    if applicability:
+        st.markdown("#### 🌍 Applicability")
+        population_match = applicability.get("population_match", {}).get("rating", "—")
+        st.write(f"**Population Match:** {population_match}")
+
+    # Display iteration history table
+    if iterations:
+        st.markdown("#### 📊 Iteration History")
+
+        # Build table data
+        table_data = []
+        for iter_data in iterations:
+            metrics = iter_data.get("metrics", {})
+            is_best = iter_data.get("iteration_num") == best_iteration
+
+            table_data.append(
+                {
+                    "Iteration": iter_data.get("iteration_num", 0),
+                    "Logical": f"{metrics.get('logical_consistency_score', 0):.1%}",
+                    "Complete": f"{metrics.get('completeness_score', 0):.1%}",
+                    "Evidence": f"{metrics.get('evidence_support_score', 0):.1%}",
+                    "Schema": f"{metrics.get('schema_compliance_score', 0):.1%}",
+                    "Critical": metrics.get("critical_issues", 0),
+                    "Quality": f"{metrics.get('quality_score', 0):.1%}",
+                    "Status": "✅ BEST" if is_best else "",
+                }
+            )
+
+        # Display as DataFrame
+        df = pd.DataFrame(table_data)
+        st.dataframe(df, width="stretch", hide_index=True)
+
+    # Show metrics from best iteration
+    if iterations and best_iteration < len(iterations):
+        best_iter_data = iterations[best_iteration]
+        best_metrics = best_iter_data.get("metrics", {})
+
+        st.markdown("#### 📈 Best Iteration Metrics")
+        col1, col2, col3, col4 = st.columns(4)
+
+        with col1:
+            logical = best_metrics.get("logical_consistency_score", 0)
+            st.metric("Logical", f"{logical:.1%}")
+
+        with col2:
+            comp = best_metrics.get("completeness_score", 0)
+            st.metric("Complete", f"{comp:.1%}")
+
+        with col3:
+            evidence = best_metrics.get("evidence_support_score", 0)
+            st.metric("Evidence", f"{evidence:.1%}")
+
+        with col4:
+            schema = best_metrics.get("schema_compliance_score", 0)
+            st.metric("Schema", f"{schema:.1%}")
+
+    # Bottom line for podcast
+    bottom_line = best_appraisal.get("bottom_line", {})
+    if bottom_line:
+        st.markdown("#### 🎙️ Bottom Line (for Podcast)")
+        for_podcast = bottom_line.get("for_podcast", "—")
+        st.info(for_podcast)
+
+
 def display_step_status(step_name: str, step_label: str, step_number: int):
     """
     Display status UI for a single pipeline step.
@@ -945,6 +1090,8 @@ def display_step_status(step_name: str, step_label: str, step_number: int):
                     _display_correction_result(result)
                 elif step_name == STEP_VALIDATION_CORRECTION:
                     _display_validation_correction_result(result)
+                elif step_name == STEP_APPRAISAL:
+                    _display_appraisal_result(result)
 
             # Show file path if available (non-verbose always shows this)
             file_path = step.get("file_path")
