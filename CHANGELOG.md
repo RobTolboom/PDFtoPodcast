@@ -75,6 +75,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added single-pass appraisal mode via `run_appraisal_single_pass()` plus CLI flag `--appraisal-single-pass` and Streamlit toggle.
   - `run_single_step` accepts `enable_iterative_correction` and appraisal dependencies now load automatically when running the step in isolatie.
   - Backward-compatible filenames (`paper-appraisal.json`, `paper-appraisal_validation.json`) are written alongside the `*-best.json` artefacts.
+- **Appraisal UI enhancements**
+  - Streamlit execution screen toont nu een aparte “Appraisal”-statuskaart, uitgebreide result summary (RoB, GRADE, applicability) en quality-score charts.
+  - Iteration history tabel/visualisatie + 🔁 “Re-run appraisal” knop maken iteratieve correctie inzichtelijk en beheersbaar vanuit de UI.
 - **Best Extraction & Validation Selection** - Automatic quality-based selection with persistent "best" files
   - Save best extraction + validation as `{id}-extraction-best.json` and `{id}-validation-best.json` after ALL exit paths
   - Save selection metadata as `{id}-extraction-best-metadata.json` with iteration number, quality scores, and selection reason

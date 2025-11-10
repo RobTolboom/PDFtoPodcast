@@ -826,6 +826,14 @@ def _display_validation_correction_result(result: dict):
         df = pd.DataFrame(table_data)
         st.dataframe(df, width="stretch", hide_index=True)
 
+        trajectory = result.get("improvement_trajectory", [])
+        if trajectory:
+            st.caption("Quality score trajectory per iteration")
+            chart_df = pd.DataFrame(
+                {"Quality Score": trajectory}, index=[f"Iter {i}" for i in range(len(trajectory))]
+            )
+            st.line_chart(chart_df)
+
     # Show metrics from best iteration
     if iterations and best_iteration < len(iterations):
         best_iter_data = iterations[best_iteration]
@@ -994,6 +1002,37 @@ def _display_appraisal_result(result: dict):
         st.markdown("#### 🎙️ Bottom Line (for Podcast)")
         for_podcast = bottom_line.get("for_podcast", "—")
         st.info(for_podcast)
+
+    execution_status = st.session_state.execution.get("status", "idle")
+    if execution_status in {"completed", "failed"}:
+        if st.button("🔁 Re-run appraisal", key="rerun_appraisal"):
+            _trigger_appraisal_rerun()
+
+
+def _trigger_appraisal_rerun():
+    """Reset state so appraisal step reruns from the execution screen."""
+    exec_state = st.session_state.execution
+    exec_state["status"] = "running"
+    exec_state["error"] = None
+    exec_state["redirect_countdown"] = None
+    exec_state["redirect_cancelled"] = False
+    exec_state["end_time"] = None
+    exec_state["results"].pop(STEP_APPRAISAL, None)
+
+    # Reset appraisal step status
+    st.session_state.step_status[STEP_APPRAISAL] = {
+        "status": "pending",
+        "start_time": None,
+        "end_time": None,
+        "result": None,
+        "error": None,
+        "elapsed_seconds": None,
+        "verbose_data": {},
+        "file_path": None,
+    }
+
+    exec_state["current_step_index"] = ALL_PIPELINE_STEPS.index(STEP_APPRAISAL)
+    st.rerun()
 
 
 def display_step_status(step_name: str, step_label: str, step_number: int):
@@ -1299,6 +1338,9 @@ def show_execution_screen():
         display_step_status(STEP_CLASSIFICATION, "Classification", 1)
         display_step_status(STEP_EXTRACTION, "Extraction", 2)
         display_step_status(STEP_VALIDATION_CORRECTION, "Validation & Correction", 3)
+        display_step_status(STEP_APPRAISAL, "Appraisal", 4)
+        display_step_status(STEP_APPRAISAL, "Appraisal", 4)
+        display_step_status(STEP_APPRAISAL, "Appraisal", 4)
 
         # Check if all steps completed
         if current_step_index >= len(steps_to_run):

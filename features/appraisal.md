@@ -732,19 +732,19 @@ if publication_type == 'diagnostic':
 - Existing scripts/notebooks still work
 - Documentation covers beide modes (README + dit document)
 
-### Fase 5: UI Integration (Streamlit)
+### Fase 5: UI Integration (Streamlit) ✅ COMPLEET
 **Goal**: Add appraisal step to Streamlit execution screen
 
 **Deliverables**:
-- [ ] New execution step: "Appraisal" (after Validation/Correction)
-- [ ] Real-time progress updates during iterations
-- [ ] Display appraisal results:
+- [x] New execution step: "Appraisal" (after Validation/Correction)
+- [x] Real-time progress updates during iterations
+- [x] Display appraisal results:
   - Risk of bias summary (overall + domains)
   - GRADE certainty per outcome
   - Tool used (RoB 2, ROBINS-I, PROBAST, AMSTAR 2)
   - Bottom line for podcast
-- [ ] Iteration history visualization
-- [ ] Manual re-run option
+- [x] Iteration history visualization (table + line chart)
+- [x] Manual re-run option (button reruns appraisal from UI)
 
 **UI Mock**:
 ```
@@ -771,13 +771,13 @@ if publication_type == 'diagnostic':
 
 **Testing**:
 - UI updates in real-time during appraisal
-- Results display correctly for all 5 study types
-- Iteration history accessible
+- Results display renders for all study types (covered via unit/UI tests)
+- Iteration history accessible via table + chart; manual rerun tested interactief
 
 **Acceptance**:
 - Appraisal step integrated in execution flow
-- Results clearly presented
-- Users can review iteration history
+- Results clearly presented met risico/GRADE/bottom line
+- Users can review iteration history en re-run appraisal
 
 ### Fase 6: CLI Support
 **Goal**: Add appraisal step to CLI pipeline
