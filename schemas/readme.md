@@ -16,7 +16,8 @@ The `schemas/` directory contains JSON Schema files that define the structured o
 | Evidence synthesis        | `evidence_synthesis_bundled.json`    | `evidence_synthesis.schema.json`             | Systematic reviews, meta-analyses   |
 | Prediction & prognosis    | `prediction_prognosis_bundled.json`  | `prediction_prognosis.schema.json`           | Risk prediction, prognostic models  |
 | Editorials & opinion      | `editorials_opinion_bundled.json`    | `editorials_opinion.schema.json`             | Editorials, commentaries            |
-| Validation reports        | `validation_bundled.json`            | `validation.schema.json`                     | LLM quality assessment output       |
+| Validation reports        | `validation_bundled.json`            | `validation.schema.json`                     | Extraction quality assessment       |
+| Appraisal validation      | —                                    | `appraisal_validation.schema.json`           | Critical appraisal QC output        |
 
 If classification returns `overig`, no extraction schema is applied.
 
