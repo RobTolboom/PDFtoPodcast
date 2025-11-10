@@ -1,6 +1,6 @@
 # Architecture Overview
 
-PDFtoPodcast extracts structured medical research data by streaming PDF content through a three-stage pipeline with an iterative validation/correction loop. This document describes the runtime architecture, major components, data flow, and extensibility points. For implementation-level detail, see `src/README.md`, `schemas/readme.md`, and `VALIDATION_STRATEGY.md`.
+PDFtoPodcast extracts structured medical research data by streaming PDF content through a four-stage pipeline with iterative validation/correction loops. This document describes the runtime architecture, major components, data flow, and extensibility points. For implementation-level detail, see `src/README.md`, `schemas/readme.md`, `VALIDATION_STRATEGY.md`, and `features/appraisal.md`.
 
 ## System summary
 
@@ -32,15 +32,24 @@ run_validation_with_correction()
     • best iteration saved (extraction-best.json, validation-best.json)
         |
         v
+run_appraisal_with_correction()
+    • study-type routing (RoB 2, ROBINS-I, PROBAST, AMSTAR 2, etc.)
+    • appraisal execution (risk of bias + GRADE ratings)
+    • appraisal validation (logical consistency, completeness, evidence support)
+    • correction iterations (<= max)
+    • best iteration saved (appraisal-best.json, appraisal-validation-best.json)
+        |
+        v
 Outputs persisted to tmp/ and returned to caller
 ```
 
 ## Component architecture
 
 ### Orchestrator (`src/pipeline/orchestrator.py`)
-- Public APIs: `run_four_step_pipeline`, `run_single_step`, `run_validation_with_correction`.
-- Iterative loop tracks quality metrics (completeness, accuracy, schema compliance) and selects the highest-scoring iteration.
-- Uses `PipelineFileManager` to write `extraction0.json`, `validation0.json`, iteration files (`extraction1.json`, …) and best-result artefacts (`extraction-best.json`, `extraction-best-metadata.json`).
+- Public APIs: `run_four_step_pipeline`, `run_single_step`, `run_validation_with_correction`, `run_appraisal_with_correction`.
+- Extraction iterative loop tracks quality metrics (completeness, accuracy, schema compliance) and selects the highest-scoring iteration.
+- Appraisal iterative loop tracks appraisal-specific metrics (logical consistency, completeness, evidence support, schema compliance) and selects the highest-scoring iteration.
+- Uses `PipelineFileManager` to write iteration files (`extraction{N}.json`, `appraisal{N}.json`) and best-result artefacts (`extraction-best.json`, `appraisal-best.json`, metadata files).
 - Breakpoints and progress callbacks support both CLI batching and Streamlit step-by-step execution.
 
 ### Validation runner (`src/pipeline/validation_runner.py`)
@@ -49,19 +58,37 @@ Outputs persisted to tmp/ and returned to caller
 - Merges schema results and LLM feedback into a single report (`validation_bundled.json` schema).
 - See `VALIDATION_STRATEGY.md` for quality metrics, thresholds, and exit codes.
 
+### Critical Appraisal (`src/pipeline/orchestrator.py` - appraisal functions)
+- **Study-type routing**: Maps publication types to appropriate appraisal tools via `_get_appraisal_prompt_name()`:
+  - `interventional_trial` → RoB 2 (Cochrane Risk of Bias tool for randomized trials)
+  - `observational_analytic` → ROBINS-I (Risk Of Bias In Non-randomized Studies)
+  - `evidence_synthesis` → AMSTAR 2 + ROBIS (systematic review/meta-analysis quality)
+  - `prediction_prognosis` → PROBAST (Prediction model Risk Of Bias ASsessment Tool)
+  - `diagnostic` → PROBAST (shared prompt with prediction_prognosis)
+  - `editorials_opinion` → Argument quality assessment
+- **Iterative correction**: `run_appraisal_with_correction()` executes appraisal → validation → correction loop until quality thresholds met or max iterations reached.
+- **Quality metrics**: Appraisal validation checks logical consistency (35%), completeness (25%), evidence support (25%), and schema compliance (15%).
+- **GRADE integration**: Per-outcome certainty ratings (High/Moderate/Low/Very Low) with downgrading factors (risk of bias, inconsistency, imprecision, indirectness, publication bias).
+- **Best selection**: `_select_best_appraisal_iteration()` ranks iterations by weighted quality score, filtering out critical issues.
+- **File outputs**: Saves `{id}-appraisal{N}.json`, `{id}-appraisal-validation{N}.json`, and best files (`{id}-appraisal-best.json`).
+- See `features/appraisal.md` for complete specification, tool descriptions, and acceptance criteria.
+
 ### LLM providers (`src/llm/`)
 - `BaseLLMProvider` defines `generate_json_with_pdf`, `generate_json_with_schema`, and `generate_text`.
 - `OpenAIProvider` and `ClaudeProvider` implement the interface with provider-specific retries, PDF upload limits, and error handling.
 - Configuration (API keys, model names, timeouts, 10 MB default upload cap) is drawn from `src/config.py` (`llm_settings`).
 
 ### Prompts (`prompts/`)
-- Classification, type-specific extraction prompts, validation, and correction prompts are stored as plain text (
-  `Classification.txt`, `Extraction-prompt-*.txt`, `Extraction-validation.txt`, `Extraction-correction.txt`).
+- Classification, type-specific extraction prompts, validation, correction, and appraisal prompts are stored as plain text.
+- **Extraction**: `Classification.txt`, `Extraction-prompt-*.txt`, `Extraction-validation.txt`, `Extraction-correction.txt`
+- **Appraisal**: `Appraisal-interventional.txt`, `Appraisal-observational.txt`, `Appraisal-evidence-synthesis.txt`, `Appraisal-prediction.txt`, `Appraisal-editorials.txt`, `Appraisal-validation.txt`, `Appraisal-correction.txt`
 - `src/prompts.py` loads the appropriate prompt and raises `PromptLoadError` when a file is missing.
 - Prompt revisions must stay in sync with schemas; see `prompts/README.md` for maintenance guidance.
 
 ### Schemas (`schemas/`)
 - Modular sources (`*.schema.json`) share components via `common.schema.json`.
+- **Extraction schemas**: Type-specific extraction schemas for interventional, observational, evidence synthesis, etc.
+- **Appraisal schemas**: `appraisal.schema.json` (risk of bias + GRADE structure), `appraisal_validation.schema.json` (validation result structure)
 - Bundled files (`*_bundled.json`) inline references for LLM compatibility and runtime validation.
 - `src/schemas_loader.py` caches schemas and validates compatibility.
 - `json-bundler.py` regenerates bundled files after edits; run schema unit tests afterwards.
@@ -74,9 +101,12 @@ Outputs persisted to tmp/ and returned to caller
 - Derives an identifier from the PDF filename and generates output paths within `tmp/`.
 - Naming patterns:
   - `paper-classification.json`
-  - `paper-extraction0.json`, `paper-validation0.json`
-  - `paper-extraction1.json`, `paper-validation1.json` (iterations)
-  - `paper-extraction-best.json`, `paper-validation-best.json`, `paper-extraction-best-metadata.json`
+  - `paper-extraction0.json`, `paper-validation0.json` (initial extraction)
+  - `paper-extraction1.json`, `paper-validation1.json` (correction iterations)
+  - `paper-extraction-best.json`, `paper-validation-best.json`, `paper-extraction-best-metadata.json` (best extraction)
+  - `paper-appraisal0.json`, `paper-appraisal-validation0.json` (initial appraisal)
+  - `paper-appraisal1.json`, `paper-appraisal-validation1.json` (appraisal correction iterations)
+  - `paper-appraisal-best.json`, `paper-appraisal-validation-best.json` (best appraisal)
   - `paper-extraction-failed.json` (error diagnostics)
 
 ### Streamlit app (`src/streamlit_app/`)

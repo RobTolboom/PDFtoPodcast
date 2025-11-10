@@ -33,7 +33,15 @@ def temp_dir(tmp_path):
 @pytest.fixture
 def file_manager(temp_dir):
     """Create file manager for tests."""
-    return PipelineFileManager(identifier="test-paper", tmp_dir=temp_dir)
+    # Create a mock PDF path in temp directory
+    pdf_path = temp_dir / "test-paper.pdf"
+    pdf_path.touch()  # Create empty file
+
+    # Create PipelineFileManager with the PDF path
+    fm = PipelineFileManager(pdf_path)
+    # Override tmp_dir to use the test temp directory
+    fm.tmp_dir = temp_dir
+    return fm
 
 
 @pytest.fixture
