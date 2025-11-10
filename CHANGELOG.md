@@ -24,6 +24,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Marked `COMMERCIAL_LICENSE.md` as a draft pending legal review to prevent accidental publication of unapproved contract language.
 
 ### Added
+- **Critical Appraisal Pipeline Step** (#appraisal-feature) - New 4th pipeline step for structured quality assessment
+  - **Study-type routing:** Automatically routes to appropriate appraisal tool based on publication type:
+    - RoB 2 for randomized controlled trials (5 domains + overall risk of bias)
+    - ROBINS-I for observational studies (7 domains covering confounding, selection bias, measurement)
+    - PROBAST for prediction/prognosis models (4 domains × 2 perspectives)
+    - AMSTAR 2 + ROBIS for meta-analyses/systematic reviews (16 items + 4 domains)
+    - Argument quality assessment for editorials/opinion pieces
+  - **GRADE certainty ratings:** Per-outcome certainty of evidence (High/Moderate/Low/Very Low) with downgrading factors
+  - **Iterative correction loop:** Similar to extraction, with quality thresholds (logical_consistency ≥90%, completeness ≥85%, evidence_support ≥90%, schema_compliance ≥95%)
+  - **Orchestrator functions:**
+    - `run_appraisal_with_correction()`: Full iterative loop with quality checks
+    - `is_appraisal_quality_sufficient()`: Quality threshold validation
+    - `_select_best_appraisal_iteration()`: Weighted quality scoring for best result selection
+    - `_get_appraisal_prompt_name()`: Publication type to tool mapping
+  - **File management:** Iteration files (`{id}-appraisal{N}.json`, `{id}-appraisal-validation{N}.json`) and best file selection (`{id}-appraisal-best.json`)
+  - **CLI support:** `--step appraisal` with 5 quality threshold arguments (logical/completeness/evidence/schema/max-iter)
+  - **Streamlit UI:** Configuration section with quality sliders, iteration settings, and result display with RoB summary, GRADE ratings, and iteration history
+  - **Comprehensive testing:** 11 integration tests (test_appraisal_full_loop.py) and 42 unit tests (test_appraisal_quality.py, test_appraisal_functions.py)
+  - **Files added:** 7 prompts (Appraisal-*.txt), 2 schemas (appraisal.schema.json, appraisal_validation.schema.json), orchestrator extensions (1253 lines), file manager methods, prompt loaders
+  - **Documentation:** Complete feature specification (features/appraisal.md), updated README architecture diagram, CLI help text with examples
+  - **Backward compatibility:** Step is optional; existing 3-step pipelines continue to work unchanged
 - **Appraisal Validation Schema** - Introduced dedicated `appraisal_validation.schema.json` to enforce the new appraisal-validation contract (scores, issue taxonomy, metadata) and wired orchestrator to load it via `load_schema("appraisal_validation")`, ensuring structured outputs remain aligned with OpenAI structured-output requirements.
 - **Best Extraction & Validation Selection** - Automatic quality-based selection with persistent "best" files
   - Save best extraction + validation as `{id}-extraction-best.json` and `{id}-validation-best.json` after ALL exit paths
