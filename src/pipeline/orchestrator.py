@@ -2254,6 +2254,82 @@ APPRAISAL_SCHEMA:
         raise
 
 
+def run_appraisal_single_pass(
+    extraction_result: dict[str, Any],
+    classification_result: dict[str, Any],
+    llm_provider: str,
+    file_manager: PipelineFileManager,
+    quality_thresholds: dict | None = None,
+    progress_callback: Callable[[str, str, dict], None] | None = None,
+) -> dict[str, Any]:
+    """
+    Run a single appraisal + validation cycle without iterative correction.
+
+    Saves backward-compatible filenames (paper-appraisal.json) plus best files.
+    """
+    console.print("\n[bold magenta]═══ CRITICAL APPRAISAL (Single Pass) ═══[/bold magenta]\n")
+
+    classification_clean = _strip_metadata_for_pipeline(classification_result)
+    publication_type = classification_clean.get("publication_type")
+    if not publication_type:
+        raise ValueError("Classification result missing publication_type")
+
+    if quality_thresholds is None:
+        quality_thresholds = APPRAISAL_QUALITY_THRESHOLDS
+
+    llm = get_llm_provider(llm_provider)
+
+    appraisal = _run_appraisal_step(
+        extraction_result=extraction_result,
+        publication_type=publication_type,
+        llm=llm,
+        file_manager=file_manager,
+        progress_callback=progress_callback,
+    )
+
+    validation = _run_appraisal_validation_step(
+        appraisal_result=appraisal,
+        extraction_result=extraction_result,
+        llm=llm,
+        file_manager=file_manager,
+        progress_callback=progress_callback,
+    )
+
+    metrics = _extract_appraisal_metrics(validation)
+    iteration_record = {
+        "iteration_num": 0,
+        "appraisal": appraisal,
+        "validation": validation,
+        "metrics": metrics,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+    # Save backward-compatible filenames (no iteration suffix)
+    file_manager.save_json(appraisal, STEP_APPRAISAL)
+    file_manager.save_json(validation, STEP_APPRAISAL_VALIDATION)
+    file_manager.save_best_appraisal(appraisal, validation)
+
+    improvement_trajectory = [metrics["quality_score"]]
+    summary = validation.get("validation_summary", {})
+    final_status = summary.get("overall_status", "single_pass")
+
+    console.print(
+        f"[cyan]Single-pass appraisal complete. Status: {final_status}, "
+        f"Quality: {metrics['quality_score']:.2f}[/cyan]"
+    )
+
+    return {
+        "best_appraisal": appraisal,
+        "best_validation": validation,
+        "best_iteration": 0,
+        "iterations": [iteration_record],
+        "final_status": final_status,
+        "iteration_count": 1,
+        "improvement_trajectory": improvement_trajectory,
+        "iterative_mode": "single_pass",
+    }
+
+
 def run_appraisal_with_correction(
     extraction_result: dict[str, Any],
     classification_result: dict[str, Any],
@@ -2475,6 +2551,7 @@ def run_appraisal_with_correction(
                 return {
                     "best_appraisal": current_appraisal,
                     "best_validation": current_validation,
+                    "best_iteration": iteration_num,
                     "iterations": iterations,
                     "final_status": "passed",
                     "iteration_count": iteration_num + 1,
@@ -2655,6 +2732,9 @@ def run_single_step(
     file_manager: PipelineFileManager,
     progress_callback: Callable[[str, str, dict], None] | None = None,
     previous_results: dict[str, Any] | None = None,
+    max_correction_iterations: int | None = None,
+    quality_thresholds: dict[str, Any] | None = None,
+    enable_iterative_correction: bool = True,
 ) -> dict[str, Any]:
     """
     Execute a single pipeline step with dependency validation.
@@ -2823,7 +2903,12 @@ def run_single_step(
             )
 
     elif step_name == STEP_VALIDATION_CORRECTION:
-        # New iterative validation-correction step requires same dependencies as STEP_EXTRACTION
+        classification_result = _get_or_load_result("classification")
+        extraction_result = _get_or_load_result("extraction")
+        previous_results[STEP_CLASSIFICATION] = classification_result
+        previous_results[STEP_EXTRACTION] = extraction_result
+
+    elif step_name == STEP_APPRAISAL:
         classification_result = _get_or_load_result("classification")
         extraction_result = _get_or_load_result("extraction")
         previous_results[STEP_CLASSIFICATION] = classification_result
@@ -2910,35 +2995,41 @@ def run_single_step(
         }
 
     elif step_name == STEP_VALIDATION_CORRECTION:
-        # New iterative validation-correction workflow
         classification_result = previous_results[STEP_CLASSIFICATION]
         extraction_result = previous_results[STEP_EXTRACTION]
 
-        # Call the iterative loop with default or custom parameters
         return run_validation_with_correction(
             pdf_path=pdf_path,
             extraction_result=extraction_result,
             classification_result=classification_result,
             llm_provider=llm_provider,
             file_manager=file_manager,
-            max_iterations=3,  # Could be parameterized in future
-            quality_thresholds=None,  # Uses DEFAULT_QUALITY_THRESHOLDS
+            max_iterations=max_correction_iterations or 3,
+            quality_thresholds=quality_thresholds,  # Falls back inside helper
             progress_callback=progress_callback,
         )
 
     elif step_name == STEP_APPRAISAL:
-        # Critical appraisal with iterative validation-correction
         classification_result = previous_results[STEP_CLASSIFICATION]
         extraction_result = previous_results[STEP_EXTRACTION]
 
-        # Call the appraisal iterative loop
-        return run_appraisal_with_correction(
+        if enable_iterative_correction:
+            return run_appraisal_with_correction(
+                extraction_result=extraction_result,
+                classification_result=classification_result,
+                llm_provider=llm_provider,
+                file_manager=file_manager,
+                max_iterations=max_correction_iterations or 3,
+                quality_thresholds=quality_thresholds,
+                progress_callback=progress_callback,
+            )
+
+        return run_appraisal_single_pass(
             extraction_result=extraction_result,
             classification_result=classification_result,
             llm_provider=llm_provider,
             file_manager=file_manager,
-            max_iterations=3,  # Could be parameterized in future
-            quality_thresholds=None,  # Uses APPRAISAL_QUALITY_THRESHOLDS
+            quality_thresholds=quality_thresholds,
             progress_callback=progress_callback,
         )
 

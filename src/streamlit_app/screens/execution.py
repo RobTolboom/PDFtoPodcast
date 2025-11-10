@@ -1325,6 +1325,18 @@ def show_execution_screen():
             pdf_path = Path(st.session_state.pdf_path)
             file_manager = PipelineFileManager(pdf_path)
 
+            # Step-specific iteration/threshold settings
+            max_iter_setting = None
+            quality_thresholds = None
+            enable_iterative = True
+            if current_step_name == STEP_VALIDATION_CORRECTION:
+                max_iter_setting = settings.get("max_correction_iterations", 3)
+                quality_thresholds = settings.get("quality_thresholds")
+            elif current_step_name == STEP_APPRAISAL:
+                max_iter_setting = settings.get("max_appraisal_iterations", 3)
+                quality_thresholds = settings.get("appraisal_quality_thresholds")
+                enable_iterative = settings.get("appraisal_enable_iterative_correction", True)
+
             # Execute current step with previous results
             step_result = run_single_step(
                 step_name=current_step_name,
@@ -1334,6 +1346,9 @@ def show_execution_screen():
                 file_manager=file_manager,
                 progress_callback=callback,
                 previous_results=st.session_state.execution["results"],
+                max_correction_iterations=max_iter_setting,
+                quality_thresholds=quality_thresholds,
+                enable_iterative_correction=enable_iterative,
             )
 
             # Store step result

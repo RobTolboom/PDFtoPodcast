@@ -691,18 +691,18 @@ if publication_type == 'diagnostic':
 - [x] Correction prompt includes tool-specific workflows
 - [ ] Prompts tested with all 5 study types (manual testing pending)
 
-### Fase 3: File Management & Logging
+### Fase 3: File Management & Logging ✅ COMPLEET
 **Goal**: Save/load appraisal iterations with full traceability
 
 **Deliverables**:
-- [ ] Extend `PipelineFileManager`:
+- [x] Extend `PipelineFileManager`:
   - `save_appraisal_iteration()`
   - `load_appraisal_iteration()`
   - `save_best_appraisal()`
   - `get_appraisal_iterations()`
-- [ ] Iteration numbering (paper-appraisal0.json, paper-appraisal_validation0.json, etc.)
-- [ ] Best file naming (paper-appraisal-best.json, paper-appraisal_validation-best.json)
-- [ ] Logging: iteration metrics, improvement trajectory
+- [x] Iteration numbering (paper-appraisal0.json, paper-appraisal_validation0.json, etc.)
+- [x] Best file naming (paper-appraisal-best.json, paper-appraisal_validation-best.json)
+- [x] Logging: iteration metrics, improvement trajectory (console output + metadata file)
 
 **Testing**:
 - File creation/loading for all iterations
@@ -710,27 +710,27 @@ if publication_type == 'diagnostic':
 - Directory structure validation
 
 **Acceptance**:
-- All iterations saved with correct naming
-- Load functions retrieve correct data
-- Logs show iteration progress
+- All iterations saved met correcte namen (`tmp/<id>-appraisal{n}.json`)
+- Load functions halen juiste data terug
+- Logs tonen iteration progress (console + `_pipeline_metadata`)
 
 ### Fase 4: Backward Compatibility
 **Goal**: Support standalone appraisal (no iteration) for legacy/manual use
 
 **Deliverables**:
-- [ ] `run_appraisal()` standalone function (no correction loop)
-- [ ] Flag: `enable_iterative_correction: bool` (default: True)
-- [ ] Backward-compatible file naming (paper-appraisal.json without iteration numbers)
+- [x] `run_appraisal_single_pass()` helper (no correction loop)
+- [x] Flag: `enable_iterative_correction: bool` (default: True) expose via CLI `--appraisal-single-pass` + Streamlit toggle
+- [x] Backward-compatible file naming (`paper-appraisal.json` / `paper-appraisal_validation.json`)
 
 **Testing**:
-- Standalone appraisal without validation/correction
-- Pipeline runs with/without iterative appraisal
-- File structure compatible with legacy code
+- Single-pass appraisal without correction
+- CLI/Streamlit runs met én zonder iteraties
+- Legacy file readers herkennen nog steeds de klassieke bestandsnamen
 
 **Acceptance**:
 - Users can run single appraisal if desired
 - Existing scripts/notebooks still work
-- Documentation covers both modes
+- Documentation covers beide modes (README + dit document)
 
 ### Fase 5: UI Integration (Streamlit)
 **Goal**: Add appraisal step to Streamlit execution screen

@@ -88,6 +88,7 @@ def init_session_state():
             },
             # Appraisal settings
             "max_appraisal_iterations": 3,
+            "appraisal_enable_iterative_correction": True,
             "appraisal_quality_thresholds": {
                 "logical_consistency_score": 0.90,
                 "completeness_score": 0.85,

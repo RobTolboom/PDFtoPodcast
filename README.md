@@ -150,6 +150,11 @@ This pipeline extracts structured data from medical research PDFs with a focus o
 
 **For critical appraisal tools and methodology, see [features/appraisal.md](features/appraisal.md)**
 
+*Tip:* Moet je voor legacy-workflows slechts één appraisal-run zonder iteratieve correcties draaien? Gebruik dan
+`python run_pipeline.py paper.pdf --step appraisal --appraisal-single-pass` of schakel in de Streamlit settings de optie
+“Enable iterative appraisal correction” uit. Dit schrijft de klassieke `paper-appraisal.json` / `paper-appraisal_validation.json`
+bestanden weg naast de gebruikelijke `*-best.json` artefacten.
+
 > The diagram shows provider hard limits (32 MB, 100 pages). By default the pipeline caps uploads at 10 MB
 > to match the Streamlit uploader and `MAX_PDF_SIZE_MB` setting—raise it in your `.env` only if your provider
 > account allows larger PDFs.

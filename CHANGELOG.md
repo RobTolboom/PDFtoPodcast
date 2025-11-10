@@ -71,6 +71,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Clarified diagnostic routing in `Appraisal-prediction.txt` (incl. `tool.variant="diagnostic"`) zodat diagnostic studies emit `study_type="diagnostic"`.
   - Schema blokkeert nu `risk_of_bias` voor `study_type="editorial_opinion"` en de interventional prompt verduidelijkt wanneer `analysis_issues.notes` mag worden gezet.
   - Synced bias-direction terminologie tussen `Appraisal-validation.txt` en het schema.
+- **Appraisal backward compatibility**
+  - Added single-pass appraisal mode via `run_appraisal_single_pass()` plus CLI flag `--appraisal-single-pass` and Streamlit toggle.
+  - `run_single_step` accepts `enable_iterative_correction` and appraisal dependencies now load automatically when running the step in isolatie.
+  - Backward-compatible filenames (`paper-appraisal.json`, `paper-appraisal_validation.json`) are written alongside the `*-best.json` artefacts.
 - **Best Extraction & Validation Selection** - Automatic quality-based selection with persistent "best" files
   - Save best extraction + validation as `{id}-extraction-best.json` and `{id}-validation-best.json` after ALL exit paths
   - Save selection metadata as `{id}-extraction-best-metadata.json` with iteration number, quality scores, and selection reason

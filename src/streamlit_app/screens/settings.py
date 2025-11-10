@@ -362,7 +362,15 @@ def show_settings_screen():
                 value=st.session_state.settings.get("max_appraisal_iterations", 3),
                 help="Maximum number of correction attempts for appraisal if quality is insufficient",
             )
-            st.session_state.settings["max_appraisal_iterations"] = max_appraisal_iterations
+        st.session_state.settings["max_appraisal_iterations"] = max_appraisal_iterations
+
+        # Toggle for single-pass vs iterative correction
+        enable_iterative = st.checkbox(
+            "Enable iterative appraisal correction",
+            value=st.session_state.settings.get("appraisal_enable_iterative_correction", True),
+            help="Disable this to run appraisal once without automatic corrections (legacy mode).",
+        )
+        st.session_state.settings["appraisal_enable_iterative_correction"] = enable_iterative
 
         with col2:
             st.caption("**Quality Thresholds**")

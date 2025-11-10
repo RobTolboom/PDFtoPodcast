@@ -91,6 +91,11 @@ def main():
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
+    parser.add_argument(
+        "--appraisal-single-pass",
+        action="store_true",
+        help="Skip iterative correction for appraisal (single-pass mode).",
+    )
     parser.add_argument("pdf", help="Pad naar de PDF")
     parser.add_argument(
         "--max-pages", type=int, default=None, help="Beperk aantal pagina's (voor snelle tests)"
@@ -240,6 +245,9 @@ def main():
                 max_iter = args.appraisal_max_iter
             else:
                 max_iter = None
+            enable_iter = True
+            if args.step == "appraisal":
+                enable_iter = not args.appraisal_single_pass
 
             result = run_single_step(
                 step_name=args.step,
@@ -251,6 +259,7 @@ def main():
                 previous_results=None,  # Load from disk if needed
                 max_correction_iterations=max_iter,
                 quality_thresholds=quality_thresholds,
+                enable_iterative_correction=enable_iter,
             )
 
         # Print result summary
