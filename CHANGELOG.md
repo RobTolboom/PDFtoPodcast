@@ -43,6 +43,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Appraisal Validation Schema** - Introduced dedicated `appraisal_validation.schema.json` to enforce the new appraisal-validation contract (scores, issue taxonomy, metadata) and wired orchestrator to load it via `load_schema("appraisal_validation")`, ensuring structured outputs remain aligned with OpenAI structured-output requirements.
+- **Appraisal prompt/schema alignment**
+  - Restricted `tool.judgement_scale` to a controlled enum (`rob2`, `robins`, `probast`, `amstar2`, `robis`) and made `tools.{amstar2|robis|grade}` strict booleans.
+  - Added `applicability.exposure`, causal-strategy enums, and AMSTAR2 critical-item enumeraties zodat output exact schema-conform blijft.
+  - Clarified diagnostic routing in `Appraisal-prediction.txt` (incl. `tool.variant="diagnostic"`) zodat diagnostic studies emit `study_type="diagnostic"`.
+  - Schema blokkeert nu `risk_of_bias` voor `study_type="editorial_opinion"` en de interventional prompt verduidelijkt wanneer `analysis_issues.notes` mag worden gezet.
+  - Synced bias-direction terminologie tussen `Appraisal-validation.txt` en het schema.
 - **Best Extraction & Validation Selection** - Automatic quality-based selection with persistent "best" files
   - Save best extraction + validation as `{id}-extraction-best.json` and `{id}-validation-best.json` after ALL exit paths
   - Save selection metadata as `{id}-extraction-best-metadata.json` with iteration number, quality scores, and selection reason

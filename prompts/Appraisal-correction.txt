@@ -39,6 +39,7 @@ HARD RULES
    - You MUST include all required fields and required subfields exactly as defined in APPRAISAL_SCHEMA.
    - You MUST use the exact enum values from APPRAISAL_SCHEMA where the schema defines an enum.
    - If APPRAISAL_SCHEMA forbids null for a field, you must not emit that field with null. Omit the field instead.
+   - Remove any optional field that lacks substantive content (e.g., delete `analysis_issues.notes` when there is nothing meaningful to add).
    - If APPRAISAL_SCHEMA requires a field and EXTRACTION_JSON does not provide sufficient evidence:
      * Populate with the closest exact value from EXTRACTION_JSON only.
      * Do NOT fabricate judgements, rationales, or evidence.

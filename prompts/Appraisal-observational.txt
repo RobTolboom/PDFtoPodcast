@@ -35,7 +35,7 @@ METHOD (evidence-locked; use EXTRACTED_JSON only)
   - balance_ok: "true"|"false"|"unclear" from balance_diagnostics.balance_ok if present
   - positivity_issues: "true" if ps_overlap_ok==false or positivity_violations present; else "false"/"unclear"
   - notes: brief line on identification strategy adequacy.
-- applicability: populate population/exposure/comparator/outcome + notes.
+- applicability: populate population, exposure (new dedicated field), comparator, outcome, and notes using extraction metadata.
 - grade_per_outcome: start "Low" for observational; upgrade for large effect, dose-response, or residual confounding that would reduce the effect; downgrade per standard reasons. Match outcome_id to EXTRACTED_JSON.outcomes[].outcome_id.
 
 PRE-FLIGHT
