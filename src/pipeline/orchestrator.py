@@ -2913,6 +2913,12 @@ def run_single_step(
     elif step_name == STEP_APPRAISAL:
         classification_result = _get_or_load_result("classification")
         extraction_result = _get_or_load_result("extraction")
+
+        # Try to use best_extraction from validation_correction if available
+        validation_correction_result = _get_or_load_result("validation_correction")
+        if validation_correction_result and validation_correction_result.get("best_extraction"):
+            extraction_result = validation_correction_result["best_extraction"]
+
         previous_results[STEP_CLASSIFICATION] = classification_result
         previous_results[STEP_EXTRACTION] = extraction_result
 
@@ -3013,7 +3019,13 @@ def run_single_step(
 
     elif step_name == STEP_APPRAISAL:
         classification_result = previous_results[STEP_CLASSIFICATION]
-        extraction_result = previous_results[STEP_EXTRACTION]
+
+        # Use best_extraction from validation_correction if available, otherwise use original extraction
+        validation_correction_result = previous_results.get(STEP_VALIDATION_CORRECTION)
+        if validation_correction_result and validation_correction_result.get("best_extraction"):
+            extraction_result = validation_correction_result["best_extraction"]
+        else:
+            extraction_result = previous_results[STEP_EXTRACTION]
 
         if enable_iterative_correction:
             return run_appraisal_with_correction(
@@ -3156,6 +3168,30 @@ def run_four_step_pipeline(
                         {"reason": "validation_passed", "validation_status": validation_status},
                     )
                     console.print("[green]✅ Correction not needed - validation passed[/green]")
+                    continue
+
+        # Special handling for appraisal - skip if validation_correction failed
+        if step_name == STEP_APPRAISAL:
+            validation_correction_result = results.get(STEP_VALIDATION_CORRECTION)
+            if validation_correction_result:
+                final_status = validation_correction_result.get("final_status")
+                if final_status == "failed_schema_validation":
+                    error_msg = validation_correction_result.get(
+                        "error", "Schema validation failed"
+                    )
+                    _call_progress_callback(
+                        progress_callback,
+                        STEP_APPRAISAL,
+                        "skipped",
+                        {
+                            "reason": "extraction_validation_failed",
+                            "final_status": final_status,
+                            "error": error_msg,
+                        },
+                    )
+                    console.print(
+                        f"[red]⏭️  Appraisal skipped - extraction validation failed: {error_msg}[/red]"
+                    )
                     continue
 
         try:

@@ -20,6 +20,11 @@ OUTPUT CONTRACT
 - Numbers are JSON numbers (dot decimal; no thousands separators; no % symbol).
 - Booleans are JSON booleans (true/false), NEVER strings like "true" or "false".
 - CIs as { "lower": <number>, "upper": <number> }.
+- ISO 8601 DURATION FORMAT (for timepoint_iso8601):
+  * Date components: P[n]Y[n]M[n]W[n]D (Year, Month, Week, Day)
+  * Time components: T[n]H[n]M[n]S (Hour, Minute, Second)
+  * CRITICAL: Time components MUST be preceded by 'T'
+  * Examples: 24 hours = PT24H (NOT P24H), 30 minutes = PT30M, 2 days = P2D, 1 year = P1Y
 - Stable IDs (arm_id, outcome_id, comparison_id) reused consistently.
 
 CHARACTER ENCODING

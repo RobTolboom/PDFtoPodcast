@@ -15,6 +15,11 @@ OUTPUT CONTRACT
 - Numeric formatting: dot as decimal separator; no thousands separators; store percentages as numbers (e.g., 12.3).
 - Confidence intervals: {"lower": <number>, "upper": <number>}.
 - Dates: ISO-8601 if possible; preserve partial precision if only Y or Y-M is available.
+- ISO 8601 DURATION FORMAT (for follow_up_duration_iso8601, time_window_iso8601, timepoint_iso8601):
+  * Date components: P[n]Y[n]M[n]W[n]D (Year, Month, Week, Day)
+  * Time components: T[n]H[n]M[n]S (Hour, Minute, Second)
+  * CRITICAL: Time components MUST be preceded by 'T'
+  * Examples: 24 hours = PT24H (NOT P24H), 2 days = P2D, 1 year 6 months = P1Y6M, 3 months = P3M
 - IDs (group_id, exposure_id, outcome_id, comparison_id) must be stable and reused consistently.
 
 CHARACTER ENCODING
