@@ -2915,9 +2915,14 @@ def run_single_step(
         extraction_result = _get_or_load_result("extraction")
 
         # Try to use best_extraction from validation_correction if available
-        validation_correction_result = _get_or_load_result("validation_correction")
-        if validation_correction_result and validation_correction_result.get("best_extraction"):
-            extraction_result = validation_correction_result["best_extraction"]
+        # This is optional - if validation_correction was not run, use original extraction
+        try:
+            validation_correction_result = _get_or_load_result("validation_correction")
+            if validation_correction_result and validation_correction_result.get("best_extraction"):
+                extraction_result = validation_correction_result["best_extraction"]
+        except (ValueError, FileNotFoundError):
+            # validation_correction not available, use original extraction
+            pass
 
         previous_results[STEP_CLASSIFICATION] = classification_result
         previous_results[STEP_EXTRACTION] = extraction_result
