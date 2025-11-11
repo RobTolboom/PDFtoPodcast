@@ -1961,7 +1961,7 @@ def _run_appraisal_step(
         appraisal_result = llm.generate_json_with_schema(
             schema=appraisal_schema,
             system_prompt=appraisal_prompt,
-            user_prompt=f"EXTRACTION_JSON:\n{json.dumps(extraction_clean, indent=2)}",
+            prompt=f"EXTRACTION_JSON:\n{json.dumps(extraction_clean, indent=2)}",
             schema_name=f"{publication_type}_appraisal",
         )
 
@@ -2088,7 +2088,7 @@ APPRAISAL_SCHEMA:
         validation_result = llm.generate_json_with_schema(
             schema=validation_report_schema,
             system_prompt=validation_prompt,
-            user_prompt=context,
+            prompt=context,
             schema_name="appraisal_validation",
         )
 
@@ -2212,7 +2212,7 @@ APPRAISAL_SCHEMA:
         corrected_appraisal = llm.generate_json_with_schema(
             schema=appraisal_schema,
             system_prompt=correction_prompt,
-            user_prompt=context,
+            prompt=context,
             schema_name="appraisal_correction",
         )
 

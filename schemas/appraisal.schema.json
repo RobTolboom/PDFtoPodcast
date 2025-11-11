@@ -422,19 +422,6 @@
       }
     }
   },
-  "allOf": [
-    {
-      "if": {
-        "properties": {
-          "study_type": { "const": "editorial_opinion" }
-        },
-        "required": ["study_type"]
-      },
-      "then": {
-        "not": { "required": ["risk_of_bias"] }
-      }
-    }
-  ],
   "$defs": {
     "SourceRef": {
       "type": "object",

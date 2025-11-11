@@ -928,11 +928,24 @@ def _display_appraisal_result(result: dict):
         for grade in grade_outcomes[:3]:
             outcome_id = grade.get("outcome_id", "Unknown")
             certainty = grade.get("certainty", "—")
-            downgrades = grade.get("downgrades", [])
+            downgrades = grade.get("downgrades", {})
 
-            downgrade_summary = (
-                ", ".join([d.get("factor", "?") for d in downgrades]) if downgrades else "None"
-            )
+            # Build list of non-zero downgrades with their levels
+            downgrade_items = []
+            if downgrades:
+                downgrade_labels = {
+                    "risk_of_bias": "RoB",
+                    "inconsistency": "Incons",
+                    "indirectness": "Indir",
+                    "imprecision": "Imprec",
+                    "publication_bias": "PubBias",
+                }
+                for key, label in downgrade_labels.items():
+                    level = downgrades.get(key)
+                    if level and level > 0:
+                        downgrade_items.append(f"{label}(-{level})")
+
+            downgrade_summary = ", ".join(downgrade_items) if downgrade_items else "None"
             st.write(f"  • {outcome_id}: **{certainty}** (downgrades: {downgrade_summary})")
 
         if len(grade_outcomes) > 3:
