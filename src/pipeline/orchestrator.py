@@ -747,7 +747,7 @@ def _run_extraction_step(
         PromptLoadError: If prompt file cannot be loaded
         LLMError: If LLM API call fails
     """
-    console.print("[bold cyan]📊 Stap 2: Data Extractie (Schema-based)[/bold cyan]")
+    console.print("\n[bold magenta]═══ STAP 2: DATA EXTRACTIE (SCHEMA-BASED) ═══[/bold magenta]\n")
 
     start_time = time.time()
 
@@ -774,8 +774,10 @@ def _run_extraction_step(
             for warning in compatibility["warnings"][:3]:
                 console.print(f"[dim]  • {warning}[/dim]")
 
-        console.print(f"[dim]Running schema-based {publication_type} extraction with PDF upload...")
-        console.print(f"[dim]Schema: ~{compatibility['estimated_tokens']} tokens[/dim]")
+        console.print(
+            f"[cyan]⚙️  Extraction prompt: {publication_type} schema (~{compatibility['estimated_tokens']} tokens)[/cyan]"
+        )
+        console.print("[dim]Uploading PDF for extraction...[/dim]")
 
         # Run schema-based extraction with direct PDF upload
         extraction_result = llm.generate_json_with_pdf(
@@ -890,7 +892,7 @@ def _run_validation_step(
     Raises:
         LLMError: If LLM API call fails during semantic validation
     """
-    console.print("[bold cyan]🔍 Stap 3: Validatie (Schema + LLM)[/bold cyan]")
+    console.print("\n[bold magenta]═══ STAP 3: VALIDATIE (SCHEMA + LLM) ═══[/bold magenta]\n")
 
     start_time = time.time()
     _call_progress_callback(progress_callback, STEP_VALIDATION, "starting", {})
@@ -981,7 +983,7 @@ def _run_correction_step(
         SchemaLoadError: If extraction schema cannot be loaded
         LLMError: If LLM API call fails
     """
-    console.print("[bold cyan]🔧 Stap 4: Correctie[/bold cyan]")
+    console.print("\n[bold magenta]═══ STAP 4: CORRECTIE ═══[/bold magenta]\n")
 
     start_time = time.time()
     validation_status = validation_result.get("verification_summary", {}).get("overall_status")
@@ -1789,7 +1791,7 @@ def _run_classification_step(
         >>> result["publication_type"]
         'interventional_trial'
     """
-    console.print("[bold cyan]📋 Stap 1: Classificatie[/bold cyan]")
+    console.print("\n[bold magenta]═══ STAP 1: CLASSIFICATIE ═══[/bold magenta]\n")
 
     if not have_llm_support:
         console.print("[red]❌ LLM support niet beschikbaar[/red]")

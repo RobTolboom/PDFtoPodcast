@@ -90,6 +90,7 @@ def run_dual_validation(
     """
     try:
         # Step 1: Schema validation (always runs)
+        console.print("\n[bold magenta]═══ STAP 3: VALIDEREN ═══[/bold magenta]\n")
         console.print("[dim]Schema validation...[/dim]")
         extraction_schema = load_schema(publication_type)
 
