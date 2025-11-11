@@ -1352,6 +1352,7 @@ def show_execution_screen():
         display_step_status(STEP_EXTRACTION, "Extraction", 2)
         display_step_status(STEP_VALIDATION_CORRECTION, "Validation & Correction", 3)
         display_step_status(STEP_APPRAISAL, "Appraisal", 4)
+        display_step_status(STEP_APPRAISAL, "Appraisal", 4)
 
         # Check if all steps completed
         if current_step_index >= len(steps_to_run):
@@ -1465,6 +1466,7 @@ def show_execution_screen():
         display_step_status(STEP_CLASSIFICATION, "Classification", 1)
         display_step_status(STEP_EXTRACTION, "Extraction", 2)
         display_step_status(STEP_VALIDATION_CORRECTION, "Validation & Correction", 3)
+        display_step_status(STEP_APPRAISAL, "Appraisal", 4)
 
         st.markdown("---")
 
