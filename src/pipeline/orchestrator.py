@@ -805,11 +805,20 @@ def _run_extraction_step(
             "publication_type": publication_type,
         }
 
+        # Display extraction summary
+        model_used = extraction_result.get("_metadata", {}).get("model", _get_provider_name(llm))
+
+        console.print("\n[bold]Extraction Summary:[/bold]")
+        console.print(f"  Publication Type: [cyan]{publication_type}[/cyan]")
+        console.print(f"  Model: [dim]{model_used}[/dim]")
+        console.print(f"  Duration: [dim]{elapsed:.1f}s[/dim]\n")
+
         # Save extraction result (iteration 0)
         extraction_file = file_manager.save_json(
             extraction_result, "extraction", iteration_number=0
         )
-        console.print(f"[green]✅ Extractie opgeslagen: {extraction_file}[/green]")
+        console.print(f"[dim]Saved: {extraction_file.name}[/dim]")
+        console.print("[green]✅ Extraction complete[/green]")
 
         # Extraction completed successfully
         elapsed = time.time() - start_time
@@ -986,7 +995,17 @@ def _run_correction_step(
     console.print("\n[bold magenta]═══ STAP 4: CORRECTIE ═══[/bold magenta]\n")
 
     start_time = time.time()
-    validation_status = validation_result.get("verification_summary", {}).get("overall_status")
+
+    # Display pre-correction quality
+    pre_summary = validation_result.get("verification_summary", {})
+    console.print("[bold]Pre-Correction Quality:[/bold]")
+    console.print(f"  Completeness:      {pre_summary.get('completeness_score', 0):.1%}")
+    console.print(f"  Accuracy:          {pre_summary.get('accuracy_score', 0):.1%}")
+    console.print(f"  Schema Compliance: {pre_summary.get('schema_compliance_score', 0):.1%}")
+    console.print(f"  Critical Issues:   {pre_summary.get('critical_issues', 0)}")
+    console.print(f"  Total Issues:      {pre_summary.get('total_issues', 0)}\n")
+
+    validation_status = pre_summary.get("overall_status")
 
     _call_progress_callback(
         progress_callback,
@@ -1076,6 +1095,55 @@ Systematically address all identified issues and produce corrected, complete,\
             "status": "success",
         }
 
+        # Display post-correction quality and improvement
+        post_summary = final_validation.get("verification_summary", {})
+        console.print("\n[bold]Post-Correction Quality:[/bold]")
+
+        # Calculate and display deltas for each metric
+        for metric_key, metric_name in [
+            ("completeness_score", "Completeness"),
+            ("accuracy_score", "Accuracy"),
+            ("schema_compliance_score", "Schema Compliance"),
+        ]:
+            pre_val = pre_summary.get(metric_key, 0)
+            post_val = post_summary.get(metric_key, 0)
+            delta = post_val - pre_val
+
+            # Color code the delta
+            if delta > 0:
+                color = "green"
+            elif delta < 0:
+                color = "red"
+            else:
+                color = "yellow"
+
+            console.print(f"  {metric_name:18} {post_val:.1%} [{color}]({delta:+.1%})[/{color}]")
+
+        # Display issue counts with deltas
+        pre_critical = pre_summary.get("critical_issues", 0)
+        post_critical = post_summary.get("critical_issues", 0)
+        delta_critical = post_critical - pre_critical
+        console.print(f"  Critical Issues:   {post_critical} ({delta_critical:+d})")
+
+        pre_total = pre_summary.get("total_issues", 0)
+        post_total = post_summary.get("total_issues", 0)
+        delta_total = post_total - pre_total
+        console.print(f"  Total Issues:      {post_total} ({delta_total:+d})")
+
+        # Overall improvement message
+        pre_metrics = _extract_metrics(validation_result)
+        post_metrics = _extract_metrics(final_validation)
+        delta_overall = post_metrics["overall_quality"] - pre_metrics["overall_quality"]
+
+        if delta_overall > 0:
+            console.print(
+                f"\n[green]✅ Correction improved quality by {delta_overall:+.1%}[/green]"
+            )
+        elif delta_overall < 0:
+            console.print(f"\n[yellow]⚠️  Quality degraded by {delta_overall:.1%}[/yellow]")
+        else:
+            console.print("\n[yellow]→ No significant quality change[/yellow]")
+
         # Correction completed successfully
         elapsed = time.time() - start_time
         _call_progress_callback(
@@ -1127,6 +1195,22 @@ Systematically address all identified issues and produce corrected, complete,\
             {"error": str(e), "error_type": type(e).__name__, "elapsed_seconds": elapsed},
         )
         raise
+
+
+def _print_iteration_summary(
+    file_manager: PipelineFileManager, iterations: list[dict], best_iteration: int
+) -> None:
+    """Print summary of all saved iterations with best selection."""
+    console.print("\n[bold]Saved Extraction Iterations:[/bold]")
+    for it_data in iterations:
+        it_num = it_data["iteration_num"]
+        extraction_file = file_manager.get_filename("extraction", iteration_number=it_num)
+        status_symbol = "✅" if extraction_file.exists() else "⚠️"
+        console.print(f"  {status_symbol} Iteration {it_num}: {extraction_file.name}")
+
+    best_file = file_manager.get_filename("extraction", status="best")
+    if best_file.exists():
+        console.print(f"  🏆 Best: {best_file.name} (iteration {best_iteration})")
 
 
 def run_validation_with_correction(
@@ -1210,10 +1294,24 @@ def run_validation_with_correction(
     # Extract publication_type for correction step
     publication_type = classification_result.get("publication_type", "unknown")
 
+    # Display header and configuration
+    console.print("\n[bold magenta]═══ ITERATIVE VALIDATION & CORRECTION ═══[/bold magenta]\n")
+    console.print(f"[blue]Publication type: {publication_type}[/blue]")
+    console.print(f"[blue]Max iterations: {max_iterations}[/blue]")
+    console.print(
+        f"[blue]Quality thresholds: Completeness ≥{quality_thresholds['completeness_score']:.0%}, "
+        f"Accuracy ≥{quality_thresholds['accuracy_score']:.0%}, "
+        f"Schema ≥{quality_thresholds['schema_compliance_score']:.0%}, "
+        f"Critical issues = {quality_thresholds['critical_issues']}[/blue]\n"
+    )
+
     # Get LLM instance
     llm = get_llm_provider(llm_provider)
 
     while iteration_num <= max_iterations:
+        # Display iteration header
+        console.print(f"\n[bold cyan]─── Iteration {iteration_num} ───[/bold cyan]")
+
         try:
             # Progress callback
             _call_progress_callback(
@@ -1265,14 +1363,38 @@ def run_validation_with_correction(
                 )
 
             # Store iteration data
+            metrics = _extract_metrics(validation_result)
             iteration_data = {
                 "iteration_num": iteration_num,
                 "extraction": current_extraction,
                 "validation": validation_result,
-                "metrics": _extract_metrics(validation_result),
+                "metrics": metrics,
                 "timestamp": datetime.now().isoformat(),
             }
             iterations.append(iteration_data)
+
+            # Display quality scores
+            console.print(f"\n[bold]Quality Scores (Iteration {iteration_num}):[/bold]")
+            console.print(f"  Completeness:      {metrics['completeness_score']:.1%}")
+            console.print(f"  Accuracy:          {metrics['accuracy_score']:.1%}")
+            console.print(f"  Schema Compliance: {metrics['schema_compliance_score']:.1%}")
+            console.print(f"  [bold]Overall Quality:   {metrics['overall_quality']:.1%}[/bold]")
+            console.print(f"  Critical Issues:   {metrics['critical_issues']}")
+            console.print(f"  Total Issues:      {metrics['total_issues']}")
+
+            # Display improvement tracking (if not first iteration)
+            if len(iterations) > 1:
+                prev_quality = iterations[-2]["metrics"]["overall_quality"]
+                delta = metrics["overall_quality"] - prev_quality
+                if delta > 0:
+                    symbol, color = "↑", "green"
+                elif delta < 0:
+                    symbol, color = "↓", "red"
+                else:
+                    symbol, color = "→", "yellow"
+                console.print(
+                    f"  [{color}]Improvement: {symbol} {delta:+.3f} (prev: {prev_quality:.1%})[/{color}]"
+                )
 
             # STEP 2: Check quality
             if is_quality_sufficient(validation_result, quality_thresholds):
@@ -1303,6 +1425,12 @@ def run_validation_with_correction(
                 }
                 file_manager.save_json(selection_metadata, "extraction", status="best-metadata")
                 console.print("[dim]Saved best iteration metadata[/dim]")
+
+                # Display success message and iteration summary
+                console.print(
+                    f"\n[green]✅ Quality sufficient at iteration {iteration_num}! Stopping.[/green]"
+                )
+                _print_iteration_summary(file_manager, iterations, iteration_num)
 
                 _call_progress_callback(
                     progress_callback,
@@ -1364,6 +1492,15 @@ def run_validation_with_correction(
                     file_manager.save_json(selection_metadata, "extraction", status="best-metadata")
                     console.print("[dim]Saved best iteration metadata[/dim]")
 
+                    # Display early stop message and iteration summary
+                    console.print(
+                        "\n[yellow]⚠️  Quality degrading - stopping early and selecting best[/yellow]"
+                    )
+                    console.print(
+                        f"[yellow]Selected iteration {best['iteration_num']} as best (reason: quality degradation)[/yellow]"
+                    )
+                    _print_iteration_summary(file_manager, iterations, best["iteration_num"])
+
                     _call_progress_callback(
                         progress_callback,
                         STEP_VALIDATION_CORRECTION,
@@ -1419,6 +1556,15 @@ def run_validation_with_correction(
                 file_manager.save_json(selection_metadata, "extraction", status="best-metadata")
                 console.print("[dim]Saved best iteration metadata[/dim]")
 
+                # Display max iterations message and iteration summary
+                console.print(
+                    f"\n[yellow]⚠️  Max iterations ({max_iterations}) reached - selecting best[/yellow]"
+                )
+                console.print(
+                    f"[yellow]Selected iteration {best['iteration_num']} as best (reason: max iterations)[/yellow]"
+                )
+                _print_iteration_summary(file_manager, iterations, best["iteration_num"])
+
                 _call_progress_callback(
                     progress_callback,
                     STEP_VALIDATION_CORRECTION,
@@ -1445,6 +1591,9 @@ def run_validation_with_correction(
                 }
 
             # STEP 4: Run correction for next iteration
+            console.print(
+                f"\n[yellow]Quality insufficient (iteration {iteration_num}). Running correction...[/yellow]"
+            )
             iteration_num += 1
 
             _call_progress_callback(
@@ -1841,9 +1990,19 @@ def _run_classification_step(
             "status": "success",
         }
 
+        # Display classification result summary
+        publication_type = classification_result.get("publication_type", "unknown")
+        model_used = classification_result.get("_metadata", {}).get("model", llm_provider)
+
+        console.print("\n[bold]Classification Result:[/bold]")
+        console.print(f"  Publication Type: [cyan]{publication_type}[/cyan]")
+        console.print(f"  Model: [dim]{model_used}[/dim]")
+        console.print(f"  Duration: [dim]{elapsed:.1f}s[/dim]\n")
+
         # Save classification result
         classification_file = file_manager.save_json(classification_result, "classification")
-        console.print(f"[green]✅ Classificatie opgeslagen: {classification_file}[/green]")
+        console.print(f"[dim]Saved: {classification_file.name}[/dim]")
+        console.print("[green]✅ Classification complete[/green]")
 
         # Classification completed successfully
         elapsed = time.time() - start_time

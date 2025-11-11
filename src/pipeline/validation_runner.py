@@ -139,6 +139,22 @@ Verify the extracted data against the original PDF document. Check for hallucina
             }
 
             console.print("[green]✅ Combined validation completed[/green]")
+
+            # Display validation results summary
+            summary = validation_result.get("verification_summary", {})
+            console.print("\n[bold]Validation Results:[/bold]")
+            console.print(f"  Completeness:      {summary.get('completeness_score', 0):.1%}")
+            console.print(f"  Accuracy:          {summary.get('accuracy_score', 0):.1%}")
+            console.print(f"  Schema Compliance: {summary.get('schema_compliance_score', 0):.1%}")
+            console.print(f"  Critical Issues:   {summary.get('critical_issues', 0)}")
+            console.print(f"  Total Issues:      {summary.get('total_issues', 0)}")
+
+            status = summary.get("overall_status", "unknown")
+            if status == "passed":
+                console.print("  Status: [green]✅ Passed[/green]")
+            else:
+                console.print(f"  Status: [yellow]⚠️  {status.title()}[/yellow]")
+
         else:
             # Schema quality too low - skip expensive LLM validation
             console.print(
