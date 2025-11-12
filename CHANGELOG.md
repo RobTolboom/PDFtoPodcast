@@ -72,7 +72,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Documentation:** Complete feature specification (features/appraisal.md), updated README architecture diagram, CLI help text with examples
   - **Backward compatibility:** Step is optional; existing 3-step pipelines continue to work unchanged
 - **Appraisal Validation Schema** - Introduced dedicated `appraisal_validation.schema.json` to enforce the new appraisal-validation contract (scores, issue taxonomy, metadata) and wired orchestrator to load it via `load_schema("appraisal_validation")`, ensuring structured outputs remain aligned with OpenAI structured-output requirements.
-- **Appraisal Validation Schema** - Introduced dedicated `appraisal_validation.schema.json` to enforce the new appraisal-validation contract (scores, issue taxonomy, metadata) and wired orchestrator to load it via `load_schema("appraisal_validation")`, ensuring structured outputs remain aligned with OpenAI structured-output requirements.
 - **Appraisal prompt/schema alignment**
   - Restricted `tool.judgement_scale` to a controlled enum (`rob2`, `robins`, `probast`, `amstar2`, `robis`) and made `tools.{amstar2|robis|grade}` strict booleans.
   - Added `applicability.exposure`, causal-strategy enums, and AMSTAR2 critical-item enumeraties zodat output exact schema-conform blijft.
