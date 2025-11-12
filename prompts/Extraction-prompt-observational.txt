@@ -7,11 +7,15 @@ EVIDENCE-LOCKED RULES
 - No external knowledge. No inference or imputation.
 - Priority: Methods/Results/Tables first; use Abstract only for verification or missing items.
 - If information is absent in the PDF: OMIT the field. Never emit null.
-- Every key quantitative datapoint must carry a SourceRef (as allowed by the schema): minimally page; add table_id/figure_id and a short anchor/caption fragment when applicable.
+- Every key quantitative datapoint must carry a SourceRef WHERE THE SCHEMA ALLOWS IT: minimally page; add table_id/figure_id and a short anchor/caption fragment when applicable. Only emit SourceRef for fields explicitly defined in the schema.
 
 OUTPUT CONTRACT
 - Emit exactly one JSON object. No markdown fences. No prose before/after.
-- Closed world: only the TOP-LEVEL KEYS listed below are allowed.
+- CLOSED WORLD ASSUMPTION: The schema uses "additionalProperties":false at ALL nesting levels. This means:
+  * Only emit keys that are explicitly defined in the schema.
+  * At the top level: only the ALLOWED TOP-LEVEL KEYS listed below are allowed.
+  * Within nested objects (e.g., study_design, population, exposures, outcomes, results): only the keys defined in that schema fragment.
+  * Any extra key will cause validation to FAIL.
 - Numeric formatting: dot as decimal separator; no thousands separators; store percentages as numbers (e.g., 12.3).
 - Confidence intervals: {"lower": <number>, "upper": <number>}.
 - Dates: ISO-8601 if possible; preserve partial precision if only Y or Y-M is available.
