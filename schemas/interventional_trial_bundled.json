@@ -2159,374 +2159,58 @@
         }
       }
     },
-    "ISO8601Duration": {
-      "$anchor": "duration",
-      "type": "string",
-      "pattern": "^P(?:(?:\\d+Y)?(?:\\d+M)?(?:\\d+W)?(?:\\d+D)?)?(?:T(?:\\d+H)?(?:\\d+M)?(?:\\d+(?:\\.\\d+)?S)?)?$",
-      "description": "Strict ISO 8601 duration (e.g., 'P30D', 'PT24H', 'P2W', 'P1Y2M3DT4H5M6S').",
-      "examples": [
-        "P30D",
-        "PT24H",
-        "P2W",
-        "P6M",
-        "P1Y",
-        "PT2H30M",
-        "P1Y2M3DT4H5M6.789S"
-      ]
-    },
-    "OntologyTerm": {
+    "ParsedTable": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "system",
-        "code"
+        "table_id",
+        "title"
       ],
       "properties": {
-        "system": {
-          "type": "string",
-          "enum": [
-            "MeSH",
-            "SNOMED-CT",
-            "LOINC",
-            "MedDRA",
-            "ICD-10",
-            "ICD-11",
-            "UMLS",
-            "RxNorm",
-            "ATC",
-            "CPT",
-            "HCPCS",
-            "Other"
-          ],
-          "description": "Standard medical terminology system"
-        },
-        "code": {
-          "type": "string",
-          "description": "Code within the terminology system"
-        },
-        "display": {
-          "type": "string",
-          "description": "Human-readable description of the code"
-        },
-        "version": {
-          "type": "string",
-          "description": "Version of the terminology system used"
-        },
-        "fhir_coding": {
-          "$ref": "#/$defs/FHIRCoding"
-        }
-      }
-    },
-    "TruncationInfo": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "value": {
-          "type": "boolean",
-          "default": false
-        },
-        "reason": {
-          "type": "string",
-          "enum": [
-            "token_limit",
-            "page_limit",
-            "timeout",
-            "other"
-          ]
-        }
-      }
-    },
-    "ValueWithRaw": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "value": {
-          "type": [
-            "string",
-            "number",
-            "integer",
-            "boolean",
-            "null"
-          ],
-          "description": "Processed/normalized value"
-        },
-        "raw_text": {
-          "type": "string",
-          "description": "Original text as found in document"
-        },
-        "unit_ucum": {
-          "type": "string",
-          "description": "UCUM unit code if applicable"
-        },
-        "transformation_confidence": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Confidence in the raw→processed transformation"
-        },
-        "source": {
-          "$ref": "#/$defs/SourceRef"
-        },
-        "provenance": {
-          "$ref": "#/$defs/Provenance"
-        }
-      }
-    },
-    "MissingDataPattern": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Missing data analysis and patterns",
-      "properties": {
-        "mechanism": {
-          "type": "string",
-          "enum": [
-            "MCAR",
-            "MAR",
-            "MNAR",
-            "unknown"
-          ],
-          "description": "Missing data mechanism (Missing Completely At Random, Missing At Random, Missing Not At Random)"
-        },
-        "percentage": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 100,
-          "description": "Percentage of missing data"
-        },
-        "pattern_analysis": {
-          "type": "object",
-          "properties": {
-            "monotone": {
-              "type": "boolean",
-              "description": "Whether missing pattern is monotone"
-            },
-            "little_test_p": {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 1,
-              "description": "P-value from Little's MCAR test"
-            }
-          }
-        },
-        "imputation_method": {
-          "type": "string",
-          "enum": [
-            "complete_case",
-            "last_observation_carried_forward",
-            "multiple_imputation",
-            "mean_imputation",
-            "regression_imputation",
-            "hot_deck",
-            "other"
-          ],
-          "description": "Method used to handle missing data"
-        },
-        "sensitivity_analysis": {
-          "type": "boolean",
-          "description": "Whether sensitivity analysis for missing data was performed"
-        }
-      }
-    },
-    "ExtractionWarning": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "code",
-        "message"
-      ],
-      "properties": {
-        "code": {
-          "type": "string",
-          "enum": [
-            "TABLE_PARSE_FAIL",
-            "AMBIGUOUS_UNIT",
-            "CI_PARSE_FAIL",
-            "MISSING_ARM_ID",
-            "MISSING_GROUP_ID",
-            "OTHER"
-          ]
-        },
-        "message": {
+        "table_id": {
           "type": "string"
         },
-        "source": {
-          "$ref": "#/$defs/SourceRef"
-        }
-      }
-    },
-    "Provenance": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "extractor": {
-          "type": "string",
-          "description": "Person or system that performed extraction"
+        "title": {
+          "type": "string"
         },
-        "method": {
+        "page": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "type": {
           "type": "string",
           "enum": [
-            "human_double_entry",
-            "human_single",
-            "llm_assisted",
-            "rule_based",
-            "automated",
+            "baseline",
+            "outcomes",
+            "harms",
+            "methods",
             "other"
-          ],
-          "description": "Extraction method used"
-        },
-        "confidence": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Extractor's confidence in the extraction"
-        },
-        "timestamp": {
-          "type": "string",
-          "format": "date-time",
-          "description": "When extraction was performed"
-        },
-        "transformation_notes": {
-          "type": "string",
-          "description": "Notes about data processing or transformation"
-        },
-        "consensus_status": {
-          "type": "string",
-          "enum": [
-            "agreement",
-            "disagreement",
-            "resolved",
-            "single_reviewer",
-            "not_applicable"
-          ],
-          "description": "Status of reviewer consensus (for double extraction)"
-        },
-        "reviewers": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "List of reviewers involved in extraction"
-        },
-        "adjudication": {
-          "$ref": "#/$defs/Adjudication"
-        },
-        "source": {
-          "$ref": "#/$defs/SourceRef"
-        }
-      }
-    },
-    "LanguageCode": {
-      "type": "string",
-      "pattern": "^[a-z]{2,3}(-[A-Z]{2})?(-[a-z]{2,8})*$",
-      "description": "BCP 47 language tag supporting language, region, and variants (e.g., 'en-US', 'zh-Hans-CN', 'ar-EG')",
-      "examples": [
-        "en",
-        "en-US",
-        "en-GB",
-        "nl",
-        "nl-NL",
-        "nl-BE",
-        "de-DE",
-        "fr-FR",
-        "es-ES",
-        "zh-Hans",
-        "zh-Hant",
-        "ar-EG",
-        "he-IL"
-      ]
-    },
-    "ExternalId": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "source",
-        "id"
-      ],
-      "properties": {
-        "source": {
-          "type": "string",
-          "enum": [
-            "PMID",
-            "PMCID",
-            "DOI",
-            "NCT",
-            "ISRCTN",
-            "EudraCT",
-            "EU-CTR",
-            "CTIS",
-            "UMIN",
-            "JPRN",
-            "DRKS",
-            "ChiCTR",
-            "ANZCTR",
-            "arXiv",
-            "bioRxiv",
-            "medRxiv",
-            "PubPeer",
-            "ISBN",
-            "ISSN",
-            "Handle",
-            "URN",
-            "Other"
-          ],
-          "description": "External identifier source system including preprint servers and academic publishers"
-        },
-        "id": {
-          "type": "string",
-          "description": "Identifier value within the source system",
-          "examples": [
-            "1234.5678",
-            "2023.01.001",
-            "10.1101/2023.01.01.123456",
-            "978-0-123456-78-9"
           ]
         },
-        "url": {
-          "type": "string",
-          "format": "uri",
-          "description": "Optional direct URL to the external resource"
-        },
-        "version": {
-          "type": "string",
-          "description": "Version number for preprints or versioned documents"
-        }
-      },
-      "allOf": [
-        {
-          "if": {
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "cells"
+            ],
             "properties": {
-              "source": {
-                "const": "arXiv"
+              "cells": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string"
+                }
               }
             }
           },
-          "then": {
-            "properties": {
-              "id": {
-                "pattern": "^(\\d{4}\\.\\d{4,5}|[a-z-]+/\\d{7})$",
-                "description": "arXiv identifier (new: YYMM.NNNN or old: subject-class/YYMMnnn)"
-              }
-            }
-          }
+          "default": []
         },
-        {
-          "if": {
-            "properties": {
-              "source": {
-                "const": "ISBN"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "id": {
-                "pattern": "^(?:978|979)[0-9]{10}$|^[0-9]{9}[0-9X]$",
-                "description": "ISBN-10 or ISBN-13 format"
-              }
-            }
-          }
+        "source": {
+          "$ref": "#/$defs/SourceRef"
         }
-      ]
+      }
     },
     "Metadata": {
       "type": "object",
@@ -3021,187 +2705,85 @@
         }
       ]
     },
-    "SourceRef": {
+    "MissingDataPattern": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Reference to a specific location within a document",
+      "description": "Missing data analysis and patterns",
       "properties": {
-        "anchor": {
-          "type": "string",
-          "description": "Free-text pointer like 'Table 2', 'Fig 1', or sentence quote"
-        },
-        "page": {
-          "type": "integer",
-          "minimum": 1,
-          "description": "Page number within the document"
-        },
-        "figure_id": {
-          "type": "string",
-          "description": "Identifier of a specific figure"
-        },
-        "table_id": {
-          "type": "string",
-          "description": "Identifier of a specific table"
-        }
-      }
-    },
-    "FigureSummary": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "figure_id",
-        "caption"
-      ],
-      "properties": {
-        "figure_id": {
-          "type": "string"
-        },
-        "caption": {
-          "type": "string"
-        },
-        "key_values": {
-          "type": "object",
-          "additionalProperties": {
-            "type": "number"
-          },
-          "default": {}
-        },
-        "page": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "source": {
-          "$ref": "#/$defs/SourceRef"
-        }
-      }
-    },
-    "CountryCode": {
-      "$ref": "#/$defs/CountryCodeAlpha2"
-    },
-    "ParsedTable": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "table_id",
-        "title"
-      ],
-      "properties": {
-        "table_id": {
-          "type": "string"
-        },
-        "title": {
-          "type": "string"
-        },
-        "page": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "type": {
+        "mechanism": {
           "type": "string",
           "enum": [
-            "baseline",
-            "outcomes",
-            "harms",
-            "methods",
+            "MCAR",
+            "MAR",
+            "MNAR",
+            "unknown"
+          ],
+          "description": "Missing data mechanism (Missing Completely At Random, Missing At Random, Missing Not At Random)"
+        },
+        "percentage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Percentage of missing data"
+        },
+        "pattern_analysis": {
+          "type": "object",
+          "properties": {
+            "monotone": {
+              "type": "boolean",
+              "description": "Whether missing pattern is monotone"
+            },
+            "little_test_p": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1,
+              "description": "P-value from Little's MCAR test"
+            }
+          }
+        },
+        "imputation_method": {
+          "type": "string",
+          "enum": [
+            "complete_case",
+            "last_observation_carried_forward",
+            "multiple_imputation",
+            "mean_imputation",
+            "regression_imputation",
+            "hot_deck",
             "other"
+          ],
+          "description": "Method used to handle missing data"
+        },
+        "sensitivity_analysis": {
+          "type": "boolean",
+          "description": "Whether sensitivity analysis for missing data was performed"
+        }
+      }
+    },
+    "ExtractionWarning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "TABLE_PARSE_FAIL",
+            "AMBIGUOUS_UNIT",
+            "CI_PARSE_FAIL",
+            "MISSING_ARM_ID",
+            "MISSING_GROUP_ID",
+            "OTHER"
           ]
         },
-        "rows": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "cells"
-            ],
-            "properties": {
-              "cells": {
-                "type": "array",
-                "minItems": 1,
-                "items": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "default": []
+        "message": {
+          "type": "string"
         },
         "source": {
           "$ref": "#/$defs/SourceRef"
-        }
-      }
-    },
-    "FHIRCoding": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "FHIR R5 Coding datatype for medical terminology",
-      "properties": {
-        "system": {
-          "type": "string",
-          "format": "uri",
-          "description": "URI that identifies the code system"
-        },
-        "version": {
-          "type": "string",
-          "description": "Version of the code system"
-        },
-        "code": {
-          "type": "string",
-          "description": "Symbol in syntax defined by the system"
-        },
-        "display": {
-          "type": "string",
-          "description": "Representation defined by the system"
-        },
-        "userSelected": {
-          "type": "boolean",
-          "description": "If this coding was chosen directly by the user"
-        }
-      }
-    },
-    "Adjudication": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "needed": {
-          "type": "boolean",
-          "default": false
-        },
-        "adjudicator": {
-          "type": "string"
-        },
-        "notes": {
-          "type": "string"
-        }
-      }
-    },
-    "BayesianInterval": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Bayesian credible interval",
-      "required": [
-        "lower",
-        "upper",
-        "credibility"
-      ],
-      "properties": {
-        "lower": {
-          "type": "number",
-          "description": "Lower bound of credible interval"
-        },
-        "upper": {
-          "type": "number",
-          "description": "Upper bound of credible interval"
-        },
-        "credibility": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Credibility level (e.g., 0.95 for 95% CrI)"
-        },
-        "hdi": {
-          "type": "boolean",
-          "description": "Whether this is a Highest Density Interval"
         }
       }
     },
@@ -3337,31 +2919,118 @@
         }
       ]
     },
-    "EffectCI": {
+    "LanguageCode": {
+      "type": "string",
+      "pattern": "^[a-z]{2,3}(-[A-Z]{2})?(-[a-z]{2,8})*$",
+      "description": "BCP 47 language tag supporting language, region, and variants (e.g., 'en-US', 'zh-Hans-CN', 'ar-EG')",
+      "examples": [
+        "en",
+        "en-US",
+        "en-GB",
+        "nl",
+        "nl-NL",
+        "nl-BE",
+        "de-DE",
+        "fr-FR",
+        "es-ES",
+        "zh-Hans",
+        "zh-Hant",
+        "ar-EG",
+        "he-IL"
+      ]
+    },
+    "ExternalId": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Confidence interval for effect estimates",
       "required": [
-        "lower",
-        "upper"
+        "source",
+        "id"
       ],
       "properties": {
-        "level": {
-          "type": "number",
-          "minimum": 50,
-          "maximum": 99.99,
-          "default": 95,
-          "description": "Confidence level as percentage (e.g., 95, 97.5, 99)"
+        "source": {
+          "type": "string",
+          "enum": [
+            "PMID",
+            "PMCID",
+            "DOI",
+            "NCT",
+            "ISRCTN",
+            "EudraCT",
+            "EU-CTR",
+            "CTIS",
+            "UMIN",
+            "JPRN",
+            "DRKS",
+            "ChiCTR",
+            "ANZCTR",
+            "arXiv",
+            "bioRxiv",
+            "medRxiv",
+            "PubPeer",
+            "ISBN",
+            "ISSN",
+            "Handle",
+            "URN",
+            "Other"
+          ],
+          "description": "External identifier source system including preprint servers and academic publishers"
         },
-        "lower": {
-          "type": "number",
-          "description": "Lower bound of confidence interval"
+        "id": {
+          "type": "string",
+          "description": "Identifier value within the source system",
+          "examples": [
+            "1234.5678",
+            "2023.01.001",
+            "10.1101/2023.01.01.123456",
+            "978-0-123456-78-9"
+          ]
         },
-        "upper": {
-          "type": "number",
-          "description": "Upper bound of confidence interval"
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Optional direct URL to the external resource"
+        },
+        "version": {
+          "type": "string",
+          "description": "Version number for preprints or versioned documents"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "source": {
+                "const": "arXiv"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "id": {
+                "pattern": "^(\\d{4}\\.\\d{4,5}|[a-z-]+/\\d{7})$",
+                "description": "arXiv identifier (new: YYMM.NNNN or old: subject-class/YYMMnnn)"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "source": {
+                "const": "ISBN"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "id": {
+                "pattern": "^(?:978|979)[0-9]{10}$|^[0-9]{9}[0-9X]$",
+                "description": "ISBN-10 or ISBN-13 format"
+              }
+            }
+          }
+        }
+      ]
     },
     "SupplementFile": {
       "type": "object",
@@ -3394,6 +3063,132 @@
         },
         "checksum": {
           "$ref": "#/$defs/DataIntegrity"
+        }
+      }
+    },
+    "FigureSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "figure_id",
+        "caption"
+      ],
+      "properties": {
+        "figure_id": {
+          "type": "string"
+        },
+        "caption": {
+          "type": "string"
+        },
+        "key_values": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "number"
+          },
+          "default": {}
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        }
+      }
+    },
+    "CountryCode": {
+      "$ref": "#/$defs/CountryCodeAlpha2"
+    },
+    "EffectCI": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Confidence interval for effect estimates",
+      "required": [
+        "lower",
+        "upper"
+      ],
+      "properties": {
+        "level": {
+          "type": "number",
+          "minimum": 50,
+          "maximum": 99.99,
+          "default": 95,
+          "description": "Confidence level as percentage (e.g., 95, 97.5, 99)"
+        },
+        "lower": {
+          "type": "number",
+          "description": "Lower bound of confidence interval"
+        },
+        "upper": {
+          "type": "number",
+          "description": "Upper bound of confidence interval"
+        }
+      }
+    },
+    "SourceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Reference to a specific location within a document",
+      "properties": {
+        "anchor": {
+          "type": "string",
+          "description": "Free-text pointer like 'Table 2', 'Fig 1', or sentence quote"
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Page number within the document"
+        },
+        "figure_id": {
+          "type": "string",
+          "description": "Identifier of a specific figure"
+        },
+        "table_id": {
+          "type": "string",
+          "description": "Identifier of a specific table"
+        }
+      }
+    },
+    "OntologyTerm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "system",
+        "code"
+      ],
+      "properties": {
+        "system": {
+          "type": "string",
+          "enum": [
+            "MeSH",
+            "SNOMED-CT",
+            "LOINC",
+            "MedDRA",
+            "ICD-10",
+            "ICD-11",
+            "UMLS",
+            "RxNorm",
+            "ATC",
+            "CPT",
+            "HCPCS",
+            "Other"
+          ],
+          "description": "Standard medical terminology system"
+        },
+        "code": {
+          "type": "string",
+          "description": "Code within the terminology system"
+        },
+        "display": {
+          "type": "string",
+          "description": "Human-readable description of the code"
+        },
+        "version": {
+          "type": "string",
+          "description": "Version of the terminology system used"
+        },
+        "fhir_coding": {
+          "$ref": "#/$defs/FHIRCoding"
         }
       }
     },
@@ -3442,6 +3237,36 @@
         "email": {
           "$ref": "#/$defs/EmailAddress",
           "description": "Contact email address (typically for corresponding authors)"
+        }
+      }
+    },
+    "BayesianInterval": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Bayesian credible interval",
+      "required": [
+        "lower",
+        "upper",
+        "credibility"
+      ],
+      "properties": {
+        "lower": {
+          "type": "number",
+          "description": "Lower bound of credible interval"
+        },
+        "upper": {
+          "type": "number",
+          "description": "Upper bound of credible interval"
+        },
+        "credibility": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Credibility level (e.g., 0.95 for 95% CrI)"
+        },
+        "hdi": {
+          "type": "boolean",
+          "description": "Whether this is a Highest Density Interval"
         }
       }
     },
@@ -3509,6 +3334,196 @@
           "$ref": "#/$defs/AIProcessingMetadata"
         }
       }
+    },
+    "Provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "extractor": {
+          "type": "string",
+          "description": "Person or system that performed extraction"
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "human_double_entry",
+            "human_single",
+            "llm_assisted",
+            "rule_based",
+            "automated",
+            "other"
+          ],
+          "description": "Extraction method used"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Extractor's confidence in the extraction"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When extraction was performed"
+        },
+        "transformation_notes": {
+          "type": "string",
+          "description": "Notes about data processing or transformation"
+        },
+        "consensus_status": {
+          "type": "string",
+          "enum": [
+            "agreement",
+            "disagreement",
+            "resolved",
+            "single_reviewer",
+            "not_applicable"
+          ],
+          "description": "Status of reviewer consensus (for double extraction)"
+        },
+        "reviewers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of reviewers involved in extraction"
+        },
+        "adjudication": {
+          "$ref": "#/$defs/Adjudication"
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        }
+      }
+    },
+    "ISO8601Duration": {
+      "$anchor": "duration",
+      "type": "string",
+      "pattern": "^P(?:(?:\\d+Y)?(?:\\d+M)?(?:\\d+W)?(?:\\d+D)?)?(?:T(?:\\d+H)?(?:\\d+M)?(?:\\d+(?:\\.\\d+)?S)?)?$",
+      "description": "Strict ISO 8601 duration (e.g., 'P30D', 'PT24H', 'P2W', 'P1Y2M3DT4H5M6S').",
+      "examples": [
+        "P30D",
+        "PT24H",
+        "P2W",
+        "P6M",
+        "P1Y",
+        "PT2H30M",
+        "P1Y2M3DT4H5M6.789S"
+      ]
+    },
+    "TruncationInfo": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "type": "boolean",
+          "default": false
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "token_limit",
+            "page_limit",
+            "timeout",
+            "other"
+          ]
+        }
+      }
+    },
+    "ValueWithRaw": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "type": [
+            "string",
+            "number",
+            "integer",
+            "boolean",
+            "null"
+          ],
+          "description": "Processed/normalized value"
+        },
+        "raw_text": {
+          "type": "string",
+          "description": "Original text as found in document"
+        },
+        "unit_ucum": {
+          "type": "string",
+          "description": "UCUM unit code if applicable"
+        },
+        "transformation_confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Confidence in the raw→processed transformation"
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        }
+      }
+    },
+    "FHIRCoding": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "FHIR R5 Coding datatype for medical terminology",
+      "properties": {
+        "system": {
+          "type": "string",
+          "format": "uri",
+          "description": "URI that identifies the code system"
+        },
+        "version": {
+          "type": "string",
+          "description": "Version of the code system"
+        },
+        "code": {
+          "type": "string",
+          "description": "Symbol in syntax defined by the system"
+        },
+        "display": {
+          "type": "string",
+          "description": "Representation defined by the system"
+        },
+        "userSelected": {
+          "type": "boolean",
+          "description": "If this coding was chosen directly by the user"
+        }
+      }
+    },
+    "Adjudication": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "needed": {
+          "type": "boolean",
+          "default": false
+        },
+        "adjudicator": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "CountryCodeAlpha2": {
+      "type": "string",
+      "pattern": "^[A-Z]{2}$",
+      "description": "ISO 3166-1 alpha-2 country code (e.g., 'NL', 'US')."
+    },
+    "EmailAddress": {
+      "type": "string",
+      "format": "email",
+      "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
+      "description": "Valid email address for correspondence",
+      "examples": [
+        "researcher@university.edu",
+        "corresponding.author@hospital.org"
+      ]
     },
     "DataIntegrity": {
       "type": "object",
@@ -3708,11 +3723,6 @@
           }
         }
       ]
-    },
-    "CountryCodeAlpha2": {
-      "type": "string",
-      "pattern": "^[A-Z]{2}$",
-      "description": "ISO 3166-1 alpha-2 country code (e.g., 'NL', 'US')."
     },
     "AIProcessingMetadata": {
       "type": "object",
@@ -4001,16 +4011,6 @@
           }
         }
       }
-    },
-    "EmailAddress": {
-      "type": "string",
-      "format": "email",
-      "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
-      "description": "Valid email address for correspondence",
-      "examples": [
-        "researcher@university.edu",
-        "corresponding.author@hospital.org"
-      ]
     }
   }
 }

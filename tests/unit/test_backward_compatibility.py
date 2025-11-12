@@ -18,6 +18,7 @@ import pytest
 
 from src.pipeline.orchestrator import (
     ALL_PIPELINE_STEPS,
+    STEP_APPRAISAL,
     STEP_CLASSIFICATION,
     STEP_CORRECTION,
     STEP_EXTRACTION,
@@ -182,5 +183,6 @@ class TestBackwardCompatibility:
             STEP_CLASSIFICATION,
             STEP_EXTRACTION,
             STEP_VALIDATION_CORRECTION,
+            STEP_APPRAISAL,
         ]
         assert ALL_PIPELINE_STEPS == expected_steps

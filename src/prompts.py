@@ -148,6 +148,94 @@ def get_all_available_prompts() -> dict[str, str]:
     return prompts
 
 
+def load_appraisal_prompt(publication_type: str) -> str:
+    """
+    Load appropriate appraisal prompt based on publication type.
+
+    Args:
+        publication_type: Publication type from classification result
+
+    Returns:
+        Appraisal prompt text
+
+    Raises:
+        PromptLoadError: If publication type not supported or prompt file not found
+
+    Note:
+        The 'diagnostic' publication type uses the same prompt as 'prediction_prognosis'
+        (Appraisal-prediction.txt) as both PROBAST and QUADAS tools have similar structure.
+    """
+    # Map publication types to appraisal prompt files
+    prompt_mapping = {
+        "interventional_trial": "Appraisal-interventional.txt",
+        "observational_analytic": "Appraisal-observational.txt",
+        "evidence_synthesis": "Appraisal-evidence-synthesis.txt",
+        "prediction_prognosis": "Appraisal-prediction.txt",
+        "diagnostic": "Appraisal-prediction.txt",  # Shared prompt (PROBAST/QUADAS)
+        "editorials_opinion": "Appraisal-editorials.txt",
+    }
+
+    if publication_type == "overig":
+        raise PromptLoadError("No appraisal prompt available for publication type 'overig'")
+
+    if publication_type not in prompt_mapping:
+        raise PromptLoadError(
+            f"Unknown publication type: {publication_type}. Supported: {list(prompt_mapping.keys())}"
+        )
+
+    prompt_file = PROMPTS_DIR / prompt_mapping[publication_type]
+
+    if not prompt_file.exists():
+        raise PromptLoadError(f"Appraisal prompt not found: {prompt_file}")
+
+    try:
+        return prompt_file.read_text(encoding="utf-8").strip()
+    except Exception as e:
+        raise PromptLoadError(f"Error reading appraisal prompt: {e}") from e
+
+
+def load_appraisal_validation_prompt() -> str:
+    """
+    Load the appraisal validation prompt from Appraisal-validation.txt.
+
+    Returns:
+        Appraisal validation prompt text
+
+    Raises:
+        PromptLoadError: If prompt file not found or cannot be read
+    """
+    prompt_file = PROMPTS_DIR / "Appraisal-validation.txt"
+
+    if not prompt_file.exists():
+        raise PromptLoadError(f"Appraisal validation prompt not found: {prompt_file}")
+
+    try:
+        return prompt_file.read_text(encoding="utf-8").strip()
+    except Exception as e:
+        raise PromptLoadError(f"Error reading appraisal validation prompt: {e}") from e
+
+
+def load_appraisal_correction_prompt() -> str:
+    """
+    Load the appraisal correction prompt from Appraisal-correction.txt.
+
+    Returns:
+        Appraisal correction prompt text
+
+    Raises:
+        PromptLoadError: If prompt file not found or cannot be read
+    """
+    prompt_file = PROMPTS_DIR / "Appraisal-correction.txt"
+
+    if not prompt_file.exists():
+        raise PromptLoadError(f"Appraisal correction prompt not found: {prompt_file}")
+
+    try:
+        return prompt_file.read_text(encoding="utf-8").strip()
+    except Exception as e:
+        raise PromptLoadError(f"Error reading appraisal correction prompt: {e}") from e
+
+
 def validate_prompt_directory() -> dict[str, bool]:
     """
     Validate that all expected prompt files are present in the prompts directory.
@@ -164,6 +252,14 @@ def validate_prompt_directory() -> dict[str, bool]:
         "Extraction-prompt-evidence-synthesis.txt",
         "Extraction-prompt-prediction.txt",
         "Extraction-prompt-editorials.txt",
+        # Appraisal prompts
+        "Appraisal-interventional.txt",
+        "Appraisal-observational.txt",
+        "Appraisal-evidence-synthesis.txt",
+        "Appraisal-prediction.txt",
+        "Appraisal-editorials.txt",
+        "Appraisal-validation.txt",
+        "Appraisal-correction.txt",
     ]
 
     validation_results = {}

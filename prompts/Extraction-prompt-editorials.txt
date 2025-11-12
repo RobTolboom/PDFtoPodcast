@@ -7,13 +7,17 @@ EVIDENCE-LOCKED RULES
 - No external knowledge. No inference or imputation.
 - Priority: Main text/Discussion first; use Abstract only for verification or missing items.
 - If information is absent in the PDF: OMIT the field. Never emit null.
-- Every key argument or standpoint must carry a SourceRef (as allowed by the schema): minimally page; add anchor (e.g., paragraph/section).
+- Every key argument or standpoint must carry a SourceRef WHERE THE SCHEMA ALLOWS IT: minimally page; add anchor (e.g., paragraph/section). Only emit SourceRef for fields explicitly defined in the schema.
 - Preserve quotes verbatim as reported in the text.
 - Parse figures/tables if present and include in tables_parsed[]/figures_summary[] with source.
 
 OUTPUT CONTRACT
 - Emit exactly one JSON object. No markdown fences. No prose before/after.
-- Closed world: only the TOP-LEVEL KEYS listed below are allowed.
+- CLOSED WORLD ASSUMPTION: The schema uses "additionalProperties":false at ALL nesting levels. This means:
+  * Only emit keys that are explicitly defined in the schema.
+  * At the top level: only the ALLOWED TOP-LEVEL KEYS listed below are allowed.
+  * Within nested objects (e.g., metadata, editorial_context, target_article, arguments): only the keys defined in that schema fragment.
+  * Any extra key will cause validation to FAIL.
 - Stable IDs (claim_id) must be reused consistently.
 
 CHARACTER ENCODING

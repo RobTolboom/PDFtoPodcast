@@ -132,6 +132,8 @@ class TestLoadSchema:
             "editorials_opinion",
             "classification",
             "validation",
+            "appraisal",
+            "appraisal_validation",
         ]
 
         for pub_type in expected_types:

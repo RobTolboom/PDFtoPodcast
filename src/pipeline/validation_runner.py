@@ -42,6 +42,7 @@ def run_dual_validation(
     llm: "BaseLLMProvider",
     console: Console,
     schema_quality_threshold: float = SCHEMA_QUALITY_THRESHOLD,
+    banner_label: str | None = None,
 ) -> dict[str, Any]:
     """
     Run dual validation: schema validation + conditional LLM validation.
@@ -58,6 +59,7 @@ def run_dual_validation(
         llm: LLM provider instance
         console: Rich console for output
         schema_quality_threshold: Minimum quality score to trigger LLM validation
+        banner_label: Optional custom label for console output banner
 
     Returns:
         Dictionary with combined validation results:
@@ -90,21 +92,25 @@ def run_dual_validation(
     """
     try:
         # Step 1: Schema validation (always runs)
-        console.print("[dim]Schema validation...[/dim]")
+        title = banner_label or "VALIDATION"
+        console.print(f"\n[bold magenta]═══ {title} ═══[/bold magenta]\n")
+        console.print("[dim]Running schema validation...[/dim]")
         extraction_schema = load_schema(publication_type)
 
         schema_validation = validate_extraction_quality(
             data=extraction_result, schema=extraction_schema, strict=False
         )
 
+        schema_quality = schema_validation["quality_score"]
         console.print(
-            f"[dim]Schema compliance: {'✅' if schema_validation['schema_compliant'] else '❌'}[/dim]"
+            "[dim]Schema compliance: "
+            f"{'✅' if schema_validation['schema_compliant'] else '❌'} "
+            f"({schema_quality:.1%})[/dim]"
         )
-        console.print(f"[dim]Quality score: {schema_validation['quality_score']:.1%}[/dim]")
 
         # Step 2: LLM-based semantic validation (conditional on schema quality)
         # Only run expensive LLM validation if extraction has decent structure
-        if schema_validation["quality_score"] >= schema_quality_threshold:
+        if schema_quality >= schema_quality_threshold:
             console.print("[dim]LLM semantic validation with PDF upload...[/dim]")
             validation_prompt = load_validation_prompt()
             validation_schema = load_schema("validation")
@@ -137,13 +143,26 @@ Verify the extracted data against the original PDF document. Check for hallucina
                 },
             }
 
-            console.print("[green]✅ Combined validation completed[/green]")
+            console.print("[green]✅ Validation completed[/green]")
+
+            # Display validation results summary
+            summary = validation_result.get("verification_summary", {})
+            overall_quality = (
+                summary.get("overall_quality") or summary.get("quality_score") or schema_quality
+            )
+            console.print("\n[bold]Quality Summary:[/bold]")
+            if overall_quality is not None:
+                console.print(f"  Overall Quality:   {overall_quality:.1%}")
+            status = summary.get("overall_status")
+            console.print(f"  Validation Status: {status.title() if status else 'Unknown'}")
+
         else:
             # Schema quality too low - skip expensive LLM validation
             console.print(
-                f"[yellow]⚠️  Schema quality below threshold ({schema_quality_threshold:.0%})[/yellow]"
+                f"[yellow]⚠️  Schema quality {schema_quality:.1%} below threshold "
+                f"({schema_quality_threshold:.0%}).[/yellow]"
             )
-            console.print("[dim]Skipping LLM validation - extraction needs correction first[/dim]")
+            console.print("[dim]Skipping LLM validation and continuing to correction.[/dim]")
 
             # Return schema validation results only
             validation_result = {
@@ -159,7 +178,7 @@ Verify the extracted data against the original PDF document. Check for hallucina
                 ],
             }
 
-            console.print("[yellow]⚠️  Will proceed to correction step[/yellow]")
+            console.print("[yellow]⚠️  Proceeding to correction loop.[/yellow]")
 
         return validation_result
 
@@ -198,7 +217,7 @@ Verify the extracted data against the original PDF document. Check for hallucina
         return validation_result
 
     except (PromptLoadError, ValidationError, LLMError) as e:
-        console.print(f"[red]❌ Validatie fout: {e}[/red]")
+        console.print(f"[red]❌ Validation error: {e}[/red]")
         return {
             "verification_summary": {
                 "overall_status": "failed",

@@ -173,3 +173,186 @@ class PipelineFileManager:
 
         with open(filepath, encoding="utf-8") as f:
             return json.load(f)
+
+    def save_appraisal_iteration(
+        self,
+        iteration: int,
+        appraisal_result: dict[str, Any],
+        validation_result: dict[str, Any] | None = None,
+    ) -> tuple[Path, Path | None]:
+        """
+        Save appraisal iteration files (convenience wrapper).
+
+        Saves both appraisal and validation JSON files for a given iteration
+        with consistent naming.
+
+        Args:
+            iteration: Iteration number (0, 1, 2, ...)
+            appraisal_result: Appraisal JSON output
+            validation_result: Optional validation JSON output
+
+        Returns:
+            Tuple of (appraisal_path, validation_path)
+            validation_path is None if validation_result not provided
+
+        Examples:
+            >>> manager = PipelineFileManager(Path("paper.pdf"))
+            >>> appraisal = {"risk_of_bias": {"overall": "Low risk"}}
+            >>> validation = {"quality_score": 0.92, "overall_status": "passed"}
+            >>> appr_path, val_path = manager.save_appraisal_iteration(
+            ...     iteration=0,
+            ...     appraisal_result=appraisal,
+            ...     validation_result=validation,
+            ... )
+            >>> appr_path.name
+            'paper-appraisal0.json'
+            >>> val_path.name
+            'paper-appraisal_validation0.json'
+        """
+        appraisal_path = self.save_json(appraisal_result, "appraisal", iteration_number=iteration)
+
+        validation_path = None
+        if validation_result is not None:
+            validation_path = self.save_json(
+                validation_result, "appraisal_validation", iteration_number=iteration
+            )
+
+        return (appraisal_path, validation_path)
+
+    def load_appraisal_iteration(
+        self,
+        iteration: int,
+    ) -> tuple[dict[str, Any], dict[str, Any] | None]:
+        """
+        Load appraisal iteration files.
+
+        Args:
+            iteration: Iteration number to load
+
+        Returns:
+            Tuple of (appraisal_dict, validation_dict)
+            validation_dict may be None if file doesn't exist
+
+        Raises:
+            FileNotFoundError: If appraisal file doesn't exist
+
+        Examples:
+            >>> manager = PipelineFileManager(Path("paper.pdf"))
+            >>> # Save first
+            >>> appraisal = {"risk_of_bias": {"overall": "Low risk"}}
+            >>> validation = {"quality_score": 0.92}
+            >>> manager.save_appraisal_iteration(0, appraisal, validation)
+            (PosixPath('tmp/paper-appraisal0.json'), PosixPath('tmp/paper-appraisal_validation0.json'))
+            >>> # Load back
+            >>> loaded_appr, loaded_val = manager.load_appraisal_iteration(0)
+            >>> loaded_appr["risk_of_bias"]["overall"]
+            'Low risk'
+            >>> loaded_val["quality_score"]
+            0.92
+        """
+        appraisal = self.load_json("appraisal", iteration_number=iteration)
+        if appraisal is None:
+            raise FileNotFoundError(
+                f"Appraisal iteration {iteration} not found: "
+                f"{self.get_filename('appraisal', iteration_number=iteration)}"
+            )
+
+        validation = self.load_json("appraisal_validation", iteration_number=iteration)
+        return (appraisal, validation)
+
+    def save_best_appraisal(
+        self,
+        appraisal_result: dict[str, Any],
+        validation_result: dict[str, Any],
+    ) -> tuple[Path, Path]:
+        """
+        Save best appraisal iteration.
+
+        Args:
+            appraisal_result: Best appraisal JSON
+            validation_result: Corresponding validation JSON
+
+        Returns:
+            Tuple of (appraisal_path, validation_path)
+
+        Examples:
+            >>> manager = PipelineFileManager(Path("paper.pdf"))
+            >>> best_appr = {"risk_of_bias": {"overall": "Low risk"}}
+            >>> best_val = {"quality_score": 0.95}
+            >>> appr_path, val_path = manager.save_best_appraisal(best_appr, best_val)
+            >>> appr_path.name
+            'paper-appraisal-best.json'
+            >>> val_path.name
+            'paper-appraisal_validation-best.json'
+        """
+        appraisal_path = self.save_json(appraisal_result, "appraisal", status="best")
+        validation_path = self.save_json(validation_result, "appraisal_validation", status="best")
+        return (appraisal_path, validation_path)
+
+    def get_appraisal_iterations(self) -> list[dict[str, Any]]:
+        """
+        Get all appraisal iterations with metadata.
+
+        Returns:
+            List of dicts with:
+                - iteration_num: int
+                - appraisal_file: Path
+                - validation_file: Path | None
+                - appraisal_exists: bool
+                - validation_exists: bool
+                - created_time: datetime (from file mtime)
+
+        Sorted by iteration number.
+
+        Examples:
+            >>> manager = PipelineFileManager(Path("paper.pdf"))
+            >>> # Save 2 iterations
+            >>> manager.save_appraisal_iteration(0, {"data": "v0"}, {"score": 0.8})
+            (PosixPath('tmp/paper-appraisal0.json'), PosixPath('tmp/paper-appraisal_validation0.json'))
+            >>> manager.save_appraisal_iteration(1, {"data": "v1"}, {"score": 0.9})
+            (PosixPath('tmp/paper-appraisal1.json'), PosixPath('tmp/paper-appraisal_validation1.json'))
+            >>> iterations = manager.get_appraisal_iterations()
+            >>> len(iterations)
+            2
+            >>> iterations[0]["iteration_num"]
+            0
+            >>> iterations[1]["iteration_num"]
+            1
+            >>> iterations[0]["appraisal_exists"]
+            True
+            >>> iterations[0]["validation_exists"]
+            True
+        """
+        import re
+        from datetime import datetime
+
+        # Find all appraisal iteration files
+        pattern = f"{self.identifier}-appraisal[0-9]*.json"
+        appraisal_files = sorted(self.tmp_dir.glob(pattern))
+
+        iterations = []
+        for appraisal_file in appraisal_files:
+            # Extract iteration number from filename
+            match = re.search(r"appraisal(\d+)\.json$", appraisal_file.name)
+            if not match:
+                continue
+
+            iteration_num = int(match.group(1))
+
+            # Check for validation file
+            validation_file = self.get_filename(
+                "appraisal_validation", iteration_number=iteration_num
+            )
+
+            iterations.append(
+                {
+                    "iteration_num": iteration_num,
+                    "appraisal_file": appraisal_file,
+                    "validation_file": validation_file if validation_file.exists() else None,
+                    "appraisal_exists": appraisal_file.exists(),
+                    "validation_exists": validation_file.exists(),
+                    "created_time": datetime.fromtimestamp(appraisal_file.stat().st_mtime),
+                }
+            )
+
+        return sorted(iterations, key=lambda x: x["iteration_num"])

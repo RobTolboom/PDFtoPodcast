@@ -7,14 +7,23 @@ EVIDENCE-LOCKED RULES
 - No external knowledge. No inference or imputation.
 - Priority: Methods/Results/Tables first; use Abstract only for verification or missing items.
 - If information is absent in the PDF: OMIT the field. Never emit null.
-- Every key quantitative datapoint must carry a SourceRef (as allowed by the schema): minimally page; add table_id/figure_id and a short anchor/caption fragment when applicable.
+- Every key quantitative datapoint must carry a SourceRef WHERE THE SCHEMA ALLOWS IT: minimally page; add table_id/figure_id and a short anchor/caption fragment when applicable. Only emit SourceRef for fields explicitly defined in the schema.
 - Model performance metrics: C-statistic/AUC, calibration, NRI, IDI exactly as reported.
 
 OUTPUT CONTRACT
 - Emit exactly one JSON object. No markdown fences. No prose before/after.
-- Closed world: only the TOP-LEVEL KEYS listed below are allowed.
+- CLOSED WORLD ASSUMPTION: The schema uses "additionalProperties":false at ALL nesting levels. This means:
+  * Only emit keys that are explicitly defined in the schema.
+  * At the top level: only the ALLOWED TOP-LEVEL KEYS listed below are allowed.
+  * Within nested objects (e.g., study_design, population, predictors, outcomes, models, performance): only the keys defined in that schema fragment.
+  * Any extra key will cause validation to FAIL.
 - Numeric formatting: dot as decimal separator; no thousands separators; store percentages as numbers (e.g., 12.3).
 - Confidence intervals: {"lower": <number>, "upper": <number>}.
+- ISO 8601 DURATION FORMAT (for time_window_iso8601, follow_up_duration_iso8601, time_horizon_iso8601):
+  * Date components: P[n]Y[n]M[n]W[n]D (Year, Month, Week, Day)
+  * Time components: T[n]H[n]M[n]S (Hour, Minute, Second)
+  * CRITICAL: Time components MUST be preceded by 'T'
+  * Examples: 24 hours = PT24H (NOT P24H), 2 days = P2D, 1 year 6 months = P1Y6M, 3 months = P3M
 - IDs (predictor_id, outcome_id, dataset_id, model_id) must be stable and reused consistently.
 
 CHARACTER ENCODING

@@ -46,6 +46,8 @@ from unittest.mock import Mock
 
 import pytest
 
+from src.schemas_loader import load_schema
+
 
 @pytest.fixture
 def sample_pdf() -> Path:
@@ -172,3 +174,15 @@ def extraction_schema() -> dict[str, Any]:
         },
         "required": ["metadata"],
     }
+
+
+@pytest.fixture
+def appraisal_schema() -> dict[str, Any]:
+    """Load the bundled appraisal schema."""
+    return load_schema("appraisal")
+
+
+@pytest.fixture
+def appraisal_validation_schema() -> dict[str, Any]:
+    """Load the bundled appraisal validation schema."""
+    return load_schema("appraisal_validation")

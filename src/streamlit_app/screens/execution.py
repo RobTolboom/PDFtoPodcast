@@ -74,6 +74,7 @@ import streamlit as st
 from src.pipeline.file_manager import PipelineFileManager
 from src.pipeline.orchestrator import (
     ALL_PIPELINE_STEPS,
+    STEP_APPRAISAL,
     STEP_CLASSIFICATION,
     STEP_CORRECTION,
     STEP_EXTRACTION,
@@ -825,6 +826,14 @@ def _display_validation_correction_result(result: dict):
         df = pd.DataFrame(table_data)
         st.dataframe(df, width="stretch", hide_index=True)
 
+        trajectory = result.get("improvement_trajectory", [])
+        if trajectory:
+            st.caption("Quality score trajectory per iteration")
+            chart_df = pd.DataFrame(
+                {"Quality Score": trajectory}, index=[f"Iter {i}" for i in range(len(trajectory))]
+            )
+            st.line_chart(chart_df)
+
     # Show metrics from best iteration
     if iterations and best_iteration < len(iterations):
         best_iter_data = iterations[best_iteration]
@@ -848,6 +857,195 @@ def _display_validation_correction_result(result: dict):
         with col4:
             critical = best_metrics.get("critical_issues", 0)
             st.metric("Critical Issues", critical)
+
+
+def _display_appraisal_result(result: dict):
+    """Display appraisal result summary with RoB, GRADE, and iteration history."""
+    if not result:
+        return
+
+    best_appraisal = result.get("best_appraisal", {})
+    final_status = result.get("final_status", "unknown")
+    iteration_count = result.get("iteration_count", 0)
+    iterations = result.get("iterations", [])
+
+    # Display final status
+    status_messages = {
+        "passed": "✅ **Appraisal quality thresholds met!**",
+        "max_iterations_reached": f"⚠️ **Max iterations reached ({iteration_count})**",
+        "early_stopped_degradation": "⚠️ **Early stopping: quality degraded**",
+    }
+
+    status_msg = status_messages.get(final_status, f"❌ **Failed:** {final_status}")
+    st.write(status_msg)
+
+    # Show iteration count and best iteration
+    best_iteration = result.get("best_iteration", 0)
+    st.write(f"🔄 **Iterations completed:** {iteration_count}")
+    st.write(f"⭐ **Best iteration selected:** {best_iteration}")
+
+    # Display Risk of Bias Summary
+    if "risk_of_bias" in best_appraisal:
+        st.markdown("#### 🎯 Risk of Bias Assessment")
+
+        rob = best_appraisal["risk_of_bias"]
+        tool_info = best_appraisal.get("tool", {})
+        tool_name = tool_info.get("name", "Unknown")
+        tool_variant = tool_info.get("variant", "")
+
+        col1, col2 = st.columns([1, 2])
+        with col1:
+            st.metric("Tool", tool_name)
+        with col2:
+            if tool_variant:
+                st.metric("Variant", tool_variant)
+
+        # Overall judgement
+        overall = rob.get("overall", "—")
+        st.write(f"**Overall Risk of Bias:** {overall}")
+
+        # Domain assessments
+        domains = rob.get("domains", [])
+        if domains:
+            st.markdown(f"**Domains Assessed:** {len(domains)}")
+
+            # Show first few domains
+            for domain in domains[:5]:
+                domain_name = domain.get("domain", "Unknown")
+                judgement = domain.get("judgement", "—")
+                st.write(f"  • {domain_name}: {judgement}")
+
+            if len(domains) > 5:
+                st.caption(f"_...and {len(domains) - 5} more domains (view full JSON for details)_")
+
+    # Display GRADE Certainty
+    grade_outcomes = best_appraisal.get("grade_per_outcome", [])
+    if grade_outcomes:
+        st.markdown("#### 📊 GRADE Certainty of Evidence")
+        st.write(f"**Outcomes Rated:** {len(grade_outcomes)}")
+
+        # Show first few outcomes
+        for grade in grade_outcomes[:3]:
+            outcome_id = grade.get("outcome_id", "Unknown")
+            certainty = grade.get("certainty", "—")
+            downgrades = grade.get("downgrades", {})
+
+            # Build list of non-zero downgrades with their levels
+            downgrade_items = []
+            if downgrades:
+                downgrade_labels = {
+                    "risk_of_bias": "RoB",
+                    "inconsistency": "Incons",
+                    "indirectness": "Indir",
+                    "imprecision": "Imprec",
+                    "publication_bias": "PubBias",
+                }
+                for key, label in downgrade_labels.items():
+                    level = downgrades.get(key)
+                    if level and level > 0:
+                        downgrade_items.append(f"{label}(-{level})")
+
+            downgrade_summary = ", ".join(downgrade_items) if downgrade_items else "None"
+            st.write(f"  • {outcome_id}: **{certainty}** (downgrades: {downgrade_summary})")
+
+        if len(grade_outcomes) > 3:
+            st.caption(f"_...and {len(grade_outcomes) - 3} more outcomes_")
+
+    # Display Applicability
+    applicability = best_appraisal.get("applicability", {})
+    if applicability:
+        st.markdown("#### 🌍 Applicability")
+        population_match = applicability.get("population_match", {}).get("rating", "—")
+        st.write(f"**Population Match:** {population_match}")
+
+    # Display iteration history table
+    if iterations:
+        st.markdown("#### 📊 Iteration History")
+
+        # Build table data
+        table_data = []
+        for iter_data in iterations:
+            metrics = iter_data.get("metrics", {})
+            is_best = iter_data.get("iteration_num") == best_iteration
+
+            table_data.append(
+                {
+                    "Iteration": iter_data.get("iteration_num", 0),
+                    "Logical": f"{metrics.get('logical_consistency_score', 0):.1%}",
+                    "Complete": f"{metrics.get('completeness_score', 0):.1%}",
+                    "Evidence": f"{metrics.get('evidence_support_score', 0):.1%}",
+                    "Schema": f"{metrics.get('schema_compliance_score', 0):.1%}",
+                    "Critical": metrics.get("critical_issues", 0),
+                    "Quality": f"{metrics.get('quality_score', 0):.1%}",
+                    "Status": "✅ BEST" if is_best else "",
+                }
+            )
+
+        # Display as DataFrame
+        df = pd.DataFrame(table_data)
+        st.dataframe(df, width="stretch", hide_index=True)
+
+    # Show metrics from best iteration
+    if iterations and best_iteration < len(iterations):
+        best_iter_data = iterations[best_iteration]
+        best_metrics = best_iter_data.get("metrics", {})
+
+        st.markdown("#### 📈 Best Iteration Metrics")
+        col1, col2, col3, col4 = st.columns(4)
+
+        with col1:
+            logical = best_metrics.get("logical_consistency_score", 0)
+            st.metric("Logical", f"{logical:.1%}")
+
+        with col2:
+            comp = best_metrics.get("completeness_score", 0)
+            st.metric("Complete", f"{comp:.1%}")
+
+        with col3:
+            evidence = best_metrics.get("evidence_support_score", 0)
+            st.metric("Evidence", f"{evidence:.1%}")
+
+        with col4:
+            schema = best_metrics.get("schema_compliance_score", 0)
+            st.metric("Schema", f"{schema:.1%}")
+
+    # Bottom line for podcast
+    bottom_line = best_appraisal.get("bottom_line", {})
+    if bottom_line:
+        st.markdown("#### 🎙️ Bottom Line (for Podcast)")
+        for_podcast = bottom_line.get("for_podcast", "—")
+        st.info(for_podcast)
+
+    execution_status = st.session_state.execution.get("status", "idle")
+    if execution_status in {"completed", "failed"}:
+        if st.button("🔁 Re-run appraisal", key="rerun_appraisal"):
+            _trigger_appraisal_rerun()
+
+
+def _trigger_appraisal_rerun():
+    """Reset state so appraisal step reruns from the execution screen."""
+    exec_state = st.session_state.execution
+    exec_state["status"] = "running"
+    exec_state["error"] = None
+    exec_state["redirect_countdown"] = None
+    exec_state["redirect_cancelled"] = False
+    exec_state["end_time"] = None
+    exec_state["results"].pop(STEP_APPRAISAL, None)
+
+    # Reset appraisal step status
+    st.session_state.step_status[STEP_APPRAISAL] = {
+        "status": "pending",
+        "start_time": None,
+        "end_time": None,
+        "result": None,
+        "error": None,
+        "elapsed_seconds": None,
+        "verbose_data": {},
+        "file_path": None,
+    }
+
+    exec_state["current_step_index"] = ALL_PIPELINE_STEPS.index(STEP_APPRAISAL)
+    st.rerun()
 
 
 def display_step_status(step_name: str, step_label: str, step_number: int):
@@ -945,6 +1143,8 @@ def display_step_status(step_name: str, step_label: str, step_number: int):
                     _display_correction_result(result)
                 elif step_name == STEP_VALIDATION_CORRECTION:
                     _display_validation_correction_result(result)
+                elif step_name == STEP_APPRAISAL:
+                    _display_appraisal_result(result)
 
             # Show file path if available (non-verbose always shows this)
             file_path = step.get("file_path")
@@ -1038,9 +1238,9 @@ def show_execution_screen():
 
     Note:
         - Pipeline integration via callbacks (Fase 4 - IMPLEMENTED)
-        - Verbose logging placeholders (Fase 6 - TODO)
-        - Advanced error handling (Fase 7 - TODO)
-        - Auto-redirect (Fase 8 - TODO)
+        - Verbose logging placeholders (Fase 6 - FUTURE: deferred enhancement, not required for MVP)
+        - Advanced error handling (Fase 7 - FUTURE: deferred enhancement, not required for MVP)
+        - Auto-redirect (Fase 8 - FUTURE: deferred enhancement, not required for MVP)
     """
     # Initialize state
     init_execution_state()
@@ -1151,6 +1351,7 @@ def show_execution_screen():
         display_step_status(STEP_CLASSIFICATION, "Classification", 1)
         display_step_status(STEP_EXTRACTION, "Extraction", 2)
         display_step_status(STEP_VALIDATION_CORRECTION, "Validation & Correction", 3)
+        display_step_status(STEP_APPRAISAL, "Appraisal", 4)
 
         # Check if all steps completed
         if current_step_index >= len(steps_to_run):
@@ -1177,6 +1378,18 @@ def show_execution_screen():
             pdf_path = Path(st.session_state.pdf_path)
             file_manager = PipelineFileManager(pdf_path)
 
+            # Step-specific iteration/threshold settings
+            max_iter_setting = None
+            quality_thresholds = None
+            enable_iterative = True
+            if current_step_name == STEP_VALIDATION_CORRECTION:
+                max_iter_setting = settings.get("max_correction_iterations", 3)
+                quality_thresholds = settings.get("quality_thresholds")
+            elif current_step_name == STEP_APPRAISAL:
+                max_iter_setting = settings.get("max_appraisal_iterations", 3)
+                quality_thresholds = settings.get("appraisal_quality_thresholds")
+                enable_iterative = settings.get("appraisal_enable_iterative_correction", True)
+
             # Execute current step with previous results
             step_result = run_single_step(
                 step_name=current_step_name,
@@ -1186,6 +1399,9 @@ def show_execution_screen():
                 file_manager=file_manager,
                 progress_callback=callback,
                 previous_results=st.session_state.execution["results"],
+                max_correction_iterations=max_iter_setting,
+                quality_thresholds=quality_thresholds,
+                enable_iterative_correction=enable_iterative,
             )
 
             # Store step result
@@ -1249,6 +1465,7 @@ def show_execution_screen():
         display_step_status(STEP_CLASSIFICATION, "Classification", 1)
         display_step_status(STEP_EXTRACTION, "Extraction", 2)
         display_step_status(STEP_VALIDATION_CORRECTION, "Validation & Correction", 3)
+        display_step_status(STEP_APPRAISAL, "Appraisal", 4)
 
         st.markdown("---")
 

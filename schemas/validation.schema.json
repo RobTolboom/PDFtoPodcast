@@ -3,6 +3,7 @@
   "title": "Validation Report Schema",
   "description": "Schema for extraction validation and quality assessment output",
   "type": "object",
+  "additionalProperties": false,
   "required": ["verification_summary", "issues", "field_validation", "completeness_analysis", "recommendations"],
   "properties": {
     "verification_summary": {

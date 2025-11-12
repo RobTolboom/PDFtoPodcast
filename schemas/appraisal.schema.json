@@ -1,0 +1,474 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://your-domain.example/schemas/appraisal_v1.schema.json",
+  "title": "Critical Appraisal Output (appraisal_v1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["appraisal_version", "study_id", "study_type"],
+  "properties": {
+    "appraisal_version": {
+      "type": "string",
+      "const": "v1.0",
+      "description": "Output contract version for critical appraisal JSON."
+    },
+    "study_id": {
+      "type": "string",
+      "description": "Stable identifier of the paper/study/review."
+    },
+    "study_type": {
+      "type": "string",
+      "enum": [
+        "interventional",
+        "observational",
+        "diagnostic",
+        "prediction_prognosis",
+        "evidence_synthesis",
+        "editorial_opinion"
+      ]
+    },
+    "tool": {
+      "type": "object",
+      "description": "Primary appraisal tool when a single tool is used (e.g., RoB 2, ROBINS-I, QUADAS-2, PROBAST).",
+      "additionalProperties": false,
+      "required": ["name", "version"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name of the tool (e.g., 'RoB 2', 'ROBINS-I', 'ROBINS-E', 'QUADAS-2', 'QUADAS-C', 'PROBAST')"
+        },
+        "version": {
+          "type": "string",
+          "description": "Official version/date label of the tool or guidance used."
+        },
+        "variant": {
+          "type": ["string", "null"],
+          "description": "Optional variant (e.g., 'parallel-RCT', 'cluster', 'crossover', 'comparative', etc.)"
+        },
+        "judgement_scale": {
+          "type": ["string", "null"],
+          "enum": ["rob2", "robins", "probast", "amstar2", "robis", null],
+          "description": "Optional scale label met gecontroleerde vocabulaire (rob2, robins, probast, amstar2, robis)."
+        }
+      }
+    },
+    "tools": {
+      "type": "object",
+      "description": "For evidence syntheses that report multiple instruments (e.g., AMSTAR 2 + ROBIS + GRADE).",
+      "additionalProperties": false,
+      "properties": {
+        "amstar2": { "type": "boolean" },
+        "robis": { "type": "boolean" },
+        "grade": { "type": "boolean" }
+      }
+    },
+    "risk_of_bias": {
+      "type": "object",
+      "description": "Generic risk-of-bias container used by RoB 2 / ROBINS-* / QUADAS-* outputs.",
+      "additionalProperties": false,
+      "required": ["overall", "domains"],
+      "properties": {
+        "overall": {
+          "type": "string",
+          "description": "Overall RoB/concern. Union of values to support multiple tools.",
+          "enum": [
+            "Low risk",
+            "Some concerns",
+            "High risk",
+            "Low",
+            "Moderate",
+            "Serious",
+            "Critical",
+            "No information",
+            "Unclear"
+          ]
+        },
+        "domains": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/RiskOfBiasDomain" }
+        }
+      }
+    },
+    "analysis_issues": {
+      "type": "object",
+      "description": "Interventional (and sometimes observational) analysis notes.",
+      "additionalProperties": false,
+      "properties": {
+        "itt_vs_pp": {
+          "type": ["string", "null"],
+          "enum": ["ITT", "PP", "mixed", "unclear", null]
+        },
+        "crossovers": {
+          "type": ["string", "null"],
+          "enum": ["none", "present", "unclear", null]
+        },
+        "multiplicity": {
+          "type": ["string", "null"],
+          "enum": ["addressed", "not_addressed", "unclear", null]
+        },
+        "notes": { "type": ["string", "null"] }
+      }
+    },
+    "causal_strategy": {
+      "type": "object",
+      "description": "Observational studies: causal identification approach summary.",
+      "additionalProperties": false,
+      "properties": {
+        "approach": {
+          "type": ["string", "null"],
+          "enum": ["ps_matching", "IPTW", "overlap", "IV", "g_methods", "regression", "other", null]
+        },
+        "balance_ok": { "type": ["string", "null"], "enum": ["true", "false", "unclear", null] },
+        "positivity_issues": { "type": ["string", "null"], "enum": ["true", "false", "unclear", null] },
+        "notes": { "type": ["string", "null"] }
+      }
+    },
+    "probast": {
+      "type": "object",
+      "description": "Prediction/Prognosis (PROBAST) domain-level risks and applicability.",
+      "additionalProperties": false,
+      "required": ["domains", "overall_risk", "overall_applicability"],
+      "properties": {
+        "overall_risk": { "type": "string", "enum": ["Low", "High", "Unclear"] },
+        "overall_applicability": { "type": "string", "enum": ["Low", "High", "Unclear"] },
+        "domains": {
+          "type": "array",
+          "minItems": 4,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["domain", "risk_of_bias", "applicability", "rationale", "source_refs"],
+            "properties": {
+              "domain": { "type": "string", "enum": ["participants", "predictors", "outcome", "analysis"] },
+              "risk_of_bias": { "type": "string", "enum": ["Low", "High", "Unclear"] },
+              "applicability": { "type": "string", "enum": ["Low", "High", "Unclear"] },
+              "rationale": { "type": "string" },
+              "source_refs": { "type": "array", "items": { "$ref": "#/$defs/SourceRef" } }
+            }
+          }
+        }
+      }
+    },
+    "performance_review": {
+      "type": "array",
+      "description": "Prediction/Prognosis: performance per (model, dataset, outcome).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["model_id", "dataset_id", "outcome_id"],
+        "properties": {
+          "model_id": { "type": "string" },
+          "dataset_id": { "type": "string" },
+          "outcome_id": { "type": "string" },
+          "discrimination": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "metric": { "type": ["string", "null"], "enum": ["AUC", "C", "PR-AUC", null] },
+              "point": { "type": ["number", "null"] },
+              "ci": {
+                "type": ["object", "null"],
+                "additionalProperties": false,
+                "properties": {
+                  "lower": { "type": ["number", "null"] },
+                  "upper": { "type": ["number", "null"] }
+                }
+              },
+              "validation_method": {
+                "type": ["string", "null"],
+                "enum": ["cross_validation", "holdout", "temporal_split", "external_validation", "other", null]
+              }
+            }
+          },
+          "calibration": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "c_itl": { "type": ["number", "null"] },
+              "intercept": { "type": ["number", "null"] },
+              "slope": { "type": ["number", "null"] },
+              "ICI": { "type": ["number", "null"] },
+              "brier": { "type": ["number", "null"] },
+              "plot_available": { "type": ["string", "null"], "enum": ["true", "false", null] }
+            }
+          },
+          "clinical_utility": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "decision_curve": { "type": ["string", "null"], "enum": ["present", "absent", null] },
+              "nri": { "type": ["number", "null"] },
+              "idi": { "type": ["number", "null"] }
+            }
+          },
+          "notes": { "type": ["string", "null"] },
+          "source_refs": { "type": "array", "items": { "$ref": "#/$defs/SourceRef" } }
+        }
+      }
+    },
+    "amstar2": {
+      "type": "object",
+      "description": "Evidence synthesis: AMSTAR 2 assessment.",
+      "additionalProperties": false,
+      "properties": {
+        "overall_confidence": { "type": "string", "enum": ["high", "moderate", "low", "critically_low"] },
+        "critical_items_failed": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16"]
+          }
+        },
+        "rationale": { "type": ["string", "null"] },
+        "source_refs": { "type": "array", "items": { "$ref": "#/$defs/SourceRef" } }
+      }
+    },
+    "robis": {
+      "type": "object",
+      "description": "Evidence synthesis: ROBIS risk of bias for the review.",
+      "additionalProperties": false,
+      "properties": {
+        "overall_risk_of_bias": { "type": "string", "enum": ["low", "high", "unclear"] },
+        "phase_1_relevance": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "review_question_match": { "type": ["boolean", "null"] },
+            "concerns": { "type": ["string", "null"] }
+          }
+        },
+        "phase_2_domains": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "study_eligibility_criteria": { "$ref": "#/$defs/RobisDomain" },
+            "identification_and_selection": { "$ref": "#/$defs/RobisDomain" },
+            "data_collection_and_study_appraisal": { "$ref": "#/$defs/RobisDomain" },
+            "synthesis_and_findings": { "$ref": "#/$defs/RobisDomain" }
+          }
+        },
+        "phase_3_overall_assessment": { "type": ["string", "null"] }
+      }
+    },
+    "synthesis_quality": {
+      "type": "object",
+      "description": "Evidence synthesis: model/heterogeneity/inconsistency/publication bias.",
+      "additionalProperties": false,
+      "properties": {
+        "model": { "type": ["string", "null"], "enum": ["fixed", "random", "bayesian", null] },
+        "heterogeneity": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "I2_pct": { "type": ["number", "null"] },
+            "tau2": { "type": ["number", "null"] },
+            "prediction_interval": {
+              "type": ["object", "null"],
+              "additionalProperties": false,
+              "properties": {
+                "lower": { "type": ["number", "null"] },
+                "upper": { "type": ["number", "null"] }
+              }
+            }
+          }
+        },
+        "inconsistency_NMA": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "assessed": { "type": ["boolean", "null"] },
+            "global_test_p": { "type": ["number", "null"] },
+            "node_splitting_signals": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "small_study_effects": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "egger_p": { "type": ["number", "null"] },
+            "funnel_inspection": { "type": ["string", "null"], "enum": ["symmetrical", "asymmetrical", "unclear", null] }
+          }
+        },
+        "sensitivity_analyses": {
+          "type": "array",
+          "minItems": 0,
+          "items": { "type": "string" }
+        },
+        "notes": { "type": ["string", "null"] },
+        "source_refs": { "type": "array", "items": { "$ref": "#/$defs/SourceRef" } }
+      }
+    },
+    "argument_quality": {
+      "type": "array",
+      "description": "Editorial/Opinion: per-claim appraisal.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["claim_id", "evidence_type", "support_strength", "counterarguments_considered", "rationale"],
+        "properties": {
+          "claim_id": { "type": "string" },
+          "evidence_type": {
+            "type": "string",
+            "enum": [
+              "primary_study",
+              "systematic_review",
+              "guideline",
+              "expert_opinion",
+              "anecdote",
+              "data_analysis",
+              "none",
+              "other"
+            ]
+          },
+          "support_strength": { "type": "string", "enum": ["strong", "moderate", "weak", "speculative", "unclear"] },
+          "counterarguments_considered": { "type": "string", "enum": ["yes", "no", "partial"] },
+          "rationale": { "type": "string" },
+          "source_refs": { "type": "array", "items": { "$ref": "#/$defs/SourceRef" } }
+        }
+      }
+    },
+    "conflict_of_interest": {
+      "type": "object",
+      "description": "Editorial/Opinion: COI summary.",
+      "additionalProperties": false,
+      "properties": {
+        "declared": { "type": ["boolean", "null"] },
+        "risk_assessment": { "type": ["string", "null"], "enum": ["none", "low", "moderate", "high", "unclear", null] },
+        "notes": { "type": ["string", "null"] }
+      }
+    },
+    "transparency": {
+      "type": "object",
+      "description": "Editorial/Opinion: transparency signals.",
+      "additionalProperties": false,
+      "properties": {
+        "peer_review_status": { "type": ["string", "null"], "enum": ["peer_reviewed", "not_peer_reviewed", "unknown", null] },
+        "methodology_disclosed": { "type": ["string", "null"], "enum": ["yes", "no", "partial", "n/a", null] }
+      }
+    },
+    "applicability": {
+      "type": "object",
+      "description": "External validity/generalizability notes. Shape varies by type; keep generic.",
+      "additionalProperties": false,
+      "properties": {
+        "population": { "type": ["string", "null"] },
+        "intervention": { "type": ["string", "null"] },
+        "exposure": { "type": ["string", "null"] },
+        "comparator": { "type": ["string", "null"] },
+        "outcome": { "type": ["string", "null"] },
+        "setting": { "type": ["string", "null"] },
+        "predictor_measurement": { "type": ["string", "null"] },
+        "outcome_measurement": { "type": ["string", "null"] },
+        "notes": { "type": ["string", "null"] }
+      }
+    },
+    "grade_per_outcome": {
+      "type": "array",
+      "description": "GRADE certainty judgements per outcome where applicable.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["outcome_id", "certainty"],
+        "properties": {
+          "outcome_id": { "type": "string" },
+          "certainty": { "type": "string", "enum": ["High", "Moderate", "Low", "Very Low"] },
+          "downgrades": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "risk_of_bias": { "type": ["integer", "null"], "minimum": 0, "maximum": 2 },
+              "inconsistency": { "type": ["integer", "null"], "minimum": 0, "maximum": 2 },
+              "indirectness": { "type": ["integer", "null"], "minimum": 0, "maximum": 2 },
+              "imprecision": { "type": ["integer", "null"], "minimum": 0, "maximum": 2 },
+              "publication_bias": { "type": ["integer", "null"], "minimum": 0, "maximum": 2 }
+            }
+          },
+          "upgrades": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "large_effect": { "type": ["string", "null"], "enum": ["none", "large", "very_large", null] },
+              "dose_response": { "type": ["boolean", "null"] },
+              "plausible_confounding_reduces_effect": { "type": ["boolean", "null"] }
+            }
+          },
+          "reasons": { "type": ["string", "null"] },
+          "source_refs": { "type": "array", "items": { "$ref": "#/$defs/SourceRef" } }
+        }
+      }
+    },
+    "bottom_line": {
+      "type": "object",
+      "description": "Short takeaways (for human readouts or podcast).",
+      "additionalProperties": false,
+      "properties": {
+        "short": { "type": ["string", "null"] },
+        "for_podcast": { "type": ["string", "null"] }
+      }
+    },
+    "required_followup": {
+      "type": "array",
+      "description": "Items that need clarification or re-extraction.",
+      "items": { "type": "string" }
+    },
+    "generator": {
+      "type": "object",
+      "description": "Optional metadata about the process producing this JSON.",
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": ["string", "null"] },
+        "model": { "type": ["string", "null"] },
+        "timestamp": { "type": ["string", "null"], "format": "date-time" }
+      }
+    }
+  },
+  "$defs": {
+    "SourceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "page": { "type": ["integer", "null"] },
+        "section": { "type": ["string", "null"] },
+        "table_id": { "type": ["string", "null"] },
+        "figure_id": { "type": ["string", "null"] },
+        "anchor_text": { "type": ["string", "null"] }
+      }
+    },
+    "RiskOfBiasDomain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["domain", "judgement"],
+      "properties": {
+        "domain": { "type": "string", "description": "Tool-specific domain name/id." },
+        "judgement": {
+          "type": "string",
+          "enum": [
+            "Low risk",
+            "Some concerns",
+            "High risk",
+            "Low",
+            "Moderate",
+            "Serious",
+            "Critical",
+            "No information",
+            "Unclear"
+          ]
+        },
+        "predicted_bias_direction": {
+          "type": ["string", "null"],
+          "enum": ["Favors intervention", "Favors control", "Unpredictable", "N/A", null]
+        },
+        "rationale": { "type": ["string", "null"] },
+        "source_refs": { "type": "array", "items": { "$ref": "#/$defs/SourceRef" } }
+      }
+    },
+    "RobisDomain": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "risk_of_bias": { "type": "string", "enum": ["low", "high", "unclear"] },
+        "concerns": { "type": ["string", "null"] }
+      }
+    }
+  }
+}

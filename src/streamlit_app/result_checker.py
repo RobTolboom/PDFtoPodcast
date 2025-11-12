@@ -86,6 +86,7 @@ def check_existing_results(identifier: str | None) -> dict:
             "validation": False,
             "correction": False,
             "validation_correction": False,
+            "appraisal": False,
         }
 
     tmp_dir = Path("tmp")
@@ -95,6 +96,7 @@ def check_existing_results(identifier: str | None) -> dict:
         "validation": (tmp_dir / f"{identifier}-validation0.json").exists(),
         "correction": (tmp_dir / f"{identifier}-extraction1.json").exists(),
         "validation_correction": any(tmp_dir.glob(f"{identifier}-validation[0-9]*.json")),
+        "appraisal": any(tmp_dir.glob(f"{identifier}-appraisal[0-9]*.json")),
     }
     return results
 
@@ -161,6 +163,23 @@ def get_result_file_info(identifier: str, step: str) -> dict | None:
             if not validation_files:
                 return None
             file_path = max(validation_files, key=lambda p: p.stat().st_mtime)
+
+    elif step == "appraisal":
+        # Try best appraisal first
+        best_path = tmp_dir / f"{identifier}-appraisal-best.json"
+        if best_path.exists():
+            file_path = best_path
+        else:
+            # Fallback: appraisal0 or most recent iteration
+            appraisal0 = tmp_dir / f"{identifier}-appraisal0.json"
+            if appraisal0.exists():
+                file_path = appraisal0
+            else:
+                # Find most recent appraisal iteration
+                appraisal_files = list(tmp_dir.glob(f"{identifier}-appraisal[0-9]*.json"))
+                if not appraisal_files:
+                    return None
+                file_path = max(appraisal_files, key=lambda p: p.stat().st_mtime)
 
     else:
         # Map step names to filenames for other steps

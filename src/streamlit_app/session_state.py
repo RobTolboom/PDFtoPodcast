@@ -86,4 +86,14 @@ def init_session_state():
                 "schema_compliance_score": 0.95,
                 "critical_issues": 0,
             },
+            # Appraisal settings
+            "max_appraisal_iterations": 3,
+            "appraisal_enable_iterative_correction": True,
+            "appraisal_quality_thresholds": {
+                "logical_consistency_score": 0.90,
+                "completeness_score": 0.85,
+                "evidence_support_score": 0.90,
+                "schema_compliance_score": 0.95,
+                "critical_issues": 0,
+            },
         }

@@ -26,6 +26,7 @@ This pipeline extracts structured data from medical research PDFs with a focus o
 - Direct PDF-to-LLM processing (no intermediate text extraction) to preserve tables, figures, and layout.
 - Publication-type-aware schemas for interventional, observational, synthesis, prognosis, opinion, and other papers.
 - Iterative validation/correction loop with configurable accuracy, completeness, and schema thresholds.
+- **Critical appraisal** with standardized tools (RoB 2, ROBINS-I, PROBAST, AMSTAR 2, GRADE ratings).
 - Dual entry points: Streamlit dashboard for guided runs and CLI module for automation and scripting.
 - Structured JSON outputs with deterministic file naming in `tmp/` for each pipeline step.
 
@@ -102,9 +103,67 @@ This pipeline extracts structured data from medical research PDFs with a focus o
 │  Output: Best extraction + validation from all iterations    │
 │  Status: passed / max_iterations_reached / early_stopped     │
 └──────────────────────────────────────────────────────────────┘
+                            │
+                            ↓
+┌──────────────────────────────────────────────────────────────┐
+│  STEP 4: Critical Appraisal (Iterative Loop)                │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │ While quality insufficient AND iterations < max:       │ │
+│  │                                                          │ │
+│  │  4a. Appraisal (Study-Type Specific)                   │ │
+│  │      • Upload PDF + extraction to LLM                   │ │
+│  │      • Route to appropriate tool:                       │ │
+│  │        - RoB 2 for RCTs (5 domains + overall)          │ │
+│  │        - ROBINS-I for observational (7 domains)        │ │
+│  │        - PROBAST for prediction models                 │ │
+│  │        - AMSTAR 2 + ROBIS for meta-analyses            │ │
+│  │        - Argument quality for editorials               │ │
+│  │      • Assess each domain with rationales              │ │
+│  │      • GRADE certainty ratings per outcome             │ │
+│  │      Output: appraisal{N}.json                         │ │
+│  │                                                          │ │
+│  │  4b. Quality Assessment                                │ │
+│  │      • Check logical consistency ≥90%                  │ │
+│  │      • Check completeness ≥85%                         │ │
+│  │      • Check evidence support ≥90%                     │ │
+│  │      • Check schema compliance ≥95%                    │ │
+│  │      • Check critical_issues = 0                       │ │
+│  │                                                          │ │
+│  │  4c. If quality insufficient:                          │ │
+│  │      • Run correction with validation feedback         │ │
+│  │      • Upload PDF + validation + extraction to LLM     │ │
+│  │      • Fix inconsistencies and missing rationales      │ │
+│  │      • Output: appraisal{N+1}.json                     │ │
+│  │      • Loop back to 4b (validate corrected)            │ │
+│  │                                                          │ │
+│  │  4d. Early Stopping:                                   │ │
+│  │      • If quality degrades 2 consecutive iterations    │ │
+│  │      • Select best iteration and exit                  │ │
+│  └────────────────────────────────────────────────────────┘ │
+│                                                               │
+│  Output: Best appraisal + validation from all iterations     │
+│  Status: passed / max_iterations_reached / early_stopped     │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 **For detailed architecture and design decisions, see [ARCHITECTURE.md](ARCHITECTURE.md)**
+
+**For critical appraisal tools and methodology, see [features/appraisal.md](features/appraisal.md)**
+
+*Tip:* Moet je voor legacy-workflows slechts één appraisal-run zonder iteratieve correcties draaien? Gebruik dan
+`python run_pipeline.py paper.pdf --step appraisal --appraisal-single-pass` of schakel in de Streamlit settings de optie
+“Enable iterative appraisal correction” uit. Dit schrijft de klassieke `paper-appraisal.json` / `paper-appraisal_validation.json`
+bestanden weg naast de gebruikelijke `*-best.json` artefacten. Voor een complete handleiding zie [`docs/appraisal.md`](docs/appraisal.md).
+
+### Running the appraisal step
+
+| Mode        | Command / Action                                                                                          |
+|-------------|-----------------------------------------------------------------------------------------------------------|
+| CLI (full)  | `python run_pipeline.py paper.pdf --llm openai` – voert alle stappen incl. appraisal uit                  |
+| CLI (only)  | `python run_pipeline.py paper.pdf --step appraisal --appraisal-max-iter 5 --appraisal-logical-threshold 0.92` |
+| CLI legacy  | `python run_pipeline.py paper.pdf --step appraisal --appraisal-single-pass`                                |
+| Streamlit   | Settings → enable “Appraisal” step, configure thresholds/iterations, optioneel single-pass toggle          |
+| Retry only  | In de Execution UI op “Re-run appraisal” klikken – draait enkel de appraisal-stap opnieuw                  |
 
 > The diagram shows provider hard limits (32 MB, 100 pages). By default the pipeline caps uploads at 10 MB
 > to match the Streamlit uploader and `MAX_PDF_SIZE_MB` setting—raise it in your `.env` only if your provider

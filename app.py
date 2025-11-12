@@ -6,11 +6,11 @@
 PDFtoPodcast - Streamlit Web Interface
 
 A web-based interface for the medical literature extraction pipeline.
-Provides an intuitive UI for uploading PDFs and running the four-step extraction process:
+Provides an intuitive UI for uploading PDFs and running the four-step process:
 1. Classification - Identify publication type
 2. Extraction - Extract structured data
-3. Validation - Quality control
-4. Correction - Fix identified issues
+3. Validation & Correction - Iterative quality control
+4. Appraisal - Critical appraisal with RoB/GRADE summary
 
 This interface wraps the core pipeline functionality from run_pipeline.py.
 """

@@ -7,11 +7,15 @@ EVIDENCE-LOCKED RULES
 - No external knowledge. No inference or imputation.
 - Priority: Methods/Results/Tables first; use Abstract only for verification or missing items.
 - If information is absent in the PDF: OMIT the field. Never emit null.
-- Every key quantitative datapoint must carry a SourceRef (as allowed by the schema): minimally page; add table_id/figure_id and a short anchor/caption fragment when applicable.
+- Every key quantitative datapoint must carry a SourceRef WHERE THE SCHEMA ALLOWS IT: minimally page; add table_id/figure_id and a short anchor/caption fragment when applicable. Only emit SourceRef for fields explicitly defined in the schema.
 
 OUTPUT CONTRACT
 - Emit exactly one JSON object. No markdown fences. No prose before/after.
-- Closed world: only the TOP-LEVEL KEYS listed below are allowed.
+- CLOSED WORLD ASSUMPTION: The schema uses "additionalProperties":false at ALL nesting levels. This means:
+  * Only emit keys that are explicitly defined in the schema.
+  * At the top level: only the ALLOWED TOP-LEVEL KEYS listed below are allowed.
+  * Within nested objects (e.g., protocol, eligibility, outcomes, syntheses, publication_bias): only the keys defined in that schema fragment.
+  * Any extra key will cause validation to FAIL.
 - Numeric formatting: dot as decimal separator; no thousands separators; store percentages as numbers (e.g., 12.3).
 - Confidence intervals: {"lower": <number>, "upper": <number>}.
 - Dates: ISO-8601 if possible; preserve partial precision if only Y or Y-M is available.
@@ -56,6 +60,8 @@ extraction_warnings
 DISALLOWED ANYWHERE
 - Any extra keys not explicitly defined in the schema (top-level OR nested)
 - correction_notes, _metadata, _pipeline_metadata (internal fields)
+- Do NOT add source fields to objects that don't have them in the schema (e.g., publication_bias, data_collection)
+- Do NOT add notes fields to objects that don't have them in the schema (e.g., robis_assessment)
 
 SECTION REQUIREMENTS
 
@@ -76,7 +82,7 @@ review_type
   "Scoping review"
 
 protocol
-- { prospero_id, protocol_doi, deviations_from_protocol, source }
+- { prospero_id, protocol_doi, deviations_from_protocol, registration, source }
 
 living_review
 - { is_living_review: true/false, version_number, version_date, update_schedule, trigger_criteria, version_history, changes_since_last_version, discontinuation }
@@ -133,9 +139,9 @@ data_collection
     double_extraction: true/false,
     adjudication_rate_pct,
     conversion_rules,
-    unit_harmonization,
-    source
+    unit_harmonization
   }
+  NOTE: data_collection has NO source field in the schema.
 
 included_studies
 - Array of: {
@@ -191,7 +197,8 @@ risk_of_bias_summary
     summary_text,
     fig_source,
     per_study_assessments[],  # { study_label, rob_assessment, weight_in_meta_analysis, source }
-    overall_rob_distribution: { low_risk_pct, some_concerns_pct, high_risk_pct }
+    overall_rob_distribution: { low_risk_pct, some_concerns_pct, high_risk_pct },
+    source
   }
 
 certainty_of_evidence
@@ -260,9 +267,9 @@ robis_assessment
     overall_risk_of_bias ∈ {"low"|"high"|"unclear"},
     phase_1_relevance: { review_question_match, concerns },
     phase_2_domains: { study_eligibility_criteria, identification_and_selection, data_collection_and_study_appraisal, synthesis_and_findings },
-    phase_3_risk_of_bias,
-    notes
+    phase_3_overall_assessment
   }
+  NOTE: robis_assessment has NO notes field in the schema.
 
 extraction_warnings
 - Array of objects (NOT strings):

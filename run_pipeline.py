@@ -9,8 +9,8 @@ Four-step PDF extraction pipeline with direct PDF upload and schema-based valida
 Pipeline Steps:
     1. Classification - Identify publication type and extract metadata via PDF upload
     2. Extraction - Schema-based structured data extraction via PDF upload
-    3. Validation - Dual validation (schema + LLM semantic via PDF upload)
-    4. Correction - Fix issues identified during validation via PDF upload
+    3. Validation & Correction - Iterative validation and correction loop
+    4. Appraisal - Critical appraisal with risk of bias and GRADE assessment
 
 PDF Upload Strategy:
     All LLM steps use direct PDF upload (no text extraction) to preserve:
@@ -86,9 +86,15 @@ def main():
         description=(
             "PDFtoPodcast Pipeline - Extract structured data from medical research PDFs\n\n"
             "Full Pipeline: python run_pipeline.py paper.pdf\n"
-            "Single Step: python run_pipeline.py paper.pdf --step validation_correction --max-iterations 2"
+            "Single Step: python run_pipeline.py paper.pdf --step validation_correction --max-iterations 2\n"
+            "Appraisal: python run_pipeline.py paper.pdf --step appraisal --appraisal-max-iter 3"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "--appraisal-single-pass",
+        action="store_true",
+        help="Skip iterative correction for appraisal (single-pass mode).",
     )
     parser.add_argument("pdf", help="Pad naar de PDF")
     parser.add_argument(
@@ -111,6 +117,7 @@ def main():
             "validation",
             "correction",
             "validation_correction",
+            "appraisal",
         ],
         default=None,
         help="Run specific pipeline step (default: run all steps)",
@@ -139,6 +146,37 @@ def main():
         default=0.95,
         help="Minimum schema compliance score 0.0-0.99 (default: 0.95)",
     )
+    # Appraisal-specific arguments
+    parser.add_argument(
+        "--appraisal-max-iter",
+        type=int,
+        default=3,
+        help="Maximum correction attempts for appraisal step (default: 3)",
+    )
+    parser.add_argument(
+        "--appraisal-logical-threshold",
+        type=float,
+        default=0.90,
+        help="Minimum logical consistency score for appraisal (default: 0.90)",
+    )
+    parser.add_argument(
+        "--appraisal-completeness-threshold",
+        type=float,
+        default=0.85,
+        help="Minimum completeness score for appraisal (default: 0.85)",
+    )
+    parser.add_argument(
+        "--appraisal-evidence-threshold",
+        type=float,
+        default=0.90,
+        help="Minimum evidence support score for appraisal (default: 0.90)",
+    )
+    parser.add_argument(
+        "--appraisal-schema-threshold",
+        type=float,
+        default=0.95,
+        help="Minimum schema compliance score for appraisal (default: 0.95)",
+    )
     args = parser.parse_args()
 
     pdf_path = Path(args.pdf)
@@ -165,7 +203,7 @@ def main():
         # Create file manager
         file_manager = PipelineFileManager(pdf_path)
 
-        # Build quality thresholds if validation_correction step
+        # Build quality thresholds if validation_correction or appraisal step
         if args.step == "validation_correction":
             quality_thresholds = {
                 "completeness_score": args.completeness_threshold,
@@ -179,11 +217,38 @@ def main():
                 f"schema={args.schema_threshold:.0%}[/dim]"
             )
             console.print(f"[dim]Max iterations: {args.max_iterations}[/dim]")
+        elif args.step == "appraisal":
+            quality_thresholds = {
+                "logical_consistency_score": args.appraisal_logical_threshold,
+                "completeness_score": args.appraisal_completeness_threshold,
+                "evidence_support_score": args.appraisal_evidence_threshold,
+                "schema_compliance_score": args.appraisal_schema_threshold,
+                "critical_issues": 0,
+            }
+            console.print(
+                f"[dim]Appraisal quality thresholds: "
+                f"logical={args.appraisal_logical_threshold:.0%}, "
+                f"completeness={args.appraisal_completeness_threshold:.0%}, "
+                f"evidence={args.appraisal_evidence_threshold:.0%}, "
+                f"schema={args.appraisal_schema_threshold:.0%}[/dim]"
+            )
+            console.print(f"[dim]Max iterations: {args.appraisal_max_iter}[/dim]")
         else:
             quality_thresholds = None
 
         # Run single step
         with console.status(f"[bold cyan]Running step: {args.step}...[/bold cyan]", spinner="dots"):
+            # Determine max iterations based on step
+            if args.step == "validation_correction":
+                max_iter = args.max_iterations
+            elif args.step == "appraisal":
+                max_iter = args.appraisal_max_iter
+            else:
+                max_iter = None
+            enable_iter = True
+            if args.step == "appraisal":
+                enable_iter = not args.appraisal_single_pass
+
             result = run_single_step(
                 step_name=args.step,
                 pdf_path=pdf_path,
@@ -192,10 +257,9 @@ def main():
                 file_manager=file_manager,
                 progress_callback=None,  # CLI has no UI callback
                 previous_results=None,  # Load from disk if needed
-                max_correction_iterations=(
-                    args.max_iterations if args.step == "validation_correction" else None
-                ),
+                max_correction_iterations=max_iter,
                 quality_thresholds=quality_thresholds,
+                enable_iterative_correction=enable_iter,
             )
 
         # Print result summary
@@ -218,6 +282,39 @@ def main():
             if "iterations" in result and result["iterations"]:
                 best_iter = result.get("best_iteration", 0)
                 console.print(f"[cyan]Best iteration:[/cyan] {best_iter}")
+        elif args.step == "appraisal":
+            final_status = result.get("final_status", "unknown")
+            iteration_count = result.get("iteration_count", 0)
+            best_appraisal = result.get("best_appraisal", {})
+
+            console.print(f"[cyan]Final status:[/cyan] {final_status}")
+            console.print(f"[cyan]Iterations:[/cyan] {iteration_count}")
+
+            if "iterations" in result and result["iterations"]:
+                best_iter = result.get("best_iteration", 0)
+                console.print(f"[cyan]Best iteration:[/cyan] {best_iter}")
+
+            # Display risk of bias summary
+            if "risk_of_bias" in best_appraisal:
+                rob = best_appraisal["risk_of_bias"]
+                overall = rob.get("overall", "—")
+                tool_name = best_appraisal.get("tool", {}).get("name", "—")
+                console.print(f"[cyan]Tool:[/cyan] {tool_name}")
+                console.print(f"[cyan]Risk of Bias (overall):[/cyan] {overall}")
+
+                # Show domain count
+                domains = rob.get("domains", [])
+                if domains:
+                    console.print(f"[dim]  → {len(domains)} domains assessed[/dim]")
+
+            # Display GRADE certainty if available
+            grade_outcomes = best_appraisal.get("grade_per_outcome", [])
+            if grade_outcomes:
+                console.print(f"[cyan]GRADE ratings:[/cyan] {len(grade_outcomes)} outcome(s)")
+                for grade in grade_outcomes[:3]:  # Show first 3
+                    certainty = grade.get("certainty", "—")
+                    outcome_id = grade.get("outcome_id", "—")
+                    console.print(f"[dim]  → {outcome_id}: {certainty}[/dim]")
         elif args.step in ["validation"]:
             validation_status = result.get("verification_summary", {}).get("overall_status", "—")
             completeness = result.get("verification_summary", {}).get("completeness_score", 0)
@@ -234,14 +331,14 @@ def main():
     else:
         # Full pipeline execution
         # Updated pipeline steps for 4-component system
-        table = Table(title="Pipeline stappen (4-component systeem)", box=box.SIMPLE_HEAVY)
+        table = Table(title="Pipeline stappen (4-step systeem)", box=box.SIMPLE_HEAVY)
         table.add_column("Stap", style="cyan", no_wrap=True)
         table.add_column("Status", style="green")
         steps = [
             ("1. Classificatie", "⏳"),
             ("2. Data extractie", ""),
-            ("3. Validatie", ""),
-            ("4. Correctie (indien nodig)", ""),
+            ("3. Validatie & Correctie", ""),
+            ("4. Critical Appraisal", ""),
             ("5. Finale outputs", ""),
         ]
         for s, st in steps:
@@ -281,22 +378,58 @@ def main():
     if "extraction" in results:
         summary.add_row("Data extractie", "✅ Voltooid")
 
-    # Validation summary
-    validation = results.get("validation", {})
-    validation_status = validation.get("verification_summary", {}).get("overall_status", "—")
-    completeness = validation.get("verification_summary", {}).get("completeness_score", 0)
-    accuracy = validation.get("verification_summary", {}).get("accuracy_score", 0)
+    # Validation & correction summary (iterative step)
+    validation_correction = results.get("validation_correction")
+    if validation_correction:
+        final_status = validation_correction.get("final_status", "—")
+        iteration_count = validation_correction.get("iteration_count", 0)
+        summary.add_row("Val & Corr status", final_status)
+        summary.add_row("Val & Corr iteraties", str(iteration_count))
 
-    summary.add_row("Validatie status", validation_status)
-    summary.add_row("Compleetheid score", f"{completeness:.2f}")
-    summary.add_row("Nauwkeurigheid score", f"{accuracy:.2f}")
+        best_iteration = validation_correction.get("best_iteration")
+        iterations = validation_correction.get("iterations", [])
+        best_metrics = None
+        if iterations and best_iteration is not None and best_iteration < len(iterations):
+            best_metrics = iterations[best_iteration].get("metrics", {})
 
-    # Correction summary
-    if "extraction_corrected" in results:
-        summary.add_row("Correctie uitgevoerd", "✅ Ja")
-        final_validation = results.get("validation_corrected", {})
-        final_status = final_validation.get("verification_summary", {}).get("overall_status", "—")
-        summary.add_row("Finale validatie", final_status)
+        if best_metrics:
+            quality = best_metrics.get("overall_quality")
+            completeness = best_metrics.get("completeness_score")
+            accuracy = best_metrics.get("accuracy_score")
+            schema = best_metrics.get("schema_compliance_score")
+            summary.add_row("Val & Corr kwaliteit", f"{(quality or 0):.0%}")
+            summary.add_row("Compleetheid score", f"{(completeness or 0):.0%}")
+            summary.add_row("Nauwkeurigheid score", f"{(accuracy or 0):.0%}")
+            summary.add_row("Schema score", f"{(schema or 0):.0%}")
+    else:
+        # Legacy single validation fallback
+        validation = results.get("validation", {})
+        validation_status = validation.get("verification_summary", {}).get("overall_status", "—")
+        completeness = validation.get("verification_summary", {}).get("completeness_score", 0)
+        accuracy = validation.get("verification_summary", {}).get("accuracy_score", 0)
+
+        summary.add_row("Validatie status", validation_status)
+        summary.add_row("Compleetheid score", f"{completeness:.2f}")
+        summary.add_row("Nauwkeurigheid score", f"{accuracy:.2f}")
+
+    # Appraisal summary
+    appraisal = results.get("appraisal")
+    if appraisal:
+        appraisal_status = appraisal.get("final_status", "—")
+        iteration_count = appraisal.get("iteration_count", 0)
+        summary.add_row("Appraisal status", appraisal_status)
+        summary.add_row("Appraisal iteraties", str(iteration_count))
+
+        best_appraisal = appraisal.get("best_appraisal", {})
+        rob = best_appraisal.get("risk_of_bias", {})
+        grade_outcomes = best_appraisal.get("grade_per_outcome", [])
+
+        overall_rob = rob.get("overall")
+        if overall_rob:
+            summary.add_row("Risk of Bias (overall)", overall_rob)
+
+        if grade_outcomes:
+            summary.add_row("GRADE outcomes", str(len(grade_outcomes)))
 
     console.print(summary)
 
