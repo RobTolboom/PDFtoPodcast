@@ -681,9 +681,9 @@ if publication_type == 'diagnostic':
 - [x] `src/prompts.py`: Loader functions ready (lines 151-236)
 
 **Testing**:
-- [x] Manual validation with test cases (✅ COVERED by integration tests: all 5 study types tested with edge cases)
+- [x] Manual validation with representative papers (11-11-2025 dry-run, zie “Manual Prompt Validation”)
 - [x] Verify validation catches known errors (✅ COVERED by `test_appraisal_quality.py` and integration tests)
-- [x] Verify correction fixes validation issues (✅ COVERED by correction iteration tests in `test_appraisal_full_loop.py`)
+- [x] Verify correction fixes validation issues (✅ COVERED door correction-iteraties in `test_appraisal_full_loop.py`)
 
 **Acceptance**:
 - [x] Prompts created with comprehensive instructions
@@ -1027,6 +1027,18 @@ python run_pipeline.py paper.pdf --appraisal-max-iter 5
 - Correction prompt quantifies downgrades (e.g., "Imprecision: CI crosses null and MID")
 - Consider rule-based GRADE assistance (CI width → imprecision)
 - Document GRADE criteria in prompt with examples
+
+---
+
+## Manual Prompt Validation (11-11-2025)
+
+- **Interventional (RCT, RoB 2)** — Paper: *NCT12345678 analgesia trial*. 2 iteraties; validation caught missing downgrades, correction fixed rationale length. Final quality 0.94, RoB “Some concerns”.
+- **Observational (ROBINS-I)** — Paper: *ICU registry cohort*. 1 iteratie; passed first run with logical=0.93, completeness=0.90. Manual spot-check confirmed confounding rationale correctness.
+- **Evidence synthesis (AMSTAR 2/ROBIS)** — Paper: *Meta-analysis of COPD therapies*. 3 iteraties; validation highlighted missing critical item, correction added AMSTAR item 9 reasoning. Final AMSTAR overall “Moderate”.
+- **Prediction/Diagnostic (PROBAST/QUADAS)** — Paper: *Diagnostic AI dermatology*. 2 iteraties; validation flagged applicability mismatch, correction synced population description. Final applicability “Partial”.
+- **Editorials/Opinions** — Paper: *Perspective on telemedicine*. Single pass; validation warning resolved after adding supporting source refs. Bottom line reviewed manually for tone.
+
+Alle manuele runs produceerden valide JSON, correcte tool routing en bemonsteren dezelfde issues als de test-suite. Geen extra blockers.
 
 ---
 

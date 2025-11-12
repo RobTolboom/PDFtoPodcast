@@ -3,16 +3,16 @@
 # Commercial use requires separate license - see LICENSE and COMMERCIAL_LICENSE.md
 
 """
-Four-step PDF extraction pipeline orchestration.
+Four-step PDF extraction + appraisal pipeline orchestration.
 
 This module contains the main pipeline orchestration logic that coordinates
-the four extraction steps: Classification → Extraction → Validation → Correction.
+the four primary steps: Classification → Extraction → Validation & Correction → Appraisal.
 
 Pipeline Steps:
     1. Classification - Identify publication type and extract metadata
     2. Extraction - Schema-based structured data extraction
-    3. Validation - Dual validation (schema + conditional LLM semantic)
-    4. Correction - Fix issues identified during validation
+    3. Validation & Correction - Iterative validation with automatic correction
+    4. Appraisal - Critical appraisal (risk of bias, GRADE, applicability)
 
 Public APIs:
     - run_single_step(): Execute individual pipeline steps with dependency validation
@@ -2744,14 +2744,6 @@ def run_appraisal_with_correction(
                 # current_appraisal already contains corrected version
                 pass
 
-            # Save appraisal iteration
-            appraisal_file = file_manager.save_json(
-                current_appraisal,
-                STEP_APPRAISAL,
-                iteration_number=iteration_num,
-            )
-            console.print(f"[dim]Saved: {appraisal_file.name}[/dim]")
-
             # Step 2: Validate appraisal
             current_validation = _run_appraisal_validation_step(
                 appraisal_result=current_appraisal,
@@ -2761,13 +2753,15 @@ def run_appraisal_with_correction(
                 progress_callback=progress_callback,
             )
 
-            # Save validation iteration
-            validation_file = file_manager.save_json(
-                current_validation,
-                STEP_APPRAISAL_VALIDATION,
-                iteration_number=iteration_num,
+            # Save appraisal + validation iteration via file manager helper
+            appraisal_file, validation_file = file_manager.save_appraisal_iteration(
+                iteration=iteration_num,
+                appraisal_result=current_appraisal,
+                validation_result=current_validation,
             )
-            console.print(f"[dim]Saved: {validation_file.name}[/dim]")
+            console.print(f"[dim]Saved: {appraisal_file.name}[/dim]")
+            if validation_file:
+                console.print(f"[dim]Saved: {validation_file.name}[/dim]")
 
             # Extract metrics
             metrics = _extract_appraisal_metrics(current_validation)
@@ -3356,13 +3350,13 @@ def run_four_step_pipeline(
     progress_callback: Callable[[str, str, dict], None] | None = None,
 ) -> dict[str, Any]:
     """
-    Four-step extraction pipeline with optional step filtering and progress callbacks.
+    Four-step extraction-and-appraisal pipeline with optional step filtering.
 
-    Coordinates the full extraction pipeline from PDF to validated structured data:
+    Coordinates the full pipeline from PDF to validated evidence outputs:
     1. Classification - Identify publication type + extract metadata
     2. Extraction - Detailed data extraction based on classified type
-    3. Validation - Quality control with dual validation strategy
-    4. Correction - Fix issues if validation indicates problems
+    3. Validation & Correction - Iterative quality control with automatic fixes
+    4. Appraisal - Critical appraisal (RoB, GRADE, applicability)
 
     Args:
         pdf_path: Path to PDF file to process
@@ -3370,13 +3364,12 @@ def run_four_step_pipeline(
         llm_provider: LLM provider to use ("openai" or "claude")
         breakpoint_after_step: Step name to pause after (for testing)
         have_llm_support: Whether LLM modules are available
-        steps_to_run: Optional list of steps to execute. Valid steps:
-            ["classification", "extraction", "validation", "correction"]
-            None = run all steps (default, backwards compatible)
+        steps_to_run: Optional list of steps to execute.
+            None = run all steps (default).
             Dependencies are validated automatically.
         progress_callback: Optional callback for progress updates.
             Signature: callback(step_name: str, status: str, data: dict)
-            - step_name: "classification" | "extraction" | "validation" | "correction"
+            - step_name: "classification" | "extraction" | "validation_correction" | "appraisal"
             - status: "starting" | "completed" | "failed" | "skipped"
             - data: dict with step-specific info (results, errors, timing, file_path)
 

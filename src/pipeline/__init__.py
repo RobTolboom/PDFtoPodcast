@@ -3,13 +3,13 @@
 # Commercial use requires separate license - see LICENSE and COMMERCIAL_LICENSE.md
 
 """
-Four-step PDF extraction pipeline package.
+Four-step PDF extraction + appraisal pipeline package.
 
-This package provides the core extraction pipeline that coordinates:
+This package provides the core pipeline that coordinates:
 1. Classification - Identify publication type and extract metadata
 2. Extraction - Schema-based structured data extraction
-3. Validation - Dual validation (schema + conditional LLM semantic)
-4. Correction - Fix issues identified during validation
+3. Validation & Correction - Iterative schema + semantic validation with fixes
+4. Appraisal - Critical appraisal (risk of bias, GRADE, applicability)
 
 Main Components:
     - orchestrator: Main pipeline coordination (run_four_step_pipeline)

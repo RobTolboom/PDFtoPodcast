@@ -378,22 +378,58 @@ def main():
     if "extraction" in results:
         summary.add_row("Data extractie", "✅ Voltooid")
 
-    # Validation summary
-    validation = results.get("validation", {})
-    validation_status = validation.get("verification_summary", {}).get("overall_status", "—")
-    completeness = validation.get("verification_summary", {}).get("completeness_score", 0)
-    accuracy = validation.get("verification_summary", {}).get("accuracy_score", 0)
+    # Validation & correction summary (iterative step)
+    validation_correction = results.get("validation_correction")
+    if validation_correction:
+        final_status = validation_correction.get("final_status", "—")
+        iteration_count = validation_correction.get("iteration_count", 0)
+        summary.add_row("Val & Corr status", final_status)
+        summary.add_row("Val & Corr iteraties", str(iteration_count))
 
-    summary.add_row("Validatie status", validation_status)
-    summary.add_row("Compleetheid score", f"{completeness:.2f}")
-    summary.add_row("Nauwkeurigheid score", f"{accuracy:.2f}")
+        best_iteration = validation_correction.get("best_iteration")
+        iterations = validation_correction.get("iterations", [])
+        best_metrics = None
+        if iterations and best_iteration is not None and best_iteration < len(iterations):
+            best_metrics = iterations[best_iteration].get("metrics", {})
 
-    # Correction summary
-    if "extraction_corrected" in results:
-        summary.add_row("Correctie uitgevoerd", "✅ Ja")
-        final_validation = results.get("validation_corrected", {})
-        final_status = final_validation.get("verification_summary", {}).get("overall_status", "—")
-        summary.add_row("Finale validatie", final_status)
+        if best_metrics:
+            quality = best_metrics.get("overall_quality")
+            completeness = best_metrics.get("completeness_score")
+            accuracy = best_metrics.get("accuracy_score")
+            schema = best_metrics.get("schema_compliance_score")
+            summary.add_row("Val & Corr kwaliteit", f"{(quality or 0):.0%}")
+            summary.add_row("Compleetheid score", f"{(completeness or 0):.0%}")
+            summary.add_row("Nauwkeurigheid score", f"{(accuracy or 0):.0%}")
+            summary.add_row("Schema score", f"{(schema or 0):.0%}")
+    else:
+        # Legacy single validation fallback
+        validation = results.get("validation", {})
+        validation_status = validation.get("verification_summary", {}).get("overall_status", "—")
+        completeness = validation.get("verification_summary", {}).get("completeness_score", 0)
+        accuracy = validation.get("verification_summary", {}).get("accuracy_score", 0)
+
+        summary.add_row("Validatie status", validation_status)
+        summary.add_row("Compleetheid score", f"{completeness:.2f}")
+        summary.add_row("Nauwkeurigheid score", f"{accuracy:.2f}")
+
+    # Appraisal summary
+    appraisal = results.get("appraisal")
+    if appraisal:
+        appraisal_status = appraisal.get("final_status", "—")
+        iteration_count = appraisal.get("iteration_count", 0)
+        summary.add_row("Appraisal status", appraisal_status)
+        summary.add_row("Appraisal iteraties", str(iteration_count))
+
+        best_appraisal = appraisal.get("best_appraisal", {})
+        rob = best_appraisal.get("risk_of_bias", {})
+        grade_outcomes = best_appraisal.get("grade_per_outcome", [])
+
+        overall_rob = rob.get("overall")
+        if overall_rob:
+            summary.add_row("Risk of Bias (overall)", overall_rob)
+
+        if grade_outcomes:
+            summary.add_row("GRADE outcomes", str(len(grade_outcomes)))
 
     console.print(summary)
 

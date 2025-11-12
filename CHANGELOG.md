@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Improved risk mitigation strategy (extraction quality warning instead of hard block)
   - Fixed workflow diagram syntax (pipe → "OR" for clarity)
   - Location: features/appraisal.md (v1.0 → v1.1, +15 improvements)
+- CLI summary now surfaces validation-correction quality metrics and appraisal outcomes so full-pipeline runs expose Step 3/4 status directly (`run_pipeline.py`).
+- Public pipeline docstrings (orchestrator, package `__init__`, Streamlit entry) now describe the four-step flow as Classification → Extraction → Validation & Correction → Appraisal.
 
 ### Fixed
 - **Evidence Synthesis Schema Validation** - Fixed 6 schema validation errors for meta-analysis/systematic review extractions
@@ -37,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Impact: Meta-analysis extractions now validate successfully, quality scores improved from 37.5-38.9% (failed) to passing
   - Files modified: `schemas/evidence_synthesis.schema.json` (source), `prompts/Extraction-prompt-evidence-synthesis.txt`, regenerated `evidence_synthesis_bundled.json`
   - Location: schemas/evidence_synthesis.schema.json lines 948 (is_primary), 587 (risk_of_bias_summary source), 1711 (Synthesis source), 1231-1243 (PairwiseMetaAnalysis outcome_id removal), 1707-1710 (synthesis_id); prompts/Extraction-prompt-evidence-synthesis.txt line 66 (authors instruction)
+- `run_appraisal_with_correction()` now uses `PipelineFileManager.save_appraisal_iteration()` to persist appraisal/validation pairs consistently.
+- Removed stray duplicate unit test files (`tests/unit/* 2.py`) so pytest does not execute the same suite twice.
 
 ### Changed
 - Marked `COMMERCIAL_LICENSE.md` as a draft pending legal review to prevent accidental publication of unapproved contract language.
