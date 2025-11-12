@@ -28,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Public pipeline docstrings (orchestrator, package `__init__`, Streamlit entry) now describe the four-step flow as Classification → Extraction → Validation & Correction → Appraisal.
 
 ### Fixed
+- **Error Handling** - Replaced bare exception handlers in `orchestrator.py` with logged warnings when metadata saving fails
+  - Extraction error handler (`orchestrator.py:870`) now logs failure to save error metadata
+  - Correction error handler (`orchestrator.py:1201`) now logs failure to save error metadata
+  - Prevents silent exception swallowing while maintaining "best effort" error handling approach
 - **Evidence Synthesis Schema Validation** - Fixed 6 schema validation errors for meta-analysis/systematic review extractions
   - **Fix 1:** Added `is_primary` boolean field to `SynthesisOutcome` schema - prompt was requesting this field but schema didn't allow it
   - **Fix 2:** Added `source` field to `risk_of_bias_summary` - LLM was adding source references but schema rejected them

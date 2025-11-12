@@ -867,8 +867,8 @@ def _run_extraction_step(
         }
         try:
             file_manager.save_json(error_data, "extraction", "failed")
-        except Exception:
-            pass  # Don't fail the error handling
+        except Exception as e:
+            console.print(f"[yellow]⚠️ Failed to save error metadata: {e}[/yellow]")
 
         _call_progress_callback(
             progress_callback,
@@ -1197,8 +1197,8 @@ Systematically address all identified issues and produce corrected, complete,\
         }
         try:
             file_manager.save_json(error_data, "correction", "failed")
-        except Exception:
-            pass  # Don't fail the error handling
+        except Exception as e:
+            console.print(f"[yellow]⚠️ Failed to save error metadata: {e}[/yellow]")
 
         _call_progress_callback(
             progress_callback,
