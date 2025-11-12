@@ -44,32 +44,38 @@ class TestIterativeValidationCorrection:
     def mock_validation_low_quality(self):
         """Mock validation result with low quality scores."""
         return {
-            "overall_quality": 0.70,
-            "completeness_score": 0.75,
-            "accuracy_score": 0.80,
-            "schema_compliance_score": 0.90,
-            "critical_issues": 0,
-            "missing_fields": ["outcomes"],
-            "issues": [
-                {
-                    "severity": "warning",
-                    "message": "Outcomes section is incomplete",
-                    "field": "outcomes",
-                }
-            ],
+            "schema_validation": {"quality_score": 0.90},
+            "verification_summary": {
+                "overall_quality": 0.70,
+                "completeness_score": 0.75,
+                "accuracy_score": 0.80,
+                "schema_compliance_score": 0.90,
+                "critical_issues": 0,
+                "missing_fields": ["outcomes"],
+                "issues": [
+                    {
+                        "severity": "warning",
+                        "message": "Outcomes section is incomplete",
+                        "field": "outcomes",
+                    }
+                ],
+            },
         }
 
     @pytest.fixture
     def mock_validation_high_quality(self):
         """Mock validation result with high quality scores (passes thresholds)."""
         return {
-            "overall_quality": 0.96,
-            "completeness_score": 0.95,
-            "accuracy_score": 0.97,
-            "schema_compliance_score": 0.98,
-            "critical_issues": 0,
-            "missing_fields": [],
-            "issues": [],
+            "schema_validation": {"quality_score": 0.98},
+            "verification_summary": {
+                "overall_quality": 0.96,
+                "completeness_score": 0.95,
+                "accuracy_score": 0.97,
+                "schema_compliance_score": 0.98,
+                "critical_issues": 0,
+                "missing_fields": [],
+                "issues": [],
+            },
         }
 
     @pytest.fixture
@@ -106,16 +112,24 @@ class TestIterativeValidationCorrection:
 
         return PipelineFileManager(pdf_path=Path(pdf_path))
 
-    @patch("src.pipeline.orchestrator.run_correction")
-    @patch("src.pipeline.orchestrator.run_validation")
+    @pytest.fixture
+    def mock_classification(self):
+        """Mock classification result providing publication type."""
+        return {"publication_type": "interventional_trial"}
+
+    @patch("src.pipeline.orchestrator.get_llm_provider")
+    @patch("src.pipeline.orchestrator._run_correction_step")
+    @patch("src.pipeline.orchestrator._run_validation_step")
     def test_correction_notes_stripped_from_final_result(
         self,
         mock_run_validation,
         mock_run_correction,
+        mock_get_llm,
         mock_extraction,
         mock_validation_low_quality,
         mock_validation_high_quality,
         mock_corrected_extraction,
+        mock_classification,
         file_manager,
     ):
         """
@@ -128,25 +142,26 @@ class TestIterativeValidationCorrection:
         4. Final result should NOT contain correction_notes
         """
         # Setup mocks
-        # First validation: low quality (triggers correction)
-        # Second validation: high quality (passes thresholds)
-        mock_run_validation.side_effect = [
-            mock_validation_low_quality,
-            mock_validation_high_quality,
-        ]
+        # Initial validation: low quality (triggers correction)
+        mock_run_validation.return_value = mock_validation_low_quality
 
         # Correction returns extraction WITH correction_notes
-        mock_run_correction.return_value = mock_corrected_extraction
+        mock_run_correction.return_value = (
+            mock_corrected_extraction,
+            mock_validation_high_quality,
+        )
 
         # Mock LLM provider
         mock_llm = MagicMock()
         mock_llm.__class__.__name__ = "OpenAIProvider"
+        mock_get_llm.return_value = mock_llm
 
         # Run validation-correction loop
         result = run_validation_with_correction(
-            extraction_data=mock_extraction,
-            publication_type="interventional_trial",
-            llm_provider=mock_llm,
+            pdf_path=file_manager.pdf_path,
+            extraction_result=mock_extraction,
+            classification_result=mock_classification,
+            llm_provider="openai",
             file_manager=file_manager,
             max_iterations=3,
         )
@@ -162,19 +177,22 @@ class TestIterativeValidationCorrection:
         assert len(result["best_extraction"]["outcomes"]) == 1
 
         # Verify iterations were tracked
-        assert result["total_iterations"] >= 1
-        assert result["quality_sufficient"] is True
+        assert result["iteration_count"] >= 1
+        assert result["final_status"] == "passed"
 
-    @patch("src.pipeline.orchestrator.run_correction")
-    @patch("src.pipeline.orchestrator.run_validation")
+    @patch("src.pipeline.orchestrator.get_llm_provider")
+    @patch("src.pipeline.orchestrator._run_correction_step")
+    @patch("src.pipeline.orchestrator._run_validation_step")
     def test_correction_notes_stripped_from_all_iterations(
         self,
         mock_run_validation,
         mock_run_correction,
+        mock_get_llm,
         mock_extraction,
         mock_validation_low_quality,
         mock_validation_high_quality,
         mock_corrected_extraction,
+        mock_classification,
         file_manager,
     ):
         """
@@ -184,21 +202,22 @@ class TestIterativeValidationCorrection:
         in any iteration's extraction data.
         """
         # Setup: run 2 iterations before passing
-        mock_run_validation.side_effect = [
-            mock_validation_low_quality,  # Iteration 0 validation
-            mock_validation_low_quality,  # Iteration 1 post-correction validation
-            mock_validation_high_quality,  # Iteration 2 post-correction validation (passes)
-        ]
+        mock_run_validation.return_value = mock_validation_low_quality
 
-        mock_run_correction.return_value = mock_corrected_extraction
+        mock_run_correction.side_effect = [
+            (mock_corrected_extraction, mock_validation_low_quality),
+            (mock_corrected_extraction, mock_validation_high_quality),
+        ]
 
         mock_llm = MagicMock()
         mock_llm.__class__.__name__ = "OpenAIProvider"
+        mock_get_llm.return_value = mock_llm
 
         result = run_validation_with_correction(
-            extraction_data=mock_extraction,
-            publication_type="interventional_trial",
-            llm_provider=mock_llm,
+            pdf_path=file_manager.pdf_path,
+            extraction_result=mock_extraction,
+            classification_result=mock_classification,
+            llm_provider="openai",
             file_manager=file_manager,
             max_iterations=3,
         )
@@ -209,14 +228,18 @@ class TestIterativeValidationCorrection:
                 "correction_notes" not in iteration["extraction"]
             ), f"Iteration {i} extraction should not contain correction_notes"
 
-    @patch("src.pipeline.orchestrator.run_correction")
-    @patch("src.pipeline.orchestrator.run_validation")
+    @patch("src.pipeline.orchestrator.get_llm_provider")
+    @patch("src.pipeline.orchestrator._run_correction_step")
+    @patch("src.pipeline.orchestrator._run_validation_step")
     def test_metadata_fields_stripped_from_final_result(
         self,
         mock_run_validation,
         mock_run_correction,
+        mock_get_llm,
         mock_extraction,
+        mock_validation_low_quality,
         mock_validation_high_quality,
+        mock_classification,
         file_manager,
     ):
         """
@@ -238,16 +261,21 @@ class TestIterativeValidationCorrection:
             "correction_notes": "Corrections applied",
         }
 
-        mock_run_validation.return_value = mock_validation_high_quality
-        mock_run_correction.return_value = corrected_with_metadata
+        mock_run_validation.return_value = mock_validation_low_quality
+        mock_run_correction.return_value = (
+            corrected_with_metadata,
+            mock_validation_high_quality,
+        )
 
         mock_llm = MagicMock()
         mock_llm.__class__.__name__ = "OpenAIProvider"
+        mock_get_llm.return_value = mock_llm
 
         result = run_validation_with_correction(
-            extraction_data=mock_extraction,
-            publication_type="interventional_trial",
-            llm_provider=mock_llm,
+            pdf_path=file_manager.pdf_path,
+            extraction_result=mock_extraction,
+            classification_result=mock_classification,
+            llm_provider="openai",
             file_manager=file_manager,
             max_iterations=3,
         )

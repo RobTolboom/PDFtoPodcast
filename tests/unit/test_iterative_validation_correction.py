@@ -336,7 +336,7 @@ class TestIterativeLoop:
                 },
             },
         ]
-        mock_validation.side_effect = validation_results
+        mock_validation.return_value = validation_results[0]
 
         # Mock correction results
         corrected_extractions = [
@@ -356,8 +356,12 @@ class TestIterativeLoop:
         assert result["iteration_count"] == 3  # Initial + 2 corrections
         assert len(result["iterations"]) == 3
         assert "warning" in result
-        assert mock_validation.call_count == 3
+        assert mock_validation.call_count == 1  # initial validation only
         assert mock_correction.call_count == 2
+        # Ensure each iteration used the expected validation payload
+        assert result["iterations"][0]["validation"] == validation_results[0]
+        assert result["iterations"][1]["validation"] == validation_results[1]
+        assert result["iterations"][2]["validation"] == validation_results[2]
 
     @patch("src.pipeline.orchestrator._run_validation_step")
     @patch("src.pipeline.orchestrator._run_correction_step")
