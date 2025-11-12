@@ -1238,9 +1238,9 @@ def show_execution_screen():
 
     Note:
         - Pipeline integration via callbacks (Fase 4 - IMPLEMENTED)
-        - Verbose logging placeholders (Fase 6 - TODO)
-        - Advanced error handling (Fase 7 - TODO)
-        - Auto-redirect (Fase 8 - TODO)
+        - Verbose logging placeholders (Fase 6 - FUTURE: deferred enhancement, not required for MVP)
+        - Advanced error handling (Fase 7 - FUTURE: deferred enhancement, not required for MVP)
+        - Auto-redirect (Fase 8 - FUTURE: deferred enhancement, not required for MVP)
     """
     # Initialize state
     init_execution_state()
