@@ -98,6 +98,13 @@ ALL_PIPELINE_STEPS = [
 ]
 # Note: STEP_VALIDATION and STEP_CORRECTION remain available for CLI backward compatibility
 
+STEP_DISPLAY_NAMES = {
+    STEP_CLASSIFICATION: "Step 1 - Classification",
+    STEP_EXTRACTION: "Step 2 - Extraction",
+    STEP_VALIDATION_CORRECTION: "Step 3 - Validation & Correction",
+    STEP_APPRAISAL: "Step 4 - Appraisal",
+}
+
 # Default quality thresholds for iterative correction loop (extraction)
 DEFAULT_QUALITY_THRESHOLDS = {
     "completeness_score": 0.90,  # ≥90% of PDF data extracted
@@ -738,6 +745,7 @@ def _run_extraction_step(
         llm: LLM provider instance (from get_llm_provider)
         file_manager: PipelineFileManager for saving results
         progress_callback: Optional callback for progress updates
+        banner_label: Optional custom label for console banner (defaults to "VALIDATION")
 
     Returns:
         Dictionary containing extracted structured data
@@ -747,7 +755,7 @@ def _run_extraction_step(
         PromptLoadError: If prompt file cannot be loaded
         LLMError: If LLM API call fails
     """
-    console.print("\n[bold magenta]═══ STAP 2: DATA EXTRACTIE (SCHEMA-BASED) ═══[/bold magenta]\n")
+    console.print("\n[bold magenta]═══ STEP 2: DATA EXTRACTION (SCHEMA-BASED) ═══[/bold magenta]\n")
 
     start_time = time.time()
 
@@ -838,7 +846,7 @@ def _run_extraction_step(
 
     except (SchemaLoadError, PromptLoadError, LLMError) as e:
         elapsed = time.time() - start_time
-        console.print(f"[red]❌ Extractie fout: {e}[/red]")
+        console.print(f"[red]❌ Extraction error: {e}[/red]")
 
         # Save error metadata (best effort)
         error_data = {
@@ -879,6 +887,7 @@ def _run_validation_step(
     llm: Any,
     file_manager: PipelineFileManager,
     progress_callback: Callable[[str, str, dict], None] | None,
+    banner_label: str | None = None,
 ) -> dict[str, Any]:
     """
     Run validation step of the pipeline.
@@ -901,8 +910,6 @@ def _run_validation_step(
     Raises:
         LLMError: If LLM API call fails during semantic validation
     """
-    console.print("\n[bold magenta]═══ STAP 3: VALIDATIE (SCHEMA + LLM) ═══[/bold magenta]\n")
-
     start_time = time.time()
     _call_progress_callback(progress_callback, STEP_VALIDATION, "starting", {})
 
@@ -912,6 +919,7 @@ def _run_validation_step(
     publication_type = classification_clean.get("publication_type")
 
     # Run dual validation (schema + conditional LLM) with clean data
+    label = banner_label or "VALIDATION"
     validation_result = run_dual_validation(
         extraction_result=extraction_clean,
         pdf_path=pdf_path,
@@ -919,6 +927,7 @@ def _run_validation_step(
         publication_type=publication_type,
         llm=llm,
         console=console,
+        banner_label=label,
     )
 
     # Add pipeline metadata
@@ -937,7 +946,7 @@ def _run_validation_step(
     }
 
     validation_file = file_manager.save_json(validation_result, "validation", iteration_number=0)
-    console.print(f"[green]✅ Validatie opgeslagen: {validation_file}[/green]")
+    console.print(f"[green]✅ Validation saved: {validation_file}[/green]")
 
     # Validation completed
     elapsed = time.time() - start_time
@@ -967,6 +976,7 @@ def _run_correction_step(
     llm: Any,
     file_manager: PipelineFileManager,
     progress_callback: Callable[[str, str, dict], None] | None,
+    banner_label: str | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """
     Run correction step of the pipeline.
@@ -983,6 +993,7 @@ def _run_correction_step(
         llm: LLM provider instance (from get_llm_provider)
         file_manager: PipelineFileManager for saving results
         progress_callback: Optional callback for progress updates
+        banner_label: Optional custom label for console banner (defaults to "CORRECTION")
 
     Returns:
         Tuple of (corrected_extraction, final_validation)
@@ -992,7 +1003,8 @@ def _run_correction_step(
         SchemaLoadError: If extraction schema cannot be loaded
         LLMError: If LLM API call fails
     """
-    console.print("\n[bold magenta]═══ STAP 4: CORRECTIE ═══[/bold magenta]\n")
+    title = banner_label or "CORRECTION"
+    console.print(f"\n[bold magenta]═══ {title} ═══[/bold magenta]\n")
 
     start_time = time.time()
 
@@ -1165,7 +1177,7 @@ Systematically address all identified issues and produce corrected, complete,\
 
     except (PromptLoadError, LLMError, SchemaLoadError) as e:
         elapsed = time.time() - start_time
-        console.print(f"[red]❌ Correctie fout: {e}[/red]")
+        console.print(f"[red]❌ Correction error: {e}[/red]")
 
         # Save error metadata (best effort)
         error_data = {
@@ -1295,7 +1307,9 @@ def run_validation_with_correction(
     publication_type = classification_result.get("publication_type", "unknown")
 
     # Display header and configuration
-    console.print("\n[bold magenta]═══ ITERATIVE VALIDATION & CORRECTION ═══[/bold magenta]\n")
+    console.print(
+        "\n[bold magenta]═══ STEP 3: ITERATIVE VALIDATION & CORRECTION ═══[/bold magenta]\n"
+    )
     console.print(f"[blue]Publication type: {publication_type}[/blue]")
     console.print(f"[blue]Max iterations: {max_iterations}[/blue]")
     console.print(
@@ -1332,6 +1346,7 @@ def run_validation_with_correction(
                     llm=llm,
                     file_manager=file_manager,
                     progress_callback=progress_callback,
+                    banner_label=f"Iter {iteration_num} - VALIDATION",
                 )
 
                 # Check schema validation failure (critical error)
@@ -1375,12 +1390,11 @@ def run_validation_with_correction(
 
             # Display quality scores
             console.print(f"\n[bold]Quality Scores (Iteration {iteration_num}):[/bold]")
-            console.print(f"  Completeness:      {metrics['completeness_score']:.1%}")
-            console.print(f"  Accuracy:          {metrics['accuracy_score']:.1%}")
-            console.print(f"  Schema Compliance: {metrics['schema_compliance_score']:.1%}")
             console.print(f"  [bold]Overall Quality:   {metrics['overall_quality']:.1%}[/bold]")
-            console.print(f"  Critical Issues:   {metrics['critical_issues']}")
-            console.print(f"  Total Issues:      {metrics['total_issues']}")
+            status = validation_result.get("verification_summary", {}).get(
+                "overall_status", "unknown"
+            )
+            console.print(f"  Validation Status: {status.title() if status else '—'}")
 
             # Display improvement tracking (if not first iteration)
             if len(iterations) > 1:
@@ -1613,6 +1627,7 @@ def run_validation_with_correction(
                 llm=llm,
                 file_manager=file_manager,
                 progress_callback=progress_callback,
+                banner_label=f"Iter {iteration_num} - CORRECTION",
             )
 
             # Save corrected extraction with iteration number
@@ -1659,6 +1674,7 @@ def run_validation_with_correction(
                             llm=llm,
                             file_manager=file_manager,
                             progress_callback=progress_callback,
+                            banner_label=f"Iter {iteration_num} - VALIDATION",
                         )
                         retry_successful = True
                         break
@@ -1673,6 +1689,7 @@ def run_validation_with_correction(
                             llm=llm,
                             file_manager=file_manager,
                             progress_callback=progress_callback,
+                            banner_label=f"Iter {iteration_num} - CORRECTION (retry)",
                         )
 
                         # Save corrected extraction and post-correction validation with iteration number
@@ -1895,6 +1912,109 @@ def _validate_step_dependencies(steps_to_run: list[str]) -> None:
             raise ValueError("Appraisal step requires extraction step")
 
 
+def _get_next_scheduled_step(current_step: str, steps_to_run: list[str] | None) -> str | None:
+    """
+    Determine the next scheduled step after the current one.
+    """
+    try:
+        idx = ALL_PIPELINE_STEPS.index(current_step)
+    except ValueError:
+        return None
+
+    for step in ALL_PIPELINE_STEPS[idx + 1 :]:
+        if _should_run_step(step, steps_to_run):
+            return step
+    return None
+
+
+def _print_next_step_hint(current_step: str, steps_to_run: list[str] | None) -> None:
+    """
+    Print a subtle hint about the next step that will run (if any).
+    """
+    next_step = _get_next_scheduled_step(current_step, steps_to_run)
+    if not next_step:
+        return
+
+    label = STEP_DISPLAY_NAMES.get(next_step, next_step.title())
+    console.print(f"[dim]Next: {label}[/dim]")
+
+
+def _resolve_primary_output_path(file_manager: PipelineFileManager, step_name: str) -> Path | None:
+    """
+    Try to resolve the most relevant output file for a step.
+    """
+    candidates: list[Path] = []
+    if step_name == STEP_CLASSIFICATION:
+        candidates.append(file_manager.get_filename(STEP_CLASSIFICATION))
+    elif step_name == STEP_EXTRACTION:
+        candidates.append(file_manager.get_filename("extraction", status="best"))
+        candidates.append(file_manager.get_filename("extraction", iteration_number=0))
+    elif step_name == STEP_VALIDATION_CORRECTION:
+        candidates.append(file_manager.get_filename("validation", status="best"))
+        candidates.append(file_manager.get_filename("validation", iteration_number=0))
+    elif step_name == STEP_APPRAISAL:
+        candidates.append(file_manager.get_filename("appraisal", status="best"))
+        candidates.append(file_manager.get_filename("appraisal", iteration_number=0))
+        candidates.append(file_manager.get_filename("appraisal"))
+    else:
+        candidates.append(file_manager.get_filename(step_name))
+
+    for path in candidates:
+        if path.exists():
+            return path
+    return None
+
+
+def _format_step_status(step_name: str, results: dict[str, Any], expected_to_run: bool) -> str:
+    """
+    Convert stored metadata into a human-readable status label.
+    """
+    result = results.get(step_name)
+    if not result:
+        return "Skipped" if not expected_to_run else "Not run"
+
+    if step_name == STEP_VALIDATION_CORRECTION:
+        status = result.get("final_status", "completed")
+    elif "_pipeline_metadata" in result:
+        status = result["_pipeline_metadata"].get("status", "completed")
+    else:
+        status = "completed"
+
+    return status.replace("_", " ").title()
+
+
+def _print_pipeline_summary(
+    results: dict[str, Any],
+    file_manager: PipelineFileManager,
+    steps_to_run: list[str] | None,
+) -> None:
+    """
+    Print a compact summary of each pipeline step and its primary output file.
+    """
+    console.print("\n[bold green]Pipeline Summary[/bold green]")
+    for step in ALL_PIPELINE_STEPS:
+        expected = _should_run_step(step, steps_to_run)
+        status = _format_step_status(step, results, expected)
+        label = STEP_DISPLAY_NAMES.get(step, step.title())
+        output_path = _resolve_primary_output_path(file_manager, step)
+        if output_path:
+            console.print(f"  {label}: {status} ({output_path.name})")
+        else:
+            console.print(f"  {label}: {status}")
+
+
+def _finalize_pipeline_results(
+    results: dict[str, Any],
+    file_manager: PipelineFileManager,
+    steps_to_run: list[str] | None,
+) -> dict[str, Any]:
+    """
+    Print final summary before returning pipeline results.
+    """
+    _print_pipeline_summary(results, file_manager, steps_to_run)
+    return results
+
+
 def _run_classification_step(
     pdf_path: Path,
     max_pages: int | None,
@@ -1940,10 +2060,10 @@ def _run_classification_step(
         >>> result["publication_type"]
         'interventional_trial'
     """
-    console.print("\n[bold magenta]═══ STAP 1: CLASSIFICATIE ═══[/bold magenta]\n")
+    console.print("\n[bold magenta]═══ STEP 1: CLASSIFICATION ═══[/bold magenta]\n")
 
     if not have_llm_support:
-        console.print("[red]❌ LLM support niet beschikbaar[/red]")
+        console.print("[red]❌ LLM support not available[/red]")
         raise RuntimeError(
             "LLM support is required for pipeline execution. "
             "Please install required dependencies: pip install openai anthropic"
@@ -1975,6 +2095,16 @@ def _run_classification_step(
             max_pages=max_pages,
             schema_name="classification",
         )
+
+        publication_type = classification_result.get("publication_type", "unknown")
+        confidence = classification_result.get("classification_confidence")
+        if confidence is not None:
+            console.print(
+                f"[cyan]🔎 Predicted type: {publication_type} "
+                f"({confidence:.1%} confidence)[/cyan]"
+            )
+        else:
+            console.print(f"[cyan]🔎 Predicted type: {publication_type}[/cyan]")
 
         # Add pipeline metadata
         elapsed = time.time() - start_time
@@ -2021,7 +2151,7 @@ def _run_classification_step(
 
     except (PromptLoadError, LLMError, SchemaLoadError) as e:
         elapsed = time.time() - start_time
-        console.print(f"[red]❌ Classificatie fout: {e}[/red]")
+        console.print(f"[red]❌ Classification error: {e}[/red]")
 
         # Save error metadata (best effort)
         error_data = {
@@ -2155,7 +2285,7 @@ def _run_appraisal_step(
 
     except (PromptLoadError, SchemaLoadError, LLMError) as e:
         elapsed = time.time() - start_time
-        console.print(f"[red]❌ Appraisal fout: {e}[/red]")
+        console.print(f"[red]❌ Appraisal error: {e}[/red]")
 
         # Save error metadata
         error_data = {
@@ -2289,7 +2419,7 @@ APPRAISAL_SCHEMA:
 
     except (PromptLoadError, SchemaLoadError, LLMError) as e:
         elapsed = time.time() - start_time
-        console.print(f"[red]❌ Appraisal validation fout: {e}[/red]")
+        console.print(f"[red]❌ Appraisal validation error: {e}[/red]")
 
         _call_progress_callback(
             progress_callback,
@@ -2404,7 +2534,7 @@ APPRAISAL_SCHEMA:
 
     except (PromptLoadError, SchemaLoadError, LLMError) as e:
         elapsed = time.time() - start_time
-        console.print(f"[red]❌ Appraisal correction fout: {e}[/red]")
+        console.print(f"[red]❌ Appraisal correction error: {e}[/red]")
 
         _call_progress_callback(
             progress_callback,
@@ -3387,15 +3517,17 @@ def run_four_step_pipeline(
 
         # Check for breakpoint after this step
         if check_breakpoint(step_name, results, file_manager, breakpoint_after_step):
-            return results
+            return _finalize_pipeline_results(results, file_manager, steps_to_run)
 
         # Check for publication_type == "overig" after classification
         if step_name == STEP_CLASSIFICATION:
             if step_result.get("publication_type") == "overig":
                 console.print(
-                    "[yellow]⚠️ Publicatietype 'overig' - "
-                    "geen gespecialiseerde extractie beschikbaar[/yellow]"
+                    "[yellow]⚠️ Publication type 'overig' - "
+                    "no specialized extraction available[/yellow]"
                 )
-                return results
+                return _finalize_pipeline_results(results, file_manager, steps_to_run)
 
-    return results
+        _print_next_step_hint(step_name, steps_to_run)
+
+    return _finalize_pipeline_results(results, file_manager, steps_to_run)
