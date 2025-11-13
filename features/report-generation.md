@@ -197,6 +197,13 @@ Evidence-based medicine and scientific communication require **accessible, profe
 
 **Note**: Report schema follows the same pattern as `appraisal.schema.json` and `validation.schema.json` - it is a pipeline schema (direct `.schema.json` extension) and is self-contained with all definitions inline. **No bundling required** ✅
 
+#### Schema & Prompt Wiring
+
+- **Register schemas**: update `src/schemas_loader.py` → `SCHEMA_MAPPING` with `"report": "report.schema.json"` and `"report_validation": "report_validation.schema.json"` so the loader can resolve both new schema files.
+- **Prompt loaders**: add `load_report_generation_prompt()`, `load_report_validation_prompt()` and `load_report_correction_prompt()` to `src/prompts.py`. Each should follow the same error-handling pattern as the appraisal loaders and read `Report-generation.txt`, `Report-validation.txt`, and `Report-correction.txt` respectively.
+- **Prompt bookkeeping**: include the three new report prompts in `get_all_available_prompts()` and `validate_prompt_directory()` so the existing CLI diagnostics will flag missing prompt files early.
+- **Encoding**: all new templates remain UTF-8, consistent with existing prompt infrastructure.
+
 **Schema Structure**:
 
 ```json
@@ -952,6 +959,26 @@ def run_report_with_correction(
     """
 ```
 
+#### Pipeline Step Integration
+
+- **New constants**: add `STEP_REPORT`, `STEP_REPORT_VALIDATION`, and `STEP_REPORT_CORRECTION` next to the existing pipeline step constants in `src/pipeline/orchestrator.py`. Append `STEP_REPORT` to `ALL_PIPELINE_STEPS` directly after `STEP_APPRAISAL`, and extend `STEP_DISPLAY_NAMES` with `"Step 5 - Report Generation"`.
+- **Orchestrator helper**: implement `_run_report_generation_step()` alongside the other `_run_*_step` helpers. Signature:
+  ```python
+  def _run_report_generation_step(
+      extraction_result: dict[str, Any],
+      appraisal_result: dict[str, Any],
+      classification_result: dict[str, Any],
+      llm: BaseLLMProvider,
+      file_manager: PipelineFileManager,
+      language: str,
+      progress_callback: Callable | None,
+  ) -> dict[str, Any]:
+      ...
+  ```
+- **Metadata hygiene**: inside the helper, call `_strip_metadata_for_pipeline()` on `extraction_result`, `appraisal_result`, and `classification_result` before building the LLM context to avoid leaking `_pipeline_metadata`, `_metadata`, or `usage` blocks downstream.
+- **Progress callbacks**: follow the standard pattern—`_call_progress_callback(callback, STEP_REPORT, "starting", {...})` before any LLM work, `"completed"` with elapsed seconds plus result metadata on success, and `"failed"` with error information inside the `except` block.
+- **File output**: use `file_manager.save_report_iteration(...)` (see section below) so iteration artifacts match existing naming conventions.
+
 #### Helper Functions
 
 ```python
@@ -959,7 +986,7 @@ def run_report_generation(
     extraction_result: dict,
     appraisal_result: dict,
     classification_result: dict,
-    llm_provider: str,
+    llm: BaseLLMProvider,
     report_schema: dict,
     language: str = "nl",
 ) -> dict:
@@ -969,24 +996,71 @@ def run_report_generation(
     Returns: report JSON
     """
 
+    clean_extraction = _strip_metadata_for_pipeline(extraction_result)
+    clean_appraisal = _strip_metadata_for_pipeline(appraisal_result)
+    clean_classification = _strip_metadata_for_pipeline(classification_result)
+
+    context = (
+        "CLASSIFICATION_JSON:\n"
+        f"{json.dumps(clean_classification, ensure_ascii=False)}\n\n"
+        "EXTRACTION_JSON:\n"
+        f"{json.dumps(clean_extraction, ensure_ascii=False)}\n\n"
+        "APPRAISAL_JSON:\n"
+        f"{json.dumps(clean_appraisal, ensure_ascii=False)}\n"
+        f"LANGUAGE: {language}"
+    )
+
+    return llm.generate_json_with_schema(
+        schema=report_schema,
+        system_prompt=load_report_generation_prompt(),
+        prompt=context,
+        schema_name=f"report_{language}",
+    )
+
 def validate_report(
     report_result: dict,
     extraction_result: dict,
     appraisal_result: dict,
     report_schema: dict,
-    llm_provider: str,
+    llm: BaseLLMProvider,
+    schema_quality_threshold: float = 0.5,
 ) -> dict:
     """
     Validate report JSON using Report-validation.txt prompt.
-
-    Checks:
-    - Completeness (all sections, outcomes, source map)
-    - Accuracy (data matches extraction/appraisal)
-    - Consistency (bottom-line aligns with results)
-    - Schema compliance (enums, required fields, labels)
-
-    Returns: validation report JSON
     """
+
+    # Step 1: Schema validation (fast)
+    schema_validation = validate_extraction_quality(report_result, report_schema)
+
+    # Step 2: LLM validation (JSON-to-JSON, no PDF upload)
+    llm_validation = None
+    if schema_validation["quality_score"] >= schema_quality_threshold:
+        validation_prompt = load_report_validation_prompt()
+        validation_schema = load_schema("report_validation")
+
+        clean_extraction = _strip_metadata_for_pipeline(extraction_result)
+        clean_appraisal = _strip_metadata_for_pipeline(appraisal_result)
+
+        context = (
+            "REPORT_JSON:\n"
+            f"{json.dumps(report_result, ensure_ascii=False)}\n\n"
+            "EXTRACTION_JSON:\n"
+            f"{json.dumps(clean_extraction, ensure_ascii=False)}\n\n"
+            "APPRAISAL_JSON:\n"
+            f"{json.dumps(clean_appraisal, ensure_ascii=False)}\n"
+        )
+
+        llm_validation = llm.generate_json_with_schema(
+            schema=validation_schema,
+            system_prompt=validation_prompt,
+            prompt=context,
+            schema_name="report_validation",
+        )
+
+    return {
+        "schema_validation": schema_validation,
+        "llm_validation": llm_validation,
+    }
 
 def correct_report(
     report_result: dict,
@@ -994,7 +1068,7 @@ def correct_report(
     extraction_result: dict,
     appraisal_result: dict,
     report_schema: dict,
-    llm_provider: str,
+    llm: BaseLLMProvider,
 ) -> dict:
     """
     Correct report JSON using Report-correction.txt prompt.
@@ -1027,6 +1101,10 @@ def select_best_report_iteration(iterations: list[dict]) -> dict:
     Returns: best iteration dict with report + validation
     """
 ```
+
+All helper flows above rely exclusively on `generate_json_with_schema()`; report generation, validation, and correction never upload the PDF again because they operate on structured JSON artifacts produced earlier in the pipeline.
+
+**Terminology rationale**: `cross_reference_consistency_score` targets hyperlink/table/figure integrity (e.g., ensuring every `tbl_*` or `fig_*` mentioned in text exists), while `data_consistency_score` enforces that textual summaries, tables, and figures stay numerically aligned. Those dimensions extend rather than replace the appraisal `logical_consistency_score`, so we keep the unique names and document their scope explicitly here.
 
 ### 4. File Management
 
