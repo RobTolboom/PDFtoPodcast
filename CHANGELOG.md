@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Report Generation Feature Documentation** (#report-generation-feature) - Comprehensive feature specification for structured report generation (v0.3)
+  - **Complete technical design:** Block-based JSON architecture (text, table, figure, callout blocks), LaTeX rendering pipeline, iterative validation/correction
+  - **17-section report structure:** Core sections (clinical bottom-line, study snapshot, quality assessment, results, limitations) plus type-specific appendices (CONSORT, PRISMA, PROBAST)
+  - **Schema design:** Self-contained `report.schema.json` (no bundling required) with strict typing, render hints, and source map traceability
+  - **Prompt architecture:** 3 prompts (generation, validation, correction) with study-type routing and quality thresholds
+  - **Critical review improvements:** File naming patterns, appraisal dependency validation, logical_consistency_score naming, prompt token limits mitigation, best practices examples, CLI flag consistency
+  - **8 implementation phases:** Schema/prompts → orchestrator → validation loop → LaTeX renderer → figures → UI/CLI → testing/docs
+  - **File:** `features/report-generation.md` (2100+ lines, ready for Phase 1 implementation)
+
 - **Critical Appraisal Pipeline Step** (#appraisal-feature) - New 4th pipeline step for structured quality assessment
   - **Study-type routing:** Automatically routes to appropriate appraisal tool based on publication type:
     - RoB 2 for randomized controlled trials (5 domains + overall risk of bias)
