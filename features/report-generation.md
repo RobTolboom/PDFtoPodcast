@@ -3,13 +3,14 @@
 **Status**: Planning
 **Branch**: `feature/report-generation`
 **Created**: 2025-11-13
-**Updated**: 2025-11-13 (v0.3 - Critical review improvements)
+**Updated**: 2025-11-13 (v0.4 - Critical review fixes)
 **Author**: Rob Tolboom (with Claude Code)
 
 **Summary**
 - Automatic generation of structured, professional reports from extraction and appraisal data via LLM-driven JSON output and LaTeX rendering to PDF.
 - Block-based architecture separates content from presentation, with iterative validation/correction for quality assurance and type-specific modules for flexibility.
-- Main risks are LaTeX complexity and figure generation; mitigations include template-based rendering, phased implementation, and extensive test coverage.
+- Docker-containerized LaTeX environment for reliable cross-platform rendering with pre-configured dependencies.
+- Main risks are figure generation complexity and prompt engineering; mitigations include matplotlib-only figures, modular prompt architecture, and comprehensive error recovery strategies.
 
 ## Scope
 
@@ -18,11 +19,12 @@
 - Block-based JSON structure (`text`, `table`, `figure`, `callout`) for LaTeX rendering
 - Support for all publication types (interventional, observational, evidence_synthesis, prediction_prognosis, editorials_opinion)
 - Type-specific report sections and appendices (RoB 2, ROBINS-I, CONSORT, PRISMA, PROBAST)
-- LaTeX renderer (JSON → LaTeX → PDF) with template system
-- Figure generators (traffic light, forest plots, ROC curves, CONSORT/PRISMA flows)
-- Full traceability via Source Map with hyperlinks
+- LaTeX renderer (JSON → LaTeX → PDF) with Docker-containerized environment
+- Figure generators (matplotlib-only: RoB traffic light, basic forest plots, CONSORT/PRISMA flows)
+- Full traceability via Source Map (page references only, no clickable hyperlinks in v1.0)
 - CLI and Streamlit UI integration
-- Dutch and English output (configurable)
+- Dutch and English output (LLM-driven direct generation per language)
+- Comprehensive error recovery strategies with graceful degradation
 
 **Out of scope**
 - Alternative output formats (HTML, DOCX, Markdown) - only LaTeX/PDF in v1.0
@@ -31,6 +33,9 @@
 - Automatic contextualization with literature databases (PubMed, Cochrane) - future feature
 - Custom LaTeX templates via UI upload - only built-in templates in v1.0
 - Direct PDF annotation or markup tools
+- Clickable hyperlinks in Source Map (v1.0 has text references only)
+- ROC curves, calibration plots, DAG diagrams (defer to v1.1+ - complexity vs value trade-off)
+- Advanced forest plots with subgroup grids (v1.0 has basic forest only)
 
 ---
 
@@ -219,9 +224,13 @@ Evidence-based medicine and scientific communication require **accessible, profe
         "doi": {"type": "string"},
         "authors": {"type": "array", "items": {"type": "string"}},
         "journal": {"type": "string"},
-        "publication_date": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$"}
+        "publication_date": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$"},
+        "generation_timestamp": {"type": "string", "format": "date-time"},
+        "pipeline_version": {"type": "string"},
+        "extraction_quality_score": {"type": "number", "minimum": 0, "maximum": 1},
+        "appraisal_quality_score": {"type": "number", "minimum": 0, "maximum": 1}
       },
-      "required": ["title"]
+      "required": ["title", "generation_timestamp", "pipeline_version"]
     },
     "layout": {
       "type": "object",
@@ -393,9 +402,7 @@ Evidence-based medicine and scientific communication require **accessible, profe
         "code": {"type": "string", "pattern": "^S[0-9]+$"},
         "page": {"type": "integer", "minimum": 1},
         "section": {"type": "string"},
-        "table_id": {"type": "string"},
-        "figure_id": {"type": "string"},
-        "anchor_text": {"type": "string"}
+        "anchor_text": {"type": "string", "maxLength": 50}
       },
       "required": ["code", "page"]
     }
@@ -408,12 +415,25 @@ Evidence-based medicine and scientific communication require **accessible, profe
 - **Block types**: Text, Table, Figure, Callout with strict typing
 - **Labels**: Automatic LaTeX-compatible labels (`tbl_*`, `fig_*`)
 - **Render hints**: LaTeX-specific metadata (table_spec, placement, width)
-- **Source map**: Central traceability with codes (`S1`, `S2`, etc.)
+- **Source map**: Simplified traceability with page references only (no table_id/figure_id in v1.0)
+- **Metadata tracking**: Generation timestamp, pipeline version, upstream quality scores
 
 ### 2. Prompt Architecture
 
-#### A. `prompts/Report-generation.txt`
-**Purpose**: Generate structured report JSON from extraction + appraisal data
+**Strategy**: Modular prompt system with base + type-specific components
+
+**Prompt Files**:
+- `prompts/Report-generation-base.txt` - Core sections (all study types)
+- `prompts/Report-generation-rct.txt` - RCT-specific sections
+- `prompts/Report-generation-observational.txt` - Observational-specific sections
+- `prompts/Report-generation-systematic-review.txt` - SR-specific sections
+- `prompts/Report-generation-prediction.txt` - Prediction model-specific sections
+- `prompts/Report-generation-editorials.txt` - Editorial-specific sections
+
+**Runtime Composition**: Load base prompt + type-specific prompt based on classification.publication_type
+
+#### A. `prompts/Report-generation-base.txt`
+**Purpose**: Generate core report sections (applicable to all study types)
 
 **Input**:
 - `CLASSIFICATION_JSON`: Publication type + metadata
@@ -421,6 +441,8 @@ Evidence-based medicine and scientific communication require **accessible, profe
 - `APPRAISAL_JSON`: Validated appraisal data
 - `REPORT_SCHEMA`: report.schema.json
 - `LANGUAGE`: "nl" or "en"
+- `GENERATION_TIMESTAMP`: ISO 8601 timestamp
+- `PIPELINE_VERSION`: Current pipeline version (from config)
 
 **Output Contract**:
 ```
@@ -461,8 +483,10 @@ Each section contains blocks:
 
 TRACEABILITY
 - Every data point gets source_refs: ["S1", "S2"]
-- Source map: [{"code":"S1", "page":5, "table_id":"Table 2", "anchor_text":"Baseline characteristics"}]
-- Bundle identical sources per row to reduce noise
+- Source map: [{"code":"S1", "page":5, "section":"Methods", "anchor_text":"Baseline characteristics"}]
+- No table_id/figure_id in v1.0 (simplified)
+- Bundle consecutive identical refs: "S1" not "S1, S1, S1"
+- Use range notation if applicable: "S1-S5" for consecutive pages in same section
 
 EVIDENCE-LOCKED
 - No external knowledge beyond extraction + appraisal
@@ -712,13 +736,13 @@ Section 5: Study Snapshot
 
 **Section 16: Source Map**
 - **Purpose**: Full traceability without inline citations
-- **Content**: Table with Report-Item-ID → {page, section/table/figure, anchor_text}
-- **Presentation**: Appendix table, 4 columns:
+- **Content**: Table with Report-Item-ID → {page, section, anchor_text}
+- **Presentation**: Appendix table, 3 columns:
   - Code (S1, S2, ...)
   - Page (integer)
-  - Location (e.g., "Table 2", "Methods section", "Figure 3 legend")
+  - Location (e.g., "Methods section", "Results paragraph 3")
   - Anchor text (short snippet from original, max 50 chars)
-- **Hyperlinks**: Superscripts in main text link to this table
+- **References**: Superscripts in main text (e.g., "[S12]") - plain text, no hyperlinks in v1.0
 - **Example**: `tableBlock` (`generic`) with `source_map` data
 
 **Section 17: Type-specific Appendices**
@@ -756,11 +780,10 @@ Section 5: Study Snapshot
    - No hallucinated data (all claims traceable to extraction/appraisal)?
    - Metadata correct? (title, DOI, authors, journal)
 
-3. **Logical Consistency Checks** (20% weight)
-   - Bottom-line consistent with results + GRADE?
-   - Limitations align with RoB issues?
-   - Contextualization consistent with study design?
-   - Source refs resolve? (all codes in source_map)
+3. **Consistency Checks** (20% weight)
+   - **Cross-reference consistency** (10%): All section references to tables/figures resolve correctly
+   - **Data consistency** (10%): Bottom-line numeric values match results section exactly
+   - **Logical alignment** (pass/fail, not scored): Limitations mention RoB issues, GRADE downgrades justified
 
 4. **Schema Compliance** (15% weight)
    - Required fields present?
@@ -777,7 +800,8 @@ Section 5: Study Snapshot
     "overall_status": "passed|warning|failed",
     "completeness_score": 0.92,
     "accuracy_score": 0.95,
-    "logical_consistency_score": 0.90,
+    "cross_reference_consistency_score": 0.95,
+    "data_consistency_score": 0.88,
     "schema_compliance_score": 1.0,
     "critical_issues": 0,
     "quality_score": 0.93
@@ -797,25 +821,21 @@ Section 5: Study Snapshot
 **Scoring Thresholds** (default):
 - `completeness_score >= 0.85`
 - `accuracy_score >= 0.95` (high threshold - data correctness critical)
-- `logical_consistency_score >= 0.85`
+- `cross_reference_consistency_score >= 0.90`
+- `data_consistency_score >= 0.90`
 - `schema_compliance_score >= 0.95`
 - `critical_issues == 0`
-
-**Note on Metric Naming**:
-- Report uses `logical_consistency_score` (bottom-line aligns with results + GRADE + RoB)
-- This is consistent with appraisal's `logical_consistency_score` (overall = worst domain rule)
-- Extraction uses `accuracy_score` (data matches PDF)
-- **These are DISTINCT metrics** with different validation logic:
-  - **Appraisal logical_consistency**: Domain-level RoB/GRADE rule enforcement
-  - **Report logical_consistency**: Cross-section consistency (executive ↔ results ↔ limitations)
 
 **Quality Score Formula**:
 ```
 quality_score = 0.35 * accuracy_score
               + 0.30 * completeness_score
-              + 0.20 * logical_consistency_score
+              + 0.10 * cross_reference_consistency_score
+              + 0.10 * data_consistency_score
               + 0.15 * schema_compliance_score
 ```
+
+**Note**: Logical alignment checks (limitations ↔ RoB, GRADE downgrades justified) are pass/fail gates in validation, not scored metrics.
 
 #### C. `prompts/Report-correction.txt`
 **Purpose**: Correct report JSON based on validation issues
@@ -995,7 +1015,8 @@ def select_best_report_iteration(iterations: list[dict]) -> dict:
     Primary ranking metric: quality_score (weighted composite)
         quality_score = 0.35 * accuracy_score
                       + 0.30 * completeness_score
-                      + 0.20 * logical_consistency_score
+                      + 0.10 * cross_reference_consistency_score
+                      + 0.10 * data_consistency_score
                       + 0.15 * schema_compliance_score
 
     Tie-breakers (in order):
@@ -1225,42 +1246,42 @@ def render_table_block(self, block: dict) -> str:
 
 **Component**: `src/rendering/figure_generator.py` (NEW module)
 
-**Supported Figure Types**:
+**Strategy**: Matplotlib-only implementation for consistency and maintainability
 
-1. **RoB Traffic Light** (`rob_traffic_light`)
+**Supported Figure Types (v1.0)**:
+
+1. **RoB Traffic Light** (`rob_traffic_light`) - **CRITICAL**
    - Input: `appraisal.risk_of_bias`
    - Output: Colored grid (green/yellow/red) per domain
-   - Library: matplotlib + custom layout
+   - Library: matplotlib with custom layout
+   - Priority: **Must-have** (core quality assessment visualization)
 
-2. **Forest Plot** (`forest`)
-   - Input: `extraction.results.contrasts` + subgroups
-   - Output: Forest plot with effect sizes + CIs
-   - Library: `forestplot` package or custom matplotlib
+2. **Basic Forest Plot** (`forest_basic`) - **HIGH VALUE**
+   - Input: `extraction.results.contrasts` (primary outcome only)
+   - Output: Simple forest plot with effect size + 95% CI
+   - Library: matplotlib (custom rendering, no external package)
+   - Priority: **Should-have** (high clinical value)
+   - **Note**: Advanced features (subgroup grids, meta-analysis pooling) deferred to v1.1
 
-3. **ROC Curve** (`roc`)
-   - Input: `extraction.performance` (sensitivity, specificity points)
-   - Output: ROC curve with AUC
-   - Library: scikit-learn + matplotlib
-
-4. **Calibration Plot** (`calibration`)
-   - Input: `extraction.performance.calibration`
-   - Output: Calibration curve (observed vs predicted)
-   - Library: scikit-learn + matplotlib
-
-5. **CONSORT Flow** (`consort`)
+3. **CONSORT Flow** (`consort`) - **NICE-TO-HAVE**
    - Input: `extraction.population.flow`
-   - Output: CONSORT diagram (enrollment → randomization → analysis)
-   - Library: GraphViz or custom matplotlib
+   - Output: Simple flow diagram (boxes + arrows)
+   - Library: matplotlib with `patches.FancyBboxPatch`
+   - Priority: **Nice-to-have** (transparency, but text tables suffice)
 
-6. **PRISMA Flow** (`prisma`)
+4. **PRISMA Flow** (`prisma`) - **NICE-TO-HAVE**
    - Input: `extraction.search_results.flow`
-   - Output: PRISMA diagram (identification → screening → included)
-   - Library: GraphViz or custom matplotlib
+   - Output: Simple flow diagram (identification → included)
+   - Library: matplotlib with `patches.FancyBboxPatch`
+   - Priority: **Nice-to-have** (systematic reviews only)
 
-7. **DAG** (`dag`)
-   - Input: `extraction.causal_strategy.dag`
-   - Output: Directed acyclic graph
-   - Library: networkx + matplotlib or GraphViz
+**Deferred to v1.1+ (complexity vs. value trade-off)**:
+- **ROC Curve** (`roc`) - Prediction models only, limited use cases
+- **Calibration Plot** (`calibration`) - Prediction models only
+- **DAG** (`dag`) - Observational only, networkx + layout complexity high
+- **Advanced Forest** - Subgroup grids, meta-analysis with heterogeneity stats
+
+**Fallback Strategy**: If figure generation fails → Insert text placeholder: "Figure [label] could not be generated. See Section X for numerical results."
 
 **Figure Generator Interface**:
 
@@ -1295,11 +1316,14 @@ class FigureGenerator:
 
         if figure_kind == 'rob_traffic_light':
             return self._generate_rob_traffic_light(figure_block, data)
-        elif figure_kind == 'forest':
-            return self._generate_forest_plot(figure_block, data)
-        elif figure_kind == 'roc':
-            return self._generate_roc_curve(figure_block, data)
-        # ... etc.
+        elif figure_kind == 'forest_basic':
+            return self._generate_forest_basic(figure_block, data)
+        elif figure_kind == 'consort':
+            return self._generate_consort_flow(figure_block, data)
+        elif figure_kind == 'prisma':
+            return self._generate_prisma_flow(figure_block, data)
+        else:
+            raise FigureGenerationError(f"Unsupported figure_kind: {figure_kind} (v1.0)")
 
     def _generate_rob_traffic_light(
         self,
@@ -1356,26 +1380,187 @@ class FigureGenerator:
 
 ---
 
+## Deployment Strategy
+
+### Docker Container for LaTeX Rendering
+
+**Rationale**: LaTeX compilation is platform-dependent and requires complex dependencies. Docker ensures consistent environment across development, testing, and production.
+
+**Container Specification**:
+```dockerfile
+FROM texlive/texlive:latest
+
+# Install Python and dependencies
+RUN apt-get update && apt-get install -y \
+    python3.11 \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python packages
+COPY requirements.txt /app/
+RUN pip3 install --no-cache-dir -r /app/requirements.txt
+
+# Copy LaTeX templates
+COPY templates/latex /app/templates/latex
+
+WORKDIR /app
+```
+
+**Python Dependencies** (`requirements.txt`):
+```
+# Core pipeline
+anthropic>=0.18.0
+openai>=1.10.0
+pydantic>=2.5.0
+jsonschema>=4.20.0
+
+# Report generation
+matplotlib>=3.8.0
+seaborn>=0.13.0
+numpy>=1.24.0
+pandas>=2.1.0
+
+# LaTeX utilities
+PyPDF2>=3.0.0  # PDF manipulation
+pdf2image>=1.16.0  # Visual regression testing (Pillow backend)
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+```
+
+**Rendering Workflow**:
+1. **Generate report JSON** (in main Python process)
+2. **Write to temp directory** with figures
+3. **Invoke Docker container**:
+   ```bash
+   docker run --rm \
+     -v /path/to/report-data:/data \
+     pdftopodcast-latex:latest \
+     python3 /app/src/rendering/latex_renderer.py /data/report.json /data/output.pdf
+   ```
+4. **Retrieve compiled PDF** from mounted volume
+
+**Error Handling**:
+- Container startup failure → Log error, retry once, then fail gracefully with JSON-only output
+- LaTeX compilation error → Parse `.log` file, extract meaningful error, suggest fixes
+- Timeout (>60s) → Kill container, return partial output if available
+
+**Local Development**:
+- Option 1: Use Docker (consistent with production)
+- Option 2: Native LaTeX install (faster, requires manual setup)
+
+**CI/CD Integration**:
+- Build Docker image in GitHub Actions
+- Run integration tests inside container
+- Push image to container registry (Docker Hub / GitHub Container Registry)
+
+---
+
+## Error Recovery Strategies
+
+### 1. Report Generation Failures
+
+**LLM API Errors**:
+- **Timeout** (>60s): Retry once with exponential backoff
+- **Rate limit**: Wait + retry (up to 3 attempts)
+- **Invalid response** (not JSON): Log raw response, fail iteration, continue to next
+
+**Schema Validation Failures**:
+- **Report JSON invalid**: Run correction prompt immediately (don't count as iteration)
+- **Persistent schema errors** (3+ corrections): Return best valid iteration + warning
+
+### 2. Figure Generation Failures
+
+**Critical Figures** (RoB traffic light):
+- **Data missing**: Log critical error, BLOCK report PDF generation
+- **Rendering error**: Retry once, then fail with detailed error message
+- **Fallback**: None - RoB visual is mandatory for quality assessment section
+
+**Optional Figures** (forest, CONSORT, PRISMA):
+- **Data missing**: Insert text placeholder in LaTeX: `\textit{Figure could not be generated due to missing data. See Table X for numerical results.}`
+- **Rendering error**: Log warning, insert placeholder, continue
+- **Fallback**: Report generation continues without figure
+
+### 3. LaTeX Compilation Failures
+
+**First Attempt** (pdflatex):
+- **Unicode errors**: Retry with `xelatex` (better UTF-8 support)
+- **Missing packages**: Log error with package names, instruct user to update LaTeX distribution
+- **Syntax errors**: Parse `.log` file, identify problematic line, log detailed error
+
+**Second Attempt** (xelatex fallback):
+- **Still fails**: Extract `.log` error, return report JSON + error message
+- **User action**: Manual LaTeX debugging or request JSON-only output
+
+**Graceful Degradation**:
+- If PDF compilation impossible → Return `report-best.json` + `.tex` source file
+- UI/CLI message: "PDF generation failed. LaTeX source saved to {path}. Install LaTeX or use online compiler (Overleaf)."
+
+### 4. Validation Never Passes
+
+**Max Iterations Reached**:
+- **Select best iteration** based on quality_score
+- **Warning in UI/CLI**: "Report quality below threshold after {max_iterations} attempts. Best iteration (score: {score}) returned. Manual review recommended."
+- **Highlight issues**: Display top 5 validation issues in UI
+
+**Allow Manual Override**:
+- **Streamlit UI**: "Accept Best Report" button
+- **CLI**: `--force-best-report` flag to bypass quality threshold
+- **Log warning**: All downstream outputs (PDF, podcast) marked as "generated from sub-optimal report"
+
+### 5. Dependency Issues
+
+**Missing LaTeX Distribution** (local, non-Docker):
+- **Detection**: Check for `pdflatex` or `xelatex` in PATH
+- **Error message**: "LaTeX not found. Install TeX Live (Linux), MacTeX (macOS), or MiKTeX (Windows). Or use Docker: `docker run pdftopodcast-latex`"
+- **Fallback**: Generate JSON + `.tex` source only
+
+**Python Package Errors**:
+- **matplotlib/seaborn missing**: Fail figure generation, continue with text/tables
+- **PIL missing** (pdf2image dependency): Skip visual regression tests, log warning
+
+### 6. Upstream Quality Issues
+
+**Low Extraction Quality** (quality_score < 0.90):
+- **Warning in report metadata**: `extraction_quality_warning: true`
+- **Insert disclaimer** in Section 14 (Limitations): "Automated data extraction quality below optimal threshold. Manual verification recommended."
+- **Continue generation**: Block only if extraction quality < 0.70 (too unreliable)
+
+**Low Appraisal Quality** (quality_score < 0.70):
+- **Warning in report metadata**: `appraisal_quality_warning: true`
+- **Insert disclaimer** in Section 7 (Quality Assessment): "Risk of Bias assessment quality below threshold. Section 7 should be manually reviewed."
+- **Block generation** if appraisal critically failed (no RoB data)
+
+---
+
 ## Implementation Phases
 
-### Phase 1: JSON Schema + Prompt (Week 1)
-**Goal**: Define report structure and generation prompt
+### Phase 1: JSON Schema + Modular Prompts (Week 1)
+**Goal**: Define report structure and modular prompt architecture
 
 **Deliverables**:
-- [ ] `schemas/report.schema.json` (complete with all block types, ~500 lines)
-- [ ] `prompts/Report-generation.txt` (comprehensive instructions, ~800 lines)
+- [ ] `schemas/report.schema.json` (complete with metadata fields, ~550 lines)
+- [ ] `prompts/Report-generation-base.txt` (core sections, ~400 lines)
+- [ ] `prompts/Report-generation-rct.txt` (RCT-specific, ~150 lines)
+- [ ] `prompts/Report-generation-observational.txt` (Observational-specific, ~150 lines)
+- [ ] `prompts/Report-generation-systematic-review.txt` (SR-specific, ~150 lines)
+- [ ] `prompts/Report-generation-prediction.txt` (Prediction-specific, ~150 lines)
+- [ ] `prompts/Report-generation-editorials.txt` (Editorial-specific, ~100 lines)
 - [ ] Schema validation tests (unit tests for schema correctness)
-- [ ] Prompt dry-run with mock data (manual validation)
+- [ ] Prompt composition helper (load base + type-specific)
+- [ ] Prompt dry-run with mock data (manual validation per type)
 
 **Testing**:
 - Schema validates against sample report JSONs
-- Prompt produces valid JSON for all study types
-- Manual review of generated report structure
+- Prompt composition produces valid complete prompts
+- Generated reports validate for all 5 study types
+- Manual review of section coverage
 
 **Acceptance**:
-- Schema complete with all definitions
-- Prompt covers all core + type-specific sections
-- Sample reports validate successfully
+- Schema complete with all definitions + metadata fields
+- All 6 prompt files complete (base + 5 type-specific)
+- Sample reports validate successfully for each type
 
 ### Phase 2: Report Generator (Orchestrator) (Week 2)
 **Goal**: Implement basic report generation in pipeline
@@ -1450,33 +1635,57 @@ class FigureGenerator:
 - LaTeX compilation reliable
 
 ### Phase 5: Figure Generators (Week 4-5)
-**Goal**: Generate all figure types from data
+**Goal**: Generate critical figures (matplotlib-only)
 
 **Deliverables**:
 - [ ] `src/rendering/figure_generator.py` (NEW module)
   - `FigureGenerator` class
-  - `_generate_rob_traffic_light()` (RoB visual)
-  - `_generate_forest_plot()` (forest plots)
-  - `_generate_roc_curve()` (ROC curves)
-  - `_generate_calibration_plot()` (calibration)
-  - `_generate_consort_flow()` (CONSORT diagram)
-  - `_generate_prisma_flow()` (PRISMA diagram)
-  - `_generate_dag()` (DAG visualization)
+  - `_generate_rob_traffic_light()` (RoB visual) - **CRITICAL**
+  - `_generate_forest_basic()` (simple forest plot) - **HIGH VALUE**
+  - `_generate_consort_flow()` (CONSORT diagram, matplotlib boxes) - **NICE-TO-HAVE**
+  - `_generate_prisma_flow()` (PRISMA diagram, matplotlib boxes) - **NICE-TO-HAVE**
 - [ ] Figure integration in `BlockRenderer`
+- [ ] Graceful failure handling (placeholders for missing figures)
 - [ ] Unit tests for each figure type
 
 **Testing**:
-- Each figure type generates correctly
-- Figures embed in LaTeX correctly
-- High-resolution output (300 dpi)
-- Edge cases handled (missing data, extreme values)
+- RoB traffic light generates correctly for all study types
+- Basic forest plot handles primary outcome data
+- Flow diagrams render simple box layouts
+- High-resolution output (300 dpi PNG)
+- Edge cases: missing data → placeholder text
+- Failure modes: rendering errors → log + continue
 
 **Acceptance**:
-- All 7 figure types implemented
-- Figures render in PDF
-- Visual quality acceptable
+- RoB traffic light working (mandatory)
+- Basic forest plot working (nice-to-have, can defer to Phase 6 if time-constrained)
+- Flow diagrams working or gracefully failing
+- Error recovery tested
 
-### Phase 6: UI Integration (Streamlit) (Week 5)
+### Phase 6: Docker Container Setup (Week 5)
+**Goal**: Containerized LaTeX rendering environment
+
+**Deliverables**:
+- [ ] `Dockerfile` for LaTeX + Python environment
+- [ ] Docker build script + CI integration
+- [ ] Container invocation wrapper in `latex_renderer.py`
+- [ ] Local development documentation (Docker vs native LaTeX)
+- [ ] Error handling for container failures
+
+**Testing**:
+- Container builds successfully
+- LaTeX compilation works inside container
+- Volume mounting for input/output files
+- Error logs captured from container
+- Performance acceptable (<60s timeout)
+
+**Acceptance**:
+- Docker image builds and runs
+- PDF generation works end-to-end via container
+- Error messages from LaTeX propagate correctly
+- Documentation complete for deployment
+
+### Phase 7: UI Integration (Streamlit) (Week 6)
 **Goal**: Add report step to Streamlit UI
 
 **Deliverables**:
@@ -1517,7 +1726,7 @@ class FigureGenerator:
 - PDF downloadable from UI
 - Iteration history accessible
 
-### Phase 7: CLI Support (Week 6)
+### Phase 8: CLI Support (Week 6-7)
 **Goal**: Add report step to CLI pipeline
 
 **Deliverables**:
@@ -1526,12 +1735,13 @@ class FigureGenerator:
   - Integration in full pipeline (ALL_PIPELINE_STEPS include report)
   - Progress output for iterations
   - PDF output path logging
-  - CLI flags (consistent with appraisal naming pattern):
-    - `--report-language` (nl|en, default: nl)
-    - `--report-max-iter` (default: 3)
-    - `--report-template` (default: vetrix)
-    - `--report-single-pass` (skip correction loop, like --appraisal-single-pass)
+  - CLI flags (consistent naming, no --report- prefix):
+    - `--language` (nl|en, default: nl) - applies to report generation
+    - `--max-iter` (default: 3) - report iterations (separate from extraction/appraisal)
+    - `--template` (default: vetrix) - LaTeX template name
+    - `--single-pass` (skip correction loop for report, like --appraisal-single-pass)
     - `--skip-report` (disable report step entirely, for backward compatibility)
+    - `--force-best-report` (accept best report even if quality below threshold)
 - [ ] Error handling and user feedback
 
 **Example Usage**:
@@ -1543,13 +1753,16 @@ python run_pipeline.py paper.pdf --llm openai
 python run_pipeline.py paper.pdf --step report --llm openai
 
 # Custom language and template
-python run_pipeline.py paper.pdf --step report --report-language en --report-template minimal
+python run_pipeline.py paper.pdf --step report --language en --template minimal
 
 # Single-pass mode (no iterative correction)
-python run_pipeline.py paper.pdf --step report --report-single-pass
+python run_pipeline.py paper.pdf --step report --single-pass
 
 # Skip report in full pipeline
 python run_pipeline.py paper.pdf --llm openai --skip-report
+
+# Force best report (bypass quality threshold)
+python run_pipeline.py paper.pdf --step report --force-best-report
 ```
 
 **Testing**:
@@ -1563,7 +1776,7 @@ python run_pipeline.py paper.pdf --llm openai --skip-report
 - Full pipeline produces PDF
 - Documentation updated (README + docs/report.md)
 
-### Phase 8: Testing & Documentation (Week 6-7)
+### Phase 9: Testing & Documentation (Week 7-8)
 **Goal**: Comprehensive testing and documentation
 
 **Deliverables**:
@@ -1591,7 +1804,7 @@ python run_pipeline.py paper.pdf --llm openai --skip-report
 1. **Unit Tests**: Each function isolated
 2. **Integration Tests**: Full report loop + rendering
 3. **End-to-End Tests**: CLI + UI with real PDFs
-4. **Visual Regression**: PDF output comparison
+4. **Visual Regression**: PDF → image comparison (pdf2image + SSIM)
 
 **Acceptance**:
 - Test coverage ≥ 90% for report code
@@ -1688,18 +1901,24 @@ python run_pipeline.py paper.pdf --llm openai --skip-report
 
 ### Performance Metrics
 
-**Target Benchmarks** (design goals):
-- **Report generation time**: < 45s per iteration (GPT-4o)
-- **Validation time**: < 20s per iteration
-- **Correction time**: < 45s per iteration
-- **Figure generation time**: < 10s per figure
-- **LaTeX compilation time**: < 15s (pdflatex)
-- **Total report pipeline**: < 3 minutes for 3 iterations + rendering
+**Target Benchmarks** (realistic estimates):
+- **Report generation time**: 30-50s per iteration (GPT-4o, network latency included)
+- **Validation time**: 15-25s per iteration
+- **Correction time**: 30-50s per iteration
+- **Figure generation time**: 5-15s total (all figures, matplotlib)
+- **LaTeX compilation time**: 10-20s (pdflatex, Docker overhead included)
+- **Total report pipeline**: 5-7 minutes for 3 iterations + rendering
 
-**Empirical Benchmarks** (to be added after Phase 8):
+**Note**: Initial estimates were too optimistic. Realistic benchmarks account for:
+- Network latency (API calls: 5-10s baseline)
+- LLM processing time (GPT-4o: 20-40s for complex prompts)
+- Docker container startup (2-5s)
+- I/O operations (temp files, volume mounting)
+
+**Empirical Benchmarks** (to be added after Phase 9):
 After testing on 25 representative papers (5 per study type), add empirical data:
 ```markdown
-### Performance Benchmarks (Empirical - Phase 8)
+### Performance Benchmarks (Empirical - Phase 9)
 
 Tested on 25 representative papers (5 per study type):
 - **Report generation**: X.Xs average (range Y-Z, GPT-4o)
@@ -1909,16 +2128,17 @@ Failure modes observed:
 ### Risk 1: LaTeX Compilation Complexity
 **Description**: LaTeX compilation errors difficult to debug (missing packages, syntax errors, unicode issues)
 
-**Impact**: High - report generation fails without clear user feedback
+**Impact**: Medium (was High) - Docker container mitigates most platform issues
 
 **Mitigation**:
+- **Docker containerization** (PRIMARY MITIGATION) - Pre-configured LaTeX environment eliminates platform differences
 - Use minimal preamble with only essential packages
 - Extensive LaTeX escaping for special characters
-- Fallback to xelatex for unicode issues
+- Fallback to xelatex for unicode issues (automatic in container)
 - Capture LaTeX error logs and parse for common issues
 - Unit tests for each block renderer with edge cases
-- Template validation before rendering
 - Clear error messages with troubleshooting steps
+- Graceful degradation: Return JSON + `.tex` source if PDF compilation fails
 
 ### Risk 2: Figure Generation Quality
 **Description**: Automatically generated figures may be low-quality or incorrect
@@ -1926,12 +2146,13 @@ Failure modes observed:
 **Impact**: Medium - figures unreadable or misleading
 
 **Mitigation**:
-- High-resolution output (300 dpi) by default
-- Manual validation of figure generators with test data
-- Fallback to "figure not available" note if generation fails
-- Visual regression tests (compare PDFs)
-- Allow manual figure upload override (future)
-- Document figure requirements and limitations
+- **Matplotlib-only implementation** - Single library eliminates cross-library inconsistencies
+- **Limited figure types in v1.0** - Focus on 3-4 well-tested figures (RoB, basic forest, flows)
+- High-resolution output (300 dpi PNG) by default
+- Manual validation of figure generators with test data per study type
+- **Graceful failure handling** - Placeholder text if generation fails (no silent errors)
+- Visual regression tests (PDF → image + SSIM comparison)
+- Document figure requirements and limitations clearly
 
 ### Risk 3: Prompt Token Limits
 **Description**: Extraction + appraisal + schema + prompt exceeds context window
@@ -1963,14 +2184,15 @@ Failure modes observed:
 ### Risk 5: Type-specific Complexity
 **Description**: Different study types require very different report structures
 
-**Impact**: Medium - prompt becomes too complex or misses edge cases
+**Impact**: Low (was Medium) - Modular prompt architecture mitigates
 
 **Mitigation**:
-- Modular section definitions in prompt
-- Clear conditional logic for type-specific sections
-- Separate validation rules per study type
-- Test coverage for all 5 study types
-- Document type-specific requirements
+- **Modular prompt files** - Base + 5 type-specific prompts (PRIMARY MITIGATION)
+- Runtime composition based on classification.publication_type
+- Each type-specific prompt independently testable
+- Clear separation reduces cognitive load (vs. single 5000-token prompt)
+- Test coverage for all 5 study types with dedicated fixtures
+- Document type-specific requirements in each prompt file header
 
 ### Risk 6: PDF File Size
 **Description**: High-resolution figures → large PDF files (>50 MB)
@@ -2001,19 +2223,70 @@ Failure modes observed:
 ### Open Questions
 
 1. **Language Support**: Start with only Dutch, or both (NL + EN) in v1.0?
-   - **Proposal**: Both languages in v1.0, language parameter required
+   - **Decision**: Both languages in v1.0
+   - **Implementation**: LLM-driven direct generation (no post-hoc translation)
+   - **Section titles**: Stored in `templates/locales/{language}.json`
+   - **Terminology**: Use GRADE Dutch translations (GRADEpro) + Cochrane Dutch glossary
+   - **Validation**: Check language consistency (no mixed NL/EN)
 
 2. **Template Customization**: Should UI support template upload?
-   - **Proposal**: No in v1.0, only built-in templates
+   - **Decision**: No in v1.0, only built-in templates (vetrix + minimal)
+   - **Rationale**: Template validation complex, defer to v1.1+
 
 3. **Figure Formats**: PNG vs PDF for embedded figures?
-   - **Proposal**: PDF for vector graphics (ROC, forest), PNG for raster (traffic light)
+   - **Decision**: PNG only (300 dpi) for v1.0
+   - **Rationale**: Matplotlib PNG rendering stable, PDF vector graphics deferred to v1.1
 
 4. **Citation Style**: How to reference original paper in report?
-   - **Proposal**: DOI + full citation in metadata, footnote on first page
+   - **Decision**: DOI + full citation in metadata section, footnote on title page
+   - **Format**: "This report summarizes: [Authors]. [Title]. [Journal] [Year]. DOI: [link]"
 
 5. **Report Versioning**: How to handle schema changes in future?
-   - **Proposal**: `report_version` field in JSON, backwards compatibility in renderer
+   - **Decision**: `report_version` field in JSON + template versioning
+   - **Compatibility matrix**: Report schema v1.0 → Template v1.x (documented in renderer)
+   - **Breaking changes**: v2.0 requires migration script
+
+### Translation Strategy (Details)
+
+**Approach**: LLM generates content directly in target language (not translation)
+
+**Prompt Engineering**:
+```
+LANGUAGE: {nl|en}
+
+Generate all report text in {"Dutch" if nl else "English"}.
+Follow these terminology guidelines:
+- GRADE certainty: {nl: "Zekerheid van bewijs", en: "Certainty of evidence"}
+- Risk of bias: {nl: "Risico op bias", en: "Risk of bias"}
+- [Full terminology mapping in prompt]
+
+Example section titles:
+exec_bottom_line: {nl: "Klinische Bottom-line", en: "Clinical Bottom-line"}
+study_snapshot: {nl: "Studie-overzicht", en: "Study Snapshot"}
+[...]
+```
+
+**Section Titles**:
+Stored in `templates/locales/nl.json` and `templates/locales/en.json`:
+```json
+{
+  "exec_bottom_line": "Klinische Bottom-line",
+  "study_snapshot": "Studie-overzicht",
+  "quality_assessment": "Kwaliteit en Bias",
+  "results_primary": "Primaire Uitkomsten",
+  [...]
+}
+```
+
+**Terminology Consistency**:
+- Use official Dutch translations where available (GRADE Handbook, Cochrane)
+- Document all term mappings in `docs/terminology.md`
+- Validation checks: No mixed language in same report, consistent term usage
+
+**Testing**:
+- Generate reports in both languages for same paper
+- Manual review by Dutch + English speakers
+- Automated checks: Language detection per section
 
 ### Migration & Compatibility
 
@@ -2029,6 +2302,15 @@ Failure modes observed:
 - Old reports (v1.0) remain readable and renderable
 - New features (v1.1+) are opt-in (e.g., new block types, new section IDs)
 - Breaking changes: Major version bump (v2.0) with migration script
+
+**Template Versioning**:
+- Templates stored in `templates/latex/{template_name}/{version}/`
+- Example: `templates/latex/vetrix/v1.0/main.tex`
+- Compatibility matrix (documented in renderer):
+  - Report schema v1.0 → Template vetrix v1.0, v1.1 (forward compatible)
+  - Report schema v1.1 → Template vetrix v1.1+ only (backward incompatible if new blocks)
+- Renderer checks compatibility before loading template
+- Error if incompatible: "Report schema v1.1 requires template v1.1+, found v1.0"
 
 **Enabling Report in Existing Workflows**:
 - **Backward compatible**: Pipeline works WITHOUT report (optional step)
@@ -2092,29 +2374,43 @@ if appraisal_result.get('final_status') == 'max_iterations_reached':
 
 **LLM Dependencies**:
 - **LLM Providers** must be available (OpenAI + Anthropic accounts)
-- Context window requirements:
+- Context window requirements (modular prompts reduce token count):
   - Classification JSON: ~500-1000 tokens
   - Extraction JSON: ~5,000-15,000 tokens (varies by paper complexity)
   - Appraisal JSON: ~2,000-5,000 tokens
   - Report schema: ~2,000 tokens
-  - Report generation prompt: ~3,000-4,000 tokens
-  - **Total input**: ~12,500-27,000 tokens (well within GPT-4o 128k / Claude 3.5 Sonnet 200k limits)
+  - Base prompt: ~1,500-2,000 tokens
+  - Type-specific prompt: ~500-1,000 tokens
+  - **Total input**: ~11,500-26,000 tokens (well within GPT-4o 128k / Claude 3.5 Sonnet 200k limits)
+  - **Savings vs. monolithic prompt**: ~1,000-2,000 tokens (modular architecture)
 
 **Rendering Dependencies**:
-- **LaTeX Distribution** must be installed (TeX Live, MiKTeX)
-- **Python Packages**: matplotlib, seaborn, scikit-learn, networkx, pygraphviz (optional for DAG)
-- **System Fonts**: For xelatex fontspec (system-dependent)
+- **Docker**: Required for production (containerized LaTeX)
+- **LaTeX Distribution** (optional local): TeX Live 2023+ or MiKTeX 23.0+
+- **Python Packages** (see Deployment Strategy):
+  - matplotlib>=3.8.0, seaborn>=0.13.0 (figures)
+  - numpy>=1.24.0, pandas>=2.1.0 (data processing)
+  - PyPDF2>=3.0.0 (PDF utilities)
+  - pdf2image>=1.16.0 (visual regression testing)
+- **System Fonts**: Handled by Docker container (xelatex fontspec pre-configured)
 
 ---
 
 ## Next Steps (after Feature Document Approval)
 
 1. **Review Feature Document** with stakeholders
-2. **Prioritize Phases** (suggested: 1 → 2 → 3 → 4, defer 5-6 for beta release)
-3. **Setup LaTeX Environment** (install TeX Live, test compilation)
-4. **Start Phase 1**: Draft schema and generation prompt
-5. **Pilot Testing**: Generate sample report from existing extraction/appraisal
-6. **Iterate**: Refine schema/prompt based on pilot results
+2. **Confirm Decisions**: Language support (NL+EN), Docker deployment, figure priorities
+3. **Setup Development Environment**:
+   - Docker Desktop installed
+   - Test LaTeX container build (validate texlive base image)
+   - Python dependencies installed (matplotlib, seaborn)
+4. **Start Phase 1**: Draft schema + modular prompts
+   - Create 6 prompt files (base + 5 type-specific)
+   - Implement prompt composition helper
+   - Test with mock extraction/appraisal data
+5. **Pilot Testing**: Generate sample report (RCT) from existing data
+6. **Iterate**: Refine schema/prompts based on pilot results
+7. **Proceed to Phase 2**: Implement orchestrator + iteration loop
 
 ---
 
