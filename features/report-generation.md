@@ -8,9 +8,9 @@
 
 **Summary**
 - Automatic generation of structured, professional reports from extraction and appraisal data via LLM-driven JSON output and LaTeX rendering to PDF.
-- Block-based architecture separates content from presentation, with iterative validation/correction for quality assurance and type-specific modules for flexibility.
+- Block-based architecture separates content from presentation, with iterative validation/correction for quality assurance and type-aware prompt instructions for flexibility.
 - Docker-containerized LaTeX environment for reliable cross-platform rendering with pre-configured dependencies.
-- Main risks are figure generation complexity and prompt engineering; mitigations include matplotlib-only figures, modular prompt architecture, and comprehensive error recovery strategies.
+- Main risks are figure generation complexity and prompt engineering; mitigations include matplotlib-only figures, a disciplined prompt architecture, and comprehensive error recovery strategies.
 
 ## Scope
 
@@ -425,22 +425,43 @@ Evidence-based medicine and scientific communication require **accessible, profe
 - **Source map**: Simplified traceability with page references only (no table_id/figure_id in v1.0)
 - **Metadata tracking**: Generation timestamp, pipeline version, upstream quality scores
 
+#### Report Validation Schema (`schemas/report_validation.schema.json`)
+
+Structure mirrors `schemas/appraisal_validation.schema.json` with report-specific metrics:
+
+- **Root object**
+  - `validation_version`: string, const `"v1.0"`
+  - `validation_summary`: object (required) with properties:
+    - `overall_status`: enum `["passed", "warning", "failed"]`
+    - `quality_score`: number `0.0-1.0`
+    - `completeness_score`, `accuracy_score`, `cross_reference_consistency_score`, `data_consistency_score`, `schema_compliance_score`: numbers `0.0-1.0`
+    - `critical_issues`: integer `>=0`
+    - Additional enums allowed via `$defs/ScoreDetail` for future dimensions
+  - `issues`: array (required) of objects with:
+    - `severity`: enum `["critical", "moderate", "minor"]`
+    - `category`: enum `["missing_section", "data_mismatch", "broken_reference", "schema_violation"]`
+    - `field_path`: string (JSON Pointer or dotted path)
+    - `description`: string
+    - `recommendation`: string
+- **$defs**
+  - `Issue`: reusable issue object definition
+  - `ScoreSet`: ensures all numeric scores remain within bounds and matches weighting formula from validation prompt
+- **Additional constraints**
+  - `issues` array `maxItems` left unbounded but flagged via validation prompt when >25
+  - `additionalProperties: false` throughout to catch typos
+
+This schema loads via `load_schema("report_validation")` and feeds both validation and correction prompts.
+
 ### 2. Prompt Architecture
 
-**Strategy**: Modular prompt system with base + type-specific components
+**Strategy**: Single prompt template with explicit branching per publication type
 
-**Prompt Files**:
-- `prompts/Report-generation-base.txt` - Core sections (all study types)
-- `prompts/Report-generation-rct.txt` - RCT-specific sections
-- `prompts/Report-generation-observational.txt` - Observational-specific sections
-- `prompts/Report-generation-systematic-review.txt` - SR-specific sections
-- `prompts/Report-generation-prediction.txt` - Prediction model-specific sections
-- `prompts/Report-generation-editorials.txt` - Editorial-specific sections
+**Prompt File**: `prompts/Report-generation.txt` (single prompt covering all study types)
 
-**Runtime Composition**: Load base prompt + type-specific prompt based on classification.publication_type
+**Runtime Composition**: One prompt template parameterised by publication_type; the instructions below describe how it must branch internally.
 
-#### A. `prompts/Report-generation-base.txt`
-**Purpose**: Generate core report sections (applicable to all study types)
+#### A. `prompts/Report-generation.txt`
+**Purpose**: Generate complete report sections for any study type
 
 **Input**:
 - `CLASSIFICATION_JSON`: Publication type + metadata
@@ -889,7 +910,7 @@ def run_report_with_correction(
     extraction_result: dict,
     appraisal_result: dict,
     classification_result: dict,
-    llm_provider: str,
+    llm: BaseLLMProvider,
     file_manager: PipelineFileManager,
     language: str = "nl",
     max_iterations: int = 3,
@@ -913,7 +934,7 @@ def run_report_with_correction(
         extraction_result: Validated extraction JSON
         appraisal_result: Validated appraisal JSON
         classification_result: Classification result (for metadata + publication_type)
-        llm_provider: LLM provider name ("openai" | "claude")
+        llm: Instantiated provider from `get_llm_provider()`
         file_manager: File manager for saving report iterations
         language: Report language ("nl" | "en")
         max_iterations: Maximum correction attempts after initial report (default: 3)
@@ -943,11 +964,12 @@ def run_report_with_correction(
         LLMProviderError: If LLM calls fail
 
     Example:
+        >>> llm = get_llm_provider("openai")
         >>> report_result = run_report_with_correction(
         ...     extraction_result=extraction,
         ...     appraisal_result=appraisal,
         ...     classification_result=classification,
-        ...     llm_provider="openai",
+        ...     llm=llm,
         ...     file_manager=file_mgr,
         ...     language="nl",
         ...     max_iterations=3
@@ -978,6 +1000,19 @@ def run_report_with_correction(
 - **Metadata hygiene**: inside the helper, call `_strip_metadata_for_pipeline()` on `extraction_result`, `appraisal_result`, and `classification_result` before building the LLM context to avoid leaking `_pipeline_metadata`, `_metadata`, or `usage` blocks downstream.
 - **Progress callbacks**: follow the standard pattern—`_call_progress_callback(callback, STEP_REPORT, "starting", {...})` before any LLM work, `"completed"` with elapsed seconds plus result metadata on success, and `"failed"` with error information inside the `except` block.
 - **File output**: use `file_manager.save_report_iteration(...)` (see section below) so iteration artifacts match existing naming conventions.
+- **LLM instantiation**: continue using `get_llm_provider(llm_provider_str)` inside `run_single_step()`/`run_pipeline.py`, then pass the instantiated provider into `_run_report_generation_step()` so downstream helpers always receive a ready `BaseLLMProvider` (consistent with appraisal).
+
+#### Dispatcher & CLI Wiring
+
+- **`run_single_step()` (src/pipeline/orchestrator.py:3000+)**:
+  - Extend `valid_steps`/`ALL_PIPELINE_STEPS` checks with `STEP_REPORT`.
+  - Enforce dependencies: require `classification`, `extraction`, and `appraisal` in `previous_results` or load them from disk via `PipelineFileManager` (use best files when available).
+  - Instantiate the LLM provider once per invocation (`llm = get_llm_provider(llm_provider_str)`) and call `_run_report_generation_step()` to obtain the iteration bundle; persist the returned best iteration plus raw iterations into `previous_results[STEP_REPORT]`.
+- **Full pipeline helper**: keep `run_four_step_pipeline()` for backward compatibility but add a documented `run_five_step_pipeline()` (or extend the existing function) that appends STEP_REPORT unless `skip_report` is flagged. This helper should respect the same progress callbacks and file_manager conventions as earlier steps.
+- **CLI (`run_pipeline.py`)**:
+  - Add `"report"` to `--step` choices and introduce report-specific options: `--report-language {nl,en}`, `--report-template`, `--report-max-iter`, `--report-single-pass`, `--skip-report`, and `--force-best-report`.
+  - When running the full pipeline, honour `--skip-report`; otherwise invoke the new report step after appraisal. For single-step mode, ensure `previous_results` is populated (by loading files if needed) before dispatching to `run_single_step("report", ...)`.
+  - Surface output paths for `paper-report-best.json`, `paper-report_validation-best.json`, and the rendered PDF in the CLI summary, mirroring how extraction/appraisal results are currently reported.
 
 #### Helper Functions
 
@@ -1614,30 +1649,24 @@ pytest-cov>=4.1.0
 
 ## Implementation Phases
 
-### Phase 1: JSON Schema + Modular Prompts (Week 1)
-**Goal**: Define report structure and modular prompt architecture
+### Phase 1: JSON Schema + Prompt (Week 1)
+**Goal**: Define report structure and single prompt template
 
 **Deliverables**:
 - [ ] `schemas/report.schema.json` (complete with metadata fields, ~550 lines)
-- [ ] `prompts/Report-generation-base.txt` (core sections, ~400 lines)
-- [ ] `prompts/Report-generation-rct.txt` (RCT-specific, ~150 lines)
-- [ ] `prompts/Report-generation-observational.txt` (Observational-specific, ~150 lines)
-- [ ] `prompts/Report-generation-systematic-review.txt` (SR-specific, ~150 lines)
-- [ ] `prompts/Report-generation-prediction.txt` (Prediction-specific, ~150 lines)
-- [ ] `prompts/Report-generation-editorials.txt` (Editorial-specific, ~100 lines)
+- [ ] `prompts/Report-generation.txt` (single template with branching instructions)
 - [ ] Schema validation tests (unit tests for schema correctness)
-- [ ] Prompt composition helper (load base + type-specific)
-- [ ] Prompt dry-run with mock data (manual validation per type)
+- [ ] Prompt loader wired into `load_report_generation_prompt()`
+- [ ] Prompt dry-run with mock data (cover each publication-type path)
 
 **Testing**:
 - Schema validates against sample report JSONs
-- Prompt composition produces valid complete prompts
 - Generated reports validate for all 5 study types
-- Manual review of section coverage
+- Manual review of section coverage and prompt branching
 
 **Acceptance**:
 - Schema complete with all definitions + metadata fields
-- All 6 prompt files complete (base + 5 type-specific)
+- Prompt file complete and validated for each study type
 - Sample reports validate successfully for each type
 
 ### Phase 2: Report Generator (Orchestrator) (Week 2)
@@ -1814,12 +1843,12 @@ pytest-cov>=4.1.0
   - Progress output for iterations
   - PDF output path logging
   - CLI flags (consistent naming, no --report- prefix):
-    - `--language` (nl|en, default: nl) - applies to report generation
-    - `--max-iter` (default: 3) - report iterations (separate from extraction/appraisal)
-    - `--template` (default: vetrix) - LaTeX template name
-    - `--single-pass` (skip correction loop for report, like --appraisal-single-pass)
-    - `--skip-report` (disable report step entirely, for backward compatibility)
-    - `--force-best-report` (accept best report even if quality below threshold)
+      - `--report-language` (nl|en, default: nl)
+      - `--report-max-iter` (default: 3) - report iterations (separate from extraction/appraisal)
+      - `--report-template` (default: vetrix) - LaTeX template name
+      - `--report-single-pass` (skip correction loop for report, similar to --appraisal-single-pass)
+      - `--skip-report` (disable report step entirely, for backward compatibility)
+      - `--force-best-report` (accept best report even if quality below threshold)
 - [ ] Error handling and user feedback
 
 **Example Usage**:
@@ -1831,10 +1860,10 @@ python run_pipeline.py paper.pdf --llm openai
 python run_pipeline.py paper.pdf --step report --llm openai
 
 # Custom language and template
-python run_pipeline.py paper.pdf --step report --language en --template minimal
+python run_pipeline.py paper.pdf --step report --report-language en --report-template minimal
 
 # Single-pass mode (no iterative correction)
-python run_pipeline.py paper.pdf --step report --single-pass
+python run_pipeline.py paper.pdf --step report --report-single-pass
 
 # Skip report in full pipeline
 python run_pipeline.py paper.pdf --llm openai --skip-report
@@ -2262,15 +2291,14 @@ Failure modes observed:
 ### Risk 5: Type-specific Complexity
 **Description**: Different study types require very different report structures
 
-**Impact**: Low (was Medium) - Modular prompt architecture mitigates
+**Impact**: Low (was Medium) - Prompt now encodes explicit branching, keeping logic centralized
 
 **Mitigation**:
-- **Modular prompt files** - Base + 5 type-specific prompts (PRIMARY MITIGATION)
-- Runtime composition based on classification.publication_type
-- Each type-specific prompt independently testable
-- Clear separation reduces cognitive load (vs. single 5000-token prompt)
-- Test coverage for all 5 study types with dedicated fixtures
-- Document type-specific requirements in each prompt file header
+- Single prompt contains clearly delineated chapters per study type (searchable anchors)
+- Runtime passes `classification.publication_type` so the prompt knows which instructions to follow
+- Unit tests iterate through each branch to ensure coverage
+- Section-specific guidance lives inside the prompt file, reducing drift between documents
+- Extensive inline comments and table-of-contents within the prompt keep maintenance manageable
 
 ### Risk 6: PDF File Size
 **Description**: High-resolution figures → large PDF files (>50 MB)
@@ -2452,15 +2480,13 @@ if appraisal_result.get('final_status') == 'max_iterations_reached':
 
 **LLM Dependencies**:
 - **LLM Providers** must be available (OpenAI + Anthropic accounts)
-- Context window requirements (modular prompts reduce token count):
-  - Classification JSON: ~500-1000 tokens
+- Context window requirements (single prompt with conditional branches):
+  - Classification JSON: ~500-1,000 tokens
   - Extraction JSON: ~5,000-15,000 tokens (varies by paper complexity)
   - Appraisal JSON: ~2,000-5,000 tokens
   - Report schema: ~2,000 tokens
-  - Base prompt: ~1,500-2,000 tokens
-  - Type-specific prompt: ~500-1,000 tokens
-  - **Total input**: ~11,500-26,000 tokens (well within GPT-4o 128k / Claude 3.5 Sonnet 200k limits)
-  - **Savings vs. monolithic prompt**: ~1,000-2,000 tokens (modular architecture)
+  - Report-generation prompt: ~2,000-2,500 tokens (includes type-specific instructions)
+  - **Total input**: ~11,500-25,500 tokens (well within GPT-4o 128k / Claude 3.5 Sonnet 200k limits)
 
 **Rendering Dependencies**:
 - **Docker**: Required for production (containerized LaTeX)
@@ -2482,10 +2508,10 @@ if appraisal_result.get('final_status') == 'max_iterations_reached':
    - Docker Desktop installed
    - Test LaTeX container build (validate texlive base image)
    - Python dependencies installed (matplotlib, seaborn)
-4. **Start Phase 1**: Draft schema + modular prompts
-   - Create 6 prompt files (base + 5 type-specific)
-   - Implement prompt composition helper
-   - Test with mock extraction/appraisal data
+4. **Start Phase 1**: Draft schema + single prompt
+   - Create `schemas/report.schema.json` + `prompts/Report-generation.txt`
+   - Wire loader + tests for the new prompt
+   - Test with mock extraction/appraisal data (cover each publication type)
 5. **Pilot Testing**: Generate sample report (RCT) from existing data
 6. **Iterate**: Refine schema/prompts based on pilot results
 7. **Proceed to Phase 2**: Implement orchestrator + iteration loop
