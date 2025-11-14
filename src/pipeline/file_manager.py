@@ -356,3 +356,214 @@ class PipelineFileManager:
             )
 
         return sorted(iterations, key=lambda x: x["iteration_num"])
+
+    def save_report_iteration(
+        self,
+        iteration: int,
+        report_result: dict[str, Any],
+        validation_result: dict[str, Any] | None = None,
+    ) -> tuple[Path, Path | None]:
+        """
+        Save report iteration files (convenience wrapper).
+
+        Saves both report and validation JSON files for a given iteration
+        with consistent naming.
+
+        Args:
+            iteration: Iteration number (0, 1, 2, ...)
+            report_result: Report JSON output
+            validation_result: Optional validation JSON output
+
+        Returns:
+            Tuple of (report_path, validation_path)
+            validation_path is None if validation_result not provided
+
+        Examples:
+            >>> manager = PipelineFileManager(Path("paper.pdf"))
+            >>> report = {"summary": "...", "key_findings": [...]}
+            >>> validation = {"quality_score": 0.92, "overall_status": "passed"}
+            >>> rep_path, val_path = manager.save_report_iteration(
+            ...     iteration=0,
+            ...     report_result=report,
+            ...     validation_result=validation,
+            ... )
+            >>> rep_path.name
+            'paper-report0.json'
+            >>> val_path.name
+            'paper-report_validation0.json'
+        """
+        report_path = self.save_json(report_result, "report", iteration_number=iteration)
+
+        validation_path = None
+        if validation_result is not None:
+            validation_path = self.save_json(
+                validation_result, "report_validation", iteration_number=iteration
+            )
+
+        return (report_path, validation_path)
+
+    def load_report_iteration(
+        self,
+        iteration: int,
+    ) -> tuple[dict[str, Any], dict[str, Any] | None]:
+        """
+        Load report iteration files.
+
+        Args:
+            iteration: Iteration number to load
+
+        Returns:
+            Tuple of (report_dict, validation_dict)
+            validation_dict may be None if file doesn't exist
+
+        Raises:
+            FileNotFoundError: If report file doesn't exist
+
+        Examples:
+            >>> manager = PipelineFileManager(Path("paper.pdf"))
+            >>> # Save first
+            >>> report = {"summary": "...", "key_findings": [...]}
+            >>> validation = {"quality_score": 0.92}
+            >>> manager.save_report_iteration(0, report, validation)
+            (PosixPath('tmp/paper-report0.json'), PosixPath('tmp/paper-report_validation0.json'))
+            >>> # Load back
+            >>> loaded_rep, loaded_val = manager.load_report_iteration(0)
+            >>> loaded_rep["summary"]
+            '...'
+            >>> loaded_val["quality_score"]
+            0.92
+        """
+        report = self.load_json("report", iteration_number=iteration)
+        if report is None:
+            raise FileNotFoundError(
+                f"Report iteration {iteration} not found: "
+                f"{self.get_filename('report', iteration_number=iteration)}"
+            )
+
+        validation = self.load_json("report_validation", iteration_number=iteration)
+        return (report, validation)
+
+    def save_best_report(
+        self,
+        report_result: dict[str, Any],
+        validation_result: dict[str, Any],
+    ) -> tuple[Path, Path]:
+        """
+        Save best report iteration.
+
+        Args:
+            report_result: Best report JSON
+            validation_result: Corresponding validation JSON
+
+        Returns:
+            Tuple of (report_path, validation_path)
+
+        Examples:
+            >>> manager = PipelineFileManager(Path("paper.pdf"))
+            >>> best_rep = {"summary": "...", "key_findings": [...]}
+            >>> best_val = {"quality_score": 0.95}
+            >>> rep_path, val_path = manager.save_best_report(best_rep, best_val)
+            >>> rep_path.name
+            'paper-report-best.json'
+            >>> val_path.name
+            'paper-report_validation-best.json'
+        """
+        report_path = self.save_json(report_result, "report", status="best")
+        validation_path = self.save_json(validation_result, "report_validation", status="best")
+        return (report_path, validation_path)
+
+    def get_report_iterations(self) -> list[dict[str, Any]]:
+        """
+        Get all report iterations with metadata.
+
+        Returns:
+            List of dicts with:
+                - iteration_num: int
+                - report_file: Path
+                - validation_file: Path | None
+                - report_exists: bool
+                - validation_exists: bool
+                - created_time: datetime (from file mtime)
+
+        Sorted by iteration number.
+
+        Examples:
+            >>> manager = PipelineFileManager(Path("paper.pdf"))
+            >>> # Save 2 iterations
+            >>> manager.save_report_iteration(0, {"data": "v0"}, {"score": 0.8})
+            (PosixPath('tmp/paper-report0.json'), PosixPath('tmp/paper-report_validation0.json'))
+            >>> manager.save_report_iteration(1, {"data": "v1"}, {"score": 0.9})
+            (PosixPath('tmp/paper-report1.json'), PosixPath('tmp/paper-report_validation1.json'))
+            >>> iterations = manager.get_report_iterations()
+            >>> len(iterations)
+            2
+            >>> iterations[0]["iteration_num"]
+            0
+            >>> iterations[1]["iteration_num"]
+            1
+            >>> iterations[0]["report_exists"]
+            True
+            >>> iterations[0]["validation_exists"]
+            True
+        """
+        import re
+        from datetime import datetime
+
+        # Find all report iteration files
+        pattern = f"{self.identifier}-report[0-9]*.json"
+        report_files = sorted(self.tmp_dir.glob(pattern))
+
+        iterations = []
+        for report_file in report_files:
+            # Extract iteration number from filename
+            match = re.search(r"report(\d+)\.json$", report_file.name)
+            if not match:
+                continue
+
+            iteration_num = int(match.group(1))
+
+            # Check for validation file
+            validation_file = self.get_filename("report_validation", iteration_number=iteration_num)
+
+            iterations.append(
+                {
+                    "iteration_num": iteration_num,
+                    "report_file": report_file,
+                    "validation_file": validation_file if validation_file.exists() else None,
+                    "report_exists": report_file.exists(),
+                    "validation_exists": validation_file.exists(),
+                    "created_time": datetime.fromtimestamp(report_file.stat().st_mtime),
+                }
+            )
+
+        return sorted(iterations, key=lambda x: x["iteration_num"])
+
+    def save_report_pdf(self, pdf_path: Path) -> Path:
+        """
+        Save final report PDF to consistent location.
+
+        Args:
+            pdf_path: Path to the generated report PDF file
+
+        Returns:
+            Path to saved PDF in tmp directory
+
+        Examples:
+            >>> import shutil
+            >>> from pathlib import Path
+            >>> manager = PipelineFileManager(Path("paper.pdf"))
+            >>> # Copy a PDF to tmp with proper naming
+            >>> temp_pdf = Path("temp_report.pdf")
+            >>> # ... (generate PDF) ...
+            >>> saved_path = manager.save_report_pdf(temp_pdf)
+            >>> saved_path.name
+            'paper-report.pdf'
+        """
+        dest_path = self.tmp_dir / f"{self.identifier}-report.pdf"
+
+        # Copy PDF to destination
+        import shutil
+
+        shutil.copy2(pdf_path, dest_path)
+
+        return dest_path

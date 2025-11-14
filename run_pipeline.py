@@ -118,6 +118,7 @@ def main():
             "correction",
             "validation_correction",
             "appraisal",
+            "report",
         ],
         default=None,
         help="Run specific pipeline step (default: run all steps)",
@@ -177,6 +178,70 @@ def main():
         default=0.95,
         help="Minimum schema compliance score for appraisal (default: 0.95)",
     )
+    # Report generation arguments
+    parser.add_argument(
+        "--language",
+        choices=["nl", "en"],
+        default="nl",
+        help="Report language - Dutch or English (default: nl)",
+    )
+    parser.add_argument(
+        "--report-max-iter",
+        type=int,
+        default=3,
+        help="Maximum correction attempts for report generation (default: 3)",
+    )
+    parser.add_argument(
+        "--template",
+        type=str,
+        default="vetrix",
+        help="LaTeX template name for PDF generation (default: vetrix)",
+    )
+    parser.add_argument(
+        "--single-pass",
+        action="store_true",
+        help="Skip iterative correction loop for report (single-pass mode)",
+    )
+    parser.add_argument(
+        "--skip-report",
+        action="store_true",
+        help="Skip report generation step in full pipeline (backward compatibility)",
+    )
+    parser.add_argument(
+        "--force-best-report",
+        action="store_true",
+        help="Accept best report even if quality below threshold",
+    )
+    parser.add_argument(
+        "--report-completeness-threshold",
+        type=float,
+        default=0.85,
+        help="Minimum completeness score for report (default: 0.85)",
+    )
+    parser.add_argument(
+        "--report-accuracy-threshold",
+        type=float,
+        default=0.95,
+        help="Minimum accuracy score for report (default: 0.95)",
+    )
+    parser.add_argument(
+        "--report-cross-ref-threshold",
+        type=float,
+        default=0.90,
+        help="Minimum cross-reference consistency for report (default: 0.90)",
+    )
+    parser.add_argument(
+        "--report-data-consistency-threshold",
+        type=float,
+        default=0.90,
+        help="Minimum data consistency score for report (default: 0.90)",
+    )
+    parser.add_argument(
+        "--report-schema-threshold",
+        type=float,
+        default=0.95,
+        help="Minimum schema compliance score for report (default: 0.95)",
+    )
     args = parser.parse_args()
 
     pdf_path = Path(args.pdf)
@@ -233,6 +298,27 @@ def main():
                 f"schema={args.appraisal_schema_threshold:.0%}[/dim]"
             )
             console.print(f"[dim]Max iterations: {args.appraisal_max_iter}[/dim]")
+        elif args.step == "report":
+            quality_thresholds = {
+                "completeness_score": args.report_completeness_threshold,
+                "accuracy_score": args.report_accuracy_threshold,
+                "cross_reference_consistency_score": args.report_cross_ref_threshold,
+                "data_consistency_score": args.report_data_consistency_threshold,
+                "schema_compliance_score": args.report_schema_threshold,
+                "critical_issues": 0,
+            }
+            console.print(
+                f"[dim]Report quality thresholds: "
+                f"completeness={args.report_completeness_threshold:.0%}, "
+                f"accuracy={args.report_accuracy_threshold:.0%}, "
+                f"cross_ref={args.report_cross_ref_threshold:.0%}, "
+                f"data_consistency={args.report_data_consistency_threshold:.0%}, "
+                f"schema={args.report_schema_threshold:.0%}[/dim]"
+            )
+            console.print(f"[dim]Max iterations: {args.report_max_iter}[/dim]")
+            console.print(
+                f"[dim]Language: {args.language.upper()}, Template: {args.template}[/dim]"
+            )
         else:
             quality_thresholds = None
 
@@ -243,11 +329,15 @@ def main():
                 max_iter = args.max_iterations
             elif args.step == "appraisal":
                 max_iter = args.appraisal_max_iter
+            elif args.step == "report":
+                max_iter = args.report_max_iter
             else:
                 max_iter = None
             enable_iter = True
             if args.step == "appraisal":
                 enable_iter = not args.appraisal_single_pass
+            elif args.step == "report":
+                enable_iter = not args.single_pass
 
             result = run_single_step(
                 step_name=args.step,

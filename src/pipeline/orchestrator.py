@@ -3027,6 +3027,1313 @@ def run_appraisal_with_correction(
     raise RuntimeError("Appraisal loop exited unexpectedly")
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+# REPORT GENERATION FUNCTIONS
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+def _get_report_prompt_name(publication_type: str) -> str:
+    """
+    Map publication type to corresponding report generation prompt filename.
+
+    This function routes each publication type to its appropriate report
+    generation prompt based on the publication structure and content requirements.
+
+    Args:
+        publication_type: Classification result publication type
+
+    Returns:
+        Prompt filename without .txt extension (e.g., "Report-interventional")
+
+    Raises:
+        UnsupportedPublicationType: If publication type has no report generation support
+
+    Mapping:
+        - interventional_trial → Report-interventional
+        - observational_analytic → Report-observational
+        - evidence_synthesis → Report-evidence-synthesis
+        - prediction_model → Report-prediction
+        - diagnostic → Report-diagnostic
+
+    Note:
+        Currently, all publication types use a single generic report prompt.
+        This mapping is kept for future extension if publication-specific
+        report templates are needed.
+    """
+    # For now, all types use the same generic report prompt
+    # In the future, this could route to publication-specific templates
+    prompt_map = {
+        "interventional_trial": "Report-generic",
+        "observational_analytic": "Report-generic",
+        "evidence_synthesis": "Report-generic",
+        "prediction_model": "Report-generic",
+        "diagnostic": "Report-generic",
+    }
+
+    if publication_type not in prompt_map:
+        raise UnsupportedPublicationType(
+            f"Report generation not supported for publication_type: {publication_type}"
+        )
+
+    return prompt_map[publication_type]
+
+
+def _extract_report_metrics(validation_result: dict) -> dict:
+    """
+    Extract key metrics from report validation result for comparison.
+
+    Used for:
+    - Best iteration selection (_select_best_report_iteration)
+    - Quality degradation detection
+    - Progress tracking and UI display
+
+    Returns dict with individual scores + computed 'quality_score':
+        - 35% accuracy (data matches extraction/appraisal)
+        - 30% completeness (all sections, outcomes)
+        - 10% cross_reference_consistency (tables/figures)
+        - 10% data_consistency (numbers align across sections)
+        - 15% schema_compliance (enums, labels, required fields)
+
+    Args:
+        validation_result: Report validation JSON with validation_summary
+
+    Returns:
+        dict: {
+            'accuracy_score': float,
+            'completeness_score': float,
+            'cross_reference_consistency_score': float,
+            'data_consistency_score': float,
+            'schema_compliance_score': float,
+            'quality_score': float,  # weighted composite
+            'critical_issues': int
+        }
+
+    Example:
+        >>> validation = {
+        ...     "validation_summary": {
+        ...         "accuracy_score": 0.95,
+        ...         "completeness_score": 0.90,
+        ...         "cross_reference_consistency_score": 0.92,
+        ...         "data_consistency_score": 0.88,
+        ...         "schema_compliance_score": 0.98,
+        ...         "critical_issues_count": 0
+        ...     }
+        ... }
+        >>> metrics = _extract_report_metrics(validation)
+        >>> metrics["quality_score"]
+        0.924  # 0.35*0.95 + 0.30*0.90 + 0.10*0.92 + 0.10*0.88 + 0.15*0.98
+    """
+    summary = validation_result.get("validation_summary", {})
+
+    # Extract individual scores (default to 0 if missing)
+    accuracy = summary.get("accuracy_score", 0.0)
+    completeness = summary.get("completeness_score", 0.0)
+    cross_ref = summary.get("cross_reference_consistency_score", 0.0)
+    data_consistency = summary.get("data_consistency_score", 0.0)
+    schema = summary.get("schema_compliance_score", 0.0)
+    critical_issues = summary.get("critical_issues_count", 0)
+
+    # Calculate weighted quality score
+    quality_score = (
+        0.35 * accuracy  # Most important: data accuracy
+        + 0.30 * completeness  # Second: completeness
+        + 0.10 * cross_ref  # Cross-reference consistency
+        + 0.10 * data_consistency  # Data consistency
+        + 0.15 * schema  # Schema compliance
+    )
+
+    return {
+        "accuracy_score": accuracy,
+        "completeness_score": completeness,
+        "cross_reference_consistency_score": cross_ref,
+        "data_consistency_score": data_consistency,
+        "schema_compliance_score": schema,
+        "quality_score": quality_score,
+        "critical_issues": critical_issues,
+    }
+
+
+def _select_best_report_iteration(iterations: list[dict]) -> dict:
+    """
+    Select best report iteration when max iterations reached but quality insufficient.
+
+    Selection strategy (prioritized):
+        1. Priority 1: No critical issues (mandatory filter)
+        2. Priority 2: Highest quality_score (weighted composite from validation)
+        3. Priority 3: If tied, prefer higher completeness_score
+        4. Priority 4: If still tied, prefer lowest iteration number (earlier success)
+
+    Quality score composition (computed by validation prompt):
+        - 35% accuracy (data matches extraction/appraisal)
+        - 30% completeness (all sections, outcomes)
+        - 10% cross_reference_consistency (tables/figures)
+        - 10% data_consistency (numbers align across sections)
+        - 15% schema_compliance (enums, labels, required fields)
+
+    Args:
+        iterations: List of report iteration data dicts
+
+    Returns:
+        dict: Best iteration with selection metadata:
+            - iteration_num: int
+            - report: dict
+            - validation: dict
+            - metrics: dict
+            - selection_reason: str
+            - timestamp: str
+
+    Example:
+        >>> iterations = [
+        ...     {"iteration_num": 0, "metrics": {"quality_score": 0.85, "critical_issues": 0}},
+        ...     {"iteration_num": 1, "metrics": {"quality_score": 0.92, "critical_issues": 0}},
+        ...     {"iteration_num": 2, "metrics": {"quality_score": 0.88, "critical_issues": 1}},
+        ... ]
+        >>> best = _select_best_report_iteration(iterations)
+        >>> best["iteration_num"]
+        1
+        >>> best["selection_reason"]
+        'highest_quality_score'
+    """
+    if not iterations:
+        raise ValueError("Cannot select best iteration from empty list")
+
+    # Filter out iterations with critical issues
+    valid_iterations = [it for it in iterations if it["metrics"]["critical_issues"] == 0]
+
+    # If all have critical issues, use all iterations (select least bad)
+    candidates = valid_iterations if valid_iterations else iterations
+
+    # Sort by quality score (descending), then completeness (descending), then iteration (ascending)
+    sorted_candidates = sorted(
+        candidates,
+        key=lambda x: (
+            -x["metrics"]["quality_score"],  # Higher quality first
+            -x["metrics"]["completeness_score"],  # Higher completeness breaks ties
+            x["iteration_num"],  # Lower iteration breaks further ties
+        ),
+    )
+
+    best = sorted_candidates[0]
+
+    # Determine selection reason
+    if best["metrics"]["critical_issues"] > 0:
+        reason = "least_critical_issues"
+    elif len(candidates) == 1:
+        reason = "only_candidate"
+    else:
+        reason = "highest_quality_score"
+
+    best["selection_reason"] = reason
+    return best
+
+
+def is_report_quality_sufficient(
+    validation_result: dict | None, thresholds: dict | None = None
+) -> bool:
+    """
+    Check if report validation quality meets thresholds for stopping iteration.
+
+    Args:
+        validation_result: Report validation JSON with validation_summary (can be None)
+        thresholds: Quality thresholds to check against (defaults to REPORT_QUALITY_THRESHOLDS)
+
+    Returns:
+        bool: True if ALL thresholds are met, False otherwise
+
+    Edge Cases:
+        - validation_result is None → False
+        - validation_summary missing → False
+        - Any score is None → treated as 0 (fails threshold)
+        - Empty dict → False (all scores default to 0)
+
+    Example:
+        >>> validation = {
+        ...     "validation_summary": {
+        ...         "accuracy_score": 0.96,
+        ...         "completeness_score": 0.90,
+        ...         "cross_reference_consistency_score": 0.92,
+        ...         "data_consistency_score": 0.91,
+        ...         "schema_compliance_score": 0.98,
+        ...         "critical_issues_count": 0
+        ...     }
+        ... }
+        >>> is_report_quality_sufficient(validation)
+        True
+        >>> validation["validation_summary"]["accuracy_score"] = 0.80
+        >>> is_report_quality_sufficient(validation)
+        False  # Fails accuracy threshold (0.95)
+    """
+    if validation_result is None:
+        return False
+
+    summary = validation_result.get("validation_summary", {})
+    if not summary:
+        return False
+
+    if thresholds is None:
+        thresholds = REPORT_QUALITY_THRESHOLDS
+
+    # Check all thresholds
+    checks = [
+        summary.get("accuracy_score", 0) >= thresholds.get("accuracy_score", 0.95),
+        summary.get("completeness_score", 0) >= thresholds.get("completeness_score", 0.85),
+        summary.get("cross_reference_consistency_score", 0)
+        >= thresholds.get("cross_reference_consistency_score", 0.90),
+        summary.get("data_consistency_score", 0) >= thresholds.get("data_consistency_score", 0.90),
+        summary.get("schema_compliance_score", 0)
+        >= thresholds.get("schema_compliance_score", 0.95),
+        summary.get("critical_issues_count", 1) <= thresholds.get("critical_issues", 0),
+    ]
+
+    return all(checks)
+
+
+def _run_report_step(
+    extraction_result: dict[str, Any],
+    appraisal_result: dict[str, Any],
+    publication_type: str,
+    llm: Any,
+    file_manager: PipelineFileManager,
+    progress_callback: Callable[[str, str, dict], None] | None,
+) -> dict[str, Any]:
+    """
+    Run report generation step of the pipeline.
+
+    Generates a comprehensive medical research report from validated extraction
+    and appraisal data, including executive summary, key findings, evidence
+    tables, and clinical implications.
+
+    Args:
+        extraction_result: Validated extraction result
+        appraisal_result: Validated appraisal result
+        publication_type: Publication type from classification (for report routing)
+        llm: LLM provider instance (from get_llm_provider)
+        file_manager: PipelineFileManager for saving results
+        progress_callback: Optional callback for progress updates
+
+    Returns:
+        Dictionary containing report results with summary, key_findings, evidence_tables, etc.
+
+    Raises:
+        UnsupportedPublicationType: If publication type has no report support
+        PromptLoadError: If report prompt cannot be loaded
+        SchemaLoadError: If report schema cannot be loaded
+        LLMError: If LLM API call fails
+    """
+    console.print("[bold cyan]📝 Report Generation[/bold cyan]")
+
+    start_time = time.time()
+
+    # Strip metadata from inputs before using
+    extraction_clean = _strip_metadata_for_pipeline(extraction_result)
+    appraisal_clean = _strip_metadata_for_pipeline(appraisal_result)
+
+    # Route to appropriate report prompt
+    try:
+        prompt_name = _get_report_prompt_name(publication_type)
+    except UnsupportedPublicationType as e:
+        console.print(f"[red]❌ {e}[/red]")
+        raise
+
+    _call_progress_callback(
+        progress_callback,
+        STEP_REPORT,
+        "starting",
+        {"publication_type": publication_type, "prompt": prompt_name},
+    )
+
+    try:
+        # Load appropriate report prompt and schema
+        report_prompt = load_report_generation_prompt(publication_type)
+        report_schema = load_schema("report")
+
+        console.print(f"[dim]Generating {prompt_name} report...")
+        console.print(f"[dim]Tool routing: {publication_type} → {prompt_name}[/dim]")
+
+        # Prepare context with extraction and appraisal
+        context = f"""EXTRACTION_JSON:
+{json.dumps(extraction_clean, indent=2)}
+
+APPRAISAL_JSON:
+{json.dumps(appraisal_clean, indent=2)}"""
+
+        # Run report generation
+        report_result = llm.generate_json_with_schema(
+            schema=report_schema,
+            system_prompt=report_prompt,
+            prompt=context,
+            schema_name=f"{publication_type}_report",
+        )
+
+        console.print("[green]✅ Report generation completed[/green]")
+
+        # Add pipeline metadata
+        elapsed = time.time() - start_time
+        report_result["_pipeline_metadata"] = {
+            "step": "report",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "duration_seconds": elapsed,
+            "llm_provider": _get_provider_name(llm),
+            "model_used": report_result.get("_metadata", {}).get("model"),
+            "execution_mode": "streamlit" if progress_callback else "cli",
+            "status": "success",
+            "publication_type": publication_type,
+            "prompt_used": prompt_name,
+        }
+
+        _call_progress_callback(
+            progress_callback,
+            STEP_REPORT,
+            "completed",
+            {
+                "result": report_result,
+                "elapsed_seconds": elapsed,
+            },
+        )
+
+        return report_result
+
+    except (PromptLoadError, SchemaLoadError, LLMError) as e:
+        elapsed = time.time() - start_time
+        console.print(f"[red]❌ Report generation error: {e}[/red]")
+
+        # Save error metadata
+        error_data = {
+            "_pipeline_metadata": {
+                "step": "report",
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "duration_seconds": elapsed,
+                "llm_provider": _get_provider_name(llm),
+                "model_used": None,
+                "execution_mode": "streamlit" if progress_callback else "cli",
+                "status": "failed",
+                "error_message": str(e),
+                "error_type": type(e).__name__,
+                "publication_type": publication_type,
+            }
+        }
+        try:
+            file_manager.save_json(error_data, STEP_REPORT, status="failed")
+        except Exception:
+            pass  # Don't fail the error handling
+
+        _call_progress_callback(
+            progress_callback,
+            STEP_REPORT,
+            "failed",
+            {"error": str(e), "error_type": type(e).__name__, "elapsed_seconds": elapsed},
+        )
+        raise
+
+
+def _run_report_validation_step(
+    report_result: dict[str, Any],
+    extraction_result: dict[str, Any],
+    appraisal_result: dict[str, Any],
+    llm: Any,
+    file_manager: PipelineFileManager,
+    progress_callback: Callable[[str, str, dict], None] | None,
+) -> dict[str, Any]:
+    """
+    Run report validation step of the pipeline.
+
+    Validates report results for accuracy, completeness, cross-reference consistency,
+    data consistency, and schema compliance using the Report-validation.txt prompt.
+
+    Args:
+        report_result: Report result to validate
+        extraction_result: Original extraction (for data accuracy cross-checking)
+        appraisal_result: Original appraisal (for data accuracy cross-checking)
+        llm: LLM provider instance (from get_llm_provider)
+        file_manager: PipelineFileManager for saving results
+        progress_callback: Optional callback for progress updates
+
+    Returns:
+        Dictionary containing validation results with validation_summary and quality scores
+
+    Raises:
+        PromptLoadError: If validation prompt cannot be loaded
+        SchemaLoadError: If validation schema cannot be loaded
+        LLMError: If LLM API call fails
+    """
+    console.print("[bold cyan]🔍 Report Validation[/bold cyan]")
+
+    start_time = time.time()
+    _call_progress_callback(progress_callback, STEP_REPORT_VALIDATION, "starting", {})
+
+    # Strip metadata from dependencies before using
+    report_clean = _strip_metadata_for_pipeline(report_result)
+    extraction_clean = _strip_metadata_for_pipeline(extraction_result)
+    appraisal_clean = _strip_metadata_for_pipeline(appraisal_result)
+
+    try:
+        # Load report validation prompt and schemas
+        validation_prompt = load_report_validation_prompt()
+        report_schema = load_schema("report")
+        validation_report_schema = load_schema("report_validation")
+
+        # Prepare context with report, extraction, appraisal, and schema
+        context = f"""REPORT_JSON:
+{json.dumps(report_clean, indent=2)}
+
+EXTRACTION_JSON (for accuracy checking):
+{json.dumps(extraction_clean, indent=2)}
+
+APPRAISAL_JSON (for accuracy checking):
+{json.dumps(appraisal_clean, indent=2)}
+
+REPORT_SCHEMA:
+{json.dumps(report_schema, indent=2)}"""
+
+        console.print("[dim]Validating report for accuracy, completeness, consistency...[/dim]")
+
+        # Run validation (returns validation report with scores)
+        validation_result = llm.generate_json_with_schema(
+            schema=validation_report_schema,
+            system_prompt=validation_prompt,
+            prompt=context,
+            schema_name="report_validation",
+        )
+
+        console.print("[green]✅ Report validation completed[/green]")
+
+        # Add pipeline metadata
+        elapsed = time.time() - start_time
+        validation_result["_pipeline_metadata"] = {
+            "step": "report_validation",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "duration_seconds": elapsed,
+            "llm_provider": _get_provider_name(llm),
+            "model_used": validation_result.get("_metadata", {}).get("model"),
+            "execution_mode": "streamlit" if progress_callback else "cli",
+            "status": "success",
+            "validation_passed": validation_result.get("validation_summary", {}).get(
+                "overall_status"
+            )
+            == "passed",
+        }
+
+        _call_progress_callback(
+            progress_callback,
+            STEP_REPORT_VALIDATION,
+            "completed",
+            {
+                "result": validation_result,
+                "elapsed_seconds": elapsed,
+                "validation_status": validation_result.get("validation_summary", {}).get(
+                    "overall_status"
+                ),
+                "quality_score": validation_result.get("validation_summary", {}).get(
+                    "quality_score"
+                ),
+            },
+        )
+
+        return validation_result
+
+    except (PromptLoadError, SchemaLoadError, LLMError) as e:
+        elapsed = time.time() - start_time
+        console.print(f"[red]❌ Report validation error: {e}[/red]")
+
+        _call_progress_callback(
+            progress_callback,
+            STEP_REPORT_VALIDATION,
+            "failed",
+            {"error": str(e), "error_type": type(e).__name__, "elapsed_seconds": elapsed},
+        )
+        raise
+
+
+def _run_report_correction_step(
+    report_result: dict[str, Any],
+    validation_result: dict[str, Any],
+    extraction_result: dict[str, Any],
+    appraisal_result: dict[str, Any],
+    llm: Any,
+    file_manager: PipelineFileManager,
+    progress_callback: Callable[[str, str, dict], None] | None,
+) -> dict[str, Any]:
+    """
+    Run report correction step of the pipeline.
+
+    Applies LLM-based corrections to report results based on validation
+    feedback (fixes data inaccuracies, completes missing sections, improves consistency).
+
+    Args:
+        report_result: Original report result to correct
+        validation_result: Validation result containing issues to fix
+        extraction_result: Original extraction (for re-checking data)
+        appraisal_result: Original appraisal (for re-checking data)
+        llm: LLM provider instance (from get_llm_provider)
+        file_manager: PipelineFileManager for saving results
+        progress_callback: Optional callback for progress updates
+
+    Returns:
+        Corrected report result (ready for re-validation)
+
+    Raises:
+        PromptLoadError: If correction prompt cannot be loaded
+        SchemaLoadError: If report schema cannot be loaded
+        LLMError: If LLM API call fails
+    """
+    console.print("[bold cyan]🔧 Report Correction[/bold cyan]")
+
+    start_time = time.time()
+    validation_status = validation_result.get("validation_summary", {}).get("overall_status")
+
+    _call_progress_callback(
+        progress_callback,
+        STEP_REPORT_CORRECTION,
+        "starting",
+        {"validation_status": validation_status},
+    )
+
+    # Strip metadata from dependencies
+    report_clean = _strip_metadata_for_pipeline(report_result)
+    validation_clean = _strip_metadata_for_pipeline(validation_result)
+    extraction_clean = _strip_metadata_for_pipeline(extraction_result)
+    appraisal_clean = _strip_metadata_for_pipeline(appraisal_result)
+
+    try:
+        # Load correction prompt and schema
+        correction_prompt = load_report_correction_prompt()
+        report_schema = load_schema("report")
+
+        # Prepare context with validation report, original report, extraction, appraisal, and schema
+        context = f"""VALIDATION_REPORT:
+{json.dumps(validation_clean, indent=2)}
+
+ORIGINAL_REPORT:
+{json.dumps(report_clean, indent=2)}
+
+EXTRACTION_JSON (for re-checking data):
+{json.dumps(extraction_clean, indent=2)}
+
+APPRAISAL_JSON (for re-checking data):
+{json.dumps(appraisal_clean, indent=2)}
+
+REPORT_SCHEMA:
+{json.dumps(report_schema, indent=2)}"""
+
+        console.print("[dim]Correcting report based on validation issues...[/dim]")
+
+        # Run correction
+        corrected_report = llm.generate_json_with_schema(
+            schema=report_schema,
+            system_prompt=correction_prompt,
+            prompt=context,
+            schema_name="report_correction",
+        )
+
+        console.print("[green]✅ Report correction completed[/green]")
+
+        # Add pipeline metadata
+        elapsed = time.time() - start_time
+        corrected_report["_pipeline_metadata"] = {
+            "step": "report_correction",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "duration_seconds": elapsed,
+            "llm_provider": _get_provider_name(llm),
+            "model_used": corrected_report.get("_metadata", {}).get("model"),
+            "execution_mode": "streamlit" if progress_callback else "cli",
+            "status": "success",
+            "validation_status_before_correction": validation_status,
+        }
+
+        _call_progress_callback(
+            progress_callback,
+            STEP_REPORT_CORRECTION,
+            "completed",
+            {
+                "result": corrected_report,
+                "elapsed_seconds": elapsed,
+            },
+        )
+
+        return corrected_report
+
+    except (PromptLoadError, SchemaLoadError, LLMError) as e:
+        elapsed = time.time() - start_time
+        console.print(f"[red]❌ Report correction error: {e}[/red]")
+
+        _call_progress_callback(
+            progress_callback,
+            STEP_REPORT_CORRECTION,
+            "failed",
+            {"error": str(e), "error_type": type(e).__name__, "elapsed_seconds": elapsed},
+        )
+        raise
+
+
+def _run_report_generation_step(
+    extraction_result: dict[str, Any],
+    appraisal_result: dict[str, Any],
+    publication_type: str,
+    llm: Any,
+    file_manager: PipelineFileManager,
+    iteration: int,
+    progress_callback: Callable[[str, str, dict], None] | None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """
+    Run complete report generation + validation cycle for a single iteration.
+
+    This helper combines report generation and validation into a single step,
+    used by the iterative correction loop.
+
+    Args:
+        extraction_result: Validated extraction result
+        appraisal_result: Validated appraisal result
+        publication_type: Publication type from classification
+        llm: LLM provider instance
+        file_manager: PipelineFileManager for saving results
+        iteration: Iteration number for file naming
+        progress_callback: Optional callback for progress updates
+
+    Returns:
+        Tuple of (report_result, validation_result)
+
+    Raises:
+        PromptLoadError: If prompts cannot be loaded
+        SchemaLoadError: If schemas cannot be loaded
+        LLMError: If LLM API calls fail
+    """
+    # Step 1: Generate report
+    report = _run_report_step(
+        extraction_result=extraction_result,
+        appraisal_result=appraisal_result,
+        publication_type=publication_type,
+        llm=llm,
+        file_manager=file_manager,
+        progress_callback=progress_callback,
+    )
+
+    # Step 2: Validate report
+    validation = _run_report_validation_step(
+        report_result=report,
+        extraction_result=extraction_result,
+        appraisal_result=appraisal_result,
+        llm=llm,
+        file_manager=file_manager,
+        progress_callback=progress_callback,
+    )
+
+    # Save iteration files
+    file_manager.save_report_iteration(iteration, report, validation)
+
+    return (report, validation)
+
+
+def run_report_generation(
+    extraction_result: dict[str, Any],
+    appraisal_result: dict[str, Any],
+    classification_result: dict[str, Any],
+    llm_provider: str,
+    file_manager: PipelineFileManager,
+    progress_callback: Callable[[str, str, dict], None] | None = None,
+) -> dict[str, Any]:
+    """
+    Run single-pass report generation without iterative correction.
+
+    Simple wrapper for generating a report and validation without the
+    iterative correction loop. Useful for quick testing or when quality
+    thresholds are not critical.
+
+    Args:
+        extraction_result: Validated extraction JSON (input for report)
+        appraisal_result: Validated appraisal JSON (input for report)
+        classification_result: Classification result (for publication_type routing)
+        llm_provider: LLM provider name ("openai" | "claude")
+        file_manager: File manager for saving report
+        progress_callback: Optional callback for progress updates
+
+    Returns:
+        dict: {
+            'report': dict,  # Generated report
+            'validation': dict,  # Validation of report
+        }
+
+    Raises:
+        UnsupportedPublicationType: If publication_type not supported for report
+        SchemaLoadError: If report schema cannot be loaded
+        LLMProviderError: If LLM provider initialization fails
+        LLMError: If LLM calls fail
+    """
+    console.print("\n[bold magenta]═══ REPORT GENERATION (Single Pass) ═══[/bold magenta]\n")
+
+    classification_clean = _strip_metadata_for_pipeline(classification_result)
+    publication_type = classification_clean.get("publication_type")
+    if not publication_type:
+        raise ValueError("Classification result missing publication_type")
+
+    llm = get_llm_provider(llm_provider)
+
+    report = _run_report_step(
+        extraction_result=extraction_result,
+        appraisal_result=appraisal_result,
+        publication_type=publication_type,
+        llm=llm,
+        file_manager=file_manager,
+        progress_callback=progress_callback,
+    )
+
+    validation = _run_report_validation_step(
+        report_result=report,
+        extraction_result=extraction_result,
+        appraisal_result=appraisal_result,
+        llm=llm,
+        file_manager=file_manager,
+        progress_callback=progress_callback,
+    )
+
+    # Save files
+    file_manager.save_json(report, STEP_REPORT)
+    file_manager.save_json(validation, STEP_REPORT_VALIDATION)
+    file_manager.save_best_report(report, validation)
+
+    console.print("[cyan]Single-pass report generation complete.[/cyan]")
+
+    return {
+        "report": report,
+        "validation": validation,
+    }
+
+
+def validate_report(
+    report_result: dict[str, Any],
+    extraction_result: dict[str, Any],
+    appraisal_result: dict[str, Any],
+    llm_provider: str,
+    file_manager: PipelineFileManager,
+    progress_callback: Callable[[str, str, dict], None] | None = None,
+) -> dict[str, Any]:
+    """
+    Run standalone report validation.
+
+    Validates an existing report against extraction and appraisal data.
+    Useful for re-validating reports or testing validation logic.
+
+    Args:
+        report_result: Report JSON to validate
+        extraction_result: Original extraction (for accuracy checking)
+        appraisal_result: Original appraisal (for accuracy checking)
+        llm_provider: LLM provider name ("openai" | "claude")
+        file_manager: File manager for saving validation
+        progress_callback: Optional callback for progress updates
+
+    Returns:
+        dict: Validation result with validation_summary and quality scores
+
+    Raises:
+        PromptLoadError: If validation prompt cannot be loaded
+        SchemaLoadError: If validation schema cannot be loaded
+        LLMError: If LLM call fails
+    """
+    llm = get_llm_provider(llm_provider)
+
+    validation = _run_report_validation_step(
+        report_result=report_result,
+        extraction_result=extraction_result,
+        appraisal_result=appraisal_result,
+        llm=llm,
+        file_manager=file_manager,
+        progress_callback=progress_callback,
+    )
+
+    return validation
+
+
+def correct_report(
+    report_result: dict[str, Any],
+    validation_result: dict[str, Any],
+    extraction_result: dict[str, Any],
+    appraisal_result: dict[str, Any],
+    llm_provider: str,
+    file_manager: PipelineFileManager,
+    progress_callback: Callable[[str, str, dict], None] | None = None,
+) -> dict[str, Any]:
+    """
+    Run standalone report correction.
+
+    Corrects an existing report based on validation feedback.
+    Useful for manual correction workflows or testing correction logic.
+
+    Args:
+        report_result: Report JSON to correct
+        validation_result: Validation result with issues to fix
+        extraction_result: Original extraction (for re-checking data)
+        appraisal_result: Original appraisal (for re-checking data)
+        llm_provider: LLM provider name ("openai" | "claude")
+        file_manager: File manager for saving corrected report
+        progress_callback: Optional callback for progress updates
+
+    Returns:
+        dict: Corrected report result
+
+    Raises:
+        PromptLoadError: If correction prompt cannot be loaded
+        SchemaLoadError: If report schema cannot be loaded
+        LLMError: If LLM call fails
+    """
+    llm = get_llm_provider(llm_provider)
+
+    corrected_report = _run_report_correction_step(
+        report_result=report_result,
+        validation_result=validation_result,
+        extraction_result=extraction_result,
+        appraisal_result=appraisal_result,
+        llm=llm,
+        file_manager=file_manager,
+        progress_callback=progress_callback,
+    )
+
+    return corrected_report
+
+
+def select_best_report_iteration(file_manager: PipelineFileManager) -> dict:
+    """
+    Load all report iterations and select the best one.
+
+    Convenience function for selecting the best report from saved iterations
+    without re-running the pipeline. Useful for reviewing results or manual
+    selection override.
+
+    Args:
+        file_manager: File manager with saved report iterations
+
+    Returns:
+        dict: Best iteration with selection metadata (same as _select_best_report_iteration)
+
+    Raises:
+        FileNotFoundError: If no iterations found
+        ValueError: If iteration files are corrupted or missing validation
+
+    Example:
+        >>> fm = PipelineFileManager(Path("paper.pdf"))
+        >>> best = select_best_report_iteration(fm)
+        >>> print(f"Best iteration: {best['iteration_num']}")
+        >>> print(f"Quality score: {best['metrics']['quality_score']:.2f}")
+    """
+    iteration_files = file_manager.get_report_iterations()
+
+    if not iteration_files:
+        raise FileNotFoundError("No report iterations found")
+
+    # Load all iterations with metrics
+    iterations = []
+    for it_file in iteration_files:
+        report, validation = file_manager.load_report_iteration(it_file["iteration_num"])
+
+        if validation is None:
+            raise ValueError(
+                f"Iteration {it_file['iteration_num']} missing validation - cannot select best"
+            )
+
+        metrics = _extract_report_metrics(validation)
+
+        iterations.append(
+            {
+                "iteration_num": it_file["iteration_num"],
+                "report": report,
+                "validation": validation,
+                "metrics": metrics,
+                "timestamp": it_file["created_time"].isoformat(),
+            }
+        )
+
+    # Select best
+    best = _select_best_report_iteration(iterations)
+    return best
+
+
+def run_report_with_correction(
+    extraction_result: dict[str, Any],
+    appraisal_result: dict[str, Any],
+    classification_result: dict[str, Any],
+    llm_provider: str,
+    file_manager: PipelineFileManager,
+    max_iterations: int = 3,
+    quality_thresholds: dict | None = None,
+    progress_callback: Callable[[str, str, dict], None] | None = None,
+) -> dict[str, Any]:
+    """
+    Run report generation with automatic iterative correction until quality is sufficient.
+
+    This function implements the full report workflow with validation/correction loop:
+        1. Route to appropriate report prompt based on publication_type
+        2. Run initial report generation (iteration 0)
+        3. Validate report (accuracy, completeness, consistency)
+        4. If quality insufficient and iterations < max:
+           - Run correction
+           - Validate corrected report
+           - Repeat until quality OK or max iterations reached
+        5. Select best iteration based on quality metrics
+        6. Return best report + validation + iteration history
+
+    Args:
+        extraction_result: Validated extraction JSON (input for report)
+        appraisal_result: Validated appraisal JSON (input for report)
+        classification_result: Classification result (for publication_type routing)
+        llm_provider: LLM provider name ("openai" | "claude")
+        file_manager: File manager for saving report iterations
+        max_iterations: Maximum correction attempts after initial report (default: 3)
+            Iteration 0: Initial report + validation
+            Iterations 1-N: Correction attempts (if quality insufficient)
+            Example: max_iterations=3 → up to 4 total iterations (0,1,2,3)
+        quality_thresholds: Custom thresholds, defaults to REPORT_QUALITY_THRESHOLDS:
+            {
+                'accuracy_score': 0.95,
+                'completeness_score': 0.85,
+                'cross_reference_consistency_score': 0.90,
+                'data_consistency_score': 0.90,
+                'schema_compliance_score': 0.95,
+                'critical_issues': 0
+            }
+        progress_callback: Optional callback for progress updates
+
+    Returns:
+        dict: {
+            'best_report': dict,  # Best report result
+            'best_validation': dict,  # Validation of best report
+            'best_iteration': int,  # Iteration number of best result
+            'iterations': list[dict],  # All iteration history with metrics
+            'final_status': str,  # "passed" | "max_iterations_reached" | "early_stopped_degradation" | "failed"
+            'iteration_count': int,  # Total iterations performed
+            'improvement_trajectory': list[float],  # Quality scores per iteration
+        }
+
+    Raises:
+        UnsupportedPublicationType: If publication_type not supported for report
+        SchemaLoadError: If report schema cannot be loaded
+        LLMProviderError: If LLM provider initialization fails
+        LLMError: If LLM calls fail after retries
+
+    Example:
+        >>> result = run_report_with_correction(
+        ...     extraction_result=extraction,
+        ...     appraisal_result=appraisal,
+        ...     classification_result=classification,
+        ...     llm_provider="openai",
+        ...     file_manager=fm,
+        ...     max_iterations=3,
+        ... )
+        >>> if result["final_status"] == "passed":
+        ...     print("Report quality sufficient!")
+        ... else:
+        ...     print(f"Used best of {result['iteration_count']} iterations")
+    """
+    console.print(
+        "\n[bold magenta]═══ REPORT GENERATION (Iterative Correction) ═══[/bold magenta]\n"
+    )
+
+    classification_clean = _strip_metadata_for_pipeline(classification_result)
+    publication_type = classification_clean.get("publication_type")
+    if not publication_type:
+        raise ValueError("Classification result missing publication_type")
+
+    if quality_thresholds is None:
+        quality_thresholds = REPORT_QUALITY_THRESHOLDS
+
+    llm = get_llm_provider(llm_provider)
+
+    # Initialize iteration tracking
+    iterations = []
+    iteration_num = 0
+
+    # Run initial report generation + validation (iteration 0)
+    console.print(f"\n[bold]Iteration {iteration_num}: Initial Report Generation[/bold]")
+
+    try:
+        current_report, current_validation = _run_report_generation_step(
+            extraction_result=extraction_result,
+            appraisal_result=appraisal_result,
+            publication_type=publication_type,
+            llm=llm,
+            file_manager=file_manager,
+            iteration=iteration_num,
+            progress_callback=progress_callback,
+        )
+
+        metrics = _extract_report_metrics(current_validation)
+        iterations.append(
+            {
+                "iteration_num": iteration_num,
+                "report": current_report,
+                "validation": current_validation,
+                "metrics": metrics,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        )
+
+        # Display metrics
+        console.print(f"\n[bold cyan]Iteration {iteration_num} Metrics:[/bold cyan]")
+        console.print(f"  Accuracy:            {metrics['accuracy_score']:.2f}")
+        console.print(f"  Completeness:        {metrics['completeness_score']:.2f}")
+        console.print(f"  Cross-Ref:           {metrics['cross_reference_consistency_score']:.2f}")
+        console.print(f"  Data Consistency:    {metrics['data_consistency_score']:.2f}")
+        console.print(f"  Schema Compliance:   {metrics['schema_compliance_score']:.2f}")
+        console.print(f"  [bold]Quality Score:       {metrics['quality_score']:.2f}[/bold]")
+        console.print(f"  Critical Issues:     {metrics['critical_issues']}")
+
+        # Check if quality is sufficient after initial generation
+        if is_report_quality_sufficient(current_validation, quality_thresholds):
+            console.print(
+                f"\n[green]✅ Quality sufficient at iteration {iteration_num}! Stopping.[/green]"
+            )
+
+            # Save best files
+            best_report_file, best_validation_file = file_manager.save_best_report(
+                current_report, current_validation
+            )
+
+            console.print(f"[green]Saved best: {best_report_file.name}[/green]")
+            console.print(f"[green]Saved best: {best_validation_file.name}[/green]")
+
+            improvement_trajectory = [metrics["quality_score"]]
+
+            return {
+                "best_report": current_report,
+                "best_validation": current_validation,
+                "best_iteration": iteration_num,
+                "iterations": iterations,
+                "final_status": "passed",
+                "iteration_count": iteration_num + 1,
+                "improvement_trajectory": improvement_trajectory,
+            }
+
+    except (UnsupportedPublicationType, PromptLoadError, SchemaLoadError) as e:
+        # Fatal errors - cannot continue
+        console.print(f"\n[red]❌ Fatal error: {e}[/red]")
+        raise
+
+    # Iterative correction loop (iterations 1 to max_iterations)
+    iteration_num = 1
+
+    while iteration_num <= max_iterations:
+        try:
+            console.print(f"\n[bold]Iteration {iteration_num}: Correction Cycle[/bold]")
+
+            # Step 1: Run correction
+            current_report = _run_report_correction_step(
+                report_result=current_report,
+                validation_result=current_validation,
+                extraction_result=extraction_result,
+                appraisal_result=appraisal_result,
+                llm=llm,
+                file_manager=file_manager,
+                progress_callback=progress_callback,
+            )
+
+            # Step 2: Validate corrected report
+            current_validation = _run_report_validation_step(
+                report_result=current_report,
+                extraction_result=extraction_result,
+                appraisal_result=appraisal_result,
+                llm=llm,
+                file_manager=file_manager,
+                progress_callback=progress_callback,
+            )
+
+            # Save iteration
+            file_manager.save_report_iteration(iteration_num, current_report, current_validation)
+
+            metrics = _extract_report_metrics(current_validation)
+            iterations.append(
+                {
+                    "iteration_num": iteration_num,
+                    "report": current_report,
+                    "validation": current_validation,
+                    "metrics": metrics,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                }
+            )
+
+            # Display metrics
+            console.print(f"\n[bold cyan]Iteration {iteration_num} Metrics:[/bold cyan]")
+            console.print(f"  Accuracy:            {metrics['accuracy_score']:.2f}")
+            console.print(f"  Completeness:        {metrics['completeness_score']:.2f}")
+            console.print(
+                f"  Cross-Ref:           {metrics['cross_reference_consistency_score']:.2f}"
+            )
+            console.print(f"  Data Consistency:    {metrics['data_consistency_score']:.2f}")
+            console.print(f"  Schema Compliance:   {metrics['schema_compliance_score']:.2f}")
+            console.print(f"  [bold]Quality Score:       {metrics['quality_score']:.2f}[/bold]")
+            console.print(f"  Critical Issues:     {metrics['critical_issues']}")
+
+            # Display improvement trajectory if not first iteration
+            if len(iterations) > 1:
+                prev_score = iterations[-2]["metrics"]["quality_score"]
+                current_score = metrics["quality_score"]
+                delta = current_score - prev_score
+                if delta > 0:
+                    delta_symbol = "↑"
+                    delta_color = "green"
+                elif delta < 0:
+                    delta_symbol = "↓"
+                    delta_color = "red"
+                else:
+                    delta_symbol = "→"
+                    delta_color = "yellow"
+                console.print(
+                    f"  [{delta_color}]Improvement: {delta_symbol} {delta:+.3f} "
+                    f"(prev: {prev_score:.2f})[/{delta_color}]"
+                )
+
+            # Check if quality is sufficient
+            if is_report_quality_sufficient(current_validation, quality_thresholds):
+                console.print(
+                    f"\n[green]✅ Quality sufficient at iteration {iteration_num}! Stopping.[/green]"
+                )
+
+                # Save best files
+                best_report_file, best_validation_file = file_manager.save_best_report(
+                    current_report, current_validation
+                )
+
+                console.print(f"[green]Saved best: {best_report_file.name}[/green]")
+                console.print(f"[green]Saved best: {best_validation_file.name}[/green]")
+
+                improvement_trajectory = [it["metrics"]["quality_score"] for it in iterations]
+
+                return {
+                    "best_report": current_report,
+                    "best_validation": current_validation,
+                    "best_iteration": iteration_num,
+                    "iterations": iterations,
+                    "final_status": "passed",
+                    "iteration_count": iteration_num + 1,
+                    "improvement_trajectory": improvement_trajectory,
+                }
+
+            # Check for quality degradation (early stopping)
+            if _detect_quality_degradation(iterations, window=2):
+                console.print(
+                    "\n[yellow]⚠️  Quality degrading - stopping early and selecting best[/yellow]"
+                )
+
+                # Select best iteration
+                best = _select_best_report_iteration(iterations)
+                best_report = best["report"]
+                best_validation = best["validation"]
+
+                # Save best files
+                best_report_file, best_validation_file = file_manager.save_best_report(
+                    best_report, best_validation
+                )
+
+                console.print(
+                    f"[yellow]Selected iteration {best['iteration_num']} as best "
+                    f"(reason: {best['selection_reason']})[/yellow]"
+                )
+
+                improvement_trajectory = [it["metrics"]["quality_score"] for it in iterations]
+
+                return {
+                    "best_report": best_report,
+                    "best_validation": best_validation,
+                    "best_iteration": best["iteration_num"],
+                    "iterations": iterations,
+                    "final_status": "early_stopped_degradation",
+                    "iteration_count": len(iterations),
+                    "improvement_trajectory": improvement_trajectory,
+                }
+
+            # Check if max iterations reached
+            if iteration_num >= max_iterations:
+                console.print(
+                    f"\n[yellow]⚠️  Max iterations ({max_iterations}) reached - selecting best[/yellow]"
+                )
+
+                # Select best iteration
+                best = _select_best_report_iteration(iterations)
+                best_report = best["report"]
+                best_validation = best["validation"]
+
+                # Save best files
+                best_report_file, best_validation_file = file_manager.save_best_report(
+                    best_report, best_validation
+                )
+
+                console.print(
+                    f"[yellow]Selected iteration {best['iteration_num']} as best "
+                    f"(reason: {best['selection_reason']})[/yellow]"
+                )
+
+                improvement_trajectory = [it["metrics"]["quality_score"] for it in iterations]
+
+                return {
+                    "best_report": best_report,
+                    "best_validation": best_validation,
+                    "best_iteration": best["iteration_num"],
+                    "iterations": iterations,
+                    "final_status": "max_iterations_reached",
+                    "iteration_count": len(iterations),
+                    "improvement_trajectory": improvement_trajectory,
+                }
+
+            # Quality insufficient and iterations remain - continue loop
+            console.print(
+                f"\n[yellow]Quality insufficient (iteration {iteration_num}). Running correction...[/yellow]"
+            )
+
+            # Increment iteration for next loop
+            iteration_num += 1
+
+        except (UnsupportedPublicationType, PromptLoadError, SchemaLoadError) as e:
+            # These are fatal errors - cannot continue
+            console.print(f"\n[red]❌ Fatal error: {e}[/red]")
+
+            # If we have any iterations, save best available
+            if iterations:
+                console.print("[yellow]Saving best iteration from partial results...[/yellow]")
+                best = _select_best_report_iteration(iterations)
+                file_manager.save_best_report(best["report"], best["validation"])
+
+                improvement_trajectory = [it["metrics"]["quality_score"] for it in iterations]
+
+                return {
+                    "best_report": best["report"],
+                    "best_validation": best["validation"],
+                    "iterations": iterations,
+                    "final_status": "failed",
+                    "iteration_count": len(iterations),
+                    "improvement_trajectory": improvement_trajectory,
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                }
+
+            # No iterations - re-raise
+            raise
+
+        except LLMError as e:
+            # LLM errors - try to continue or use best available
+            console.print(f"\n[red]❌ LLM error at iteration {iteration_num}: {e}[/red]")
+
+            # If we have any iterations, save best available
+            if iterations:
+                console.print("[yellow]Using best iteration from previous attempts...[/yellow]")
+                best = _select_best_report_iteration(iterations)
+                file_manager.save_best_report(best["report"], best["validation"])
+
+                improvement_trajectory = [it["metrics"]["quality_score"] for it in iterations]
+
+                return {
+                    "best_report": best["report"],
+                    "best_validation": best["validation"],
+                    "iterations": iterations,
+                    "final_status": "failed_llm_error",
+                    "iteration_count": len(iterations),
+                    "improvement_trajectory": improvement_trajectory,
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                }
+
+            # No iterations - re-raise
+            raise
+
+    # Should never reach here (loop exits via returns)
+    raise RuntimeError("Report loop exited unexpectedly")
+
+
 def run_single_step(
     step_name: str,
     pdf_path: Path,
