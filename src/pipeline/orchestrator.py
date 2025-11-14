@@ -74,6 +74,9 @@ from ..prompts import (
     load_classification_prompt,
     load_correction_prompt,
     load_extraction_prompt,
+    load_report_correction_prompt,
+    load_report_generation_prompt,
+    load_report_validation_prompt,
 )
 from ..schemas_loader import SchemaLoadError, load_schema, validate_schema_compatibility
 from .file_manager import PipelineFileManager
@@ -87,6 +90,9 @@ STEP_VALIDATION = "validation"
 STEP_CORRECTION = "correction"
 STEP_VALIDATION_CORRECTION = "validation_correction"
 STEP_APPRAISAL = "appraisal"
+STEP_REPORT = "report"
+STEP_REPORT_VALIDATION = "report_validation"
+STEP_REPORT_CORRECTION = "report_correction"
 STEP_APPRAISAL_VALIDATION = "appraisal_validation"
 
 # Default pipeline steps (validation_correction replaces separate validation+correction)
@@ -95,6 +101,7 @@ ALL_PIPELINE_STEPS = [
     STEP_EXTRACTION,
     STEP_VALIDATION_CORRECTION,
     STEP_APPRAISAL,  # Critical appraisal after extraction validation
+    STEP_REPORT,  # Report generation after appraisal
 ]
 # Note: STEP_VALIDATION and STEP_CORRECTION remain available for CLI backward compatibility
 
@@ -103,6 +110,7 @@ STEP_DISPLAY_NAMES = {
     STEP_EXTRACTION: "Step 2 - Extraction",
     STEP_VALIDATION_CORRECTION: "Step 3 - Validation & Correction",
     STEP_APPRAISAL: "Step 4 - Appraisal",
+    STEP_REPORT: "Step 5 - Report Generation",
 }
 
 # Default quality thresholds for iterative correction loop (extraction)
@@ -119,6 +127,16 @@ APPRAISAL_QUALITY_THRESHOLDS = {
     "completeness_score": 0.85,  # ≥85% completeness (all domains, outcomes)
     "evidence_support_score": 0.90,  # ≥90% evidence support (rationales match extraction)
     "schema_compliance_score": 0.95,  # ≥95% schema compliance (enums, required fields)
+    "critical_issues": 0,  # Absolutely no critical errors
+}
+
+# Quality thresholds for report generation iterative correction loop
+REPORT_QUALITY_THRESHOLDS = {
+    "completeness_score": 0.85,  # ≥85% completeness (all sections, outcomes)
+    "accuracy_score": 0.95,  # ≥95% accuracy (data matches extraction/appraisal)
+    "cross_reference_consistency_score": 0.90,  # ≥90% cross-reference consistency (tables/figures)
+    "data_consistency_score": 0.90,  # ≥90% data consistency (numbers align across sections)
+    "schema_compliance_score": 0.95,  # ≥95% schema compliance (enums, labels, required fields)
     "critical_issues": 0,  # Absolutely no critical errors
 }
 
