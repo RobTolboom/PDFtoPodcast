@@ -3023,6 +3023,7 @@ def run_report_generation(
     llm_provider: str,
     file_manager: PipelineFileManager,
     progress_callback: Callable[[str, str, dict], None] | None = None,
+    language: str = "en",
 ) -> dict[str, Any]:
     """
     Generate a structured report from extraction and appraisal data (single-pass, Phase 2).
@@ -3045,6 +3046,7 @@ def run_report_generation(
         llm_provider: LLM provider name ("openai" | "claude")
         file_manager: File manager for saving report iterations
         progress_callback: Optional callback for progress updates
+        language: Report language ("en" or "nl"), default "en"
 
     Returns:
         dict: {
@@ -3110,26 +3112,38 @@ def run_report_generation(
     extraction_clean = _strip_metadata_for_pipeline(extraction_result)
     appraisal_clean = _strip_metadata_for_pipeline(appraisal_result)
 
-    input_data = {
-        "classification": classification_clean,
-        "extraction": extraction_clean,
-        "appraisal": appraisal_clean,
-    }
+    # Prepare additional inputs required by prompt (Issue #3 fix)
+    generation_timestamp = datetime.now(timezone.utc).isoformat()
+    pipeline_version = "1.0.0"  # From pyproject.toml
+
+    # Build prompt context with all required inputs (matches Report-generation.txt:6-12)
+    prompt_context = f"""CLASSIFICATION_JSON:
+{json.dumps(classification_clean, indent=2)}
+
+EXTRACTION_JSON:
+{json.dumps(extraction_clean, indent=2)}
+
+APPRAISAL_JSON:
+{json.dumps(appraisal_clean, indent=2)}
+
+LANGUAGE: {language}
+GENERATION_TIMESTAMP: {generation_timestamp}
+PIPELINE_VERSION: {pipeline_version}
+"""
 
     # Get LLM provider
     llm = get_llm_provider(llm_provider)
 
-    # Call LLM to generate report
+    # Call LLM to generate report (Issue #1 fix: use generate_json_with_schema)
     console.print(f"[yellow]🤖 Generating report via {llm_provider}...[/yellow]")
-    console.print(f"[dim]Publication type: {publication_type}[/dim]")
+    console.print(f"[dim]Publication type: {publication_type}, Language: {language}[/dim]")
 
     try:
-        # LLM call with structured output (JSON mode)
-        report_json = llm.generate_structured_output(
-            prompt=report_prompt,
-            context_data=input_data,
+        report_json = llm.generate_json_with_schema(
             schema=report_schema,
-            temperature=0.3,  # Lower temperature for consistent structured output
+            system_prompt=report_prompt,
+            prompt=prompt_context,
+            schema_name="report_generation",
         )
     except LLMError as e:
         console.print(f"[red]❌ LLM call failed: {e}[/red]")
@@ -3137,16 +3151,21 @@ def run_report_generation(
             progress_callback(STEP_REPORT_GENERATION, "failed", {"error": str(e)})
         raise
 
-    # Validate report against schema
+    # Validate report against schema (Issue #2 fix: use validate_with_schema)
     console.print("[yellow]✓ Validating report against schema...[/yellow]")
-    try:
-        validate_schema_compatibility(report_json, report_schema, "report")
-        console.print("[green]✓ Report schema validation passed[/green]")
-    except SchemaLoadError as e:
-        console.print(f"[red]❌ Report schema validation failed: {e}[/red]")
+    from ..validation import validate_with_schema
+
+    is_valid, validation_errors = validate_with_schema(report_json, report_schema, strict=True)
+    if not is_valid:
+        error_msg = "\n".join(validation_errors)
+        console.print(f"[red]❌ Report schema validation failed:\n{error_msg}[/red]")
         if progress_callback:
-            progress_callback(STEP_REPORT_GENERATION, "failed", {"error": str(e)})
-        raise
+            progress_callback(
+                STEP_REPORT_GENERATION, "failed", {"error": f"Schema validation: {error_msg}"}
+            )
+        raise SchemaLoadError(f"Report schema validation failed:\n{error_msg}")
+
+    console.print("[green]✓ Report schema validation passed[/green]")
 
     # Save report iteration 0
     console.print("[yellow]💾 Saving report iteration 0...[/yellow]")

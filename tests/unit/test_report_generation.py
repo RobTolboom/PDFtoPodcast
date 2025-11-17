@@ -137,5 +137,195 @@ class TestReportGenerationConstants:
         assert "Report" in STEP_DISPLAY_NAMES[STEP_REPORT_GENERATION]
 
 
-# Note: Full integration tests with LLM mocking will be added separately
-# These basic tests verify the structure and file management functionality
+# Integration test for run_report_generation (Issue #4 fix)
+
+
+class TestRunReportGeneration:
+    """Integration tests for run_report_generation() function."""
+
+    @pytest.fixture
+    def mock_classification(self):
+        """Mock classification result."""
+        return {
+            "publication_type": "interventional_trial",
+            "confidence": 0.95,
+            "_pipeline_metadata": {"step": "classification"},
+        }
+
+    @pytest.fixture
+    def mock_extraction(self):
+        """Mock extraction result."""
+        return {
+            "study_id": "NCT12345678",
+            "publication_type": "interventional_trial",
+            "outcomes": [
+                {
+                    "outcome_id": "outcome1",
+                    "is_primary": True,
+                    "name": "Pain reduction",
+                    "results": {"effect_size": 0.5},
+                }
+            ],
+            "_pipeline_metadata": {"step": "extraction"},
+        }
+
+    @pytest.fixture
+    def mock_appraisal(self):
+        """Mock appraisal result."""
+        return {
+            "appraisal_version": "v1.0",
+            "study_type": "interventional",
+            "risk_of_bias": {"overall": "Low risk"},
+            "_pipeline_metadata": {"step": "appraisal"},
+        }
+
+    @pytest.fixture
+    def mock_report_output(self):
+        """Mock report JSON output from LLM."""
+        return {
+            "report_version": "v1.0",
+            "study_type": "interventional",
+            "metadata": {
+                "title": "Test Study",
+                "generation_timestamp": "2025-01-17T10:00:00Z",
+                "pipeline_version": "1.0.0",
+            },
+            "layout": {"language": "en"},
+            "sections": [],
+        }
+
+    def test_run_report_generation_success(
+        self,
+        tmp_path,
+        mock_classification,
+        mock_extraction,
+        mock_appraisal,
+        mock_report_output,
+    ):
+        """Test successful report generation with mocked LLM."""
+        from unittest.mock import MagicMock, patch
+
+        from src.pipeline.file_manager import PipelineFileManager
+        from src.pipeline.orchestrator import run_report_generation
+
+        # Setup
+        pdf_path = tmp_path / "test.pdf"
+        pdf_path.touch()
+        file_manager = PipelineFileManager(pdf_path)
+        file_manager.tmp_dir = tmp_path
+
+        # Mock LLM provider
+        mock_llm = MagicMock()
+        mock_llm.generate_json_with_schema.return_value = mock_report_output
+
+        # Mock get_llm_provider to return our mock
+        with patch("src.pipeline.orchestrator.get_llm_provider", return_value=mock_llm):
+            # Execute
+            result = run_report_generation(
+                extraction_result=mock_extraction,
+                appraisal_result=mock_appraisal,
+                classification_result=mock_classification,
+                llm_provider="openai",
+                file_manager=file_manager,
+                language="en",
+            )
+
+        # Verify LLM was called correctly (Issue #1 fix verification)
+        assert mock_llm.generate_json_with_schema.called
+        call_args = mock_llm.generate_json_with_schema.call_args
+        assert call_args.kwargs["schema_name"] == "report_generation"
+
+        # Verify prompt context includes all required inputs (Issue #3 fix verification)
+        prompt_text = call_args.kwargs["prompt"]
+        assert "CLASSIFICATION_JSON:" in prompt_text
+        assert "EXTRACTION_JSON:" in prompt_text
+        assert "APPRAISAL_JSON:" in prompt_text
+        assert "LANGUAGE: en" in prompt_text
+        assert "GENERATION_TIMESTAMP:" in prompt_text
+        assert "PIPELINE_VERSION: 1.0.0" in prompt_text
+
+        # Verify result structure
+        assert result["status"] == "completed"
+        assert result["iteration"] == 0
+        assert result["report"] == mock_report_output
+        assert "_pipeline_metadata" in result
+
+        # Verify file was saved
+        report_file = tmp_path / "test-report0.json"
+        assert report_file.exists()
+
+    def test_run_report_generation_llm_error(
+        self, tmp_path, mock_classification, mock_extraction, mock_appraisal
+    ):
+        """Test report generation handles LLM errors correctly."""
+        from unittest.mock import MagicMock, patch
+
+        from src.llm import LLMError
+        from src.pipeline.file_manager import PipelineFileManager
+        from src.pipeline.orchestrator import run_report_generation
+
+        # Setup
+        pdf_path = tmp_path / "test.pdf"
+        pdf_path.touch()
+        file_manager = PipelineFileManager(pdf_path)
+        file_manager.tmp_dir = tmp_path
+
+        # Mock LLM to raise error
+        mock_llm = MagicMock()
+        mock_llm.generate_json_with_schema.side_effect = LLMError("API timeout")
+
+        with patch("src.pipeline.orchestrator.get_llm_provider", return_value=mock_llm):
+            # Execute and verify error is raised
+            with pytest.raises(LLMError, match="API timeout"):
+                run_report_generation(
+                    extraction_result=mock_extraction,
+                    appraisal_result=mock_appraisal,
+                    classification_result=mock_classification,
+                    llm_provider="openai",
+                    file_manager=file_manager,
+                )
+
+    def test_run_report_generation_schema_validation_error(
+        self, tmp_path, mock_classification, mock_extraction, mock_appraisal
+    ):
+        """Test report generation detects schema validation errors (Issue #2 fix verification)."""
+        from unittest.mock import MagicMock, patch
+
+        from src.pipeline.file_manager import PipelineFileManager
+        from src.pipeline.orchestrator import run_report_generation
+
+        # Setup
+        pdf_path = tmp_path / "test.pdf"
+        pdf_path.touch()
+        file_manager = PipelineFileManager(pdf_path)
+        file_manager.tmp_dir = tmp_path
+
+        # Mock LLM to return invalid report (missing required fields)
+        invalid_report = {"report_version": "v1.0"}  # Missing study_type, metadata, etc.
+        mock_llm = MagicMock()
+        mock_llm.generate_json_with_schema.return_value = invalid_report
+
+        with patch("src.pipeline.orchestrator.get_llm_provider", return_value=mock_llm):
+            # Execute and verify schema validation error is raised
+            # validate_with_schema raises ValidationError (not SchemaLoadError) with strict=True
+            with pytest.raises(Exception) as exc_info:
+                run_report_generation(
+                    extraction_result=mock_extraction,
+                    appraisal_result=mock_appraisal,
+                    classification_result=mock_classification,
+                    llm_provider="openai",
+                    file_manager=file_manager,
+                )
+
+            # Verify it's a schema validation error (either ValidationError or SchemaLoadError)
+            assert (
+                "schema validation failed" in str(exc_info.value).lower()
+                or "required property" in str(exc_info.value).lower()
+            )
+
+
+# Note: These tests verify all 4 critical issues are fixed:
+# - Issue #1: Uses generate_json_with_schema() (test_run_report_generation_success)
+# - Issue #2: Uses validate_with_schema() (test_run_report_generation_schema_validation_error)
+# - Issue #3: Includes LANGUAGE, TIMESTAMP, VERSION in prompt (test_run_report_generation_success)
+# - Issue #4: Integration test with mocked LLM (all tests in TestRunReportGeneration)

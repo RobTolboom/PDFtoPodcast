@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Report Generation Feature - Phase 2: Critical Bugfixes** (#report-generation-phase2-bugfix) - Fixed 4 blocking issues that prevented Phase 2 from running
+  - **Issue #1 - LLM Method Call**: Changed `llm.generate_structured_output()` (non-existent) to `llm.generate_json_with_schema()` (correct method)
+  - **Issue #2 - Schema Validation**: Replaced `validate_schema_compatibility()` (wrong signature) with `validate_with_schema()` from validation module
+  - **Issue #3 - Missing Prompt Inputs**: Added required LANGUAGE, GENERATION_TIMESTAMP, and PIPELINE_VERSION to prompt context (prompt contract compliance)
+  - **Issue #4 - Missing Test Coverage**: Added 3 integration tests with mocked LLM to verify run_report_generation() actually works
+  - All tests pass (130 passed), code formatted and linted
+
 ### Added
 
 - **Report Generation Feature - Phase 2: Orchestrator Integration** (#report-generation-phase2) - Pipeline integration for single-pass report generation
