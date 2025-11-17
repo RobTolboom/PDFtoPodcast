@@ -245,5 +245,90 @@ def test_report_correction_prompt_evidence_locked():
     assert "evidence-locked" in prompt.lower() or "EVIDENCE-LOCKED" in prompt
 
 
+def test_report_generation_prompt_interventional_sections():
+    """Test that report generation prompt includes interventional-specific sections"""
+    prompt = load_report_generation_prompt()
+
+    # Check for interventional study type
+    assert "interventional" in prompt.lower()
+
+    # Check for type-specific section IDs
+    assert "consort_checklist" in prompt
+    assert "randomization_details" in prompt
+
+    # Check for tool-specific guidance
+    assert "CONSORT" in prompt
+    assert "randomization" in prompt.lower()
+
+
+def test_report_generation_prompt_observational_sections():
+    """Test that report generation prompt includes observational-specific sections"""
+    prompt = load_report_generation_prompt()
+
+    # Check for observational study type
+    assert "observational" in prompt.lower()
+
+    # Check for type-specific section IDs
+    assert "confounding_framework" in prompt
+    assert "robins_detail" in prompt or "ROBINS-I" in prompt
+
+    # Check for tool-specific guidance
+    assert "ROBINS-I" in prompt or "ROBINS" in prompt
+    assert "confounding" in prompt.lower()
+    assert "E-value" in prompt or "e-value" in prompt.lower()
+
+
+def test_report_generation_prompt_systematic_review_sections():
+    """Test that report generation prompt includes systematic review-specific sections"""
+    prompt = load_report_generation_prompt()
+
+    # Check for systematic review study type
+    assert "systematic_review" in prompt
+
+    # Check for type-specific section IDs
+    assert "prisma_flow" in prompt
+    assert "meta_analysis_results" in prompt
+    assert "publication_bias" in prompt
+
+    # Check for tool-specific guidance
+    assert "PRISMA" in prompt
+    assert "meta-analysis" in prompt.lower() or "meta analysis" in prompt.lower()
+    assert "heterogeneity" in prompt.lower() or "I²" in prompt or "I2" in prompt
+
+
+def test_report_generation_prompt_prediction_sections():
+    """Test that report generation prompt includes prediction model-specific sections"""
+    prompt = load_report_generation_prompt()
+
+    # Check for prediction study type
+    assert "prediction" in prompt.lower()
+
+    # Check for type-specific section IDs
+    assert "probast_assessment" in prompt
+    assert "discrimination_calibration" in prompt
+    assert "clinical_utility" in prompt
+
+    # Check for tool-specific guidance
+    assert "PROBAST" in prompt
+    assert "discrimination" in prompt.lower()
+    assert "calibration" in prompt.lower()
+    assert "C-statistic" in prompt or "AUC" in prompt or "ROC" in prompt
+
+
+def test_report_generation_prompt_editorials_sections():
+    """Test that report generation prompt includes editorial-specific sections"""
+    prompt = load_report_generation_prompt()
+
+    # Check for editorials study type
+    assert "editorials" in prompt.lower()
+
+    # Check for type-specific section IDs (editorials have adapted core sections)
+    assert "argument_structure" in prompt or "evidence_base" in prompt
+
+    # Check for editorial-specific guidance
+    assert "claims" in prompt.lower()
+    assert "argument" in prompt.lower()
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

@@ -44,7 +44,7 @@ CORE PRINCIPLES
    - Every data point gets source_refs: ["S1", "S2", ...]
    - Build source_map array with {code:"S1", page:N, section:"...", anchor_text:"..."}
    - Bundle consecutive identical refs: "S1" not "S1, S1, S1"
-   - Use range notation if applicable: "S1-S5" for consecutive pages in same section
+   - List all source codes individually (no range notation like "S1-S5" - not supported in v1.0)
 
 3. PRECISION WITH NUMBERS
    - All effect sizes with 95% CI (never p-value alone)
@@ -373,8 +373,9 @@ Bundle consecutive identical refs:
 - ❌ BAD: "S1, S1, S1" in same sentence
 - ✅ GOOD: "S1" once per logical unit
 
-Range notation if applicable:
-- ✅ GOOD: "S1-S5" for consecutive pages in same section
+List all source codes individually:
+- ✅ GOOD: ["S1", "S2", "S3", "S4", "S5"] for multiple consecutive sources
+- ❌ BAD: Do not use range notation like "S1-S5" (not supported in schema v1.0)
 
 QUALITY CHECKS (before output)
 

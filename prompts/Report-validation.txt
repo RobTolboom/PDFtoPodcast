@@ -7,6 +7,7 @@ INPUTS
 - REPORT_JSON: Generated report to validate
 - EXTRACTION_JSON: Original validated extraction (for cross-checking)
 - APPRAISAL_JSON: Original validated appraisal (for cross-checking)
+- CLASSIFICATION_JSON: Original classification result (for metadata verification)
 
 OUTPUT FORMAT (STRICT)
 Return ONLY a single JSON object that validates against report_validation.schema.json with:
