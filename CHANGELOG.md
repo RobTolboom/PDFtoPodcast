@@ -23,6 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Issue #4 - Missing Test Coverage**: Added 3 integration tests with mocked LLM to verify run_report_generation() actually works
   - All tests pass (130 passed), code formatted and linted
 
+- **Report Generation Feature - Phase 2: Prompt Context & Language Routing** (#report-generation-phase2) - Ensured report orchestration supplies complete inputs and configurable language
+  - Added dynamic pipeline version detection (using package metadata or `pyproject.toml`)
+  - Included serialized `report.schema.json` in LLM prompt context to match template requirements
+  - Propagated `report_language` option through CLI, Streamlit settings, and orchestrator so users can select Dutch or English output
+  - Updated UI/CLI defaults, file-management utilities, and unit tests to cover the new behaviour
+
 ### Added
 
 - **Report Generation Feature - Phase 2: Orchestrator Integration** (#report-generation-phase2) - Pipeline integration for single-pass report generation

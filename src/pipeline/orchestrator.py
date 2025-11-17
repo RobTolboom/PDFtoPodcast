@@ -57,6 +57,7 @@ PDF Upload Strategy:
 
 import copy
 import json
+import re
 import time
 from collections.abc import Callable
 from datetime import datetime, timezone
@@ -108,6 +109,47 @@ STEP_DISPLAY_NAMES = {
     STEP_APPRAISAL: "Step 4 - Appraisal",
     STEP_REPORT_GENERATION: "Step 5 - Report Generation",
 }
+
+_PIPELINE_VERSION_CACHE: str | None = None
+
+
+def _get_pipeline_version() -> str:
+    """
+    Retrieve pipeline version from installed package or pyproject.toml.
+    """
+    global _PIPELINE_VERSION_CACHE
+    if _PIPELINE_VERSION_CACHE:
+        return _PIPELINE_VERSION_CACHE
+
+    try:
+        from importlib.metadata import PackageNotFoundError, version
+
+        _PIPELINE_VERSION_CACHE = version("pdftopodcast")
+        return _PIPELINE_VERSION_CACHE
+    except ImportError:
+        pass
+    except PackageNotFoundError:
+        pass
+
+    pyproject_path = Path(__file__).resolve().parents[2] / "pyproject.toml"
+    if pyproject_path.exists():
+        in_project_section = False
+        for line in pyproject_path.read_text(encoding="utf-8").splitlines():
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            if stripped.startswith("[") and stripped.endswith("]"):
+                in_project_section = stripped == "[project]"
+                continue
+            if in_project_section and stripped.startswith("version"):
+                match = re.search(r'version\s*=\s*"([^"]+)"', stripped)
+                if match:
+                    _PIPELINE_VERSION_CACHE = match.group(1)
+                    return _PIPELINE_VERSION_CACHE
+
+    _PIPELINE_VERSION_CACHE = "0.0.0"
+    return _PIPELINE_VERSION_CACHE
+
 
 # Default quality thresholds for iterative correction loop (extraction)
 DEFAULT_QUALITY_THRESHOLDS = {
@@ -3114,7 +3156,8 @@ def run_report_generation(
 
     # Prepare additional inputs required by prompt (Issue #3 fix)
     generation_timestamp = datetime.now(timezone.utc).isoformat()
-    pipeline_version = "1.0.0"  # From pyproject.toml
+    pipeline_version = _get_pipeline_version()
+    report_schema_str = json.dumps(report_schema, indent=2)
 
     # Build prompt context with all required inputs (matches Report-generation.txt:6-12)
     prompt_context = f"""CLASSIFICATION_JSON:
@@ -3129,6 +3172,9 @@ APPRAISAL_JSON:
 LANGUAGE: {language}
 GENERATION_TIMESTAMP: {generation_timestamp}
 PIPELINE_VERSION: {pipeline_version}
+
+REPORT_SCHEMA:
+{report_schema_str}
 """
 
     # Get LLM provider
@@ -3213,6 +3259,7 @@ def run_single_step(
     max_correction_iterations: int | None = None,
     quality_thresholds: dict[str, Any] | None = None,
     enable_iterative_correction: bool = True,
+    report_language: str | None = None,
 ) -> dict[str, Any]:
     """
     Execute a single pipeline step with dependency validation.
@@ -3236,6 +3283,10 @@ def run_single_step(
         file_manager: File manager for saving step results
         progress_callback: Optional callback for progress updates (step_name, status, data)
         previous_results: Results from previous steps (required for dependent steps)
+        max_correction_iterations: Max iterations for validation/appraisal correction loops
+        quality_thresholds: Thresholds controlling iterative correction exit criteria
+        enable_iterative_correction: Enable/disable iterative correction for appraisal
+        report_language: Language to use for report generation ("en" or "nl")
 
     Returns:
         Dictionary containing step result. Key depends on step:
@@ -3562,6 +3613,7 @@ def run_single_step(
             llm_provider=llm_provider,
             file_manager=file_manager,
             progress_callback=progress_callback,
+            language=report_language or "en",
         )
 
     else:
@@ -3576,6 +3628,7 @@ def run_four_step_pipeline(
     breakpoint_after_step: str | None = None,
     have_llm_support: bool = True,
     steps_to_run: list[str] | None = None,
+    report_language: str = "en",
     progress_callback: Callable[[str, str, dict], None] | None = None,
 ) -> dict[str, Any]:
     """
@@ -3586,6 +3639,7 @@ def run_four_step_pipeline(
     2. Extraction - Detailed data extraction based on classified type
     3. Validation & Correction - Iterative quality control with automatic fixes
     4. Appraisal - Critical appraisal (RoB, GRADE, applicability)
+    5. Report Generation - Compose structured report JSON (optional)
 
     Args:
         pdf_path: Path to PDF file to process
@@ -3596,6 +3650,7 @@ def run_four_step_pipeline(
         steps_to_run: Optional list of steps to execute.
             None = run all steps (default).
             Dependencies are validated automatically.
+        report_language: Language for report generation ("en" or "nl")
         progress_callback: Optional callback for progress updates.
             Signature: callback(step_name: str, status: str, data: dict)
             - step_name: "classification" | "extraction" | "validation_correction" | "appraisal"
@@ -3609,7 +3664,8 @@ def run_four_step_pipeline(
             "extraction": {...},
             "validation": {...},
             "extraction_corrected": {...},  # Only if correction ran
-            "validation_corrected": {...}   # Only if correction ran
+            "validation_corrected": {...},  # Only if correction ran
+            "report_generation": {...},     # Only if report step executed
         }
 
     Raises:
@@ -3720,6 +3776,7 @@ def run_four_step_pipeline(
                 file_manager=file_manager,
                 progress_callback=progress_callback,
                 previous_results=results,
+                report_language=report_language,
             )
 
             # Store result

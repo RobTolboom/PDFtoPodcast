@@ -153,6 +153,12 @@ def show_settings_screen():
                 "name": "Critical Appraisal",
                 "help": "Assess study quality with RoB 2, ROBINS-I, PROBAST, AMSTAR 2, and GRADE ratings",
             },
+            {
+                "key": "report_generation",
+                "number": "5",
+                "name": "Report Generation",
+                "help": "Generate structured report JSON ready for LaTeX rendering",
+            },
         ]
 
         # Smart defaults: auto-select steps that don't have results yet
@@ -219,6 +225,17 @@ def show_settings_screen():
 
         if not steps_to_run:
             st.warning("⚠️ No steps selected. Please select at least one step to execute.")
+
+        st.markdown("---")
+        st.markdown("### Report Settings")
+        current_lang = st.session_state.settings.get("report_language", "nl")
+        lang_choice = st.selectbox(
+            "Report language",
+            options=["nl", "en"],
+            index=0 if current_lang == "nl" else 1,
+            help="Language used for report generation (affects all report sections).",
+        )
+        st.session_state.settings["report_language"] = lang_choice
 
     with tab2:
         st.markdown("### Advanced Settings")

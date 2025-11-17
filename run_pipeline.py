@@ -118,6 +118,7 @@ def main():
             "correction",
             "validation_correction",
             "appraisal",
+            "report_generation",
         ],
         default=None,
         help="Run specific pipeline step (default: run all steps)",
@@ -145,6 +146,12 @@ def main():
         type=float,
         default=0.95,
         help="Minimum schema compliance score 0.0-0.99 (default: 0.95)",
+    )
+    parser.add_argument(
+        "--report-language",
+        choices=["nl", "en"],
+        default="nl",
+        help="Language for report generation step (default: nl)",
     )
     # Appraisal-specific arguments
     parser.add_argument(
@@ -260,6 +267,7 @@ def main():
                 max_correction_iterations=max_iter,
                 quality_thresholds=quality_thresholds,
                 enable_iterative_correction=enable_iter,
+                report_language=args.report_language,
             )
 
         # Print result summary
@@ -339,7 +347,7 @@ def main():
             ("2. Data extractie", ""),
             ("3. Validatie & Correctie", ""),
             ("4. Critical Appraisal", ""),
-            ("5. Finale outputs", ""),
+            ("5. Rapportgeneratie", ""),
         ]
         for s, st in steps:
             table.add_row(s, st)
@@ -355,6 +363,7 @@ def main():
                 llm_provider=args.llm_provider,
                 breakpoint_after_step=BREAKPOINT_AFTER_STEP,
                 have_llm_support=HAVE_LLM_SUPPORT,
+                report_language=args.report_language,
             )
 
     # Show detailed summary

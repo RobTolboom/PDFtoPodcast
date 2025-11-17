@@ -86,6 +86,7 @@ def init_session_state():
                 "schema_compliance_score": 0.95,
                 "critical_issues": 0,
             },
+            "report_language": "nl",
             # Appraisal settings
             "max_appraisal_iterations": 3,
             "appraisal_enable_iterative_correction": True,

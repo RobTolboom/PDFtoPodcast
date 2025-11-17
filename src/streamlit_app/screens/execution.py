@@ -1302,10 +1302,13 @@ def show_execution_screen():
         settings = st.session_state.settings
         provider = settings["llm_provider"].upper()
         max_pages = settings["max_pages"] or "All"
+        report_lang = settings.get("report_language", "nl").upper()
         steps = settings["steps_to_run"]
         steps_text = ", ".join([s.title() for s in steps])
 
-        st.caption(f"**Settings:** {provider} • Max pages: {max_pages} • Steps: {steps_text}")
+        st.caption(
+            f"**Settings:** {provider} • Max pages: {max_pages} • Report lang: {report_lang} • Steps: {steps_text}"
+        )
     else:
         st.error("⚠️ No PDF selected. Please go back to upload screen.")
         if st.button("⬅️ Back to Upload"):
@@ -1402,6 +1405,7 @@ def show_execution_screen():
                 max_correction_iterations=max_iter_setting,
                 quality_thresholds=quality_thresholds,
                 enable_iterative_correction=enable_iterative,
+                report_language=settings.get("report_language", "nl"),
             )
 
             # Store step result

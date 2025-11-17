@@ -18,7 +18,7 @@ Note: These tests verify Phase 2 implementation (single-pass generation).
 import pytest
 
 from src.pipeline.file_manager import PipelineFileManager
-from src.pipeline.orchestrator import STEP_REPORT_GENERATION
+from src.pipeline.orchestrator import STEP_REPORT_GENERATION, _get_pipeline_version
 
 
 class TestFileManagerReportMethods:
@@ -242,7 +242,9 @@ class TestRunReportGeneration:
         assert "APPRAISAL_JSON:" in prompt_text
         assert "LANGUAGE: en" in prompt_text
         assert "GENERATION_TIMESTAMP:" in prompt_text
-        assert "PIPELINE_VERSION: 1.0.0" in prompt_text
+        expected_version = _get_pipeline_version()
+        assert f"PIPELINE_VERSION: {expected_version}" in prompt_text
+        assert "REPORT_SCHEMA:" in prompt_text
 
         # Verify result structure
         assert result["status"] == "completed"
