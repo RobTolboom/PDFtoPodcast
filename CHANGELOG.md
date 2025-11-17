@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **LLM Timeout Increased**: Extended default timeout from 10 to 30 minutes (600s → 1800s)
+  - Accommodates longer report generation and complex extraction tasks
+  - Configurable via `LLM_TIMEOUT` environment variable
+  - With 3 automatic retries: max total time 90 minutes (was 30 minutes)
+
 ### Fixed
 
 - **Report Generation Feature - Phase 2: Critical Bugfixes** (#report-generation-phase2-bugfix) - Fixed 4 blocking issues that prevented Phase 2 from running
