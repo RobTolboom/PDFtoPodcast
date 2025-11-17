@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Report Generation Feature - Phase 2: Orchestrator Integration** (#report-generation-phase2) - Pipeline integration for single-pass report generation
+  - **Orchestrator:**
+    - `run_report_generation()`: Single-pass report generator with LLM call, schema validation, and file saving
+    - `STEP_REPORT_GENERATION` constant and integration in `ALL_PIPELINE_STEPS`
+    - Full integration in `run_single_step()` with dependency validation (classification + extraction + appraisal)
+    - Automatic use of best iterations from validation_correction and appraisal steps
+    - Progress callbacks and rich console output for UI integration
+  - **File Manager:**
+    - `save_report_iteration()`: Save report and optional validation JSON for iteration
+    - `load_report_iteration()`: Load report iteration with validation
+    - `save_best_report()`: Save best report iteration (for Phase 3 correction loop)
+    - `get_report_iterations()`: Get all report iterations with metadata
+  - **Testing:**
+    - `tests/unit/test_report_generation.py`: 7 tests validating file manager methods, constants, and pipeline integration
+  - **Status:** Phase 2 complete (single-pass generation), ready for Phase 3 (validation & correction loop)
+
 - **Report Generation Feature - Phase 1: Schemas & Prompts** (#report-generation-phase1) - Foundation for structured report generation from extraction and appraisal data
   - **Schemas:**
     - `schemas/report.schema.json`: Block-based report structure (textBlock, tableBlock, figureBlock, calloutBlock) with metadata, layout, sections, and source_map (~300 lines)

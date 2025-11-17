@@ -74,6 +74,7 @@ from ..prompts import (
     load_classification_prompt,
     load_correction_prompt,
     load_extraction_prompt,
+    load_report_generation_prompt,
 )
 from ..schemas_loader import SchemaLoadError, load_schema, validate_schema_compatibility
 from .file_manager import PipelineFileManager
@@ -88,6 +89,7 @@ STEP_CORRECTION = "correction"
 STEP_VALIDATION_CORRECTION = "validation_correction"
 STEP_APPRAISAL = "appraisal"
 STEP_APPRAISAL_VALIDATION = "appraisal_validation"
+STEP_REPORT_GENERATION = "report_generation"
 
 # Default pipeline steps (validation_correction replaces separate validation+correction)
 ALL_PIPELINE_STEPS = [
@@ -95,6 +97,7 @@ ALL_PIPELINE_STEPS = [
     STEP_EXTRACTION,
     STEP_VALIDATION_CORRECTION,
     STEP_APPRAISAL,  # Critical appraisal after extraction validation
+    STEP_REPORT_GENERATION,  # Report generation after appraisal
 ]
 # Note: STEP_VALIDATION and STEP_CORRECTION remain available for CLI backward compatibility
 
@@ -103,6 +106,7 @@ STEP_DISPLAY_NAMES = {
     STEP_EXTRACTION: "Step 2 - Extraction",
     STEP_VALIDATION_CORRECTION: "Step 3 - Validation & Correction",
     STEP_APPRAISAL: "Step 4 - Appraisal",
+    STEP_REPORT_GENERATION: "Step 5 - Report Generation",
 }
 
 # Default quality thresholds for iterative correction loop (extraction)
@@ -1956,6 +1960,9 @@ def _resolve_primary_output_path(file_manager: PipelineFileManager, step_name: s
         candidates.append(file_manager.get_filename("appraisal", status="best"))
         candidates.append(file_manager.get_filename("appraisal", iteration_number=0))
         candidates.append(file_manager.get_filename("appraisal"))
+    elif step_name == STEP_REPORT_GENERATION:
+        candidates.append(file_manager.get_filename("report", status="best"))
+        candidates.append(file_manager.get_filename("report", iteration_number=0))
     else:
         candidates.append(file_manager.get_filename(step_name))
 
@@ -3009,6 +3016,173 @@ def run_appraisal_with_correction(
     raise RuntimeError("Appraisal loop exited unexpectedly")
 
 
+def run_report_generation(
+    extraction_result: dict[str, Any],
+    appraisal_result: dict[str, Any],
+    classification_result: dict[str, Any],
+    llm_provider: str,
+    file_manager: PipelineFileManager,
+    progress_callback: Callable[[str, str, dict], None] | None = None,
+) -> dict[str, Any]:
+    """
+    Generate a structured report from extraction and appraisal data (single-pass, Phase 2).
+
+    This function implements the basic report generation workflow:
+        1. Load report generation prompt (type-agnostic, handles all study types)
+        2. Prepare input data (classification + extraction + appraisal)
+        3. Call LLM to generate report JSON
+        4. Validate report against report.schema.json
+        5. Save report iteration (report0.json)
+        6. Return report result
+
+    Note: Phase 2 implementation - single-pass generation only.
+          Validation & correction loop will be added in Phase 3.
+
+    Args:
+        extraction_result: Validated extraction JSON (best iteration)
+        appraisal_result: Validated appraisal JSON (best iteration)
+        classification_result: Classification result (for publication_type and metadata)
+        llm_provider: LLM provider name ("openai" | "claude")
+        file_manager: File manager for saving report iterations
+        progress_callback: Optional callback for progress updates
+
+    Returns:
+        dict: {
+            'report': dict,  # Generated report JSON
+            'iteration': int,  # Always 0 in Phase 2
+            'status': str,  # "completed"
+            '_pipeline_metadata': dict,  # Pipeline tracking metadata
+        }
+
+    Raises:
+        ValueError: If classification_result missing publication_type
+        PromptLoadError: If report generation prompt cannot be loaded
+        SchemaLoadError: If report.schema.json cannot be loaded or is invalid
+        LLMError: If LLM call fails after retries
+
+    Example:
+        >>> report_result = run_report_generation(
+        ...     extraction_result=extraction,
+        ...     appraisal_result=appraisal,
+        ...     classification_result=classification,
+        ...     llm_provider="openai",
+        ...     file_manager=file_mgr,
+        ... )
+        >>> report_result['report']['report_version']
+        'v1.0'
+        >>> report_result['status']
+        'completed'
+    """
+    console.print("\n[bold cyan]═══ REPORT GENERATION (Phase 2 - Single Pass) ═══[/bold cyan]\n")
+
+    # Extract publication type
+    classification_clean = _strip_metadata_for_pipeline(classification_result)
+    publication_type = classification_clean.get("publication_type")
+    if not publication_type:
+        raise ValueError("Classification result missing publication_type")
+
+    # Progress update: started
+    if progress_callback:
+        progress_callback(
+            STEP_REPORT_GENERATION,
+            "started",
+            {"publication_type": publication_type, "iteration": 0},
+        )
+
+    # Load report generation prompt
+    console.print("[yellow]📄 Loading report generation prompt...[/yellow]")
+    try:
+        report_prompt = load_report_generation_prompt()
+    except PromptLoadError as e:
+        console.print(f"[red]❌ Failed to load report generation prompt: {e}[/red]")
+        raise
+
+    # Load report schema for validation
+    console.print("[yellow]📋 Loading report schema...[/yellow]")
+    try:
+        report_schema = load_schema("report")
+    except SchemaLoadError as e:
+        console.print(f"[red]❌ Failed to load report schema: {e}[/red]")
+        raise
+
+    # Prepare input data for LLM
+    # Strip metadata to send only clean data to LLM
+    extraction_clean = _strip_metadata_for_pipeline(extraction_result)
+    appraisal_clean = _strip_metadata_for_pipeline(appraisal_result)
+
+    input_data = {
+        "classification": classification_clean,
+        "extraction": extraction_clean,
+        "appraisal": appraisal_clean,
+    }
+
+    # Get LLM provider
+    llm = get_llm_provider(llm_provider)
+
+    # Call LLM to generate report
+    console.print(f"[yellow]🤖 Generating report via {llm_provider}...[/yellow]")
+    console.print(f"[dim]Publication type: {publication_type}[/dim]")
+
+    try:
+        # LLM call with structured output (JSON mode)
+        report_json = llm.generate_structured_output(
+            prompt=report_prompt,
+            context_data=input_data,
+            schema=report_schema,
+            temperature=0.3,  # Lower temperature for consistent structured output
+        )
+    except LLMError as e:
+        console.print(f"[red]❌ LLM call failed: {e}[/red]")
+        if progress_callback:
+            progress_callback(STEP_REPORT_GENERATION, "failed", {"error": str(e)})
+        raise
+
+    # Validate report against schema
+    console.print("[yellow]✓ Validating report against schema...[/yellow]")
+    try:
+        validate_schema_compatibility(report_json, report_schema, "report")
+        console.print("[green]✓ Report schema validation passed[/green]")
+    except SchemaLoadError as e:
+        console.print(f"[red]❌ Report schema validation failed: {e}[/red]")
+        if progress_callback:
+            progress_callback(STEP_REPORT_GENERATION, "failed", {"error": str(e)})
+        raise
+
+    # Save report iteration 0
+    console.print("[yellow]💾 Saving report iteration 0...[/yellow]")
+    report_path, _ = file_manager.save_report_iteration(
+        iteration=0, report_result=report_json, validation_result=None
+    )
+    console.print(f"[green]✓ Report saved: {report_path.name}[/green]")
+
+    # Add pipeline metadata
+    timestamp = datetime.now(timezone.utc).isoformat()
+    result = {
+        "report": report_json,
+        "iteration": 0,
+        "status": "completed",
+        "_pipeline_metadata": {
+            "step": STEP_REPORT_GENERATION,
+            "timestamp": timestamp,
+            "llm_provider": llm_provider,
+            "publication_type": publication_type,
+            "phase": "phase_2_single_pass",
+        },
+    }
+
+    # Progress update: completed
+    if progress_callback:
+        progress_callback(
+            STEP_REPORT_GENERATION,
+            "completed",
+            {"iteration": 0, "file": report_path.name},
+        )
+
+    console.print("\n[bold green]✓ Report generation completed successfully[/bold green]\n")
+
+    return result
+
+
 def run_single_step(
     step_name: str,
     pdf_path: Path,
@@ -3034,6 +3208,7 @@ def run_single_step(
             - "extraction": Extract structured data
             - "validation_correction": Iterative validation with automatic correction
             - "appraisal": Critical appraisal with iterative validation/correction
+            - "report_generation": Generate structured report from extraction and appraisal
             - "validation": Legacy - Single validation run (backward compat)
             - "correction": Legacy - Single correction run (backward compat)
         pdf_path: Path to PDF file to process
@@ -3210,6 +3385,27 @@ def run_single_step(
         previous_results[STEP_CLASSIFICATION] = classification_result
         previous_results[STEP_EXTRACTION] = extraction_result
 
+    elif step_name == STEP_REPORT_GENERATION:
+        classification_result = _get_or_load_result("classification")
+        extraction_result = _get_or_load_result("extraction")
+        appraisal_result = _get_or_load_result("appraisal")
+
+        # Try to use best results from validation_correction and appraisal if available
+        try:
+            validation_correction_result = _get_or_load_result("validation_correction")
+            if validation_correction_result and validation_correction_result.get("best_extraction"):
+                extraction_result = validation_correction_result["best_extraction"]
+        except (ValueError, FileNotFoundError):
+            pass
+
+        # Try to use best_appraisal if available (from iterative appraisal)
+        if isinstance(appraisal_result, dict) and appraisal_result.get("best_appraisal"):
+            appraisal_result = appraisal_result["best_appraisal"]
+
+        previous_results[STEP_CLASSIFICATION] = classification_result
+        previous_results[STEP_EXTRACTION] = extraction_result
+        previous_results[STEP_APPRAISAL] = appraisal_result
+
     # Check LLM support availability
     try:
         from ..llm import get_llm_provider
@@ -3332,6 +3528,20 @@ def run_single_step(
             llm_provider=llm_provider,
             file_manager=file_manager,
             quality_thresholds=quality_thresholds,
+            progress_callback=progress_callback,
+        )
+
+    elif step_name == STEP_REPORT_GENERATION:
+        classification_result = previous_results[STEP_CLASSIFICATION]
+        extraction_result = previous_results[STEP_EXTRACTION]
+        appraisal_result = previous_results[STEP_APPRAISAL]
+
+        return run_report_generation(
+            extraction_result=extraction_result,
+            appraisal_result=appraisal_result,
+            classification_result=classification_result,
+            llm_provider=llm_provider,
+            file_manager=file_manager,
             progress_callback=progress_callback,
         )
 
