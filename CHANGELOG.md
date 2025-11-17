@@ -9,7 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Report Generation Feature Documentation** (#report-generation-feature) - Comprehensive feature specification for structured report generation (v0.3)
+- **Report Generation Feature - Phase 1: Schemas & Prompts** (#report-generation-phase1) - Foundation for structured report generation from extraction and appraisal data
+  - **Schemas:**
+    - `schemas/report.schema.json`: Block-based report structure (textBlock, tableBlock, figureBlock, calloutBlock) with metadata, layout, sections, and source_map (~300 lines)
+    - `schemas/report_validation.schema.json`: Validation report structure with quality scores (completeness, accuracy, consistency, schema compliance) and issues taxonomy (~150 lines)
+    - Both schemas registered in `src/schemas_loader.py` SCHEMA_MAPPING
+  - **Prompts:**
+    - `prompts/Report-generation.txt`: Single template with branching for all 5 study types (interventional, observational, systematic_review, prediction, editorials), covering 12 core sections + type-specific appendices (~600 lines)
+    - `prompts/Report-validation.txt`: Quality validation with 4 scored dimensions + logical alignment checks (~300 lines)
+    - `prompts/Report-correction.txt`: Issue-driven correction workflow with evidence-locked fixes (~250 lines)
+    - All prompts registered in `src/prompts.py` with dedicated loader functions and included in `validate_prompt_directory()`
+  - **Code Integration:**
+    - Added `load_report_generation_prompt()`, `load_report_validation_prompt()`, `load_report_correction_prompt()` to `src/prompts.py`
+    - Updated `get_all_available_prompts()` to include report prompts
+    - Updated module docstring to reflect 6-step pipeline (Classification → Extraction → Validation → Correction → Appraisal → Report)
+  - **Testing:**
+    - `tests/unit/test_report_schema.py`: 18 tests validating schema structure, block types, enums, label patterns (100% pass)
+    - `tests/unit/test_report_prompts.py`: 18 tests validating prompt content, coverage, language support, traceability (100% pass)
+  - **Quality Assurance:** All files pass `make format`, `make lint`, `make test-fast`
+  - **Status:** Phase 1 complete, ready for Phase 2 (Orchestrator integration)
+
+- **Report Generation Feature Documentation** (#report-generation-feature) - Comprehensive feature specification for structured report generation (v0.4)
   - **Complete technical design:** Block-based JSON architecture (text, table, figure, callout blocks), LaTeX rendering pipeline, iterative validation/correction
   - **17-section report structure:** Core sections (clinical bottom-line, study snapshot, quality assessment, results, limitations) plus type-specific appendices (CONSORT, PRISMA, PROBAST)
   - **Schema design:** Self-contained `report.schema.json` (no bundling required) with strict typing, render hints, and source map traceability

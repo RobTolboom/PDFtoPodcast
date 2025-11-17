@@ -1,0 +1,377 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://your-domain.example/schemas/report_v1.schema.json",
+  "title": "Structured Report Output (report_v1)",
+  "description": "Block-based report structure for professional PDF generation via LaTeX rendering",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["report_version", "study_type", "metadata", "layout", "sections"],
+  "properties": {
+    "report_version": {
+      "type": "string",
+      "const": "v1.0",
+      "description": "Report schema version"
+    },
+    "study_type": {
+      "type": "string",
+      "enum": [
+        "interventional",
+        "observational",
+        "systematic_review",
+        "prediction",
+        "editorials"
+      ],
+      "description": "Publication type determining section structure"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "generation_timestamp", "pipeline_version"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Study title"
+        },
+        "doi": {
+          "type": "string",
+          "description": "Digital Object Identifier"
+        },
+        "authors": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "List of author names"
+        },
+        "journal": {
+          "type": "string",
+          "description": "Journal name"
+        },
+        "publication_date": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Publication date (YYYY-MM-DD)"
+        },
+        "generation_timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Report generation timestamp (ISO 8601)"
+        },
+        "pipeline_version": {
+          "type": "string",
+          "description": "Pipeline version that generated this report"
+        },
+        "extraction_quality_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Upstream extraction quality score"
+        },
+        "appraisal_quality_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Upstream appraisal quality score"
+        },
+        "extraction_quality_warning": {
+          "type": "boolean",
+          "description": "Flag if extraction quality below optimal threshold"
+        },
+        "appraisal_quality_warning": {
+          "type": "boolean",
+          "description": "Flag if appraisal quality below optimal threshold"
+        }
+      }
+    },
+    "layout": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["language"],
+      "properties": {
+        "language": {
+          "type": "string",
+          "enum": ["nl", "en"],
+          "description": "Report language (Dutch or English)"
+        },
+        "template": {
+          "type": "string",
+          "default": "vetrix",
+          "description": "LaTeX template name"
+        },
+        "numbering": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable section/figure/table numbering"
+        }
+      }
+    },
+    "sections": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/section"},
+      "description": "Report sections with hierarchical structure"
+    },
+    "source_map": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/sourceRef"},
+      "description": "Traceability map from report items to source PDF"
+    }
+  },
+  "$defs": {
+    "section": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Section identifier (e.g., exec_bottom_line, study_snapshot)"
+        },
+        "title": {
+          "type": "string",
+          "description": "Section title for display"
+        },
+        "subsections": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/section"},
+          "description": "Nested subsections (recursive)"
+        },
+        "blocks": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/block"},
+          "description": "Content blocks in this section"
+        }
+      }
+    },
+    "block": {
+      "oneOf": [
+        {"$ref": "#/$defs/textBlock"},
+        {"$ref": "#/$defs/tableBlock"},
+        {"$ref": "#/$defs/figureBlock"},
+        {"$ref": "#/$defs/calloutBlock"}
+      ]
+    },
+    "textBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "style", "content"],
+      "properties": {
+        "type": {
+          "const": "text",
+          "description": "Block type identifier"
+        },
+        "style": {
+          "type": "string",
+          "enum": ["paragraph", "bullets", "numbered"],
+          "description": "Text formatting style"
+        },
+        "content": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 1,
+          "description": "Text content (array of strings for bullets/paragraphs)"
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Source reference codes (e.g., ['S1', 'S2'])"
+        }
+      }
+    },
+    "tableBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "columns", "rows"],
+      "properties": {
+        "type": {
+          "const": "table",
+          "description": "Block type identifier"
+        },
+        "label": {
+          "type": "string",
+          "pattern": "^tbl_[a-z0-9_]+$",
+          "description": "LaTeX-compatible table label (e.g., tbl_snapshot)"
+        },
+        "caption": {
+          "type": "string",
+          "description": "Table caption"
+        },
+        "table_kind": {
+          "type": "string",
+          "enum": [
+            "generic",
+            "snapshot",
+            "outcomes",
+            "harms",
+            "rob_domains",
+            "grade_sof",
+            "confounding_matrix",
+            "meta_results",
+            "model_metrics"
+          ],
+          "description": "Semantic table type for rendering hints"
+        },
+        "columns": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["key", "header", "align"],
+            "properties": {
+              "key": {
+                "type": "string",
+                "description": "Column key for data mapping"
+              },
+              "header": {
+                "type": "string",
+                "description": "Column header text"
+              },
+              "align": {
+                "type": "string",
+                "enum": ["l", "c", "r", "S"],
+                "description": "Column alignment (l=left, c=center, r=right, S=siunitx)"
+              }
+            }
+          },
+          "minItems": 1,
+          "description": "Table column definitions"
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Row data (keys must match column keys)"
+          },
+          "description": "Table row data"
+        },
+        "render_hints": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "table_spec": {
+              "type": "string",
+              "description": "LaTeX table column spec (e.g., 'lccr')"
+            },
+            "landscape": {
+              "type": "boolean",
+              "description": "Render in landscape orientation"
+            },
+            "longtable": {
+              "type": "boolean",
+              "description": "Use longtable for multi-page tables"
+            }
+          },
+          "description": "LaTeX rendering hints"
+        }
+      }
+    },
+    "figureBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "figure_kind"],
+      "properties": {
+        "type": {
+          "const": "figure",
+          "description": "Block type identifier"
+        },
+        "label": {
+          "type": "string",
+          "pattern": "^fig_[a-z0-9_]+$",
+          "description": "LaTeX-compatible figure label (e.g., fig_rob)"
+        },
+        "caption": {
+          "type": "string",
+          "description": "Figure caption"
+        },
+        "figure_kind": {
+          "type": "string",
+          "enum": [
+            "image",
+            "rob_traffic_light",
+            "forest",
+            "roc",
+            "calibration",
+            "prisma",
+            "consort",
+            "dag"
+          ],
+          "description": "Figure type for generation"
+        },
+        "data_ref": {
+          "type": "string",
+          "description": "Dot-notation reference to data (e.g., 'appraisal.risk_of_bias')"
+        },
+        "file": {
+          "type": "string",
+          "description": "Pre-generated figure file path"
+        },
+        "render_hints": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "width": {
+              "type": "string",
+              "description": "Figure width (e.g., '\\linewidth', '0.8\\textwidth')"
+            },
+            "placement": {
+              "type": "string",
+              "default": "tbp",
+              "description": "LaTeX float placement (e.g., 'tbp', 'h')"
+            },
+            "subcaptions": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Subcaptions for subfigures"
+            }
+          },
+          "description": "LaTeX rendering hints"
+        }
+      }
+    },
+    "calloutBlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "variant", "text"],
+      "properties": {
+        "type": {
+          "const": "callout",
+          "description": "Block type identifier"
+        },
+        "variant": {
+          "type": "string",
+          "enum": ["warning", "note", "implication", "clinical_pearl"],
+          "description": "Callout box variant"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 10,
+          "description": "Callout text content"
+        }
+      }
+    },
+    "sourceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "page"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^S[0-9]+$",
+          "description": "Source reference code (e.g., 'S1', 'S12')"
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Source PDF page number"
+        },
+        "section": {
+          "type": "string",
+          "description": "Source section name (e.g., 'Methods', 'Results')"
+        },
+        "anchor_text": {
+          "type": "string",
+          "maxLength": 50,
+          "description": "Short snippet from source for reference"
+        }
+      }
+    }
+  }
+}

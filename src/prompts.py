@@ -7,11 +7,13 @@
 Prompt loading utilities for the PDFtoPodcast extraction pipeline.
 
 This module provides functions to load prompt templates from the prompts/ directory
-for the four-step extraction pipeline:
+for the five-step extraction and reporting pipeline:
 1. Classification - Identify publication type and extract metadata
 2. Extraction - Extract detailed data based on publication type
 3. Validation - Verify quality and completeness of extracted data
 4. Correction - Fix issues identified during validation
+5. Appraisal - Critical appraisal and quality assessment
+6. Report Generation - Generate structured reports from extraction and appraisal
 """
 
 from pathlib import Path
@@ -145,6 +147,47 @@ def get_all_available_prompts() -> dict[str, str]:
         except PromptLoadError:
             pass
 
+    # Check appraisal prompts for each publication type
+    for pub_type in extraction_types:
+        try:
+            load_appraisal_prompt(pub_type)
+            prompts[f"appraisal_{pub_type}"] = f"Critical appraisal for {pub_type} publications"
+        except PromptLoadError:
+            pass
+
+    # Check appraisal validation prompt
+    try:
+        load_appraisal_validation_prompt()
+        prompts["appraisal_validation"] = "Quality validation of appraisal data"
+    except PromptLoadError:
+        pass
+
+    # Check appraisal correction prompt
+    try:
+        load_appraisal_correction_prompt()
+        prompts["appraisal_correction"] = "Appraisal correction based on validation feedback"
+    except PromptLoadError:
+        pass
+
+    # Check report prompts
+    try:
+        load_report_generation_prompt()
+        prompts["report_generation"] = "Structured report generation from extraction and appraisal"
+    except PromptLoadError:
+        pass
+
+    try:
+        load_report_validation_prompt()
+        prompts["report_validation"] = "Quality validation of generated report"
+    except PromptLoadError:
+        pass
+
+    try:
+        load_report_correction_prompt()
+        prompts["report_correction"] = "Report correction based on validation feedback"
+    except PromptLoadError:
+        pass
+
     return prompts
 
 
@@ -236,6 +279,76 @@ def load_appraisal_correction_prompt() -> str:
         raise PromptLoadError(f"Error reading appraisal correction prompt: {e}") from e
 
 
+def load_report_generation_prompt() -> str:
+    """
+    Load the report generation prompt from Report-generation.txt.
+
+    This prompt generates structured reports from extraction and appraisal data.
+    Uses a single template with branching for all study types.
+
+    Returns:
+        Report generation prompt text
+
+    Raises:
+        PromptLoadError: If prompt file not found or cannot be read
+    """
+    prompt_file = PROMPTS_DIR / "Report-generation.txt"
+
+    if not prompt_file.exists():
+        raise PromptLoadError(f"Report generation prompt not found: {prompt_file}")
+
+    try:
+        return prompt_file.read_text(encoding="utf-8").strip()
+    except Exception as e:
+        raise PromptLoadError(f"Error reading report generation prompt: {e}") from e
+
+
+def load_report_validation_prompt() -> str:
+    """
+    Load the report validation prompt from Report-validation.txt.
+
+    This prompt validates report completeness, accuracy, consistency, and schema compliance.
+
+    Returns:
+        Report validation prompt text
+
+    Raises:
+        PromptLoadError: If prompt file not found or cannot be read
+    """
+    prompt_file = PROMPTS_DIR / "Report-validation.txt"
+
+    if not prompt_file.exists():
+        raise PromptLoadError(f"Report validation prompt not found: {prompt_file}")
+
+    try:
+        return prompt_file.read_text(encoding="utf-8").strip()
+    except Exception as e:
+        raise PromptLoadError(f"Error reading report validation prompt: {e}") from e
+
+
+def load_report_correction_prompt() -> str:
+    """
+    Load the report correction prompt from Report-correction.txt.
+
+    This prompt fixes issues identified during report validation.
+
+    Returns:
+        Report correction prompt text
+
+    Raises:
+        PromptLoadError: If prompt file not found or cannot be read
+    """
+    prompt_file = PROMPTS_DIR / "Report-correction.txt"
+
+    if not prompt_file.exists():
+        raise PromptLoadError(f"Report correction prompt not found: {prompt_file}")
+
+    try:
+        return prompt_file.read_text(encoding="utf-8").strip()
+    except Exception as e:
+        raise PromptLoadError(f"Error reading report correction prompt: {e}") from e
+
+
 def validate_prompt_directory() -> dict[str, bool]:
     """
     Validate that all expected prompt files are present in the prompts directory.
@@ -260,6 +373,10 @@ def validate_prompt_directory() -> dict[str, bool]:
         "Appraisal-editorials.txt",
         "Appraisal-validation.txt",
         "Appraisal-correction.txt",
+        # Report prompts
+        "Report-generation.txt",
+        "Report-validation.txt",
+        "Report-correction.txt",
     ]
 
     validation_results = {}

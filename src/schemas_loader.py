@@ -42,6 +42,9 @@ SCHEMA_MAPPING = {
     "validation": "validation.schema.json",
     "appraisal": "appraisal.schema.json",
     "appraisal_validation": "appraisal_validation.schema.json",
+    # Report schemas (report generation outputs)
+    "report": "report.schema.json",
+    "report_validation": "report_validation.schema.json",
 }
 
 
