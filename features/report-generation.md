@@ -1709,19 +1709,29 @@ pytest-cov>=4.1.0
 - [x] All existing tests pass (127 passed)
 - [x] Code formatted and linted successfully
 - [x] CHANGELOG.md updated with Phase 3 completion
-- [ ] Integration tests (full loop with mock LLM) - Deferred to next session
+- [x] Integration tests (full loop with mock LLM) - Complete
+- [x] Pipeline dispatch fixed to call run_report_with_correction() when enable_iterative_correction=True
+- [x] Dependency gating implemented (extraction quality < 0.70 blocks, appraisal missing RoB blocks)
+- [x] Unit tests created (tests/unit/test_report_quality.py, 17 tests)
+- [x] Integration tests created (tests/integration/test_report_full_loop.py, 8 tests)
+- [x] All 152 tests pass (127 existing + 25 new)
 
-**Testing** (Ready for next session):
-- Validation catches known errors (data mismatches, missing sections)
-- Correction fixes validation issues
-- Best iteration selection works correctly
-- Integration tests cover all study types
+**Testing** ✅ **COMPLETE**:
+- ✅ Unit tests: `_extract_report_metrics()`, `is_report_quality_sufficient()`, `_select_best_report_iteration()` (17 tests)
+- ✅ Integration tests: Full loop, early stopping, max iterations, degradation detection, dependency gating, file persistence (8 tests)
+- ✅ Validation catches known errors (data mismatches, missing sections, critical issues)
+- ✅ Correction fixes validation issues and improves quality scores
+- ✅ Best iteration selection works correctly (prioritizes critical_issues=0, quality_score, accuracy)
+- ✅ Integration tests cover dependency gating, custom thresholds, file persistence
 
 **Acceptance**:
 - ✅ Iterative loop runs to completion
 - ✅ Quality improvement mechanism in place (weighted quality_score with early stopping)
 - ✅ Best report selection implemented correctly
 - ✅ Pattern matches appraisal correction loop exactly
+- ✅ Pipeline integration functional (dispatch calls Phase 3 loop when enabled)
+- ✅ Safety checks prevent bad inputs (dependency gating)
+- ✅ Comprehensive test coverage (25 automated tests)
 
 ### Phase 4: LaTeX Renderer (Basic) (Week 3-4)
 **Goal**: Basic LaTeX rendering (no figures yet)

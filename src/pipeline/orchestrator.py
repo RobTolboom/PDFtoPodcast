@@ -3367,6 +3367,77 @@ def run_report_with_correction(
         console.print(f"[red]❌ LLM provider error: {e}[/red]")
         raise
 
+    # ============================================================================
+    # Dependency Gating: Validate upstream quality before report generation
+    # ============================================================================
+    console.print("\n[bold]Checking upstream dependencies...[/bold]")
+
+    # Check extraction quality
+    extraction_quality = extraction_result.get("quality_score")
+    if extraction_quality is None:
+        # Try alternative location (validation_summary)
+        validation_summary = extraction_result.get("validation_summary", {})
+        extraction_quality = validation_summary.get("quality_score")
+
+    if extraction_quality is not None:
+        console.print(f"  Extraction quality: {extraction_quality:.2f}")
+        if extraction_quality < 0.70:
+            error_msg = (
+                f"[red]❌ Extraction quality too low ({extraction_quality:.2f} < 0.70). "
+                "Cannot generate reliable report. Please improve extraction quality first.[/red]"
+            )
+            console.print(error_msg)
+            return {
+                "status": "blocked",
+                "message": "Extraction quality insufficient for report generation",
+                "extraction_quality": extraction_quality,
+                "minimum_required": 0.70,
+            }
+        elif extraction_quality < 0.90:
+            console.print(
+                f"  [yellow]⚠️  Warning: Extraction quality is below recommended threshold "
+                f"({extraction_quality:.2f} < 0.90). Report accuracy may be limited.[/yellow]"
+            )
+    else:
+        console.print("  [dim]Extraction quality: not available[/dim]")
+
+    # Check appraisal quality and RoB data
+    appraisal_status = appraisal_result.get("status", "unknown")
+    risk_of_bias = appraisal_result.get("risk_of_bias")
+
+    if appraisal_status == "failed" or risk_of_bias is None:
+        error_msg = (
+            "[red]❌ Appraisal failed or missing Risk of Bias data. "
+            "Cannot generate report without quality assessment.[/red]"
+        )
+        console.print(error_msg)
+        return {
+            "status": "blocked",
+            "message": "Appraisal data missing or incomplete",
+            "appraisal_status": appraisal_status,
+            "has_risk_of_bias": risk_of_bias is not None,
+        }
+
+    appraisal_quality = appraisal_result.get("quality_score")
+    if appraisal_quality is None:
+        # Try alternative location (validation_summary from best iteration)
+        best_iteration = appraisal_result.get("best_iteration", {})
+        validation = best_iteration.get("validation", {})
+        validation_summary = validation.get("validation_summary", {})
+        appraisal_quality = validation_summary.get("quality_score")
+
+    if appraisal_quality is not None:
+        console.print(f"  Appraisal quality: {appraisal_quality:.2f}")
+        if appraisal_quality < 0.70:
+            console.print(
+                f"  [yellow]⚠️  Warning: Appraisal quality is below recommended threshold "
+                f"({appraisal_quality:.2f} < 0.70). Report quality assessments may be limited.[/yellow]"
+            )
+    else:
+        console.print("  [dim]Appraisal quality: not available[/dim]")
+
+    console.print("  [green]✓ Dependency checks passed[/green]")
+
     # Track iterations
     iterations = []
     current_report = None
@@ -4452,15 +4523,30 @@ def run_single_step(
         extraction_result = previous_results[STEP_EXTRACTION]
         appraisal_result = previous_results[STEP_APPRAISAL]
 
-        return run_report_generation(
-            extraction_result=extraction_result,
-            appraisal_result=appraisal_result,
-            classification_result=classification_result,
-            llm_provider=llm_provider,
-            file_manager=file_manager,
-            progress_callback=progress_callback,
-            language=report_language or "en",
-        )
+        if enable_iterative_correction:
+            # Phase 3: Iterative validation & correction loop
+            return run_report_with_correction(
+                extraction_result=extraction_result,
+                appraisal_result=appraisal_result,
+                classification_result=classification_result,
+                llm_provider=llm_provider,
+                file_manager=file_manager,
+                language=report_language or "nl",
+                max_iterations=max_correction_iterations or 3,
+                quality_thresholds=quality_thresholds,
+                progress_callback=progress_callback,
+            )
+        else:
+            # Phase 2: Single-pass generation (fallback)
+            return run_report_generation(
+                extraction_result=extraction_result,
+                appraisal_result=appraisal_result,
+                classification_result=classification_result,
+                llm_provider=llm_provider,
+                file_manager=file_manager,
+                progress_callback=progress_callback,
+                language=report_language or "en",
+            )
 
     else:
         # Should never reach here due to validation above

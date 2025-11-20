@@ -16,6 +16,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Report Generation Feature - Phase 3: Critical Integration & Test Coverage Fixes** (#report-generation-phase3-fixes) - Fixed 3 critical issues that made Phase 3 implementation non-functional
+  - **Issue #1 - Dead Code (Pipeline Dispatch)**: Modified pipeline dispatch (orchestrator.py:4455) to conditionally call `run_report_with_correction()` when `enable_iterative_correction=True`, making Phase 3 loop actually execute. Previously, dispatch always called Phase 2 single-pass `run_report_generation()`, making all Phase 3 code dead code.
+  - **Issue #2 - Missing Dependency Gating**: Added ~70 lines of upstream quality validation to `run_report_with_correction()` start:
+    - Block if extraction quality < 0.70
+    - Warn if extraction quality < 0.90
+    - Block if appraisal missing Risk of Bias data
+    - Warn if appraisal quality < 0.70
+    - Matches feature spec requirements (lines 1625-1636)
+  - **Issue #3 - Zero Test Coverage**: Created comprehensive test suite for Phase 3:
+    - `tests/unit/test_report_quality.py`: 17 tests (~270 lines) for `_extract_report_metrics()`, `is_report_quality_sufficient()`, and `_select_best_report_iteration()`
+    - `tests/integration/test_report_full_loop.py`: 8 integration tests (~700 lines) covering full iterative loop, early stopping, max iterations, degradation detection, dependency gating, and file persistence
+    - All 25 new tests pass, bringing total test count to 152 passed
+  - **Quality Assurance:** Code formatted with black, linted with ruff, all existing + new tests pass
+  - **Status:** Phase 3 now fully functional with proper pipeline integration, safety checks, and automated test coverage
+
 - **Report Generation Feature - Phase 2: Critical Bugfixes** (#report-generation-phase2-bugfix) - Fixed 4 blocking issues that prevented Phase 2 from running
   - **Issue #1 - LLM Method Call**: Changed `llm.generate_structured_output()` (non-existent) to `llm.generate_json_with_schema()` (correct method)
   - **Issue #2 - Schema Validation**: Replaced `validate_schema_compatibility()` (wrong signature) with `validate_with_schema()` from validation module
