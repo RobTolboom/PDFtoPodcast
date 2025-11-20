@@ -1495,28 +1495,25 @@ class FigureGenerator:
 
 ## Deployment Strategy
 
-### Docker Container for LaTeX Rendering
+### Single Product Image with Bundled LaTeX
 
-**Rationale**: LaTeX compilation is platform-dependent and requires complex dependencies. Docker ensures consistent environment across development, testing, and production.
+**Rationale**: The full product ships as one Docker image that includes Python plus the TeX toolchain, so PDF rendering works without a separate LaTeX-only container. This guarantees consistent dependencies while keeping the runtime to a single deployable artifact.
 
-**Container Specification**:
+**Container Specification** (folded into the main product Dockerfile):
 ```dockerfile
-FROM texlive/texlive:latest
+FROM python:3.11-slim
 
-# Install Python and dependencies
-RUN apt-get update && apt-get install -y \
-    python3.11 \
-    python3-pip \
+# TeX Live (minimal set; expand if templates require more)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    texlive-latex-base texlive-latex-recommended texlive-fonts-recommended \
+    texlive-lang-european texlive-xetex \
+    python3-venv python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python packages
-COPY requirements.txt /app/
-RUN pip3 install --no-cache-dir -r /app/requirements.txt
-
-# Copy LaTeX templates
-COPY templates/latex /app/templates/latex
-
 WORKDIR /app
+COPY requirements.txt /app/
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . /app
 ```
 
 **Python Dependencies** (`requirements.txt`):
@@ -1542,31 +1539,23 @@ pytest>=7.4.0
 pytest-cov>=4.1.0
 ```
 
-**Rendering Workflow**:
-1. **Generate report JSON** (in main Python process)
-2. **Write to temp directory** with figures
-3. **Invoke Docker container**:
-   ```bash
-   docker run --rm \
-     -v /path/to/report-data:/data \
-     pdftopodcast-latex:latest \
-     python3 /app/src/rendering/latex_renderer.py /data/report.json /data/output.pdf
-   ```
-4. **Retrieve compiled PDF** from mounted volume
+**Rendering Workflow** (inside the single container):
+1. Generate report JSON and figures.
+2. Run `python3 src/rendering/latex_renderer.py <report.json> <output.pdf>` using the bundled TeX binaries.
+3. Return the compiled PDF (plus `.tex`/logs on failure).
 
 **Error Handling**:
-- Container startup failure → Log error, retry once, then fail gracefully with JSON-only output
-- LaTeX compilation error → Parse `.log` file, extract meaningful error, suggest fixes
-- Timeout (>60s) → Kill container, return partial output if available
+- LaTeX compilation error → Parse `.log` file, extract meaningful error, suggest fixes.
+- TeX package gap → Log missing packages; expand the installed TeX Live set in the Dockerfile as needed.
+- Timeout (>60s) → Abort render, return JSON + `.tex`.
 
 **Local Development**:
-- Option 1: Use Docker (consistent with production)
-- Option 2: Native LaTeX install (faster, requires manual setup)
+- Default: build/run the main Docker image (matches production).
+- Alternative: use a native TeX install on host if available (skips rebuilds, faster iteration).
 
 **CI/CD Integration**:
-- Build Docker image in GitHub Actions
-- Run integration tests inside container
-- Push image to container registry (Docker Hub / GitHub Container Registry)
+- Build and push the single product image (with TeX) in GitHub Actions.
+- Run integration tests inside the built image to ensure TeX + renderer stay in sync.
 
 ---
 
