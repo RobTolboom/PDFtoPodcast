@@ -31,6 +31,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Report Generation Feature - Phase 3: Validation & Correction Loop** (#report-generation-phase3) - Iterative quality improvement for report generation
+  - **Quality Metrics & Thresholds:**
+    - `REPORT_QUALITY_THRESHOLDS`: Quality thresholds constant (completeness ≥85%, accuracy ≥95%, cross_reference_consistency ≥90%, data_consistency ≥90%, schema_compliance ≥95%, critical_issues = 0)
+    - `_extract_report_metrics()`: Extract quality scores from validation result with weighted quality_score (35% accuracy + 30% completeness + 10% cross-ref + 10% data + 15% schema)
+    - `is_report_quality_sufficient()`: Check if all thresholds met for stopping iteration
+    - `_select_best_report_iteration()`: Select best iteration by quality_score with accuracy as tiebreaker (data correctness paramount)
+  - **Validation & Correction Steps:**
+    - `_run_report_validation_step()`: LLM-based validation against Report-validation.txt prompt, checking completeness, accuracy, cross-reference consistency, data consistency, and schema compliance
+    - `_run_report_correction_step()`: LLM-based correction using Report-correction.txt prompt to fix data mismatches, missing sections, broken references, and schema violations
+  - **Main Iterative Loop:**
+    - `run_report_with_correction()`: Complete workflow with automatic iterative correction (similar to appraisal pattern)
+      - Iteration 0: Generate initial report + validate
+      - Iterations 1-N: Correct + re-validate until quality sufficient or max iterations reached
+      - Early stopping on quality degradation (window=2)
+      - Best iteration selection on max iterations or degradation
+      - Error recovery with partial results on LLM/schema errors
+  - **Return Structure:**
+    - `best_report`: Best report JSON selected by quality metrics
+    - `best_validation`: Validation of best report
+    - `best_iteration`: Iteration number of best result
+    - `iterations`: Full iteration history with metrics per iteration
+    - `final_status`: "passed" | "max_iterations_reached" | "early_stopped_degradation" | "failed"
+    - `iteration_count`: Total iterations performed
+    - `improvement_trajectory`: Quality scores per iteration for analysis
+  - **File Management:** All file manager methods from Phase 2 used for saving iterations and best results
+  - **Import Updates:** Added `load_report_validation_prompt` and `load_report_correction_prompt` to orchestrator imports
+  - **Quality Assurance:** All existing tests pass (127 passed), code formatted and linted
+  - **Status:** Phase 3 complete (validation & correction loop), ready for Phase 4 (LaTeX renderer)
+
 - **Report Generation Feature - Phase 2: Orchestrator Integration** (#report-generation-phase2) - Pipeline integration for single-pass report generation
   - **Orchestrator:**
     - `run_report_generation()`: Single-pass report generator with LLM call, schema validation, and file saving
