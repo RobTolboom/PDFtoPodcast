@@ -519,6 +519,66 @@ class TestReportFullLoop:
             assert result["extraction_quality"] == 0.65
             assert result["minimum_required"] == 0.70
 
+    def test_dependency_gating_blocks_failed_appraisal(
+        self,
+        mock_extraction_interventional,
+        mock_appraisal_interventional,
+        mock_classification_interventional,
+        file_manager,
+    ):
+        """Test that failed appraisal (final_status) blocks report generation."""
+        bad_appraisal = deepcopy(mock_appraisal_interventional)
+        bad_appraisal["final_status"] = "failed_schema_validation"
+        bad_appraisal["risk_of_bias"] = None
+
+        with patch("src.pipeline.orchestrator.get_llm_provider") as mock_get_provider:
+            mock_llm = Mock()
+            mock_get_provider.return_value = mock_llm
+
+            result = run_report_with_correction(
+                extraction_result=mock_extraction_interventional,
+                appraisal_result=bad_appraisal,
+                classification_result=mock_classification_interventional,
+                llm_provider="openai",
+                file_manager=file_manager,
+                language="nl",
+                max_iterations=3,
+            )
+
+            assert result["status"] == "blocked"
+            assert result["appraisal_final_status"] == "failed_schema_validation"
+            assert result["has_risk_of_bias"] is False
+
+    def test_dependency_gating_blocks_failed_appraisal_validation(
+        self,
+        mock_extraction_interventional,
+        mock_appraisal_interventional,
+        mock_classification_interventional,
+        file_manager,
+    ):
+        """Test that failed appraisal validation blocks report generation even with RoB present."""
+        bad_appraisal = deepcopy(mock_appraisal_interventional)
+        bad_appraisal["risk_of_bias"] = {"overall": "High risk"}  # present
+        bad_appraisal["best_validation"] = {"validation_summary": {"overall_status": "failed"}}
+
+        with patch("src.pipeline.orchestrator.get_llm_provider") as mock_get_provider:
+            mock_llm = Mock()
+            mock_get_provider.return_value = mock_llm
+
+            result = run_report_with_correction(
+                extraction_result=mock_extraction_interventional,
+                appraisal_result=bad_appraisal,
+                classification_result=mock_classification_interventional,
+                llm_provider="openai",
+                file_manager=file_manager,
+                language="nl",
+                max_iterations=3,
+            )
+
+            assert result["status"] == "blocked"
+            assert result["appraisal_validation_status"] == "failed"
+            assert result["has_risk_of_bias"] is True
+
             # LLM should not have been called
             mock_llm.generate_json_with_schema.assert_not_called()
 

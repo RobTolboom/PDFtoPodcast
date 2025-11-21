@@ -2237,11 +2237,11 @@ def _format_step_status(step_name: str, results: dict[str, Any], expected_to_run
         return "Skipped" if not expected_to_run else "Not run"
 
     if step_name == STEP_VALIDATION_CORRECTION:
-        status = result.get("final_status", "completed")
+        status = result.get("final_status", result.get("status", "completed"))
     elif "_pipeline_metadata" in result:
-        status = result["_pipeline_metadata"].get("status", "completed")
+        status = result["_pipeline_metadata"].get("status", result.get("status", "completed"))
     else:
-        status = "completed"
+        status = result.get("status", "completed")
 
     return status.replace("_", " ").title()
 
@@ -3388,6 +3388,12 @@ def run_report_with_correction(
             )
             console.print(error_msg)
             return {
+                "_pipeline_metadata": {
+                    "step": STEP_REPORT_GENERATION,
+                    "status": "blocked",
+                    "reason": "extraction_quality_low",
+                    "extraction_quality": extraction_quality,
+                },
                 "status": "blocked",
                 "message": "Extraction quality insufficient for report generation",
                 "extraction_quality": extraction_quality,
@@ -3403,18 +3409,47 @@ def run_report_with_correction(
 
     # Check appraisal quality and RoB data
     appraisal_status = appraisal_result.get("status", "unknown")
+    appraisal_final_status = appraisal_result.get("final_status", appraisal_status)
     risk_of_bias = appraisal_result.get("risk_of_bias")
 
-    if appraisal_status == "failed" or risk_of_bias is None:
+    blocking_appraisal_statuses = {
+        "failed",
+        "failed_schema_validation",
+        "failed_llm_error",
+    }
+
+    # Check validation summary for a failed overall status (best or direct validation)
+    validation_summary = appraisal_result.get("validation_summary", {})
+    if not validation_summary:
+        best_validation = appraisal_result.get("best_validation", {})
+        validation_summary = best_validation.get("validation_summary", {})
+
+    validation_overall_status = validation_summary.get("overall_status")
+    validation_failed = validation_overall_status == "failed"
+
+    if (
+        appraisal_final_status in blocking_appraisal_statuses
+        or validation_failed
+        or risk_of_bias is None
+    ):
         error_msg = (
             "[red]❌ Appraisal failed or missing Risk of Bias data. "
             "Cannot generate report without quality assessment.[/red]"
         )
         console.print(error_msg)
         return {
+            "_pipeline_metadata": {
+                "step": STEP_REPORT_GENERATION,
+                "status": "blocked",
+                "reason": "appraisal_failed",
+                "appraisal_final_status": appraisal_final_status,
+                "appraisal_validation_status": validation_overall_status,
+            },
             "status": "blocked",
             "message": "Appraisal data missing or incomplete",
             "appraisal_status": appraisal_status,
+            "appraisal_final_status": appraisal_final_status,
+            "appraisal_validation_status": validation_overall_status,
             "has_risk_of_bias": risk_of_bias is not None,
         }
 
