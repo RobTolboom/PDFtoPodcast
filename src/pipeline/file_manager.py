@@ -402,6 +402,23 @@ class PipelineFileManager:
 
         return (report_path, validation_path)
 
+    # Rendering helpers
+    def save_report_render(self, tex_content: str, status: str = "best") -> Path:
+        """
+        Save rendered LaTeX content for a report.
+
+        Args:
+            tex_content: Rendered LaTeX string
+            status: best|iteration-tag
+
+        Returns:
+            Path to the saved .tex file
+        """
+        filename = f"{self.identifier}-report-{status}.tex"
+        tex_path = self.tmp_dir / filename
+        tex_path.write_text(tex_content, encoding="utf-8")
+        return tex_path
+
     def load_report_iteration(
         self,
         iteration: int,

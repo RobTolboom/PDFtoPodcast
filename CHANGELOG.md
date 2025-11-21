@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Report Generation Feature - Phase 4: LaTeX Renderer Improvements** (#report-generation-phase4) - Enhanced LaTeX renderer with expanded test coverage and new features
+  - **Test Coverage Expansion:** Added 24 new unit tests (from 3 to 27 total) covering:
+    - All text block styles (paragraph, bullets, numbered)
+    - All 4 callout variants (warning, note, implication, clinical_pearl)
+    - Table alignments (l, c, r, S) and render_hints
+    - Figure block error handling (Phase 5 scope)
+    - Subsection rendering and nesting
+    - LaTeX special character escaping
+  - **Metadata Injection:** Report title, authors, and publication date now injected from `report.metadata` into LaTeX output
+  - **Label Generation:** Tables now generate `\label{tbl_xxx}` commands for cross-referencing (when label field present)
+  - **Template Updates:**
+    - Added metadata placeholders (`{{TITLE}}`, `{{AUTHORS}}`, `{{DATE}}`) to `main.tex`
+    - Created `figures.tex` placeholder for Phase 5 figure macros
+  - **Quality Assurance:** All 27 LaTeX renderer tests pass
+
 ### Changed
 
 - **LLM Timeout Increased**: Extended default timeout from 10 to 30 minutes (600s → 1800s)

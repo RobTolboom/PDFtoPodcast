@@ -79,6 +79,7 @@ from ..prompts import (
     load_report_generation_prompt,
     load_report_validation_prompt,
 )
+from ..rendering.latex_renderer import render_report_to_pdf
 from ..schemas_loader import SchemaLoadError, load_schema, validate_schema_compatibility
 from .file_manager import PipelineFileManager
 from .utils import check_breakpoint
@@ -3576,6 +3577,16 @@ def run_report_with_correction(
                 best_report_file, best_validation_file = file_manager.save_best_report(
                     current_report, current_validation
                 )
+                # Render LaTeX artefact (compile PDF if engine available)
+                try:
+                    render_dirs = render_report_to_pdf(
+                        current_report,
+                        file_manager.tmp_dir / "render",
+                        compile_pdf=True,
+                    )
+                except Exception as e:
+                    console.print(f"[yellow]⚠️  Failed to render LaTeX/PDF: {e}[/yellow]")
+                    render_dirs = {}
 
                 console.print(f"[green]Saved best: {best_report_file.name}[/green]")
                 console.print(f"[green]Saved best: {best_validation_file.name}[/green]")
@@ -3603,6 +3614,7 @@ def run_report_with_correction(
                     "final_status": "passed",
                     "iteration_count": iteration_num + 1,
                     "improvement_trajectory": improvement_trajectory,
+                    "rendered_paths": render_dirs,
                 }
 
             # Check for quality degradation (early stopping)

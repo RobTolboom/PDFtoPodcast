@@ -330,6 +330,9 @@ class TestReportFullLoop:
             assert result["best_report"]["report_version"] == "v1.0"
             assert len(result["iterations"]) == 1
             assert result["improvement_trajectory"][0] == 0.95
+            # LaTeX artefact should be rendered (compile_pdf=False)
+            rendered_tex = file_manager.tmp_dir / "render" / "report.tex"
+            assert rendered_tex.exists()
 
             # Verify files created
             assert (file_manager.tmp_dir / "test-paper-report0.json").exists()

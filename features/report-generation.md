@@ -1,9 +1,9 @@
 # Feature: Structured Report Generation with LaTeX Rendering
 
-**Status**: Phase 3 Complete - Validation & Correction Loop Implemented
+**Status**: Phase 4 Complete - LaTeX Renderer Improvements
 **Branch**: `feature/report-generation`
 **Created**: 2025-11-13
-**Updated**: 2025-01-20 (v0.7 - Phase 3 implementation complete)
+**Updated**: 2025-11-21 (v0.8 - Phase 4 test coverage, metadata & labels)
 **Author**: Rob Tolboom (with Claude Code)
 
 **Summary**
@@ -1705,6 +1705,7 @@ pytest-cov>=4.1.0
   - `REPORT_QUALITY_THRESHOLDS` constant - Complete
   - Iteration loop with stop criteria (early stopping on degradation) - Complete
   - Error recovery with partial results - Complete
+  - Dependency gating blocks bad inputs: extraction quality < 0.70, appraisal missing RoB, or appraisal `final_status`/validation `overall_status` == failed (returns blocked status with metadata)
 - [x] Import updates: `load_report_validation_prompt` and `load_report_correction_prompt` added to orchestrator
 - [x] All existing tests pass (127 passed)
 - [x] Code formatted and linted successfully
@@ -1713,12 +1714,12 @@ pytest-cov>=4.1.0
 - [x] Pipeline dispatch fixed to call run_report_with_correction() when enable_iterative_correction=True
 - [x] Dependency gating implemented (extraction quality < 0.70 blocks, appraisal missing RoB blocks)
 - [x] Unit tests created (tests/unit/test_report_quality.py, 17 tests)
-- [x] Integration tests created (tests/integration/test_report_full_loop.py, 8 tests)
-- [x] All 152 tests pass (127 existing + 25 new)
+- [x] Integration tests created (tests/integration/test_report_full_loop.py, 10 tests)
+- [x] All report-related tests pass (27 tests across unit + integration)
 
 **Testing** ✅ **COMPLETE**:
 - ✅ Unit tests: `_extract_report_metrics()`, `is_report_quality_sufficient()`, `_select_best_report_iteration()` (17 tests)
-- ✅ Integration tests: Full loop, early stopping, max iterations, degradation detection, dependency gating, file persistence (8 tests)
+- ✅ Integration tests: Full loop, early stopping, max iterations, degradation detection, dependency gating (including appraisal validation failure), file persistence (10 tests)
 - ✅ Validation catches known errors (data mismatches, missing sections, critical issues)
 - ✅ Correction fixes validation issues and improves quality scores
 - ✅ Best iteration selection works correctly (prioritizes critical_issues=0, quality_score, accuracy)
@@ -1733,29 +1734,45 @@ pytest-cov>=4.1.0
 - ✅ Safety checks prevent bad inputs (dependency gating)
 - ✅ Comprehensive test coverage (25 automated tests)
 
-### Phase 4: LaTeX Renderer (Basic) (Week 3-4)
+### Phase 4: LaTeX Renderer (Basic) (Week 3-4) ✅ **COMPLETED**
 **Goal**: Basic LaTeX rendering (no figures yet)
 
 **Deliverables**:
-- [ ] `src/rendering/latex_renderer.py` (NEW module)
-  - `render_report_to_pdf()` (main function)
-  - `BlockRenderer` class (text, table, callout)
+- [x] `src/rendering/latex_renderer.py` (NEW module - basic rendering in place)
+  - `render_report_to_pdf()` / `render_report_to_tex()` (core entry points)
+  - Block rendering for text, table, callout (figures next phase)
   - Template loading and placeholder substitution
-- [ ] `templates/latex/vetrix/` (LaTeX templates)
-  - `main.tex`, `preamble.tex`, `sections.tex`, `tables.tex`
-- [ ] LaTeX compilation pipeline (pdflatex/xelatex)
-- [ ] Unit tests for block renderers
+  - Metadata injection from `report.metadata` (title, authors, date)
+  - Label generation for tables (`\label{tbl_xxx}`)
+- [x] `templates/latex/vetrix/` (initial LaTeX templates)
+  - `main.tex`, `preamble.tex`, `sections.tex`, `tables.tex`, `figures.tex`
+  - Metadata placeholders (`{{TITLE}}`, `{{AUTHORS}}`, `{{DATE}}`)
+- [x] LaTeX render hook in orchestrator (writes .tex/.pdf for best report; compile attempted by default, warns on failure)
+- [x] LaTeX compilation pipeline (pdflatex/xelatex) attempted by default (graceful warning if engine missing)
+- [x] Unit tests for full block coverage (27 tests total):
+  - All text styles (paragraph, bullets, numbered)
+  - All 4 callout variants
+  - Table alignments and render_hints
+  - Figure block error handling
+  - Subsection rendering
+  - Special character escaping
+  - Metadata injection
+  - Label generation
 
-**Testing**:
-- Text blocks render correctly
-- Tables render with booktabs
-- Callouts render with tcolorbox
-- PDF compiles without errors
+**Testing** ✅ **COMPLETE**:
+- ✅ Text blocks render correctly (all 3 styles)
+- ✅ Tables render with booktabs and labels
+- ✅ Callouts render with tcolorbox (all 4 variants)
+- ✅ PDF compiles without errors (when LaTeX available)
+- ✅ Numbering toggle respected (`layout.numbering=false` inserts `secnumdepth` tweak)
+- ✅ Metadata injected from report.metadata
+- ✅ Special characters escaped correctly
 
 **Acceptance**:
-- Basic PDF generation works
-- All block types (except figures) render
-- LaTeX compilation reliable
+- ✅ Basic PDF generation works
+- ✅ All block types (except figures) render
+- ✅ LaTeX compilation reliable
+- ✅ 27 unit tests pass
 
 ### Phase 5: Figure Generators (Week 4-5)
 **Goal**: Generate critical figures (matplotlib-only)
