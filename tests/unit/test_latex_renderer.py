@@ -8,6 +8,7 @@ Unit tests for LaTeX renderer scaffolding (Phase 4).
 
 import pytest
 
+from src.rendering.figure_generator import FigureGenerationError, generate_figure
 from src.rendering.latex_renderer import (
     LatexRenderError,
     render_report_to_pdf,
@@ -66,6 +67,21 @@ def test_render_report_to_tex_missing_template_raises(sample_report, monkeypatch
     monkeypatch.setenv("TEMPLATE_PATH_OVERRIDE", "nonexistent")
     with pytest.raises(LatexRenderError):
         render_report_to_tex(sample_report, template="does-not-exist")
+
+
+def test_generate_figure_missing_matplotlib(monkeypatch, tmp_path):
+    # Skip if matplotlib exists; this test is to ensure missing dep surfaces cleanly
+    try:
+        import importlib.util
+
+        if importlib.util.find_spec("matplotlib"):
+            pytest.skip("matplotlib installed; dependency error path not exercised")
+    except Exception:
+        pass
+
+    block = {"figure_kind": "rob_traffic_light", "label": "fig_test"}
+    with pytest.raises(FigureGenerationError):
+        generate_figure(block, tmp_path)
 
 
 # ============================================================================
@@ -264,8 +280,35 @@ def test_render_table_without_caption():
 # ============================================================================
 
 
-def test_render_figure_block_raises_error():
-    """Test that figure blocks raise LatexRenderError (Phase 5 scope)."""
+def test_render_figure_block_with_file():
+    """Test that figure blocks with file path render correctly."""
+    report = {
+        "sections": [
+            {
+                "title": "Figures",
+                "blocks": [
+                    {
+                        "type": "figure",
+                        "figure_kind": "rob_traffic_light",
+                        "label": "fig_rob",
+                        "caption": "Risk of Bias Assessment",
+                        "file": "figures/fig_rob.png",
+                        "render_hints": {"width": "0.8\\linewidth", "placement": "htbp"},
+                    }
+                ],
+            }
+        ]
+    }
+    tex = render_report_to_tex(report)
+    assert r"\begin{figure}[htbp]" in tex
+    assert r"\includegraphics[width=0.8\linewidth]{figures/fig_rob.png}" in tex
+    assert r"\caption{Risk of Bias Assessment}" in tex
+    assert r"\label{fig_rob}" in tex
+    assert r"\end{figure}" in tex
+
+
+def test_render_figure_block_missing_file_raises_error():
+    """Test that figure blocks without file path raise LatexRenderError."""
     report = {
         "sections": [
             {
@@ -281,7 +324,7 @@ def test_render_figure_block_raises_error():
             }
         ]
     }
-    with pytest.raises(LatexRenderError, match="Figure blocks are not yet supported"):
+    with pytest.raises(LatexRenderError, match="Figure block missing 'file' path"):
         render_report_to_tex(report)
 
 

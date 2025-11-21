@@ -18,6 +18,8 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from .figure_generator import FigureGenerationError, generate_figure
+
 
 class LatexRenderError(RuntimeError):
     """Raised when LaTeX rendering or compilation fails."""
@@ -112,7 +114,23 @@ def _render_block(block: dict[str, Any]) -> str:
     if block_type == "table":
         return _render_table_block(block)
     if block_type == "figure":
-        raise LatexRenderError("Figure blocks are not yet supported in Phase 4")
+        # Expect block['file'] to be set by figure generation step
+        file_ref = block.get("file")
+        if not file_ref:
+            raise LatexRenderError("Figure block missing 'file' path after generation")
+        caption = _escape_latex(block.get("caption", ""))
+        placement = block.get("render_hints", {}).get("placement", "tbp")
+        width = block.get("render_hints", {}).get("width", "\\linewidth")
+        label = block.get("label", "")
+        label_tex = f"\\label{{{label}}}" if label else ""
+        return (
+            f"\\begin{{figure}}[{placement}]\n"
+            f"\\centering\n"
+            f"\\includegraphics[width={width}]{{{file_ref}}}\n"
+            f"\\caption{{{caption}}}\n"
+            f"{label_tex}\n"
+            f"\\end{{figure}}"
+        )
     raise LatexRenderError(f"Unsupported block type: {block_type}")
 
 
@@ -184,7 +202,21 @@ def render_report_to_pdf(
     Returns a dict with paths to .tex and (optionally) .pdf.
     """
     output_dir.mkdir(parents=True, exist_ok=True)
-    tex_str = render_report_to_tex(report, template)
+    # Generate figures if needed
+    fig_dir = output_dir / "figures"
+    report_copy = report
+    for section in report_copy.get("sections", []):
+        # walk blocks only one level deep for now
+        for block in section.get("blocks", []):
+            if block.get("type") == "figure" and not block.get("file"):
+                try:
+                    fig_path = generate_figure(block, fig_dir)
+                    # Use relative path from tex location
+                    block["file"] = f"figures/{fig_path.name}"
+                except FigureGenerationError as e:
+                    raise LatexRenderError(str(e)) from e
+
+    tex_str = render_report_to_tex(report_copy, template)
 
     tex_path = output_dir / "report.tex"
     tex_path.write_text(tex_str, encoding="utf-8")

@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Report Generation Feature - Phase 5: Figure Generators** (#report-generation-phase5) - Matplotlib-based figure generation for reports
+  - **Figure Generator Module:** `src/rendering/figure_generator.py` with:
+    - `generate_figure()` main entry point
+    - `rob_traffic_light` figure type (basic Risk of Bias visualization)
+    - `forest` figure type (basic forest plot with error bars)
+    - `FigureGenerationError` exception for error handling
+    - 300 dpi PNG output with Agg backend
+  - **LaTeX Integration:** Figure blocks now render with `\includegraphics`, `\caption`, and `\label`
+  - **Unit Tests:** 12 tests for figure generation (skip when matplotlib not installed)
+  - **Note:** CONSORT and PRISMA flow diagrams deferred (NICE-TO-HAVE per spec)
+
+### Fixed
+
+- **Appraisal File Loading Bug:** Report generation now correctly loads `appraisal-best.json` instead of looking for non-existent `appraisal.json`
+
 - **Report Generation Feature - Phase 4: LaTeX Renderer Improvements** (#report-generation-phase4) - Enhanced LaTeX renderer with expanded test coverage and new features
   - **Test Coverage Expansion:** Added 24 new unit tests (from 3 to 27 total) covering:
     - All text block styles (paragraph, bullets, numbered)
