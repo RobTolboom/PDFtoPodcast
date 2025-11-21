@@ -4353,6 +4353,17 @@ def run_single_step(
             console.print("[yellow]📂 No best validation found, loading validation0[/yellow]")
             result = file_manager.load_json("validation", iteration_number=0)
 
+        # For appraisal: try BEST file first, then fall back to appraisal0
+        elif dep_step == "appraisal":
+            result = file_manager.load_json("appraisal", status="best")
+            if result:
+                console.print("[yellow]📂 Loaded BEST appraisal (quality-selected)[/yellow]")
+                return result
+
+            # Fallback: try appraisal0
+            console.print("[yellow]📂 No best appraisal found, loading appraisal0[/yellow]")
+            result = file_manager.load_json("appraisal", iteration_number=0)
+
         # For other steps: load normally
         else:
             result = file_manager.load_json(dep_step)
@@ -4364,7 +4375,7 @@ def run_single_step(
                 f"tmp/{file_manager.identifier}-{dep_step}.json exists."
             )
 
-        if dep_step not in ["extraction", "validation"]:
+        if dep_step not in ["extraction", "validation", "appraisal"]:
             console.print(f"[yellow]📂 Loaded {dep_step} result from disk[/yellow]")
 
         return result
