@@ -40,17 +40,47 @@ def _ensure_dir(path: Path) -> Path:
 
 def _generate_rob_traffic_light(data: dict[str, Any], path: Path) -> None:
     plt = _import_matplotlib()
-    fig, ax = plt.subplots(figsize=(4, 2))
-    domains = data.get("domains", ["bias_domain_1", "bias_domain_2"])
-    judgments = data.get("judgements", ["Low", "Some concerns"])
-    colors = {"Low": "green", "Some concerns": "orange", "High": "red"}
+    fig, ax = plt.subplots(figsize=(4.5, 2.2))
+    domains = data.get("domains", [])
+    judgments = data.get("judgements", [])
+
+    # Normalize inputs (allow dict entries or raw strings)
+    if domains and not judgments and isinstance(domains[0], dict):
+        judgments = [d.get("judgement", "") for d in domains]
+        domains = [d.get("domain", "") for d in domains]
+
+    if not domains:
+        domains = ["Bias domain 1", "Bias domain 2"]
+    if not judgments:
+        judgments = ["Low risk"] * len(domains)
+
+    color_map = {
+        "low": "green",
+        "low risk": "green",
+        "some concerns": "orange",
+        "high": "red",
+        "high risk": "red",
+    }
+    pretty_domain = {
+        "randomization_process": "Randomization process",
+        "deviations_from_intended_interventions": "Deviations from intended interventions",
+        "missing_outcome_data": "Missing outcome data",
+        "measurement_of_outcome": "Measurement of outcome",
+        "selection_of_reported_result": "Selection of reported result",
+    }
+
+    def _clean_domain(name: str) -> str:
+        return pretty_domain.get(name, name.replace("_", " ").strip().capitalize())
+
+    domains = [_clean_domain(d) for d in domains]
     y = range(len(domains))
-    ax.barh(y, [1] * len(domains), color=[colors.get(j, "grey") for j in judgments])
+    colors = [color_map.get(j.lower(), "grey") if isinstance(j, str) else "grey" for j in judgments]
+    ax.barh(y, [1] * len(domains), color=colors)
     ax.set_yticks(y)
     ax.set_yticklabels(domains)
     ax.set_xlim(0, 1)
     ax.set_xticks([])
-    ax.set_title("Risk of Bias (placeholder)")
+    ax.set_title("Risk of Bias (RoB 2)", fontsize=10, pad=8)
     fig.tight_layout()
     fig.savefig(path, dpi=300)
     plt.close(fig)

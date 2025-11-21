@@ -1610,6 +1610,7 @@ def display_report_artifacts():
     tex_file = render_dir / "report.tex"
     pdf_file = render_dir / "report.pdf"
     md_file = render_dir / "report.md"
+    root_md = fm.tmp_dir / f"{fm.identifier}-report.md"
 
     st.markdown("### Report Artifacts")
     has_any = False
@@ -1621,7 +1622,11 @@ def display_report_artifacts():
         has_any = True
         with open(pdf_file, "rb") as f:
             st.download_button("⬇️ Download PDF", f, file_name=pdf_file.name)
-    if md_file.exists():
+    if root_md.exists():
+        has_any = True
+        with open(root_md, "rb") as f:
+            st.download_button("⬇️ Download Markdown (.md)", f, file_name=root_md.name)
+    elif md_file.exists():
         has_any = True
         with open(md_file, "rb") as f:
             st.download_button("⬇️ Download Markdown (.md)", f, file_name=md_file.name)

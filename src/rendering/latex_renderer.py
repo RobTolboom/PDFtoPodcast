@@ -28,22 +28,35 @@ class LatexRenderError(RuntimeError):
 
 def _escape_latex(text: str) -> str:
     """Escape minimal LaTeX special characters."""
-    # Order matters: escape backslash first so subsequent escapes are preserved.
-    replacements = [
-        ("\\", r"\textbackslash{}"),
-        ("&", r"\&"),
-        ("%", r"\%"),
-        ("$", r"\$"),
-        ("#", r"\#"),
-        ("_", r"\_"),
-        ("{", r"\{"),
-        ("}", r"\}"),
-        ("~", r"\textasciitilde{}"),
-        ("^", r"\textasciicircum{}"),
-    ]
-    for old, new in replacements:
-        text = text.replace(old, new)
-    return text
+    replacements = {
+        "\\": r"\textbackslash{}",
+        "&": r"\&",
+        "%": r"\%",
+        "$": r"\$",
+        "#": r"\#",
+        "_": r"\_",
+        "{": r"\{",
+        "}": r"\}",
+        "~": r"\textasciitilde{}",
+        "^": r"\textasciicircum{}",
+        "⊕": r"$\oplus$",  # GRADE certainty symbol
+        "○": r"$\circ$",  # GRADE certainty symbol
+        "≥": r"$\geq$",
+        "≤": r"$\leq$",
+        "α": r"$\alpha$",
+        "β": r"$\beta$",
+        "γ": r"$\gamma$",
+        "δ": r"$\delta$",
+        "ε": r"$\epsilon$",
+        "θ": r"$\theta$",
+        "λ": r"$\lambda$",
+        "μ": r"$\mu$",
+        "π": r"$\pi$",
+        "σ": r"$\sigma$",
+        "χ": r"$\chi$",
+        "ω": r"$\omega$",
+    }
+    return "".join(replacements.get(ch, ch) for ch in text)
 
 
 def _render_text_block(block: dict[str, Any]) -> str:
@@ -61,9 +74,17 @@ def _render_text_block(block: dict[str, Any]) -> str:
 
 def _render_callout_block(block: dict[str, Any]) -> str:
     variant = block.get("variant", "note")
+    variant_titles = {
+        "warning": "Warning",
+        "note": "Note",
+        "implication": "Implication",
+        "clinical_pearl": "Clinical pearl",
+    }
+    variant_title = variant_titles.get(variant, variant.replace("_", " ").title())
+    variant_title = _escape_latex(variant_title)
     text = _escape_latex(block.get("text", ""))
     return (
-        f"\\begin{{tcolorbox}}[title={{\\textbf{{{variant.title()}}}}}]\n"
+        f"\\begin{{tcolorbox}}[title={{\\textbf{{{variant_title}}}}}]\n"
         f"{text}\n"
         f"\\end{{tcolorbox}}"
     )
@@ -73,9 +94,36 @@ def _render_table_block(block: dict[str, Any]) -> str:
     columns = block.get("columns", [])
     rows = block.get("rows", [])
     headers = " & ".join(_escape_latex(col.get("header", "")) for col in columns)
-    table_spec = block.get("render_hints", {}).get(
-        "table_spec", "".join(col.get("align", "l") for col in columns)
-    )
+    render_hints = block.get("render_hints", {})
+    placement = render_hints.get("placement", "H")
+
+    # Allow explicit table spec override
+    custom_spec = render_hints.get("table_spec")
+
+    def _build_table_spec() -> tuple[str, bool]:
+        """Build column spec and decide whether to use tabularx for wrapping."""
+        if custom_spec:
+            return custom_spec, False
+
+        spec_parts: list[str] = []
+        use_tabularx = False
+        for col in columns:
+            align = col.get("align", "l")
+            if align == "l":
+                spec_parts.append(r">{\raggedright\arraybackslash}X")
+                use_tabularx = True
+            elif align == "c":
+                spec_parts.append(r">{\centering\arraybackslash}X")
+                use_tabularx = True
+            elif align == "r":
+                spec_parts.append(r">{\raggedleft\arraybackslash}X")
+                use_tabularx = True
+            else:
+                # Pass through for numeric or custom columns (e.g., S, p{...})
+                spec_parts.append(align)
+        return "".join(spec_parts), use_tabularx
+
+    table_spec, use_tabularx = _build_table_spec()
     body_lines: list[str] = []
     for row in rows:
         cells = []
@@ -90,16 +138,31 @@ def _render_table_block(block: dict[str, Any]) -> str:
     label = block.get("label", "")
     label_line = f"\\label{{{label}}}\n" if label else ""
 
+    table_begin = (
+        f"\\begin{{tabularx}}{{\\textwidth}}{{{table_spec}}}\n"
+        if use_tabularx
+        else f"\\begin{{tabular}}{{{table_spec}}}\n"
+    )
+    table_end = "\\end{tabularx}\n" if use_tabularx else "\\end{tabular}\n"
+    size_prefix = ""
+    size_suffix = ""
+    if len(columns) >= 4:
+        # Slightly shrink wide tables to reduce overfull boxes
+        size_prefix = "\\small\n"
+        size_suffix = "\n\\normalsize"
+
     return (
-        "\\begin{table}[tbp]\n"
+        f"\\begin{{table}}[{placement}]\n"
         f"\\centering\n"
-        f"\\begin{{tabular}}{{{table_spec}}}\n"
+        f"{size_prefix}"
+        f"{table_begin}"
         "\\toprule\n"
         f"{headers} \\\\\n"
         "\\midrule\n"
         f"{body}\n"
         "\\bottomrule\n"
-        "\\end{tabular}\n"
+        f"{table_end}"
+        f"{size_suffix}"
         f"\\caption{{{caption}}}\n"
         f"{label_line}"
         "\\end{table}"
@@ -120,8 +183,14 @@ def _render_block(block: dict[str, Any]) -> str:
         if not file_ref:
             raise LatexRenderError("Figure block missing 'file' path after generation")
         caption = _escape_latex(block.get("caption", ""))
-        placement = block.get("render_hints", {}).get("placement", "tbp")
-        width = block.get("render_hints", {}).get("width", "\\linewidth")
+        render_hints = block.get("render_hints", {}) or {}
+        placement = render_hints.get("placement", "tbp")
+        width = render_hints.get("width")
+        # Default narrower width for RoB plots unless explicitly overridden
+        if block.get("figure_kind") == "rob_traffic_light":
+            if not width or width in {"\\linewidth", "\\textwidth"}:
+                width = "0.5\\linewidth"
+        width = width or "\\linewidth"
         label = block.get("label", "")
         label_tex = f"\\label{{{label}}}" if label else ""
         return (
@@ -204,14 +273,23 @@ def render_report_to_pdf(
     Returns a dict with paths to .tex and (optionally) .pdf.
     """
     output_dir.mkdir(parents=True, exist_ok=True)
+    template_dir = Path("templates/latex") / template
     report_copy = copy.deepcopy(report)
 
-    # Generate figures if enabled
+    def _walk_sections(sections: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Yield all sections and subsections for figure handling."""
+        stack = list(sections)
+        while stack:
+            sec = stack.pop()
+            yield sec
+            subs = sec.get("subsections") or []
+            stack.extend(subs)
+
+    # Generate figures if enabled (walk subsections too)
     if enable_figures:
         fig_dir = output_dir / "figures"
-        for section in report_copy.get("sections", []):
-            # walk blocks only one level deep for now
-            for block in section.get("blocks", []):
+        for section in _walk_sections(report_copy.get("sections", [])):
+            for block in section.get("blocks", []) or []:
                 if block.get("type") == "figure" and not block.get("file"):
                     try:
                         fig_path = generate_figure(block, fig_dir)
@@ -220,15 +298,22 @@ def render_report_to_pdf(
                     except FigureGenerationError as e:
                         raise LatexRenderError(str(e)) from e
     else:
-        # Strip figures to avoid LaTeX errors
-        for section in report_copy.get("sections", []):
-            blocks = section.get("blocks", [])
+        # Strip figures everywhere to avoid LaTeX errors
+        for section in _walk_sections(report_copy.get("sections", [])):
+            blocks = section.get("blocks", []) or []
             section["blocks"] = [b for b in blocks if b.get("type") != "figure"]
 
     tex_str = render_report_to_tex(report_copy, template)
 
     tex_path = output_dir / "report.tex"
     tex_path.write_text(tex_str, encoding="utf-8")
+
+    # Copy auxiliary template files (e.g., preamble.tex) so \input references resolve
+    for template_file in template_dir.iterdir():
+        if template_file.name == "main.tex":
+            continue
+        if template_file.is_file():
+            shutil.copy(template_file, output_dir / template_file.name)
 
     result = {"tex": tex_path}
 

@@ -3583,29 +3583,35 @@ def run_report_with_correction(
                     current_report, current_validation
                 )
                 # Render artefact (latex or weasyprint) and always write markdown
+                render_dirs = {}
+                render_root = file_manager.tmp_dir / "render"
                 try:
                     if renderer == "weasyprint":
-                        render_dirs = render_report_with_weasyprint(
-                            current_report, file_manager.tmp_dir / "render"
-                        )
+                        render_dirs = render_report_with_weasyprint(current_report, render_root)
                     else:
                         render_dirs = render_report_to_pdf(
                             current_report,
-                            file_manager.tmp_dir / "render",
+                            render_root,
                             compile_pdf=compile_pdf,
                             enable_figures=enable_figures,
                         )
-                    # Always emit markdown as fallback
-                    md_path = render_report_to_markdown(
-                        current_report, file_manager.tmp_dir / "render"
-                    )
-                    render_dirs["markdown"] = md_path
                 except (LatexRenderError, WeasyRendererError) as e:
                     console.print(f"[yellow]⚠️  Failed to render report: {e}[/yellow]")
                     render_dirs = {"error": str(e), "renderer": renderer}
                 except Exception as e:
                     console.print(f"[yellow]⚠️  Failed to render report: {e}[/yellow]")
                     render_dirs = {}
+
+                # Always emit markdown as fallback, even if PDF/HTML failed
+                try:
+                    md_path = render_report_to_markdown(current_report, render_root)
+                    render_dirs["markdown"] = md_path
+                    # Also store a copy alongside other tmp outputs for easy access
+                    root_md = file_manager.tmp_dir / f"{file_manager.identifier}-report.md"
+                    root_md.write_text(md_path.read_text(encoding="utf-8"), encoding="utf-8")
+                    render_dirs["markdown_root"] = root_md
+                except Exception as e:
+                    console.print(f"[yellow]⚠️  Failed to write markdown fallback: {e}[/yellow]")
 
                 console.print(f"[green]Saved best: {best_report_file.name}[/green]")
                 console.print(f"[green]Saved best: {best_validation_file.name}[/green]")

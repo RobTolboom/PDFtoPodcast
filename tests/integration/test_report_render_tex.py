@@ -25,6 +25,7 @@ def test_render_report_writes_tex(tmp_path):
 
     tex_path = result["tex"]
     assert tex_path.exists()
+    assert (out_dir / "preamble.tex").exists()
     content = tex_path.read_text(encoding="utf-8")
     assert "Intro" in content
     # Numbering disabled should insert secnumdepth tweak

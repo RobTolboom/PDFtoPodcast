@@ -59,6 +59,10 @@ def test_render_report_to_pdf_writes_tex(sample_report, tmp_path):
 
     assert "tex" in result
     assert result["tex"].exists()
+    assert (report_dir / "preamble.tex").exists()
+    assert (report_dir / "sections.tex").exists()
+    assert (report_dir / "tables.tex").exists()
+    assert (report_dir / "figures.tex").exists()
     content = result["tex"].read_text(encoding="utf-8")
     assert "Summary" in content
 
@@ -171,7 +175,7 @@ def test_render_text_block_paragraph():
         ("warning", "Warning"),
         ("note", "Note"),
         ("implication", "Implication"),
-        ("clinical_pearl", "Clinical_Pearl"),
+        ("clinical_pearl", "Clinical pearl"),
     ],
 )
 def test_render_callout_variants(variant, expected_title):
@@ -223,7 +227,11 @@ def test_render_table_with_all_alignments():
         ]
     }
     tex = render_report_to_tex(report)
-    assert r"\begin{tabular}{lcrS}" in tex
+    assert r"\begin{tabularx}{\textwidth}" in tex
+    assert (
+        r">{\raggedright\arraybackslash}X>{\centering\arraybackslash}X>{\raggedleft\arraybackslash}XS"
+        in tex
+    )
     assert "Name" in tex
     assert "Value" in tex
     assert r"95\% CI" in tex  # % should be escaped
@@ -441,6 +449,48 @@ def test_escape_all_special_characters():
     assert r"\}" in tex
     assert r"\textasciitilde{}" in tex
     assert r"\textasciicircum{}" in tex
+
+
+def test_escape_grade_symbols():
+    """Test that Unicode GRADE certainty symbols are converted to LaTeX math."""
+    report = {
+        "sections": [
+            {
+                "title": "GRADE",
+                "blocks": [
+                    {
+                        "type": "text",
+                        "style": "paragraph",
+                        "content": ["Moderate ⊕⊕⊕○ certainty"],
+                    }
+                ],
+            }
+        ]
+    }
+    tex = render_report_to_tex(report)
+    assert r"$\oplus$$\oplus$$\oplus$$\circ$" in tex
+
+
+def test_escape_greek_and_comparator_symbols():
+    """Test that common Greek and comparator symbols are converted."""
+    report = {
+        "sections": [
+            {
+                "title": "Stats",
+                "blocks": [
+                    {
+                        "type": "text",
+                        "style": "paragraph",
+                        "content": ["α=0.025 with PAED ≥10 and χ2 test"],
+                    }
+                ],
+            }
+        ]
+    }
+    tex = render_report_to_tex(report)
+    assert r"$\alpha$=0.025" in tex
+    assert r"PAED $\geq$10" in tex
+    assert r"$\chi$2" in tex
 
 
 def test_escape_backslash():

@@ -1520,24 +1520,20 @@ COPY . /app
 **Python Dependencies** (`requirements.txt`):
 ```
 # Core pipeline
-anthropic>=0.18.0
-openai>=1.10.0
-pydantic>=2.5.0
-jsonschema>=4.20.0
+anthropic>=0.25.0
+openai>=1.51.0
+python-dotenv>=1.0
+jsonschema>=4.20
+tenacity>=8.2
 
-# Report generation
+# Output & logging
+rich
+
+# Web interface
+streamlit>=1.28.0
+pandas>=2.0.0
+weasyprint[lxml]>=61.0
 matplotlib>=3.8.0
-seaborn>=0.13.0
-numpy>=1.24.0
-pandas>=2.1.0
-
-# LaTeX utilities
-PyPDF2>=3.0.0  # PDF manipulation
-pdf2image>=1.16.0  # Visual regression testing (Pillow backend)
-
-# Testing
-pytest>=7.4.0
-pytest-cov>=4.1.0
 ```
 
 **Rendering Workflow** (inside the single container):
@@ -1620,8 +1616,8 @@ pytest-cov>=4.1.0
 - **Fallback**: Generate JSON + `.tex` source only
 
 **Python Package Errors**:
-- **matplotlib/seaborn missing**: Fail figure generation, continue with text/tables
-- **PIL missing** (pdf2image dependency): Skip visual regression tests, log warning
+- **matplotlib missing**: Fail figure generation, continue with text/tables
+- **Visual regression tooling missing** (pdf2image/Pillow): Skip visual regression tests, log warning
 
 ### 6. Upstream Quality Issues
 
@@ -1946,7 +1942,7 @@ python run_pipeline.py paper.pdf --step report --force-best-report
 1. **Unit Tests**: Each function isolated
 2. **Integration Tests**: Full report loop + rendering
 3. **End-to-End Tests**: CLI + UI with real PDFs
-4. **Visual Regression**: PDF → image comparison (pdf2image + SSIM)
+4. **Visual Regression**: PDF → image comparison (pdf2image + SSIM) — optional, not bundled by default
 
 **Acceptance**:
 - Test coverage ≥ 90% for report code
@@ -2528,10 +2524,8 @@ if appraisal_result.get('final_status') == 'max_iterations_reached':
 - **LaTeX Distribution** (optional local): TeX Live 2023+ or MiKTeX 23.0+
 - **WeasyPrint**: Optional HTML→PDF renderer (`weasyprint[lxml]>=61.0`; requires Cairo/Pango system libs)
 - **Python Packages** (see Deployment Strategy):
-  - matplotlib>=3.8.0, seaborn>=0.13.0 (figures)
-  - numpy>=1.24.0, pandas>=2.1.0 (data processing)
-  - PyPDF2>=3.0.0 (PDF utilities)
-  - pdf2image>=1.16.0 (visual regression testing)
+  - matplotlib>=3.8.0 (figures)
+  - pandas>=2.0.0 (data processing + Streamlit tables)
 - **System Fonts**: Handled by Docker container (xelatex fontspec pre-configured)
 
 ---
@@ -2543,7 +2537,7 @@ if appraisal_result.get('final_status') == 'max_iterations_reached':
 3. **Setup Development Environment**:
    - Docker Desktop installed
    - Test LaTeX container build (validate texlive base image)
-   - Python dependencies installed (matplotlib, seaborn)
+   - Python dependencies installed (matplotlib)
 4. **Start Phase 1**: Draft schema + single prompt
    - Create `schemas/report.schema.json` + `prompts/Report-generation.txt`
    - Wire loader + tests for the new prompt
