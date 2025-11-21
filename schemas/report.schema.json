@@ -344,6 +344,11 @@
           "type": "string",
           "minLength": 10,
           "description": "Callout text content"
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Source reference codes (e.g., ['S1', 'S2'])"
         }
       }
     },

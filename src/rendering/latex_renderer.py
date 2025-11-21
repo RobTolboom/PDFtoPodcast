@@ -13,6 +13,7 @@ and full PDF compilation in CI/production environments.
 
 from __future__ import annotations
 
+import copy
 import shutil
 import subprocess
 from pathlib import Path
@@ -195,6 +196,7 @@ def render_report_to_pdf(
     template: str = "vetrix",
     engine: str = "xelatex",
     compile_pdf: bool = True,
+    enable_figures: bool = True,
 ) -> dict[str, Path]:
     """
     Render report JSON to LaTeX, optionally compile to PDF.
@@ -202,19 +204,26 @@ def render_report_to_pdf(
     Returns a dict with paths to .tex and (optionally) .pdf.
     """
     output_dir.mkdir(parents=True, exist_ok=True)
-    # Generate figures if needed
-    fig_dir = output_dir / "figures"
-    report_copy = report
-    for section in report_copy.get("sections", []):
-        # walk blocks only one level deep for now
-        for block in section.get("blocks", []):
-            if block.get("type") == "figure" and not block.get("file"):
-                try:
-                    fig_path = generate_figure(block, fig_dir)
-                    # Use relative path from tex location
-                    block["file"] = f"figures/{fig_path.name}"
-                except FigureGenerationError as e:
-                    raise LatexRenderError(str(e)) from e
+    report_copy = copy.deepcopy(report)
+
+    # Generate figures if enabled
+    if enable_figures:
+        fig_dir = output_dir / "figures"
+        for section in report_copy.get("sections", []):
+            # walk blocks only one level deep for now
+            for block in section.get("blocks", []):
+                if block.get("type") == "figure" and not block.get("file"):
+                    try:
+                        fig_path = generate_figure(block, fig_dir)
+                        # Use relative path from tex location
+                        block["file"] = f"figures/{fig_path.name}"
+                    except FigureGenerationError as e:
+                        raise LatexRenderError(str(e)) from e
+    else:
+        # Strip figures to avoid LaTeX errors
+        for section in report_copy.get("sections", []):
+            blocks = section.get("blocks", [])
+            section["blocks"] = [b for b in blocks if b.get("type") != "figure"]
 
     tex_str = render_report_to_tex(report_copy, template)
 

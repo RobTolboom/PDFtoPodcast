@@ -79,7 +79,9 @@ from ..prompts import (
     load_report_generation_prompt,
     load_report_validation_prompt,
 )
-from ..rendering.latex_renderer import render_report_to_pdf
+from ..rendering.latex_renderer import LatexRenderError, render_report_to_pdf
+from ..rendering.markdown_renderer import render_report_to_markdown
+from ..rendering.weasy_renderer import WeasyRendererError, render_report_with_weasyprint
 from ..schemas_loader import SchemaLoadError, load_schema, validate_schema_compatibility
 from .file_manager import PipelineFileManager
 from .utils import check_breakpoint
@@ -3282,6 +3284,9 @@ def run_report_with_correction(
     language: str = "nl",
     max_iterations: int = 3,
     quality_thresholds: dict | None = None,
+    compile_pdf: bool = True,
+    enable_figures: bool = True,
+    renderer: str = "latex",
     progress_callback: Callable[[str, str, dict], None] | None = None,
 ) -> dict[str, Any]:
     """
@@ -3577,15 +3582,29 @@ def run_report_with_correction(
                 best_report_file, best_validation_file = file_manager.save_best_report(
                     current_report, current_validation
                 )
-                # Render LaTeX artefact (compile PDF if engine available)
+                # Render artefact (latex or weasyprint) and always write markdown
                 try:
-                    render_dirs = render_report_to_pdf(
-                        current_report,
-                        file_manager.tmp_dir / "render",
-                        compile_pdf=True,
+                    if renderer == "weasyprint":
+                        render_dirs = render_report_with_weasyprint(
+                            current_report, file_manager.tmp_dir / "render"
+                        )
+                    else:
+                        render_dirs = render_report_to_pdf(
+                            current_report,
+                            file_manager.tmp_dir / "render",
+                            compile_pdf=compile_pdf,
+                            enable_figures=enable_figures,
+                        )
+                    # Always emit markdown as fallback
+                    md_path = render_report_to_markdown(
+                        current_report, file_manager.tmp_dir / "render"
                     )
+                    render_dirs["markdown"] = md_path
+                except (LatexRenderError, WeasyRendererError) as e:
+                    console.print(f"[yellow]⚠️  Failed to render report: {e}[/yellow]")
+                    render_dirs = {"error": str(e), "renderer": renderer}
                 except Exception as e:
-                    console.print(f"[yellow]⚠️  Failed to render LaTeX/PDF: {e}[/yellow]")
+                    console.print(f"[yellow]⚠️  Failed to render report: {e}[/yellow]")
                     render_dirs = {}
 
                 console.print(f"[green]Saved best: {best_report_file.name}[/green]")
@@ -3929,7 +3948,9 @@ REPORT_SCHEMA:
     console.print("[yellow]✓ Validating report against schema...[/yellow]")
     from ..validation import validate_with_schema
 
-    is_valid, validation_errors = validate_with_schema(report_json, report_schema, strict=True)
+    # Strip metadata before validation (LLM adds _metadata and usage fields)
+    report_clean = _strip_metadata_for_pipeline(report_json)
+    is_valid, validation_errors = validate_with_schema(report_clean, report_schema, strict=True)
     if not is_valid:
         error_msg = "\n".join(validation_errors)
         console.print(f"[red]❌ Report schema validation failed:\n{error_msg}[/red]")
@@ -4224,6 +4245,9 @@ def run_single_step(
     quality_thresholds: dict[str, Any] | None = None,
     enable_iterative_correction: bool = True,
     report_language: str | None = None,
+    report_compile_pdf: bool = True,
+    report_enable_figures: bool = True,
+    report_renderer: str = "latex",
 ) -> dict[str, Any]:
     """
     Execute a single pipeline step with dependency validation.
@@ -4592,6 +4616,8 @@ def run_single_step(
                 language=report_language or "nl",
                 max_iterations=max_correction_iterations or 3,
                 quality_thresholds=quality_thresholds,
+                compile_pdf=report_compile_pdf,
+                enable_figures=report_enable_figures,
                 progress_callback=progress_callback,
             )
         else:

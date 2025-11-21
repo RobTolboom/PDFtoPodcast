@@ -14,11 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `generate_figure()` main entry point
     - `rob_traffic_light` figure type (basic Risk of Bias visualization)
     - `forest` figure type (basic forest plot with error bars)
+    - `prisma` figure type (PRISMA 2020 flow diagram for systematic reviews)
+    - `consort` figure type (CONSORT flow diagram for clinical trials, supports multi-arm)
     - `FigureGenerationError` exception for error handling
     - 300 dpi PNG output with Agg backend
+    - Shared utilities: `_draw_flow_box()` and `_draw_flow_arrow()` for flow diagrams
   - **LaTeX Integration:** Figure blocks now render with `\includegraphics`, `\caption`, and `\label`
-  - **Unit Tests:** 12 tests for figure generation (skip when matplotlib not installed)
-  - **Note:** CONSORT and PRISMA flow diagrams deferred (NICE-TO-HAVE per spec)
+  - **Unit Tests:** 16 tests for figure generation (skip when matplotlib not installed)
 
 ### Fixed
 

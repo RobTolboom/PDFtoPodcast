@@ -237,6 +237,26 @@ def show_settings_screen():
         )
         st.session_state.settings["report_language"] = lang_choice
 
+        renderer_choice = st.selectbox(
+            "Report renderer",
+            options=["latex", "weasyprint"],
+            index=0 if st.session_state.settings.get("report_renderer", "latex") == "latex" else 1,
+            help="Choose output renderer. LaTeX gives best typography; WeasyPrint is HTML/CSS based.",
+        )
+        st.session_state.settings["report_renderer"] = renderer_choice
+
+        st.session_state.settings["report_compile_pdf"] = st.checkbox(
+            "Compile PDF (xelatex required)",
+            value=st.session_state.settings.get("report_compile_pdf", True),
+            help="If disabled, only .tex is produced. If xelatex is missing, this will warn and continue.",
+        )
+
+        st.session_state.settings["report_enable_figures"] = st.checkbox(
+            "Generate figures (traffic light, forest)",
+            value=st.session_state.settings.get("report_enable_figures", True),
+            help="If disabled, figure blocks will be skipped.",
+        )
+
     with tab2:
         st.markdown("### Advanced Settings")
 

@@ -100,25 +100,128 @@ class TestGenerateFigure:
         with pytest.raises(FigureGenerationError, match="Unsupported figure_kind"):
             generate_figure(block, tmp_path)
 
-    def test_generate_consort_raises_error(self, tmp_path):
-        """Test that CONSORT flow (not yet implemented) raises error."""
-        block = {
-            "type": "figure",
-            "figure_kind": "consort",
-            "label": "fig_consort",
-        }
-        with pytest.raises(FigureGenerationError, match="Unsupported figure_kind"):
-            generate_figure(block, tmp_path)
-
-    def test_generate_prisma_raises_error(self, tmp_path):
-        """Test that PRISMA flow (not yet implemented) raises error."""
+    def test_generate_prisma_flow(self, tmp_path):
+        """Test PRISMA flow diagram generation with complete data."""
         block = {
             "type": "figure",
             "figure_kind": "prisma",
             "label": "fig_prisma",
+            "data": {
+                "records_identified": 1234,
+                "records_after_duplicates": 987,
+                "records_screened": 987,
+                "records_excluded": 800,
+                "full_text_assessed": 187,
+                "full_text_excluded": 145,
+                "studies_included": 42,
+                "reasons_excluded": ["Not RCT (n=80)", "Wrong population (n=45)", "Other (n=20)"],
+            },
         }
-        with pytest.raises(FigureGenerationError, match="Unsupported figure_kind"):
-            generate_figure(block, tmp_path)
+        fig_path = generate_figure(block, tmp_path)
+
+        assert fig_path.exists()
+        assert fig_path.suffix == ".png"
+        assert fig_path.name == "fig_prisma.png"
+        assert fig_path.stat().st_size > 0
+
+    def test_generate_prisma_flow_minimal_data(self, tmp_path):
+        """Test PRISMA flow diagram with minimal required data."""
+        block = {
+            "type": "figure",
+            "figure_kind": "prisma",
+            "label": "fig_prisma_minimal",
+            "data": {
+                "records_identified": 100,
+                "studies_included": 10,
+            },
+        }
+        fig_path = generate_figure(block, tmp_path)
+
+        assert fig_path.exists()
+        assert fig_path.name == "fig_prisma_minimal.png"
+
+    def test_generate_prisma_flow_empty_data(self, tmp_path):
+        """Test PRISMA flow diagram with empty data uses defaults."""
+        block = {
+            "type": "figure",
+            "figure_kind": "prisma",
+            "label": "fig_prisma_empty",
+            "data": {},
+        }
+        fig_path = generate_figure(block, tmp_path)
+
+        assert fig_path.exists()
+        assert fig_path.name == "fig_prisma_empty.png"
+
+    def test_generate_consort_flow(self, tmp_path):
+        """Test CONSORT flow diagram generation with complete data."""
+        block = {
+            "type": "figure",
+            "figure_kind": "consort",
+            "label": "fig_consort",
+            "data": {
+                "n_screened": 500,
+                "n_excluded_screening": 300,
+                "n_randomised": 200,
+                "exclusion_reasons": ["Not meeting criteria (n=250)", "Declined (n=50)"],
+                "arms": [
+                    {
+                        "label": "Treatment",
+                        "n_assigned": 100,
+                        "n_analysed": 95,
+                        "lost_to_followup": 3,
+                        "discontinued": 2,
+                    },
+                    {
+                        "label": "Control",
+                        "n_assigned": 100,
+                        "n_analysed": 92,
+                        "lost_to_followup": 5,
+                        "discontinued": 3,
+                    },
+                ],
+            },
+        }
+        fig_path = generate_figure(block, tmp_path)
+
+        assert fig_path.exists()
+        assert fig_path.suffix == ".png"
+        assert fig_path.name == "fig_consort.png"
+        assert fig_path.stat().st_size > 0
+
+    def test_generate_consort_flow_three_arms(self, tmp_path):
+        """Test CONSORT flow diagram with 3 treatment arms."""
+        block = {
+            "type": "figure",
+            "figure_kind": "consort",
+            "label": "fig_consort_3arm",
+            "data": {
+                "n_screened": 600,
+                "n_randomised": 300,
+                "arms": [
+                    {"label": "Drug A", "n_assigned": 100, "n_analysed": 95},
+                    {"label": "Drug B", "n_assigned": 100, "n_analysed": 97},
+                    {"label": "Placebo", "n_assigned": 100, "n_analysed": 98},
+                ],
+            },
+        }
+        fig_path = generate_figure(block, tmp_path)
+
+        assert fig_path.exists()
+        assert fig_path.name == "fig_consort_3arm.png"
+
+    def test_generate_consort_flow_empty_data(self, tmp_path):
+        """Test CONSORT flow diagram with empty data uses defaults."""
+        block = {
+            "type": "figure",
+            "figure_kind": "consort",
+            "label": "fig_consort_empty",
+            "data": {},
+        }
+        fig_path = generate_figure(block, tmp_path)
+
+        assert fig_path.exists()
+        assert fig_path.name == "fig_consort_empty.png"
 
     def test_generate_figure_creates_output_directory(self, tmp_path):
         """Test that generate_figure creates output directory if needed."""

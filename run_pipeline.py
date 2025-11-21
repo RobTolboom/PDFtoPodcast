@@ -268,6 +268,8 @@ def main():
                 quality_thresholds=quality_thresholds,
                 enable_iterative_correction=enable_iter,
                 report_language=args.report_language,
+                report_compile_pdf=True,
+                report_enable_figures=True,
             )
 
         # Print result summary
