@@ -4618,6 +4618,7 @@ def run_single_step(
                 quality_thresholds=quality_thresholds,
                 compile_pdf=report_compile_pdf,
                 enable_figures=report_enable_figures,
+                renderer=report_renderer,
                 progress_callback=progress_callback,
             )
         else:

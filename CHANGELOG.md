@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Report Generation Feature - Phase 8: CLI Support** (#report-generation-phase8) - Complete CLI integration for report generation
+  - **CLI Flags:** `--report-language {nl,en}`, `--report-renderer {latex,weasyprint}`, `--report-compile-pdf/--no-report-compile-pdf`, `--enable-figures/--disable-figures`
+  - **Single Step Output:** Report generation single-step (`--step report_generation`) shows final status, iterations, quality score, and rendered artifact paths
+  - **Full Pipeline Summary:** Report generation row added to CLI summary table with status, iterations, quality score, and rendered paths
+  - **Documentation:** Updated help text from "four-step" to "five-step pipeline", added report example to CLI description
+  - **Error Handling:** Comprehensive error handling for LaTeX/WeasyPrint renderer failures with graceful degradation
+
+- **Report Generation Feature - Phase 7: Streamlit UI Integration** (#report-generation-phase7) - Report step integrated into Streamlit execution flow
+  - **New Execution Step:** Report Generation added as Step 5 (after Appraisal)
+  - **Report Settings Panel:** Language selection (nl/en), PDF compile toggle, figure generation toggle, renderer selection (latex/weasyprint)
+  - **Result Display:** Quality score summary, best iteration indicator, validation status
+  - **Iteration History Table:** 8-column table showing completeness, accuracy, cross-reference consistency, data consistency, schema compliance, critical issues, quality score, and status per iteration
+  - **Artifact Downloads:** Download buttons for PDF, LaTeX source (.tex), and Markdown fallback (.md)
+  - **Manual Re-run:** "Re-run report generation" button for regenerating reports without full pipeline restart
+  - **Progress Tracking:** Basic progress callback integration (Streamlit limitations prevent true real-time streaming)
+
 - **Report Generation Feature - Phase 5: Figure Generators** (#report-generation-phase5) - Matplotlib-based figure generation for reports
   - **Figure Generator Module:** `src/rendering/figure_generator.py` with:
     - `generate_figure()` main entry point
@@ -23,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Unit Tests:** 16 tests for figure generation (skip when matplotlib not installed)
 
 ### Fixed
+
+- **CLI Syntax Error in run_pipeline.py:** Fixed critical syntax errors (indentation issues and orphaned code after `if __name__ == "__main__"`) that caused `make lint` to fail with 12 invalid-syntax errors
 
 - **Appraisal File Loading Bug:** Report generation now correctly loads `appraisal-best.json` instead of looking for non-existent `appraisal.json`
 
