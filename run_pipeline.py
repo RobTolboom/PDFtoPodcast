@@ -421,6 +421,9 @@ def main():
                 breakpoint_after_step=BREAKPOINT_AFTER_STEP,
                 have_llm_support=HAVE_LLM_SUPPORT,
                 report_language=args.report_language,
+                report_renderer=args.report_renderer,
+                report_compile_pdf=args.report_compile_pdf,
+                report_enable_figures=args.report_enable_figures,
             )
 
     # Show detailed summary

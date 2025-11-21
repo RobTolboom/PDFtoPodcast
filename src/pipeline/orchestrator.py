@@ -4652,6 +4652,9 @@ def run_four_step_pipeline(
     have_llm_support: bool = True,
     steps_to_run: list[str] | None = None,
     report_language: str = "en",
+    report_renderer: str = "latex",
+    report_compile_pdf: bool = True,
+    report_enable_figures: bool = True,
     progress_callback: Callable[[str, str, dict], None] | None = None,
 ) -> dict[str, Any]:
     """
@@ -4674,6 +4677,9 @@ def run_four_step_pipeline(
             None = run all steps (default).
             Dependencies are validated automatically.
         report_language: Language for report generation ("en" or "nl")
+        report_renderer: Renderer for reports ("latex" or "weasyprint")
+        report_compile_pdf: Compile PDF when renderer supports it (LaTeX)
+        report_enable_figures: Enable/disable figure generation in reports
         progress_callback: Optional callback for progress updates.
             Signature: callback(step_name: str, status: str, data: dict)
             - step_name: "classification" | "extraction" | "validation_correction" | "appraisal"
@@ -4800,6 +4806,9 @@ def run_four_step_pipeline(
                 progress_callback=progress_callback,
                 previous_results=results,
                 report_language=report_language,
+                report_renderer=report_renderer,
+                report_compile_pdf=report_compile_pdf,
+                report_enable_figures=report_enable_figures,
             )
 
             # Store result
