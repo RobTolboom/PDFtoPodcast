@@ -1,9 +1,9 @@
 # Feature: Structured Report Generation with LaTeX/WeasyPrint Rendering
 
-**Status**: Phase 9 In Progress — Testing & documentation finalization
+**Status**: Phase 9 Complete — Feature ready for production
 **Branch**: `feature/report-generation`
 **Created**: 2025-11-13
-**Updated**: 2025-11-23 (v0.13 - Phase 9 partial: tests complete, docs updated)
+**Updated**: 2025-11-23 (v0.14 - Phase 9 complete: all tests pass, docs finalized)
 **Author**: Rob Tolboom (with Claude Code)
 
 **Summary**
@@ -1914,7 +1914,7 @@ python run_pipeline.py paper.pdf --step report --force-best-report
 - ✅ Full pipeline produces PDF
 - ✅ Help text documentation updated (five-step pipeline description)
 
-### Phase 9: Testing & Documentation (Week 7-8) ⏳ **IN PROGRESS**
+### Phase 9: Testing & Documentation (Week 7-8) ✅ **COMPLETED**
 **Goal**: Comprehensive testing and documentation
 
 **Deliverables**:
@@ -1932,11 +1932,10 @@ python run_pipeline.py paper.pdf --step report --force-best-report
   - README section "Step 5: Report Generation" ✅
   - Pipeline docstring updated (five-step) ✅
   - CHANGELOG entries complete ✅
-- [ ] Documentation (remaining):
-  - `docs/report.md` (complete report generation guide)
-  - ARCHITECTURE update (report module)
-  - API.md update (report functions)
-  - LaTeX template documentation
+  - `docs/report.md` (complete report generation guide) ✅
+  - ARCHITECTURE.md update (report module) ✅
+  - API.md update (report functions) ✅
+  - LaTeX template documentation (`templates/latex/README.md`) ✅
 - [ ] Test data/fixtures (optional):
   - Sample reports for each study type
   - Expected PDF outputs (visual regression - deferred)

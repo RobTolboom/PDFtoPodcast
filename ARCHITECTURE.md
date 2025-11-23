@@ -1,6 +1,6 @@
 # Architecture Overview
 
-PDFtoPodcast extracts structured medical research data by streaming PDF content through a four-stage pipeline with iterative validation/correction loops. This document describes the runtime architecture, major components, data flow, and extensibility points. For implementation-level detail, see `src/README.md`, `schemas/readme.md`, `VALIDATION_STRATEGY.md`, and `features/appraisal.md`.
+PDFtoPodcast extracts structured medical research data by streaming PDF content through a five-stage pipeline with iterative validation/correction loops. This document describes the runtime architecture, major components, data flow, and extensibility points. For implementation-level detail, see `src/README.md`, `schemas/readme.md`, `VALIDATION_STRATEGY.md`, `features/appraisal.md`, and `features/report-generation.md`.
 
 ## System summary
 
@@ -40,6 +40,17 @@ run_appraisal_with_correction()
     • best iteration saved (appraisal-best.json, appraisal-validation-best.json)
         |
         v
+run_report_with_correction()
+    • report generation (combine classification + extraction + appraisal)
+    • block-based JSON structure (text, table, figure, callout blocks)
+    • report validation (accuracy, completeness, consistency)
+    • correction iterations (<= max)
+    • best iteration saved (report-best.json, report_validation-best.json)
+    • rendering: JSON → LaTeX/WeasyPrint → PDF
+    • figure generation (RoB traffic light, forest plots, CONSORT/PRISMA flows)
+    • outputs: report.pdf, report.tex, report.md
+        |
+        v
 Outputs persisted to tmp/ and returned to caller
 ```
 
@@ -73,6 +84,18 @@ Outputs persisted to tmp/ and returned to caller
 - **File outputs**: Saves `{id}-appraisal{N}.json`, `{id}-appraisal-validation{N}.json`, and best files (`{id}-appraisal-best.json`).
 - See `features/appraisal.md` for complete specification, tool descriptions, and acceptance criteria.
 
+### Report Generation (`src/pipeline/orchestrator.py` - report functions, `src/rendering/`)
+- **Report orchestration**: `run_report_with_correction()` executes report generation → validation → correction loop until quality thresholds met or max iterations reached.
+- **Block-based architecture**: Reports use typed blocks (`text`, `table`, `figure`, `callout`) for flexible rendering.
+- **Publication-type sections**: Type-specific sections added based on publication type (CONSORT for RCTs, PRISMA for systematic reviews, PROBAST for prediction models).
+- **Quality metrics**: Report validation checks accuracy (35%), completeness (30%), cross-reference consistency (10%), data consistency (10%), and schema compliance (15%).
+- **Rendering pipeline**: `src/rendering/latex_renderer.py` converts report JSON → LaTeX → PDF (or WeasyPrint HTML → PDF).
+- **Figure generation**: `src/rendering/figure_generator.py` creates RoB traffic lights, forest plots, CONSORT/PRISMA flow diagrams using matplotlib.
+- **LaTeX templates**: `templates/latex/vetrix/` contains professional LaTeX templates with booktabs tables, tcolorbox callouts, and siunitx number formatting.
+- **Fallback outputs**: Markdown always generated regardless of PDF compilation success.
+- **File outputs**: Saves `{id}-report{N}.json`, `{id}-report_validation{N}.json`, best files, and rendered outputs (`render/report.pdf`, `render/report.tex`, `render/report.md`).
+- See `features/report-generation.md` for complete specification and `docs/report.md` for usage guide.
+
 ### LLM providers (`src/llm/`)
 - `BaseLLMProvider` defines `generate_json_with_pdf`, `generate_json_with_schema`, and `generate_text`.
 - `OpenAIProvider` and `ClaudeProvider` implement the interface with provider-specific retries, PDF upload limits, and error handling.
@@ -82,6 +105,7 @@ Outputs persisted to tmp/ and returned to caller
 - Classification, type-specific extraction prompts, validation, correction, and appraisal prompts are stored as plain text.
 - **Extraction**: `Classification.txt`, `Extraction-prompt-*.txt`, `Extraction-validation.txt`, `Extraction-correction.txt`
 - **Appraisal**: `Appraisal-interventional.txt`, `Appraisal-observational.txt`, `Appraisal-evidence-synthesis.txt`, `Appraisal-prediction.txt`, `Appraisal-editorials.txt`, `Appraisal-validation.txt`, `Appraisal-correction.txt`
+- **Report**: `Report-generation.txt`, `Report-validation.txt`, `Report-correction.txt`
 - `src/prompts.py` loads the appropriate prompt and raises `PromptLoadError` when a file is missing.
 - Prompt revisions must stay in sync with schemas; see `prompts/README.md` for maintenance guidance.
 
@@ -89,6 +113,7 @@ Outputs persisted to tmp/ and returned to caller
 - Modular sources (`*.schema.json`) share components via `common.schema.json`.
 - **Extraction schemas**: Type-specific extraction schemas for interventional, observational, evidence synthesis, etc.
 - **Appraisal schemas**: `appraisal.schema.json` (risk of bias + GRADE structure), `appraisal_validation.schema.json` (validation result structure)
+- **Report schemas**: `report.schema.json` (block-based report structure), `report_validation.schema.json` (report validation metrics)
 - Bundled files (`*_bundled.json`) inline references for LLM compatibility and runtime validation.
 - `src/schemas_loader.py` caches schemas and validates compatibility.
 - `json-bundler.py` regenerates bundled files after edits; run schema unit tests afterwards.
@@ -107,6 +132,10 @@ Outputs persisted to tmp/ and returned to caller
   - `paper-appraisal0.json`, `paper-appraisal-validation0.json` (initial appraisal)
   - `paper-appraisal1.json`, `paper-appraisal-validation1.json` (appraisal correction iterations)
   - `paper-appraisal-best.json`, `paper-appraisal-validation-best.json` (best appraisal)
+  - `paper-report0.json`, `paper-report_validation0.json` (initial report)
+  - `paper-report1.json`, `paper-report_validation1.json` (report correction iterations)
+  - `paper-report-best.json`, `paper-report_validation-best.json` (best report)
+  - `render/report.pdf`, `render/report.tex`, `render/report.md` (rendered outputs)
   - `paper-extraction-failed.json` (error diagnostics)
 
 ### Streamlit app (`src/streamlit_app/`)
@@ -161,3 +190,7 @@ Both modes call `run_single_step` internally, ensuring consistent behaviour and 
 - `prompts/README.md` – prompt maintenance.
 - `schemas/readme.md` – schema maintenance and bundling.
 - `SECURITY.md` – security posture and PDF handling guidance.
+- `docs/appraisal.md` – appraisal usage guide.
+- `docs/report.md` – report generation usage guide.
+- `features/appraisal.md` – appraisal feature specification.
+- `features/report-generation.md` – report generation feature specification.
