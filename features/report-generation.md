@@ -1,16 +1,19 @@
 # Feature: Structured Report Generation with LaTeX/WeasyPrint Rendering
 
-**Status**: Phase 9 Complete — Feature ready for production
+**Status**: Phase 9 Complete — Orchestration production-ready; rendering at scaffold level (see v1.1)
 **Branch**: `feature/report-generation`
 **Created**: 2025-11-13
 **Updated**: 2025-11-23 (v0.14 - Phase 9 complete: all tests pass, docs finalized)
 **Author**: Rob Tolboom (with Claude Code)
+**Next**: [`features/report-rendering-improvements.md`](report-rendering-improvements.md) — v1.1 rendering enhancements
 
 **Summary**
 - Automatic generation of structured, professional reports from extraction and appraisal data via LLM-driven JSON output and rendering to PDF (LaTeX or WeasyPrint), plus markdown fallback.
 - Block-based architecture separates content from presentation, with iterative validation/correction for quality assurance and type-aware prompt instructions for flexibility.
 - Docker-containerized LaTeX environment for reliable cross-platform rendering with pre-configured dependencies.
 - Main risks are figure generation complexity and prompt engineering; mitigations include matplotlib-only figures, a disciplined prompt architecture, and comprehensive error recovery strategies.
+
+**v1.0 Scope Note**: The orchestration pipeline (Phases 1-9) is complete and production-ready. However, **rendering remains at scaffold level**: LaTeX templates are minimal, 4 of 8 figure types implemented, source map not rendered, and no localization system. These gaps are tracked in [`report-rendering-improvements.md`](report-rendering-improvements.md) for v1.1.
 
 ## Scope
 
