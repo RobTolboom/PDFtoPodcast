@@ -4581,8 +4581,21 @@ def run_single_step(
 
         # Use best_extraction from validation_correction if available, otherwise use original extraction
         validation_correction_result = previous_results.get(STEP_VALIDATION_CORRECTION)
-        if validation_correction_result and validation_correction_result.get("best_extraction"):
-            extraction_result = validation_correction_result["best_extraction"]
+        if validation_correction_result:
+            # Check for failed validation status - do not proceed with appraisal
+            final_status = validation_correction_result.get("final_status", "")
+            if final_status.startswith("failed"):
+                error_msg = validation_correction_result.get(
+                    "error", f"Validation failed with status: {final_status}"
+                )
+                raise ValueError(
+                    f"Cannot run appraisal: {error_msg}. "
+                    f"Quality score was below minimum threshold."
+                )
+            if validation_correction_result.get("best_extraction"):
+                extraction_result = validation_correction_result["best_extraction"]
+            else:
+                extraction_result = previous_results[STEP_EXTRACTION]
         else:
             extraction_result = previous_results[STEP_EXTRACTION]
 
@@ -4775,8 +4788,8 @@ def run_four_step_pipeline(
         if step_name == STEP_APPRAISAL:
             validation_correction_result = results.get(STEP_VALIDATION_CORRECTION)
             if validation_correction_result:
-                final_status = validation_correction_result.get("final_status")
-                if final_status == "failed_schema_validation":
+                final_status = validation_correction_result.get("final_status", "")
+                if final_status.startswith("failed"):
                     error_msg = validation_correction_result.get(
                         "error", "Schema validation failed"
                     )

@@ -40,6 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Appraisal Runs Despite Failed Schema Validation:** Fixed bug where appraisal step would run with unvalidated extraction data when schema validation failed (< 50% quality). The fallback logic in `run_single_step` now checks for `failed_*` status before proceeding, and raises `ValueError` to prevent appraisal with invalid data. Additionally, the skip-check in `run_four_step_pipeline` now catches all `failed_*` statuses instead of only `failed_schema_validation`.
+
 - **CLI Syntax Error in run_pipeline.py:** Fixed critical syntax errors (indentation issues and orphaned code after `if __name__ == "__main__"`) that caused `make lint` to fail with 12 invalid-syntax errors
 
 - **Appraisal File Loading Bug:** Report generation now correctly loads `appraisal-best.json` instead of looking for non-existent `appraisal.json`
