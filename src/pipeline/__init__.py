@@ -3,23 +3,24 @@
 # Commercial use requires separate license - see LICENSE and COMMERCIAL_LICENSE.md
 
 """
-Four-step PDF extraction + appraisal pipeline package.
+Five-step PDF extraction, appraisal, and report generation pipeline package.
 
 This package provides the core pipeline that coordinates:
 1. Classification - Identify publication type and extract metadata
 2. Extraction - Schema-based structured data extraction
 3. Validation & Correction - Iterative schema + semantic validation with fixes
 4. Appraisal - Critical appraisal (risk of bias, GRADE, applicability)
+5. Report Generation - Structured report JSON with LaTeX/WeasyPrint rendering
 
 Main Components:
-    - orchestrator: Main pipeline coordination (run_four_step_pipeline)
+    - orchestrator: Main pipeline coordination (run_four_step_pipeline, run_single_step)
     - file_manager: File naming and storage management
     - validation_runner: Dual validation strategy implementation
     - utils: Helper functions (DOI handling, breakpoints, etc.)
 
 Usage:
     >>> from pathlib import Path
-    >>> from src.pipeline import run_four_step_pipeline
+    >>> from src.pipeline import run_four_step_pipeline, run_single_step
     >>> results = run_four_step_pipeline(
     ...     pdf_path=Path("research_paper.pdf"),
     ...     max_pages=20,
@@ -29,7 +30,8 @@ Usage:
     'interventional_trial'
 
 Public API:
-    - run_four_step_pipeline: Main pipeline entry point
+    - run_four_step_pipeline: Main pipeline entry point (steps 1-4)
+    - run_single_step: Execute individual steps including report_generation
     - PipelineFileManager: File management class
     - run_dual_validation: Dual validation function
     - Utility functions: doi_to_safe_filename, get_file_identifier, etc.

@@ -144,6 +144,43 @@ This pipeline extracts structured data from medical research PDFs with a focus o
 │  Output: Best appraisal + validation from all iterations     │
 │  Status: passed / max_iterations_reached / early_stopped     │
 └──────────────────────────────────────────────────────────────┘
+                            │
+                            ↓
+┌──────────────────────────────────────────────────────────────┐
+│  STEP 5: Report Generation (Iterative Loop)                  │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │ While quality insufficient AND iterations < max:       │ │
+│  │                                                          │ │
+│  │  5a. Report Generation                                  │ │
+│  │      • Combine classification + extraction + appraisal  │ │
+│  │      • Generate structured report JSON                  │ │
+│  │      • Block-based sections: text, tables, figures     │ │
+│  │      • Type-specific content (RCT/observational/etc)   │ │
+│  │      Output: report{N}.json                            │ │
+│  │                                                          │ │
+│  │  5b. Quality Assessment                                │ │
+│  │      • Check completeness ≥85%                         │ │
+│  │      • Check accuracy ≥95%                             │ │
+│  │      • Check cross-reference consistency ≥90%          │ │
+│  │      • Check data consistency ≥90%                     │ │
+│  │      • Check schema compliance ≥95%                    │ │
+│  │      • Check critical_issues = 0                       │ │
+│  │                                                          │ │
+│  │  5c. If quality insufficient:                          │ │
+│  │      • Run correction with validation feedback         │ │
+│  │      • Fix data mismatches and missing sections        │ │
+│  │      • Output: report{N+1}.json                        │ │
+│  │      • Loop back to 5b (validate corrected)            │ │
+│  └────────────────────────────────────────────────────────┘ │
+│                                                               │
+│  5d. Rendering                                               │
+│      • Generate figures (RoB traffic light, forest plots)   │
+│      • Render LaTeX or WeasyPrint → PDF                     │
+│      • Markdown fallback always generated                   │
+│      Output: report.pdf, report.tex, report.md              │
+│                                                               │
+│  Status: passed / max_iterations_reached / early_stopped     │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 **For detailed architecture and design decisions, see [ARCHITECTURE.md](ARCHITECTURE.md)**

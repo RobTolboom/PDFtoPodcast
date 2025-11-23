@@ -1,9 +1,9 @@
 # Feature: Structured Report Generation with LaTeX/WeasyPrint Rendering
 
-**Status**: Phase 8 Complete — CLI support with five-step pipeline
+**Status**: Phase 9 In Progress — Testing & documentation finalization
 **Branch**: `feature/report-generation`
 **Created**: 2025-11-13
-**Updated**: 2025-11-21 (v0.12 - Phase 7 & 8 complete, CLI fixes)
+**Updated**: 2025-11-23 (v0.13 - Phase 9 partial: tests complete, docs updated)
 **Author**: Rob Tolboom (with Claude Code)
 
 **Summary**
@@ -1914,29 +1914,32 @@ python run_pipeline.py paper.pdf --step report --force-best-report
 - ✅ Full pipeline produces PDF
 - ✅ Help text documentation updated (five-step pipeline description)
 
-### Phase 9: Testing & Documentation (Week 7-8)
+### Phase 9: Testing & Documentation (Week 7-8) ⏳ **IN PROGRESS**
 **Goal**: Comprehensive testing and documentation
 
 **Deliverables**:
-- [ ] Unit tests:
-  - Report generation routing (`test_report_functions.py`)
-  - Report validation quality helpers (`test_report_quality.py`)
-  - LaTeX renderer blocks (`test_latex_renderer.py`)
-  - Figure generators (`test_figure_generator.py`)
-  - File management (`test_file_manager.py`)
-- [ ] Integration tests:
-  - `tests/integration/test_report_full_loop.py` (5 study types, all iterations)
-  - End-to-end PDF generation
-- [ ] Documentation:
+- [x] Unit tests:
+  - Report schema validation (`test_report_schema.py`) - 18 tests ✅
+  - Report prompts (`test_report_prompts.py`) - 18 tests ✅
+  - Report validation quality helpers (`test_report_quality.py`) - 17 tests ✅
+  - LaTeX renderer blocks (`test_latex_renderer.py`) - 27 tests ✅
+  - Figure generators (`test_figure_generator.py`) - 16 tests ✅
+  - Report generation (`test_report_generation.py`) - 3 tests ✅
+- [x] Integration tests:
+  - `tests/integration/test_report_full_loop.py` - 10 tests ✅
+  - `tests/integration/test_report_render_tex.py` - LaTeX rendering ✅
+- [x] Documentation:
+  - README section "Step 5: Report Generation" ✅
+  - Pipeline docstring updated (five-step) ✅
+  - CHANGELOG entries complete ✅
+- [ ] Documentation (remaining):
   - `docs/report.md` (complete report generation guide)
-  - README section "Generating Reports"
   - ARCHITECTURE update (report module)
   - API.md update (report functions)
   - LaTeX template documentation
-- [ ] CHANGELOG entries
-- [ ] Test data/fixtures:
+- [ ] Test data/fixtures (optional):
   - Sample reports for each study type
-  - Expected PDF outputs (visual regression)
+  - Expected PDF outputs (visual regression - deferred)
 
 **Test Strategy**:
 1. **Unit Tests**: Each function isolated
