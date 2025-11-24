@@ -341,6 +341,8 @@ def render_report_to_pdf(
             raise LatexRenderError(f"LaTeX engine '{engine}' not found in PATH")
         cmd = [engine, "-interaction=nonstopmode", tex_path.name]
         try:
+            # Safe: using list args (shell=False) prevents command injection
+            # tex_path.name is also safe as it comes from pathlib
             subprocess.run(cmd, cwd=output_dir, check=True, capture_output=True)
             result["pdf"] = output_dir / "report.pdf"
         except subprocess.CalledProcessError as exc:

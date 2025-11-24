@@ -83,11 +83,12 @@ def _generate_rob_traffic_light(data: dict[str, Any], path: Path) -> None:
     ax.set_xlim(0, 1)
     ax.set_xticks([])
     ax.set_title("Risk of Bias (RoB 2)", fontsize=10, pad=8)
-    fig.tight_layout()
     ax.set_title("Risk of Bias (RoB 2)", fontsize=10, pad=8)
     fig.tight_layout()
     try:
         fig.savefig(path, dpi=300)
+    except Exception as e:
+        raise FigureGenerationError(f"Failed to save RoB figure to {path}: {e}") from e
     finally:
         plt.close(fig)
 
@@ -113,12 +114,12 @@ def _generate_forest_basic(data: dict[str, Any], path: Path) -> None:
     ax.set_yticks(list(y))
     ax.set_yticklabels([o.get("name", "") for o in outcomes])
     ax.set_xlabel("Effect size")
-    ax.set_title("Forest plot (placeholder)")
-    fig.tight_layout()
-    ax.set_title("Forest plot (placeholder)")
+    ax.set_title("Forest Plot")
     fig.tight_layout()
     try:
         fig.savefig(path, dpi=300)
+    except Exception as e:
+        raise FigureGenerationError(f"Failed to save Forest plot to {path}: {e}") from e
     finally:
         plt.close(fig)
 

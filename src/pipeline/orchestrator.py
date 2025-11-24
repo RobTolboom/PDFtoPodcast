@@ -58,6 +58,7 @@ PDF Upload Strategy:
 """
 
 import copy
+import functools
 import json
 import re
 import time
@@ -117,22 +118,16 @@ STEP_DISPLAY_NAMES = {
     STEP_REPORT_GENERATION: "Step 5 - Report Generation",
 }
 
-_PIPELINE_VERSION_CACHE: str | None = None
 
-
+@functools.cache
 def _get_pipeline_version() -> str:
     """
     Retrieve pipeline version from installed package or pyproject.toml.
     """
-    global _PIPELINE_VERSION_CACHE
-    if _PIPELINE_VERSION_CACHE:
-        return _PIPELINE_VERSION_CACHE
-
     try:
         from importlib.metadata import PackageNotFoundError, version
 
-        _PIPELINE_VERSION_CACHE = version("pdftopodcast")
-        return _PIPELINE_VERSION_CACHE
+        return version("pdftopodcast")
     except ImportError:
         pass
     except PackageNotFoundError:
