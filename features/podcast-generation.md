@@ -7,7 +7,7 @@
 
 **Summary**
 - New pipeline step that generates a written podcast script based on extraction + appraisal data.
-- Monologue format (single speaker), English by default with Dutch as an option.
+- Monologue format (single speaker), English only.
 - Light validation (factchecking) without full correction loop in v1.
 - TTS integration planned as future extension.
 
@@ -16,8 +16,8 @@
 **In scope**
 - Podcast script generation as new step after report generation
 - Monologue format (narrative explanation by single host)
-- Language support: English (default), Dutch (optional)
-- Schema for structured script output
+- English language only
+- SSML-ready schema for structured script output (prepared for TTS integration)
 - Light validation: factchecking against extraction/appraisal
 - CLI and Streamlit UI integration
 
@@ -26,6 +26,7 @@
 - Dialogue format (two speakers)
 - Audio effects, timing markers, music cues
 - Full iterative correction loop
+- Non-English languages (Dutch, etc.)
 
 ---
 
@@ -78,8 +79,7 @@ The pipeline generates:
   └────────────────────────┘
            │
            ├─ Input: extraction-best + appraisal-best + classification
-           ├─ Language: EN (default) or NL
-           └─ Output: Narrative monologue script
+           └─ Output: Narrative monologue script (English)
            │
            ▼
   ┌────────────────────────┐
@@ -171,7 +171,7 @@ Use language that reflects the certainty of evidence:
 
 **New schema**: `schemas/podcast.schema.json`
 
-The schema is intentionally simple: metadata plus one continuous transcript field. This produces TTS-ready output without structural fragmentation.
+The schema is SSML-ready: metadata, continuous transcript, and optional TTS configuration for future audio generation. This produces output that can be directly fed to TTS services.
 
 ```json
 {
@@ -186,21 +186,62 @@ The schema is intentionally simple: metadata plus one continuous transcript fiel
     },
     "metadata": {
       "type": "object",
-      "required": ["title", "language", "word_count", "estimated_duration_minutes"],
+      "required": ["title", "word_count", "estimated_duration_minutes"],
       "properties": {
         "title": { "type": "string" },
         "study_id": { "type": "string" },
-        "language": { "enum": ["en", "nl"], "default": "en" },
+        "language": { "const": "en" },
         "target_audience": { "type": "string", "default": "practising clinicians" },
-        "word_count": { "type": "integer", "minimum": 500, "maximum": 2000 },
-        "estimated_duration_minutes": { "type": "integer", "minimum": 3, "maximum": 15 },
+        "word_count": { "type": "integer", "minimum": 800, "maximum": 1500 },
+        "estimated_duration_minutes": { "type": "integer", "minimum": 5, "maximum": 10 },
         "generation_timestamp": { "type": "string", "format": "date-time" }
       }
     },
     "transcript": {
       "type": "string",
-      "description": "Complete podcast script as one continuous, TTS-ready text. No headings, bullets, or structural markup.",
+      "description": "Complete podcast script as one continuous, SSML-ready text. No headings, bullets, or structural markup. Written for natural speech synthesis.",
       "minLength": 500
+    },
+    "tts_config": {
+      "type": "object",
+      "description": "Optional TTS configuration for future audio generation (v1.1+)",
+      "properties": {
+        "voice_id": { "type": "string", "description": "TTS provider voice identifier" },
+        "speed": { "type": "number", "default": 1.0, "minimum": 0.5, "maximum": 2.0 },
+        "pitch": { "type": "number", "default": 0, "minimum": -10, "maximum": 10 },
+        "output_format": { "enum": ["mp3", "wav", "ogg"], "default": "mp3" },
+        "branding": {
+          "type": "object",
+          "description": "Podcast branding for intro/outro generation",
+          "properties": {
+            "podcast_name": { "type": "string", "default": "Vetrix Anesthesiology" },
+            "include_intro": { "type": "boolean", "default": true },
+            "include_outro": { "type": "boolean", "default": true },
+            "include_ai_disclaimer": { "type": "boolean", "default": true }
+          }
+        }
+      }
+    },
+    "ssml_hints": {
+      "type": "object",
+      "description": "Optional SSML preparation hints for TTS (v1.2+)",
+      "properties": {
+        "emphasis_phrases": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Key phrases that should receive emphasis in speech"
+        },
+        "pronunciation_overrides": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Word -> phonetic pronunciation mappings for medical terms"
+        },
+        "pause_after_sentences": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "description": "Sentence indices (0-based) after which to insert longer pauses"
+        }
+      }
     }
   }
 }
@@ -218,7 +259,6 @@ The schema is intentionally simple: metadata plus one continuous transcript fiel
 - EXTRACTION_JSON: Validated extraction data
 - APPRAISAL_JSON: Risk of bias + GRADE assessment
 - CLASSIFICATION_JSON: Publication type
-- LANGUAGE: "en" | "nl"
 - PODCAST_SCHEMA: podcast.schema.json
 
 **Audience and Tone**:
@@ -227,7 +267,7 @@ The schema is intentionally simple: metadata plus one continuous transcript fiel
 - Active voice preferred
 - One idea per sentence
 - Vary sentence length for natural rhythm
-- Target duration: 5-8 minutes (800-1,200 words)
+- Target duration: 5-10 minutes (800-1,500 words)
 
 **Content Flow** (no visible headings in output; weave smooth transitions):
 
@@ -261,7 +301,6 @@ def run_podcast_generation(
     classification_result: dict,
     llm_provider: str,
     file_manager: PipelineFileManager,
-    language: str = "en",
     progress_callback: Callable | None = None,
 ) -> dict:
     """
@@ -273,12 +312,11 @@ def run_podcast_generation(
         classification_result: Classification result
         llm_provider: LLM provider name ("openai" | "claude")
         file_manager: File manager for saving output
-        language: Script language ("en" | "nl")
         progress_callback: Optional callback for progress updates
 
     Returns:
         dict: {
-            'podcast': dict,           # Generated podcast (metadata + transcript)
+            'podcast': dict,           # Generated podcast (metadata + transcript + optional tts_config/ssml_hints)
             'status': str,             # "success" | "failed"
         }
     """
@@ -367,7 +405,6 @@ The markdown file contains a metadata header followed by the complete transcript
 
 **Deliverables**:
 - [ ] `--step podcast` option
-- [ ] `--podcast-language en|nl` option
 - [ ] Progress output during generation
 - [ ] Integration in full pipeline run
 
@@ -376,16 +413,12 @@ The markdown file contains a metadata header followed by the complete transcript
 # Generate podcast (requires extraction + appraisal)
 python run_pipeline.py paper.pdf --step podcast --llm openai
 
-# Generate in Dutch
-python run_pipeline.py paper.pdf --step podcast --podcast-language nl
-
 # Full pipeline including podcast
 python run_pipeline.py paper.pdf --llm openai --include-podcast
 ```
 
 **Acceptance**:
 - CLI generates podcast successfully
-- Language option works
 - Clear progress/status output
 
 ### Phase 5: UI Integration (Streamlit)
@@ -393,7 +426,6 @@ python run_pipeline.py paper.pdf --llm openai --include-podcast
 
 **Deliverables**:
 - [ ] New execution step: "Podcast" (after Report)
-- [ ] Language selector (EN/NL)
 - [ ] Display generated transcript in UI
 - [ ] Download button for markdown
 - [ ] Copy transcript button (for TTS tools)
@@ -403,7 +435,7 @@ python run_pipeline.py paper.pdf --llm openai --include-podcast
 ┌─────────────────────────────────────────────────────────────────┐
 │ 6. PODCAST SCRIPT                                        ✅     │
 ├─────────────────────────────────────────────────────────────────┤
-│ Language: English | Duration: ~6 min | Words: 950              │
+│ Duration: ~6 min | Words: 950                                   │
 │                                                                 │
 │ Preview:                                                        │
 │ ┌─────────────────────────────────────────────────────────────┐ │
@@ -477,60 +509,57 @@ python run_pipeline.py paper.pdf --llm openai --include-podcast
 - Prompt instructions: "Match enthusiasm to evidence quality"
 - Limitations section required
 
-### Risk 4: Language Support (NL) Less Good
-**Description**: English LLMs generate suboptimal Dutch
-
-**Impact**: Low - Dutch is optional
-
-**Mitigation**:
-- Test with Dutch sample papers
-- Consider Dutch-trained models
-- Document known limitations
-
 ---
 
 ## Acceptance Criteria
 
 ### Functional
 
-1. **Podcast generates for all 5 study types** as continuous TTS-ready text
-2. **Language option works** (EN default, NL optional)
+1. **Podcast generates for all 5 study types** as continuous SSML-ready text
+2. **English only** - no language selection required
 3. **Output in JSON and Markdown** available
 4. **CLI and UI integration** complete
 
 ### Technical
 
-1. **Schema validates** all generated scripts (metadata + transcript)
+1. **Schema validates** all generated scripts (metadata + transcript + optional tts_config/ssml_hints)
 2. **Prompt loads correctly** with all style rules
 3. **File management** saves with correct naming
 4. **Duration estimate** accurate within ±1 minute
-5. **Transcript contains no structural markup** (headings, bullets, etc.)
+5. **Transcript is SSML-ready** - no structural markup (headings, bullets, etc.), natural speech flow
 
 ### Quality
 
 1. **Factual accuracy**: Numbers match extraction (self-check in prompt)
 2. **GRADE alignment**: Conclusions calibrated to evidence certainty
 3. **Completeness**: Key outcomes and limitations present
-4. **TTS-ready**: Continuous narrative, no abbreviations, natural flow
+4. **SSML-ready**: Continuous narrative, no abbreviations, natural speech flow for TTS processing
 
 ---
 
 ## Future Extensions
 
-### v1.1: Dialogue Format
+### v1.1: TTS Integration
+- Text-to-Speech generation using `tts_config` schema fields
+- SSML conversion from `ssml_hints` (emphasis, pronunciation, pauses)
+- Voice selection (provider-specific voice IDs)
+- **Branding injection** (intro/outro added in TTS phase, not in transcript):
+  ```
+  intro.mp3 → content.mp3 → outro.mp3 → final_podcast.mp3
+  ```
+- Intro/outro can be pre-recorded or TTS-generated from templates
+- AI disclaimer included per `branding.include_ai_disclaimer` setting
+- Output: podcast.mp3
+
+### v1.2: Dialogue Format
 - Two speakers (host + expert)
 - Turn-taking markers in schema
 - Different perspectives/questions
 
-### v1.2: TTS Integration
-- Text-to-Speech generation
-- Voice selection (male/female, accent)
-- Output: podcast.mp3
-
 ### v1.3: Audio Enhancements
 - Intro/outro music
 - Section dividers
-- Emphasis markers for TTS
+- Background ambient sounds
 
 ---
 
