@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Podcast Generation Feature Specification (v1.1)** - Refined feature document with validation behavior and GRADE mapping
+  - Added explicit GRADE-verb mapping: enforce calibrated language based on certainty level (High→shows/demonstrates, Moderate→likely/probably, Low→may/might, Very Low→very uncertain)
+  - Added Section 0: Validation Behaviour (light, single-pass) - single factcheck after generation, `podcast_validation.json` artefact with status/issues/ready_for_tts
+  - Clarified numerical statements: priority order, qualitative fallback for extra outcomes, documented future `allow_extra_numbers` flag
+  - Added transcript formatting rule: no headings in transcript, markdown wrapper may include metadata only
+  - Updated verification checklist: verbs must reflect APPRAISAL/GRADE mapping
+  - Clarified file outputs: added `podcast_validation.json`, documented naming pattern (no `-best` suffix for podcasts)
+  - Simplified Phase 2: removed language parameter support (English only), added validation artefact deliverable
+  - Updated acceptance criteria: validation runs once with status surfaced, no correction loop
+  - Location: features/podcast-generation.md
+
 ### Added
 
 - **Report Generation Feature - Phase 8: CLI Support** (#report-generation-phase8) - Complete CLI integration for report generation

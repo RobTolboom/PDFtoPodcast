@@ -118,6 +118,7 @@ The podcast script must be optimized for audio consumption. These rules are **ma
    - No titles, headings, bullet points, or numbered lists in the spoken text
    - No brackets, stage directions, or markup
    - Produce only flowing paragraphs with natural transitions
+   - Transcript must contain no headings; markdown wrapper may include metadata only
 
 3. **No technical identifiers**
    - No DOIs, PMIDs, ISSNs, or author contact details
@@ -128,7 +129,9 @@ The podcast script must be optimized for audio consumption. These rules are **ma
 Keep data light and focus on meaning:
 
 1. **Maximum 3 numerical statements** in the entire transcript
-   - Prioritise: primary outcome, one key secondary outcome, one key safety outcome (if important)
+   - Priority order: primary outcome, one key secondary outcome, one key safety outcome (if important)
+   - If more critical outcomes exist, describe the rest qualitatively without numbers
+   - Optional future flag `allow_extra_numbers` (default false) can relax the cap when explicitly set
 
 2. **Format for numbers**:
    - Give absolute counts first, then one essential relative measure only if it changes interpretation
@@ -151,6 +154,12 @@ Use language that reflects the certainty of evidence:
 | Low | "may", "might", "suggests" |
 | Very Low | "is very uncertain", "we cannot conclude", "insufficient evidence" |
 
+Enforce mapping between APPRAISAL/GRADE certainty and permitted verbs:
+- High → shows / demonstrates / reduces / increases
+- Moderate → likely / probably / appears to
+- Low → may / might / suggests
+- Very Low → very uncertain / cannot conclude / insufficient evidence
+
 ### Interpretation Requirements
 
 1. **Move beyond recital of figures** - State plainly whether evidence suggests benefit, harm, no important difference, or insufficient evidence
@@ -166,6 +175,15 @@ Use language that reflects the certainty of evidence:
 ---
 
 ## Technical Design
+
+### 0. Validation Behaviour (light, single-pass)
+
+- Run a single factcheck after generation: presence of key outcomes, numeric match to extraction, conclusion no higher than GRADE certainty, missing info stated as "insufficiently reported".
+- Emit `tmp/{identifier}-podcast_validation.json` with fields:
+  - `status`: passed | warnings | failed
+  - `issues`: list of issue messages
+  - `ready_for_tts`: boolean (true unless status is failed)
+- Pipeline behaviour: always save `podcast.json` and `.md`; if status is failed, mark step failed and surface messages but do not regenerate or run a correction loop.
 
 ### 1. Schema Design
 
@@ -287,6 +305,7 @@ Before finalizing the transcript, the LLM must verify:
 2. Conclusions do not exceed GRADE certainty from APPRAISAL_JSON
 3. No facts stated that are not in the source JSONs
 4. Missing information stated as "insufficiently reported", not inferred
+5. Verbs reflect the APPRAISAL/GRADE mapping (see calibrated language table)
 
 **Output**: podcast.json (metadata + transcript)
 
@@ -332,9 +351,12 @@ tmp/
   ├── paper-appraisal-best.json
   ├── paper-report-best.json
   │
-  ├── paper-podcast.json              # Generated script (NEW)
-  └── paper-podcast.md                # Human-readable version (NEW)
+  ├── paper-podcast.json              # Generated script (NEW, single pass)
+  ├── paper-podcast.md                # Human-readable version (NEW)
+  └── paper-podcast_validation.json   # Optional validation artefact (NEW)
 ```
+
+Filenames follow the existing `PipelineFileManager` pattern: `{identifier}-{step}{iteration?}{-status?}.json` using the source PDF stem as `identifier`; no `-best` or iteration suffix for podcasts.
 
 ### 5. Markdown Rendering
 
@@ -377,13 +399,14 @@ The markdown file contains a metadata header followed by the complete transcript
 
 **Deliverables**:
 - [ ] `run_podcast_generation()` in orchestrator
-- [ ] Language parameter support (en/nl)
 - [ ] Schema validation of output
+- [ ] Validation artefact `podcast_validation.json` with status + issues
 
 **Acceptance**:
 - Podcast generates for all study types
 - Output matches schema
 - Transcript is continuous text without structural markup
+- Validation runs once; status surfaced; no correction loop
 
 ### Phase 3: File Management & Rendering
 **Goal**: Save podcast files and render markdown
@@ -394,10 +417,11 @@ The markdown file contains a metadata header followed by the complete transcript
   - `load_podcast()`
 - [ ] Markdown renderer for podcast script
 - [ ] Word count / duration estimation
+- [ ] Optional `podcast_validation.json` persisted alongside outputs
 
 **Acceptance**:
 - Files saved with correct naming
-- Markdown readable and well-formatted
+- Markdown readable and well-formatted (metadata wrapper ok; transcript has no headings or structural markup)
 - Duration estimate accurate (±1 minute)
 
 ### Phase 4: CLI Integration
@@ -517,16 +541,17 @@ python run_pipeline.py paper.pdf --llm openai --include-podcast
 
 1. **Podcast generates for all 5 study types** as continuous SSML-ready text
 2. **English only** - no language selection required
-3. **Output in JSON and Markdown** available
+3. **Output in JSON and Markdown** available, plus optional validation JSON
 4. **CLI and UI integration** complete
 
 ### Technical
 
 1. **Schema validates** all generated scripts (metadata + transcript + optional tts_config/ssml_hints)
 2. **Prompt loads correctly** with all style rules
-3. **File management** saves with correct naming
-4. **Duration estimate** accurate within ±1 minute
-5. **Transcript is SSML-ready** - no structural markup (headings, bullets, etc.), natural speech flow
+3. **Validation artefact** emitted with status + issues when validation is run
+4. **File management** saves with correct naming
+5. **Duration estimate** accurate within ±1 minute
+6. **Transcript is SSML-ready** - no structural markup (headings, bullets, etc.), natural speech flow
 
 ### Quality
 
