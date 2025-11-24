@@ -39,6 +39,16 @@ def _escape_latex(text: str) -> str:
         "}": r"\}",
         "~": r"\textasciitilde{}",
         "^": r"\textasciicircum{}",
+        "[": r"{[}",
+        "]": r"{]}",
+        "|": r"\textbar{}",
+        "<": r"\textless{}",
+        ">": r"\textgreater{}",
+        "*": r"\textasteriskcentered{}",
+        "+": r"{+}",
+        "=": r"{=}",
+        "/": r"{/}",
+        "@": r"@",  # Usually safe but good to be explicit if needed, though @ is special in some contexts
         "⊕": r"$\oplus$",  # GRADE certainty symbol
         "○": r"$\circ$",  # GRADE certainty symbol
         "≥": r"$\geq$",
@@ -220,7 +230,8 @@ def _render_section(section: dict[str, Any], depth: int = 1) -> str:
 
 def render_report_to_tex(report: dict[str, Any], template: str = "vetrix") -> str:
     """Render report JSON to a LaTeX document string."""
-    template_dir = Path("templates/latex") / template
+    # Use path relative to this file to find templates
+    template_dir = Path(__file__).parent.parent.parent / "templates" / "latex" / template
     main_tex = template_dir / "main.tex"
     if not main_tex.exists():
         raise LatexRenderError(f"Template not found: {main_tex}")
@@ -272,11 +283,19 @@ def render_report_to_pdf(
 
     Returns a dict with paths to .tex and (optionally) .pdf.
     """
+    # Security check for engine
+    allowed_engines = {"pdflatex", "xelatex", "lualatex"}
+    if engine not in allowed_engines:
+        raise ValueError(f"Invalid LaTeX engine: {engine}. Must be one of {allowed_engines}")
+
     output_dir.mkdir(parents=True, exist_ok=True)
-    template_dir = Path("templates/latex") / template
+    # Use path relative to this file to find templates
+    template_dir = Path(__file__).parent.parent.parent / "templates" / "latex" / template
     report_copy = copy.deepcopy(report)
 
-    def _walk_sections(sections: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    from collections.abc import Iterator
+
+    def _walk_sections(sections: list[dict[str, Any]]) -> Iterator[dict[str, Any]]:
         """Yield all sections and subsections for figure handling."""
         stack = list(sections)
         while stack:

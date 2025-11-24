@@ -310,7 +310,10 @@ class TestRunReportGeneration:
         with patch("src.pipeline.orchestrator.get_llm_provider", return_value=mock_llm):
             # Execute and verify schema validation error is raised
             # validate_with_schema raises ValidationError (not SchemaLoadError) with strict=True
-            with pytest.raises(Exception) as exc_info:
+            from src.schemas_loader import SchemaLoadError
+            from src.validation import ValidationError
+
+            with pytest.raises((ValidationError, SchemaLoadError)) as exc_info:
                 run_report_generation(
                     extraction_result=mock_extraction,
                     appraisal_result=mock_appraisal,

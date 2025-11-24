@@ -3,16 +3,18 @@
 # Commercial use requires separate license - see LICENSE and COMMERCIAL_LICENSE.md
 
 """
-Four-step PDF extraction + appraisal pipeline orchestration.
+
+Five-step PDF extraction + appraisal + reporting pipeline orchestration.
 
 This module contains the main pipeline orchestration logic that coordinates
-the four primary steps: Classification → Extraction → Validation & Correction → Appraisal.
+the five primary steps: Classification → Extraction → Validation & Correction → Appraisal → Report Generation.
 
 Pipeline Steps:
     1. Classification - Identify publication type and extract metadata
     2. Extraction - Schema-based structured data extraction
     3. Validation & Correction - Iterative validation with automatic correction
     4. Appraisal - Critical appraisal (risk of bias, GRADE, applicability)
+    5. Report Generation - Generate structured report and render to PDF
 
 Public APIs:
     - run_single_step(): Execute individual pipeline steps with dependency validation

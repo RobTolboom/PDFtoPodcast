@@ -26,10 +26,12 @@ def _import_matplotlib():
 
         matplotlib.use("Agg")
         import matplotlib.pyplot as plt  # type: ignore
-    except Exception as e:
+    except ImportError as e:
         raise FigureGenerationError(
             "matplotlib is required for figure generation (install matplotlib)"
         ) from e
+    except Exception as e:
+        raise FigureGenerationError(f"Failed to import matplotlib: {e}") from e
     return plt
 
 
@@ -82,8 +84,12 @@ def _generate_rob_traffic_light(data: dict[str, Any], path: Path) -> None:
     ax.set_xticks([])
     ax.set_title("Risk of Bias (RoB 2)", fontsize=10, pad=8)
     fig.tight_layout()
-    fig.savefig(path, dpi=300)
-    plt.close(fig)
+    ax.set_title("Risk of Bias (RoB 2)", fontsize=10, pad=8)
+    fig.tight_layout()
+    try:
+        fig.savefig(path, dpi=300)
+    finally:
+        plt.close(fig)
 
 
 def _generate_forest_basic(data: dict[str, Any], path: Path) -> None:
@@ -109,8 +115,12 @@ def _generate_forest_basic(data: dict[str, Any], path: Path) -> None:
     ax.set_xlabel("Effect size")
     ax.set_title("Forest plot (placeholder)")
     fig.tight_layout()
-    fig.savefig(path, dpi=300)
-    plt.close(fig)
+    ax.set_title("Forest plot (placeholder)")
+    fig.tight_layout()
+    try:
+        fig.savefig(path, dpi=300)
+    finally:
+        plt.close(fig)
 
 
 def _draw_flow_box(ax, x: float, y: float, width: float, height: float, text: str) -> None:
@@ -220,8 +230,11 @@ def _generate_prisma_flow(data: dict[str, Any], path: Path) -> None:
     )
 
     fig.tight_layout()
-    fig.savefig(path, dpi=300, bbox_inches="tight")
-    plt.close(fig)
+    fig.tight_layout()
+    try:
+        fig.savefig(path, dpi=300, bbox_inches="tight")
+    finally:
+        plt.close(fig)
 
 
 def _generate_consort_flow(data: dict[str, Any], path: Path) -> None:
@@ -330,8 +343,11 @@ def _generate_consort_flow(data: dict[str, Any], path: Path) -> None:
     )
 
     fig.tight_layout()
-    fig.savefig(path, dpi=300, bbox_inches="tight")
-    plt.close(fig)
+    fig.tight_layout()
+    try:
+        fig.savefig(path, dpi=300, bbox_inches="tight")
+    finally:
+        plt.close(fig)
 
 
 def generate_figure(block: dict[str, Any], output_dir: Path) -> Path:

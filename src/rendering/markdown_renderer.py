@@ -13,7 +13,26 @@ from typing import Any
 
 def _escape_md(text: str) -> str:
     # Minimal escaping for markdown
-    for ch in ["*", "_", "`"]:
+    # Escape characters that have special meaning in Markdown
+    special_chars = [
+        "\\",
+        "`",
+        "*",
+        "_",
+        "{",
+        "}",
+        "[",
+        "]",
+        "(",
+        ")",
+        "#",
+        "+",
+        "-",
+        ".",
+        "!",
+        "|",
+    ]
+    for ch in special_chars:
         text = text.replace(ch, f"\\{ch}")
     return text
 
