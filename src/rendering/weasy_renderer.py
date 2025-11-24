@@ -10,6 +10,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from .figure_generator import FigureGenerationError, generate_figure
+
 
 class WeasyRendererError(RuntimeError):
     """Raised when WeasyPrint rendering fails or dependency missing."""
@@ -123,8 +125,39 @@ def render_report_with_weasyprint(report: dict[str, Any], output_dir: Path) -> d
 
     Returns dict with 'html' and 'pdf' paths.
     """
-    html_str = render_report_to_html(report)
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Generate figures first
+    from collections.abc import Iterator
+
+    def _walk_sections(sections: list[dict[str, Any]]) -> Iterator[dict[str, Any]]:
+        """Yield all sections and subsections for figure handling."""
+        stack = list(sections)
+        while stack:
+            section = stack.pop(0)
+            yield section
+            # Add subsections to stack
+            if "subsections" in section:
+                stack.extend(section["subsections"])
+
+    # Walk through all sections to find and generate figures
+    for section in _walk_sections(report.get("sections", [])):
+        for block in section.get("blocks", []):
+            if block.get("type") == "figure":
+                # If file path is missing, generate it
+                if not block.get("file"):
+                    try:
+                        # Generate figure using shared figure generator
+                        # This will create the file in output_dir/figures
+                        fig_path = generate_figure(block, output_dir)
+                        # Update block with absolute path to generated file
+                        block["file"] = str(fig_path)
+                    except FigureGenerationError as e:
+                        # Log error but continue (will likely fail rendering or show broken image)
+                        print(f"Failed to generate figure: {e}")
+                        # Don't raise here, let renderer handle missing file or skip
+
+    html_str = render_report_to_html(report)
     html_path = output_dir / "report.html"
     html_path.write_text(html_str, encoding="utf-8")
 
