@@ -153,6 +153,12 @@ def show_settings_screen():
                 "name": "Critical Appraisal",
                 "help": "Assess study quality with RoB 2, ROBINS-I, PROBAST, AMSTAR 2, and GRADE ratings",
             },
+            {
+                "key": "report_generation",
+                "number": "5",
+                "name": "Report Generation",
+                "help": "Generate structured report JSON ready for LaTeX rendering",
+            },
         ]
 
         # Smart defaults: auto-select steps that don't have results yet
@@ -219,6 +225,37 @@ def show_settings_screen():
 
         if not steps_to_run:
             st.warning("⚠️ No steps selected. Please select at least one step to execute.")
+
+        st.markdown("---")
+        st.markdown("### Report Settings")
+        current_lang = st.session_state.settings.get("report_language", "nl")
+        lang_choice = st.selectbox(
+            "Report language",
+            options=["nl", "en"],
+            index=0 if current_lang == "nl" else 1,
+            help="Language used for report generation (affects all report sections).",
+        )
+        st.session_state.settings["report_language"] = lang_choice
+
+        renderer_choice = st.selectbox(
+            "Report renderer",
+            options=["latex", "weasyprint"],
+            index=0 if st.session_state.settings.get("report_renderer", "latex") == "latex" else 1,
+            help="Choose output renderer. LaTeX gives best typography; WeasyPrint is HTML/CSS based.",
+        )
+        st.session_state.settings["report_renderer"] = renderer_choice
+
+        st.session_state.settings["report_compile_pdf"] = st.checkbox(
+            "Compile PDF (xelatex required)",
+            value=st.session_state.settings.get("report_compile_pdf", True),
+            help="If disabled, only .tex is produced. If xelatex is missing, this will warn and continue.",
+        )
+
+        st.session_state.settings["report_enable_figures"] = st.checkbox(
+            "Generate figures (traffic light, forest)",
+            value=st.session_state.settings.get("report_enable_figures", True),
+            help="If disabled, figure blocks will be skipped.",
+        )
 
     with tab2:
         st.markdown("### Advanced Settings")

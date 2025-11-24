@@ -144,6 +144,43 @@ This pipeline extracts structured data from medical research PDFs with a focus o
 │  Output: Best appraisal + validation from all iterations     │
 │  Status: passed / max_iterations_reached / early_stopped     │
 └──────────────────────────────────────────────────────────────┘
+                            │
+                            ↓
+┌──────────────────────────────────────────────────────────────┐
+│  STEP 5: Report Generation (Iterative Loop)                  │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │ While quality insufficient AND iterations < max:       │ │
+│  │                                                          │ │
+│  │  5a. Report Generation                                  │ │
+│  │      • Combine classification + extraction + appraisal  │ │
+│  │      • Generate structured report JSON                  │ │
+│  │      • Block-based sections: text, tables, figures     │ │
+│  │      • Type-specific content (RCT/observational/etc)   │ │
+│  │      Output: report{N}.json                            │ │
+│  │                                                          │ │
+│  │  5b. Quality Assessment                                │ │
+│  │      • Check completeness ≥85%                         │ │
+│  │      • Check accuracy ≥95%                             │ │
+│  │      • Check cross-reference consistency ≥90%          │ │
+│  │      • Check data consistency ≥90%                     │ │
+│  │      • Check schema compliance ≥95%                    │ │
+│  │      • Check critical_issues = 0                       │ │
+│  │                                                          │ │
+│  │  5c. If quality insufficient:                          │ │
+│  │      • Run correction with validation feedback         │ │
+│  │      • Fix data mismatches and missing sections        │ │
+│  │      • Output: report{N+1}.json                        │ │
+│  │      • Loop back to 5b (validate corrected)            │ │
+│  └────────────────────────────────────────────────────────┘ │
+│                                                               │
+│  5d. Rendering                                               │
+│      • Generate figures (RoB traffic light, forest plots)   │
+│      • Render LaTeX or WeasyPrint → PDF                     │
+│      • Markdown fallback always generated                   │
+│      Output: report.pdf, report.tex, report.md              │
+│                                                               │
+│  Status: passed / max_iterations_reached / early_stopped     │
+└──────────────────────────────────────────────────────────────┘
 ```
 
 **For detailed architecture and design decisions, see [ARCHITECTURE.md](ARCHITECTURE.md)**
@@ -289,13 +326,19 @@ python run_pipeline.py path/to/paper.pdf --max-pages 10
 python run_pipeline.py path/to/paper.pdf --step classification
 
 # Run iterative validation-correction with custom settings
-python run_pipeline.py path/to/paper.pdf --step validation_correction \
-    --max-iterations 2 \
-    --completeness-threshold 0.85 \
+python run_pipeline.py path/to/paper.pdf --step validation_correction ^
+    --max-iterations 2 ^
+    --completeness-threshold 0.85 ^
     --accuracy-threshold 0.90
 
 # Keep intermediate files
 python run_pipeline.py path/to/paper.pdf --keep-tmp
+
+# Report rendering options
+python run_pipeline.py path/to/paper.pdf --step report_generation ^
+    --report-renderer weasyprint ^
+    --disable-figures ^
+    --no-report-compile-pdf
 ```
 
 #### Logs & troubleshooting
@@ -303,16 +346,20 @@ python run_pipeline.py path/to/paper.pdf --keep-tmp
 - In Streamlit, enable **Verbose logging** in Settings to display per-step token usage and metadata in the Execution screen.
 - Errors always include a concise remediation checklist; review the linked JSON artefacts for deeper context.
 
-### Command-Line Options
+### Command-Line Options (excerpt)
 
 ```
 usage: run_pipeline.py [-h] [--max-pages MAX_PAGES] [--keep-tmp]
                        [--llm-provider {openai,claude}]
-                       [--step {classification,extraction,validation,correction,validation_correction}]
+                       [--step {classification,extraction,validation,correction,validation_correction,report_generation}]
                        [--max-iterations MAX_ITERATIONS]
                        [--completeness-threshold FLOAT]
                        [--accuracy-threshold FLOAT]
                        [--schema-threshold FLOAT]
+                       [--report-language {nl,en}]
+                       [--report-renderer {latex,weasyprint}]
+                       [--report-compile-pdf] [--no-report-compile-pdf]
+                       [--enable-figures] [--disable-figures]
                        pdf
 
 positional arguments:
@@ -334,6 +381,16 @@ optional arguments:
                         Minimum accuracy score 0.0-0.99 (default: 0.95)
   --schema-threshold FLOAT
                         Minimum schema compliance score 0.0-0.99 (default: 0.95)
+  --report-language {nl,en}
+                        Language for report generation (default: nl)
+  --report-renderer {latex,weasyprint}
+                        Renderer for report output (default: latex)
+  --report-compile-pdf
+  --no-report-compile-pdf
+                        Enable/disable PDF compilation (LaTeX only; .tex/.md always written)
+  --enable-figures
+  --disable-figures
+                        Toggle generation of report figures (traffic light, forest)
 ```
 
 ### Programmatic Usage

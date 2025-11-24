@@ -1,0 +1,199 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Report Validation Report Schema",
+  "description": "Structured validation report for report generation quality control (completeness, accuracy, consistency, schema compliance).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "validation_version",
+    "validation_summary",
+    "issues"
+  ],
+  "properties": {
+    "validation_version": {
+      "type": "string",
+      "description": "Semantic version of the validation report contract (e.g., v1.0).",
+      "const": "v1.0"
+    },
+    "validation_summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "overall_status",
+        "completeness_score",
+        "accuracy_score",
+        "cross_reference_consistency_score",
+        "data_consistency_score",
+        "schema_compliance_score",
+        "critical_issues",
+        "quality_score"
+      ],
+      "properties": {
+        "overall_status": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "warning",
+            "failed"
+          ],
+          "description": "Overall report validation decision after applying thresholds."
+        },
+        "completeness_score": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Score assessing presence of all core sections, type-specific sections, outcomes, and source map completeness (30% weight)."
+        },
+        "accuracy_score": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Score verifying numeric data matches extraction exactly, GRADE/RoB align with appraisal, no hallucinations (35% weight)."
+        },
+        "cross_reference_consistency_score": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Score checking all table/figure references resolve correctly, labels exist (10% weight)."
+        },
+        "data_consistency_score": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Score verifying bottom-line numeric values match results section exactly (10% weight)."
+        },
+        "schema_compliance_score": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Score reflecting adherence to report.schema.json (required fields, enums, block types, labels) (15% weight)."
+        },
+        "critical_issues": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Count of blocking issues. Must be 0 for 'passed' overall status."
+        },
+        "quality_score": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Weighted composite score: 0.35*accuracy + 0.30*completeness + 0.10*cross_ref + 0.10*data_consistency + 0.15*schema."
+        },
+        "thresholds_failed": {
+          "type": "array",
+          "description": "Optional list of threshold identifiers that were not met.",
+          "items": {
+            "type": "string",
+            "enum": [
+              "completeness",
+              "accuracy",
+              "cross_reference_consistency",
+              "data_consistency",
+              "schema_compliance",
+              "critical_issues"
+            ]
+          }
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional free-form notes summarizing report quality."
+        }
+      }
+    },
+    "issues": {
+      "type": "array",
+      "description": "Detailed list of problems discovered during report validation.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "severity",
+          "category",
+          "field_path",
+          "description",
+          "recommendation"
+        ],
+        "properties": {
+          "issue_id": {
+            "type": "string",
+            "description": "Optional stable identifier for the issue (e.g., I001).",
+            "pattern": "^I\\d{3,}$"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "critical",
+              "moderate",
+              "minor"
+            ],
+            "description": "Severity classification describing the impact of the issue."
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "missing_section",
+              "missing_outcome",
+              "data_mismatch",
+              "broken_reference",
+              "schema_violation",
+              "hallucinated_data",
+              "grade_mismatch",
+              "rob_mismatch",
+              "incomplete_source_map",
+              "inconsistent_bottom_line",
+              "other"
+            ],
+            "description": "Issue category aligned with validation checks."
+          },
+          "field_path": {
+            "type": "string",
+            "description": "JSON pointer-like path to the problematic field (e.g., sections[5].blocks[0].content)."
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable explanation of the problem."
+          },
+          "recommendation": {
+            "type": "string",
+            "description": "Actionable fix the correction prompt should apply."
+          },
+          "expected_value": {
+            "type": "string",
+            "description": "Expected value from extraction/appraisal (for data mismatches)."
+          },
+          "actual_value": {
+            "type": "string",
+            "description": "Actual value found in report (for data mismatches)."
+          },
+          "source_reference": {
+            "type": "string",
+            "description": "Reference to extraction/appraisal field (e.g., extraction.results.contrasts[0].effect_size)."
+          }
+        }
+      }
+    },
+    "logical_alignment_checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Pass/fail gates for logical consistency (not scored, but blocking if failed).",
+      "properties": {
+        "limitations_mention_rob_issues": {
+          "type": "boolean",
+          "description": "Do limitations section mention RoB concerns?"
+        },
+        "grade_downgrades_justified": {
+          "type": "boolean",
+          "description": "Are all GRADE downgrades explained in limitations or quality section?"
+        },
+        "bottom_line_matches_grade": {
+          "type": "boolean",
+          "description": "Does executive bottom-line certainty match GRADE table?"
+        },
+        "all_checks_passed": {
+          "type": "boolean",
+          "description": "True if all logical alignment checks passed."
+        }
+      }
+    }
+  }
+}

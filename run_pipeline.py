@@ -4,13 +4,14 @@
 
 # run_pipeline.py
 """
-Four-step PDF extraction pipeline with direct PDF upload and schema-based validation.
+Five-step PDF extraction pipeline with direct PDF upload and schema-based validation.
 
 Pipeline Steps:
     1. Classification - Identify publication type and extract metadata via PDF upload
     2. Extraction - Schema-based structured data extraction via PDF upload
     3. Validation & Correction - Iterative validation and correction loop
     4. Appraisal - Critical appraisal with risk of bias and GRADE assessment
+    5. Report Generation - Generate structured reports with LaTeX/WeasyPrint rendering
 
 PDF Upload Strategy:
     All LLM steps use direct PDF upload (no text extraction) to preserve:
@@ -85,9 +86,11 @@ def main():
     parser = argparse.ArgumentParser(
         description=(
             "PDFtoPodcast Pipeline - Extract structured data from medical research PDFs\n\n"
+            "Five-step pipeline: Classification → Extraction → Validation → Appraisal → Report\n\n"
             "Full Pipeline: python run_pipeline.py paper.pdf\n"
             "Single Step: python run_pipeline.py paper.pdf --step validation_correction --max-iterations 2\n"
-            "Appraisal: python run_pipeline.py paper.pdf --step appraisal --appraisal-max-iter 3"
+            "Appraisal: python run_pipeline.py paper.pdf --step appraisal --appraisal-max-iter 3\n"
+            "Report: python run_pipeline.py paper.pdf --step report_generation --report-language en"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -118,6 +121,7 @@ def main():
             "correction",
             "validation_correction",
             "appraisal",
+            "report_generation",
         ],
         default=None,
         help="Run specific pipeline step (default: run all steps)",
@@ -145,6 +149,43 @@ def main():
         type=float,
         default=0.95,
         help="Minimum schema compliance score 0.0-0.99 (default: 0.95)",
+    )
+    parser.add_argument(
+        "--report-language",
+        choices=["nl", "en"],
+        default="nl",
+        help="Language for report generation step (default: nl)",
+    )
+    parser.add_argument(
+        "--report-renderer",
+        choices=["latex", "weasyprint"],
+        default="latex",
+        help="Renderer to use for report output (default: latex)",
+    )
+    parser.add_argument(
+        "--report-compile-pdf",
+        action="store_true",
+        default=True,
+        help="Compile report PDF (LaTeX only). Enabled by default; disable with --no-report-compile-pdf.",
+    )
+    parser.add_argument(
+        "--no-report-compile-pdf",
+        dest="report_compile_pdf",
+        action="store_false",
+        help="Disable PDF compilation; still outputs .tex/.md",
+    )
+    parser.add_argument(
+        "--enable-figures",
+        dest="report_enable_figures",
+        action="store_true",
+        default=True,
+        help="Generate figures (traffic light, forest) when rendering reports (default: on).",
+    )
+    parser.add_argument(
+        "--disable-figures",
+        dest="report_enable_figures",
+        action="store_false",
+        help="Disable figure generation in reports.",
     )
     # Appraisal-specific arguments
     parser.add_argument(
@@ -260,6 +301,10 @@ def main():
                 max_correction_iterations=max_iter,
                 quality_thresholds=quality_thresholds,
                 enable_iterative_correction=enable_iter,
+                report_language=args.report_language,
+                report_renderer=args.report_renderer,
+                report_compile_pdf=args.report_compile_pdf,
+                report_enable_figures=args.report_enable_figures,
             )
 
         # Print result summary
@@ -315,6 +360,26 @@ def main():
                     certainty = grade.get("certainty", "—")
                     outcome_id = grade.get("outcome_id", "—")
                     console.print(f"[dim]  → {outcome_id}: {certainty}[/dim]")
+        elif args.step == "report_generation":
+            final_status = result.get("final_status", result.get("status", "unknown"))
+            best_iter = result.get("best_iteration")
+            iteration_count = result.get("iteration_count", 0)
+            render_paths = result.get("rendered_paths", {})
+            quality_score = None
+            if result.get("best_validation"):
+                quality_score = (
+                    result["best_validation"].get("validation_summary", {}).get("quality_score")
+                )
+            console.print(f"[cyan]Final status:[/cyan] {final_status}")
+            console.print(f"[cyan]Iterations:[/cyan] {iteration_count}")
+            if best_iter is not None:
+                console.print(f"[cyan]Best iteration:[/cyan] {best_iter}")
+            if quality_score is not None:
+                console.print(f"[cyan]Quality score:[/cyan] {quality_score:.1%}")
+            if render_paths:
+                console.print("[cyan]Rendered artifacts:[/cyan]")
+                for key, path in render_paths.items():
+                    console.print(f"[dim]  → {key}: {path}[/dim]")
         elif args.step in ["validation"]:
             validation_status = result.get("verification_summary", {}).get("overall_status", "—")
             completeness = result.get("verification_summary", {}).get("completeness_score", 0)
@@ -330,8 +395,8 @@ def main():
 
     else:
         # Full pipeline execution
-        # Updated pipeline steps for 4-component system
-        table = Table(title="Pipeline stappen (4-step systeem)", box=box.SIMPLE_HEAVY)
+        # Updated pipeline steps for 5-component system
+        table = Table(title="Pipeline stappen (5-step systeem)", box=box.SIMPLE_HEAVY)
         table.add_column("Stap", style="cyan", no_wrap=True)
         table.add_column("Status", style="green")
         steps = [
@@ -339,15 +404,15 @@ def main():
             ("2. Data extractie", ""),
             ("3. Validatie & Correctie", ""),
             ("4. Critical Appraisal", ""),
-            ("5. Finale outputs", ""),
+            ("5. Rapportgeneratie", ""),
         ]
         for s, st in steps:
             table.add_row(s, st)
         console.print(table)
 
-        # Run the four-step pipeline with selected LLM provider
+        # Run the five-step pipeline with selected LLM provider
         with console.status(
-            "[bold cyan]Bezig met vier-staps extractie pipeline...[/bold cyan]", spinner="dots"
+            "[bold cyan]Bezig met vijf-staps extractie pipeline...[/bold cyan]", spinner="dots"
         ):
             results = run_four_step_pipeline(
                 pdf_path=pdf_path,
@@ -355,6 +420,10 @@ def main():
                 llm_provider=args.llm_provider,
                 breakpoint_after_step=BREAKPOINT_AFTER_STEP,
                 have_llm_support=HAVE_LLM_SUPPORT,
+                report_language=args.report_language,
+                report_renderer=args.report_renderer,
+                report_compile_pdf=args.report_compile_pdf,
+                report_enable_figures=args.report_enable_figures,
             )
 
     # Show detailed summary
@@ -430,6 +499,26 @@ def main():
 
         if grade_outcomes:
             summary.add_row("GRADE outcomes", str(len(grade_outcomes)))
+
+    # Report generation summary
+    report = results.get("report_generation")
+    if report:
+        report_status = report.get("final_status", "—")
+        report_iterations = report.get("iteration_count", 0)
+        summary.add_row("Report status", report_status)
+        summary.add_row("Report iteraties", str(report_iterations))
+
+        # Quality score from best validation
+        best_val = report.get("best_validation", {})
+        quality_score = best_val.get("validation_summary", {}).get("quality_score")
+        if quality_score is not None:
+            summary.add_row("Report kwaliteit", f"{quality_score:.0%}")
+
+        # Rendered paths
+        render_paths = report.get("rendered_paths", {})
+        if render_paths:
+            for artifact_type, path in render_paths.items():
+                summary.add_row(f"  → {artifact_type}", str(path))
 
     console.print(summary)
 

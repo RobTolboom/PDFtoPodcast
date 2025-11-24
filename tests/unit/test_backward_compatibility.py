@@ -22,6 +22,7 @@ from src.pipeline.orchestrator import (
     STEP_CLASSIFICATION,
     STEP_CORRECTION,
     STEP_EXTRACTION,
+    STEP_REPORT_GENERATION,
     STEP_VALIDATION,
     STEP_VALIDATION_CORRECTION,
     run_single_step,
@@ -184,5 +185,6 @@ class TestBackwardCompatibility:
             STEP_EXTRACTION,
             STEP_VALIDATION_CORRECTION,
             STEP_APPRAISAL,
+            STEP_REPORT_GENERATION,  # Phase 2: Report generation added
         ]
         assert ALL_PIPELINE_STEPS == expected_steps

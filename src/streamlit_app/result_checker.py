@@ -87,6 +87,7 @@ def check_existing_results(identifier: str | None) -> dict:
             "correction": False,
             "validation_correction": False,
             "appraisal": False,
+            "report_generation": False,
         }
 
     tmp_dir = Path("tmp")
@@ -97,6 +98,8 @@ def check_existing_results(identifier: str | None) -> dict:
         "correction": (tmp_dir / f"{identifier}-extraction1.json").exists(),
         "validation_correction": any(tmp_dir.glob(f"{identifier}-validation[0-9]*.json")),
         "appraisal": any(tmp_dir.glob(f"{identifier}-appraisal[0-9]*.json")),
+        "report_generation": any(tmp_dir.glob(f"{identifier}-report[0-9]*.json"))
+        or (tmp_dir / f"{identifier}-report-best.json").exists(),
     }
     return results
 
@@ -180,6 +183,20 @@ def get_result_file_info(identifier: str, step: str) -> dict | None:
                 if not appraisal_files:
                     return None
                 file_path = max(appraisal_files, key=lambda p: p.stat().st_mtime)
+
+    elif step == "report_generation":
+        best_path = tmp_dir / f"{identifier}-report-best.json"
+        if best_path.exists():
+            file_path = best_path
+        else:
+            report0 = tmp_dir / f"{identifier}-report0.json"
+            if report0.exists():
+                file_path = report0
+            else:
+                report_files = list(tmp_dir.glob(f"{identifier}-report[0-9]*.json"))
+                if not report_files:
+                    return None
+                file_path = max(report_files, key=lambda p: p.stat().st_mtime)
 
     else:
         # Map step names to filenames for other steps

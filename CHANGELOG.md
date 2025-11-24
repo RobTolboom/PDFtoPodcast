@@ -9,6 +9,171 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Report Generation Feature - Phase 8: CLI Support** (#report-generation-phase8) - Complete CLI integration for report generation
+  - **CLI Flags:** `--report-language {nl,en}`, `--report-renderer {latex,weasyprint}`, `--report-compile-pdf/--no-report-compile-pdf`, `--enable-figures/--disable-figures`
+  - **Single Step Output:** Report generation single-step (`--step report_generation`) shows final status, iterations, quality score, and rendered artifact paths
+  - **Full Pipeline Summary:** Report generation row added to CLI summary table with status, iterations, quality score, and rendered paths
+  - **Documentation:** Updated help text from "four-step" to "five-step pipeline", added report example to CLI description
+  - **Error Handling:** Comprehensive error handling for LaTeX/WeasyPrint renderer failures with graceful degradation
+
+- **Report Generation Feature - Phase 7: Streamlit UI Integration** (#report-generation-phase7) - Report step integrated into Streamlit execution flow
+  - **New Execution Step:** Report Generation added as Step 5 (after Appraisal)
+  - **Report Settings Panel:** Language selection (nl/en), PDF compile toggle, figure generation toggle, renderer selection (latex/weasyprint)
+  - **Result Display:** Quality score summary, best iteration indicator, validation status
+  - **Iteration History Table:** 8-column table showing completeness, accuracy, cross-reference consistency, data consistency, schema compliance, critical issues, quality score, and status per iteration
+  - **Artifact Downloads:** Download buttons for PDF, LaTeX source (.tex), and Markdown fallback (.md)
+  - **Manual Re-run:** "Re-run report generation" button for regenerating reports without full pipeline restart
+  - **Progress Tracking:** Basic progress callback integration (Streamlit limitations prevent true real-time streaming)
+
+- **Report Generation Feature - Phase 5: Figure Generators** (#report-generation-phase5) - Matplotlib-based figure generation for reports
+  - **Figure Generator Module:** `src/rendering/figure_generator.py` with:
+    - `generate_figure()` main entry point
+    - `rob_traffic_light` figure type (basic Risk of Bias visualization)
+    - `forest` figure type (basic forest plot with error bars)
+    - `prisma` figure type (PRISMA 2020 flow diagram for systematic reviews)
+    - `consort` figure type (CONSORT flow diagram for clinical trials, supports multi-arm)
+    - `FigureGenerationError` exception for error handling
+    - 300 dpi PNG output with Agg backend
+    - Shared utilities: `_draw_flow_box()` and `_draw_flow_arrow()` for flow diagrams
+  - **LaTeX Integration:** Figure blocks now render with `\includegraphics`, `\caption`, and `\label`
+  - **Unit Tests:** 16 tests for figure generation (skip when matplotlib not installed)
+
+### Fixed
+
+- **Appraisal Runs Despite Failed Schema Validation:** Fixed bug where appraisal step would run with unvalidated extraction data when schema validation failed (< 50% quality). The fallback logic in `run_single_step` now checks for `failed_*` status before proceeding, and raises `ValueError` to prevent appraisal with invalid data. Additionally, the skip-check in `run_four_step_pipeline` now catches all `failed_*` statuses instead of only `failed_schema_validation`.
+
+- **CLI Syntax Error in run_pipeline.py:** Fixed critical syntax errors (indentation issues and orphaned code after `if __name__ == "__main__"`) that caused `make lint` to fail with 12 invalid-syntax errors
+
+- **Appraisal File Loading Bug:** Report generation now correctly loads `appraisal-best.json` instead of looking for non-existent `appraisal.json`
+
+- **Report Generation Feature - Phase 4: LaTeX Renderer Improvements** (#report-generation-phase4) - Enhanced LaTeX renderer with expanded test coverage and new features
+  - **Test Coverage Expansion:** Added 24 new unit tests (from 3 to 27 total) covering:
+    - All text block styles (paragraph, bullets, numbered)
+    - All 4 callout variants (warning, note, implication, clinical_pearl)
+    - Table alignments (l, c, r, S) and render_hints
+    - Figure block error handling (Phase 5 scope)
+    - Subsection rendering and nesting
+    - LaTeX special character escaping
+  - **Metadata Injection:** Report title, authors, and publication date now injected from `report.metadata` into LaTeX output
+  - **Label Generation:** Tables now generate `\label{tbl_xxx}` commands for cross-referencing (when label field present)
+  - **Template Updates:**
+    - Added metadata placeholders (`{{TITLE}}`, `{{AUTHORS}}`, `{{DATE}}`) to `main.tex`
+    - Created `figures.tex` placeholder for Phase 5 figure macros
+  - **Quality Assurance:** All 27 LaTeX renderer tests pass
+
+### Changed
+
+- **LLM Timeout Increased**: Extended default timeout from 10 to 30 minutes (600s → 1800s)
+  - Accommodates longer report generation and complex extraction tasks
+  - Configurable via `LLM_TIMEOUT` environment variable
+  - With 3 automatic retries: max total time 90 minutes (was 30 minutes)
+
+### Fixed
+
+- **Report Generation Feature - Phase 3: Critical Integration & Test Coverage Fixes** (#report-generation-phase3-fixes) - Fixed 3 critical issues that made Phase 3 implementation non-functional
+  - **Issue #1 - Dead Code (Pipeline Dispatch)**: Modified pipeline dispatch (orchestrator.py:4455) to conditionally call `run_report_with_correction()` when `enable_iterative_correction=True`, making Phase 3 loop actually execute. Previously, dispatch always called Phase 2 single-pass `run_report_generation()`, making all Phase 3 code dead code.
+  - **Issue #2 - Missing Dependency Gating**: Added ~70 lines of upstream quality validation to `run_report_with_correction()` start:
+    - Block if extraction quality < 0.70
+    - Warn if extraction quality < 0.90
+    - Block if appraisal missing Risk of Bias data
+    - Warn if appraisal quality < 0.70
+    - Matches feature spec requirements (lines 1625-1636)
+  - **Issue #3 - Zero Test Coverage**: Created comprehensive test suite for Phase 3:
+    - `tests/unit/test_report_quality.py`: 17 tests (~270 lines) for `_extract_report_metrics()`, `is_report_quality_sufficient()`, and `_select_best_report_iteration()`
+    - `tests/integration/test_report_full_loop.py`: 8 integration tests (~700 lines) covering full iterative loop, early stopping, max iterations, degradation detection, dependency gating, and file persistence
+    - All 25 new tests pass, bringing total test count to 152 passed
+  - **Quality Assurance:** Code formatted with black, linted with ruff, all existing + new tests pass
+  - **Status:** Phase 3 now fully functional with proper pipeline integration, safety checks, and automated test coverage
+
+- **Report Generation Feature - Phase 2: Critical Bugfixes** (#report-generation-phase2-bugfix) - Fixed 4 blocking issues that prevented Phase 2 from running
+  - **Issue #1 - LLM Method Call**: Changed `llm.generate_structured_output()` (non-existent) to `llm.generate_json_with_schema()` (correct method)
+  - **Issue #2 - Schema Validation**: Replaced `validate_schema_compatibility()` (wrong signature) with `validate_with_schema()` from validation module
+  - **Issue #3 - Missing Prompt Inputs**: Added required LANGUAGE, GENERATION_TIMESTAMP, and PIPELINE_VERSION to prompt context (prompt contract compliance)
+  - **Issue #4 - Missing Test Coverage**: Added 3 integration tests with mocked LLM to verify run_report_generation() actually works
+  - All tests pass (130 passed), code formatted and linted
+
+- **Report Generation Feature - Phase 2: Prompt Context & Language Routing** (#report-generation-phase2) - Ensured report orchestration supplies complete inputs and configurable language
+  - Added dynamic pipeline version detection (using package metadata or `pyproject.toml`)
+  - Included serialized `report.schema.json` in LLM prompt context to match template requirements
+  - Propagated `report_language` option through CLI, Streamlit settings, and orchestrator so users can select Dutch or English output
+  - Updated UI/CLI defaults, file-management utilities, and unit tests to cover the new behaviour
+
+### Added
+
+- **Report Generation Feature - Phase 3: Validation & Correction Loop** (#report-generation-phase3) - Iterative quality improvement for report generation
+  - **Quality Metrics & Thresholds:**
+    - `REPORT_QUALITY_THRESHOLDS`: Quality thresholds constant (completeness ≥85%, accuracy ≥95%, cross_reference_consistency ≥90%, data_consistency ≥90%, schema_compliance ≥95%, critical_issues = 0)
+    - `_extract_report_metrics()`: Extract quality scores from validation result with weighted quality_score (35% accuracy + 30% completeness + 10% cross-ref + 10% data + 15% schema)
+    - `is_report_quality_sufficient()`: Check if all thresholds met for stopping iteration
+    - `_select_best_report_iteration()`: Select best iteration by quality_score with accuracy as tiebreaker (data correctness paramount)
+  - **Validation & Correction Steps:**
+    - `_run_report_validation_step()`: LLM-based validation against Report-validation.txt prompt, checking completeness, accuracy, cross-reference consistency, data consistency, and schema compliance
+    - `_run_report_correction_step()`: LLM-based correction using Report-correction.txt prompt to fix data mismatches, missing sections, broken references, and schema violations
+  - **Main Iterative Loop:**
+    - `run_report_with_correction()`: Complete workflow with automatic iterative correction (similar to appraisal pattern)
+      - Iteration 0: Generate initial report + validate
+      - Iterations 1-N: Correct + re-validate until quality sufficient or max iterations reached
+      - Early stopping on quality degradation (window=2)
+      - Best iteration selection on max iterations or degradation
+      - Error recovery with partial results on LLM/schema errors
+  - **Return Structure:**
+    - `best_report`: Best report JSON selected by quality metrics
+    - `best_validation`: Validation of best report
+    - `best_iteration`: Iteration number of best result
+    - `iterations`: Full iteration history with metrics per iteration
+    - `final_status`: "passed" | "max_iterations_reached" | "early_stopped_degradation" | "failed"
+    - `iteration_count`: Total iterations performed
+    - `improvement_trajectory`: Quality scores per iteration for analysis
+  - **File Management:** All file manager methods from Phase 2 used for saving iterations and best results
+  - **Import Updates:** Added `load_report_validation_prompt` and `load_report_correction_prompt` to orchestrator imports
+  - **Quality Assurance:** All existing tests pass (127 passed), code formatted and linted
+  - **Status:** Phase 3 complete (validation & correction loop), ready for Phase 4 (LaTeX renderer)
+
+- **Report Generation Feature - Phase 2: Orchestrator Integration** (#report-generation-phase2) - Pipeline integration for single-pass report generation
+  - **Orchestrator:**
+    - `run_report_generation()`: Single-pass report generator with LLM call, schema validation, and file saving
+    - `STEP_REPORT_GENERATION` constant and integration in `ALL_PIPELINE_STEPS`
+    - Full integration in `run_single_step()` with dependency validation (classification + extraction + appraisal)
+    - Automatic use of best iterations from validation_correction and appraisal steps
+    - Progress callbacks and rich console output for UI integration
+  - **File Manager:**
+    - `save_report_iteration()`: Save report and optional validation JSON for iteration
+    - `load_report_iteration()`: Load report iteration with validation
+    - `save_best_report()`: Save best report iteration (for Phase 3 correction loop)
+    - `get_report_iterations()`: Get all report iterations with metadata
+  - **Testing:**
+    - `tests/unit/test_report_generation.py`: 7 tests validating file manager methods, constants, and pipeline integration
+  - **Status:** Phase 2 complete (single-pass generation), ready for Phase 3 (validation & correction loop)
+
+- **Report Generation Feature - Phase 1: Schemas & Prompts** (#report-generation-phase1) - Foundation for structured report generation from extraction and appraisal data
+  - **Schemas:**
+    - `schemas/report.schema.json`: Block-based report structure (textBlock, tableBlock, figureBlock, calloutBlock) with metadata, layout, sections, and source_map (~300 lines)
+    - `schemas/report_validation.schema.json`: Validation report structure with quality scores (completeness, accuracy, consistency, schema compliance) and issues taxonomy (~150 lines)
+    - Both schemas registered in `src/schemas_loader.py` SCHEMA_MAPPING
+  - **Prompts:**
+    - `prompts/Report-generation.txt`: Single template with branching for all 5 study types (interventional, observational, systematic_review, prediction, editorials), covering 12 core sections + type-specific appendices (~600 lines)
+    - `prompts/Report-validation.txt`: Quality validation with 4 scored dimensions + logical alignment checks (~300 lines)
+    - `prompts/Report-correction.txt`: Issue-driven correction workflow with evidence-locked fixes (~250 lines)
+    - All prompts registered in `src/prompts.py` with dedicated loader functions and included in `validate_prompt_directory()`
+  - **Code Integration:**
+    - Added `load_report_generation_prompt()`, `load_report_validation_prompt()`, `load_report_correction_prompt()` to `src/prompts.py`
+    - Updated `get_all_available_prompts()` to include report prompts
+    - Updated module docstring to reflect 6-step pipeline (Classification → Extraction → Validation → Correction → Appraisal → Report)
+  - **Testing:**
+    - `tests/unit/test_report_schema.py`: 18 tests validating schema structure, block types, enums, label patterns (100% pass)
+    - `tests/unit/test_report_prompts.py`: 18 tests validating prompt content, coverage, language support, traceability (100% pass)
+  - **Quality Assurance:** All files pass `make format`, `make lint`, `make test-fast`
+  - **Status:** Phase 1 complete, ready for Phase 2 (Orchestrator integration)
+
+- **Report Generation Feature Documentation** (#report-generation-feature) - Comprehensive feature specification for structured report generation (v0.4)
+  - **Complete technical design:** Block-based JSON architecture (text, table, figure, callout blocks), LaTeX rendering pipeline, iterative validation/correction
+  - **17-section report structure:** Core sections (clinical bottom-line, study snapshot, quality assessment, results, limitations) plus type-specific appendices (CONSORT, PRISMA, PROBAST)
+  - **Schema design:** Self-contained `report.schema.json` (no bundling required) with strict typing, render hints, and source map traceability
+  - **Prompt architecture:** 3 prompts (generation, validation, correction) with study-type routing and quality thresholds
+  - **Critical review improvements:** File naming patterns, appraisal dependency validation, logical_consistency_score naming, prompt token limits mitigation, best practices examples, CLI flag consistency
+  - **8 implementation phases:** Schema/prompts → orchestrator → validation loop → LaTeX renderer → figures → UI/CLI → testing/docs
+  - **File:** `features/report-generation.md` (2100+ lines, ready for Phase 1 implementation)
+
 - **Critical Appraisal Pipeline Step** (#appraisal-feature) - New 4th pipeline step for structured quality assessment
   - **Study-type routing:** Automatically routes to appropriate appraisal tool based on publication type:
     - RoB 2 for randomized controlled trials (5 domains + overall risk of bias)

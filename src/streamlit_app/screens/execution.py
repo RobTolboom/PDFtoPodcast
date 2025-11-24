@@ -78,6 +78,7 @@ from src.pipeline.orchestrator import (
     STEP_CLASSIFICATION,
     STEP_CORRECTION,
     STEP_EXTRACTION,
+    STEP_REPORT_GENERATION,
     STEP_VALIDATION,
     STEP_VALIDATION_CORRECTION,
     run_single_step,
@@ -1048,6 +1049,32 @@ def _trigger_appraisal_rerun():
     st.rerun()
 
 
+def _trigger_report_rerun():
+    """Reset state so report generation step reruns from the execution screen."""
+    exec_state = st.session_state.execution
+    exec_state["status"] = "running"
+    exec_state["error"] = None
+    exec_state["redirect_countdown"] = None
+    exec_state["redirect_cancelled"] = False
+    exec_state["end_time"] = None
+    exec_state["results"].pop(STEP_REPORT_GENERATION, None)
+
+    # Reset report generation step status
+    st.session_state.step_status[STEP_REPORT_GENERATION] = {
+        "status": "pending",
+        "start_time": None,
+        "end_time": None,
+        "result": None,
+        "error": None,
+        "elapsed_seconds": None,
+        "verbose_data": {},
+        "file_path": None,
+    }
+
+    exec_state["current_step_index"] = ALL_PIPELINE_STEPS.index(STEP_REPORT_GENERATION)
+    st.rerun()
+
+
 def display_step_status(step_name: str, step_label: str, step_number: int):
     """
     Display status UI for a single pipeline step.
@@ -1145,6 +1172,8 @@ def display_step_status(step_name: str, step_label: str, step_number: int):
                     _display_validation_correction_result(result)
                 elif step_name == STEP_APPRAISAL:
                     _display_appraisal_result(result)
+                elif step_name == STEP_REPORT_GENERATION:
+                    _display_report_result(result)
 
             # Show file path if available (non-verbose always shows this)
             file_path = step.get("file_path")
@@ -1302,10 +1331,13 @@ def show_execution_screen():
         settings = st.session_state.settings
         provider = settings["llm_provider"].upper()
         max_pages = settings["max_pages"] or "All"
+        report_lang = settings.get("report_language", "nl").upper()
         steps = settings["steps_to_run"]
         steps_text = ", ".join([s.title() for s in steps])
 
-        st.caption(f"**Settings:** {provider} • Max pages: {max_pages} • Steps: {steps_text}")
+        st.caption(
+            f"**Settings:** {provider} • Max pages: {max_pages} • Report lang: {report_lang} • Steps: {steps_text}"
+        )
     else:
         st.error("⚠️ No PDF selected. Please go back to upload screen.")
         if st.button("⬅️ Back to Upload"):
@@ -1352,6 +1384,7 @@ def show_execution_screen():
         display_step_status(STEP_EXTRACTION, "Extraction", 2)
         display_step_status(STEP_VALIDATION_CORRECTION, "Validation & Correction", 3)
         display_step_status(STEP_APPRAISAL, "Appraisal", 4)
+        display_step_status(STEP_REPORT_GENERATION, "Report Generation", 5)
 
         # Check if all steps completed
         if current_step_index >= len(steps_to_run):
@@ -1389,6 +1422,8 @@ def show_execution_screen():
                 max_iter_setting = settings.get("max_appraisal_iterations", 3)
                 quality_thresholds = settings.get("appraisal_quality_thresholds")
                 enable_iterative = settings.get("appraisal_enable_iterative_correction", True)
+            elif current_step_name == STEP_REPORT_GENERATION:
+                enable_iterative = True  # always use iterative report loop
 
             # Execute current step with previous results
             step_result = run_single_step(
@@ -1402,6 +1437,10 @@ def show_execution_screen():
                 max_correction_iterations=max_iter_setting,
                 quality_thresholds=quality_thresholds,
                 enable_iterative_correction=enable_iterative,
+                report_language=settings.get("report_language", "nl"),
+                report_compile_pdf=settings.get("report_compile_pdf", True),
+                report_enable_figures=settings.get("report_enable_figures", True),
+                report_renderer=settings.get("report_renderer", "latex"),
             )
 
             # Store step result
@@ -1466,6 +1505,12 @@ def show_execution_screen():
         display_step_status(STEP_EXTRACTION, "Extraction", 2)
         display_step_status(STEP_VALIDATION_CORRECTION, "Validation & Correction", 3)
         display_step_status(STEP_APPRAISAL, "Appraisal", 4)
+        display_step_status(STEP_REPORT_GENERATION, "Report Generation", 5)
+
+        st.markdown("---")
+
+        # Report artifacts
+        display_report_artifacts()
 
         st.markdown("---")
 
@@ -1545,5 +1590,137 @@ def show_execution_screen():
         display_step_status(STEP_CLASSIFICATION, "Classification", 1)
         display_step_status(STEP_EXTRACTION, "Extraction", 2)
         display_step_status(STEP_VALIDATION_CORRECTION, "Validation & Correction", 3)
+        display_step_status(STEP_APPRAISAL, "Appraisal", 4)
+        display_step_status(STEP_REPORT_GENERATION, "Report Generation", 5)
 
         st.markdown("---")
+
+        # If report artifacts exist, still offer downloads
+        display_report_artifacts()
+
+
+def display_report_artifacts():
+    """
+    Show download buttons for report artifacts (.tex/.pdf) if available.
+    """
+    if not st.session_state.pdf_path:
+        return
+    fm = PipelineFileManager(Path(st.session_state.pdf_path))
+    render_dir = fm.tmp_dir / "render"
+    tex_file = render_dir / "report.tex"
+    pdf_file = render_dir / "report.pdf"
+    md_file = render_dir / "report.md"
+    root_md = fm.tmp_dir / f"{fm.identifier}-report.md"
+
+    st.markdown("### Report Artifacts")
+    has_any = False
+    if tex_file.exists():
+        has_any = True
+        with open(tex_file, "rb") as f:
+            st.download_button("⬇️ Download LaTeX (.tex)", f, file_name=tex_file.name)
+    if pdf_file.exists():
+        has_any = True
+        with open(pdf_file, "rb") as f:
+            st.download_button("⬇️ Download PDF", f, file_name=pdf_file.name)
+    if root_md.exists():
+        has_any = True
+        with open(root_md, "rb") as f:
+            st.download_button("⬇️ Download Markdown (.md)", f, file_name=root_md.name)
+    elif md_file.exists():
+        has_any = True
+        with open(md_file, "rb") as f:
+            st.download_button("⬇️ Download Markdown (.md)", f, file_name=md_file.name)
+    if not has_any:
+        st.info("No report artifacts available yet. Run report generation to produce .tex/.pdf.")
+
+
+def _display_report_result(result: dict):
+    """
+    Render a brief summary for the report step (best iteration, quality, outputs).
+    """
+    if not result:
+        st.write("Report generation completed.")
+        return
+
+    final_status = result.get("final_status", result.get("_pipeline_metadata", {}).get("status"))
+    best_iter = result.get("best_iteration")
+    quality = result.get("best_validation", {}).get("validation_summary", {}).get("quality_score")
+    warnings = result.get("_pipeline_metadata", {}).get("warnings")
+
+    if best_iter is not None:
+        st.write(f"🏆 **Best iteration:** {best_iter}")
+    if quality is not None:
+        st.write(f"📊 **Quality score:** {quality:.2f}")
+    if final_status:
+        st.write(f"✅ **Final status:** {final_status}")
+    if warnings:
+        st.warning(f"⚠️ {warnings}")
+
+    # Show validation status if available
+    best_val_status = (
+        result.get("best_validation", {}).get("validation_summary", {}).get("overall_status")
+    )
+    if best_val_status:
+        st.write(f"🧪 **Validation:** {best_val_status}")
+
+    # Get iterations for history table
+    iterations = result.get("iterations", [])
+    best_iteration = result.get("best_iteration", 0)
+
+    # Display iteration history table
+    if iterations:
+        st.markdown("#### 📊 Iteration History")
+
+        # Build table data
+        table_data = []
+        for iter_data in iterations:
+            metrics = iter_data.get("metrics", {})
+            is_best = iter_data.get("iteration_num") == best_iteration
+
+            table_data.append(
+                {
+                    "Iteration": iter_data.get("iteration_num", 0),
+                    "Complete": f"{metrics.get('completeness_score', 0):.1%}",
+                    "Accuracy": f"{metrics.get('accuracy_score', 0):.1%}",
+                    "XRef": f"{metrics.get('cross_reference_consistency_score', 0):.1%}",
+                    "Data": f"{metrics.get('data_consistency_score', 0):.1%}",
+                    "Schema": f"{metrics.get('schema_compliance_score', 0):.1%}",
+                    "Critical": metrics.get("critical_issues", 0),
+                    "Quality": f"{metrics.get('quality_score', 0):.1%}",
+                    "Status": "✅ BEST" if is_best else "",
+                }
+            )
+
+        # Display as DataFrame
+        df = pd.DataFrame(table_data)
+        st.dataframe(df, use_container_width=True, hide_index=True)
+
+    # Show metrics from best iteration
+    if iterations and best_iteration < len(iterations):
+        best_iter_data = iterations[best_iteration]
+        best_metrics = best_iter_data.get("metrics", {})
+
+        st.markdown("#### 📈 Best Iteration Metrics")
+        col1, col2, col3, col4 = st.columns(4)
+
+        with col1:
+            completeness = best_metrics.get("completeness_score", 0)
+            st.metric("Completeness", f"{completeness:.1%}")
+
+        with col2:
+            accuracy = best_metrics.get("accuracy_score", 0)
+            st.metric("Accuracy", f"{accuracy:.1%}")
+
+        with col3:
+            xref = best_metrics.get("cross_reference_consistency_score", 0)
+            st.metric("XRef Consistency", f"{xref:.1%}")
+
+        with col4:
+            data_cons = best_metrics.get("data_consistency_score", 0)
+            st.metric("Data Consistency", f"{data_cons:.1%}")
+
+    # Re-run button
+    execution_status = st.session_state.execution.get("status", "idle")
+    if execution_status in {"completed", "failed"}:
+        if st.button("🔁 Re-run report generation", key="rerun_report"):
+            _trigger_report_rerun()

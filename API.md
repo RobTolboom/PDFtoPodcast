@@ -281,6 +281,152 @@ if appraisal_result['final_status'] == 'passed':
 
 ---
 
+### Report Generation Functions
+
+#### `run_report_with_correction()`
+
+Generate structured report with iterative validation/correction loop.
+
+**Signature:**
+```python
+def run_report_with_correction(
+    extraction_result: dict[str, Any],
+    appraisal_result: dict[str, Any],
+    classification_result: dict[str, Any],
+    llm: BaseLLMProvider,
+    file_manager: PipelineFileManager,
+    language: str = "nl",
+    max_iterations: int = 3,
+    quality_thresholds: dict | None = None,
+    progress_callback: Callable[[str, str, dict], None] | None = None,
+) -> dict[str, Any]
+```
+
+**Parameters:**
+- `extraction_result`: Validated extraction JSON
+- `appraisal_result`: Validated appraisal JSON
+- `classification_result`: Classification result (for publication_type + metadata)
+- `llm`: Instantiated LLM provider
+- `file_manager`: File manager for saving report iterations
+- `language`: Report language (`"nl"` or `"en"`, default: `"nl"`)
+- `max_iterations`: Max correction attempts (default: 3)
+- `quality_thresholds`: Custom thresholds (default: `accuracy_score` ≥0.95, `completeness_score` ≥0.85, `cross_reference_consistency_score` ≥0.90, `data_consistency_score` ≥0.90, `schema_compliance_score` ≥0.95)
+- `progress_callback`: Optional callback for UI updates
+
+**Returns:**
+Dictionary with keys:
+- `best_report`: Best report JSON (block-based structure)
+- `best_validation`: Validation of best report
+- `iterations`: All iteration history with metrics
+- `final_status`: `"passed"` | `"max_iterations_reached"` | `"blocked"`
+- `iteration_count`: Total iterations performed
+- `improvement_trajectory`: Quality scores per iteration
+
+**Dependency Gating:**
+Blocks if upstream quality insufficient:
+- Extraction quality < 0.70 → blocked
+- Appraisal missing Risk of Bias → blocked
+- Appraisal validation failed → blocked
+
+**Example:**
+```python
+from src.pipeline.orchestrator import run_report_with_correction
+from src.llm import get_llm_provider
+
+llm = get_llm_provider("openai")
+report_result = run_report_with_correction(
+    extraction_result=extraction,
+    appraisal_result=appraisal,
+    classification_result=classification,
+    llm=llm,
+    file_manager=file_mgr,
+    language="nl",
+    max_iterations=3
+)
+
+if report_result['final_status'] == 'passed':
+    report = report_result['best_report']
+    print(f"Sections: {len(report['sections'])}")
+    print(f"Quality: {report_result['best_validation']['validation_summary']['quality_score']:.2f}")
+```
+
+**See also:** [`features/report-generation.md`](features/report-generation.md), [`docs/report.md`](docs/report.md)
+
+---
+
+#### `run_report_generation()`
+
+Single-pass report generation (no correction loop).
+
+**Signature:**
+```python
+def run_report_generation(
+    extraction_result: dict[str, Any],
+    appraisal_result: dict[str, Any],
+    classification_result: dict[str, Any],
+    llm: BaseLLMProvider,
+    report_schema: dict[str, Any],
+    language: str = "nl",
+) -> dict[str, Any]
+```
+
+**Parameters:**
+- `extraction_result`: Validated extraction JSON
+- `appraisal_result`: Validated appraisal JSON
+- `classification_result`: Classification result
+- `llm`: Instantiated LLM provider
+- `report_schema`: Report JSON schema
+- `language`: Report language (`"nl"` or `"en"`)
+
+**Returns:**
+Report JSON conforming to `report.schema.json`
+
+**Example:**
+```python
+from src.pipeline.orchestrator import run_report_generation
+from src.schemas_loader import load_schema
+
+report_schema = load_schema("report")
+report = run_report_generation(
+    extraction_result=extraction,
+    appraisal_result=appraisal,
+    classification_result=classification,
+    llm=llm,
+    report_schema=report_schema,
+    language="en"
+)
+```
+
+---
+
+#### `is_report_quality_sufficient()`
+
+Check if report validation meets quality thresholds.
+
+**Signature:**
+```python
+def is_report_quality_sufficient(
+    validation_result: dict | None,
+    thresholds: dict | None = None
+) -> bool
+```
+
+**Parameters:**
+- `validation_result`: Validation report from report validation
+- `thresholds`: Custom thresholds (default: see `run_report_with_correction()`)
+
+**Returns:**
+`True` if all thresholds met and `critical_issues == 0`, `False` otherwise
+
+**Quality Metrics:**
+- **Accuracy** (35%): Data matches extraction/appraisal exactly
+- **Completeness** (30%): All required sections present
+- **Cross-reference consistency** (10%): Table/figure refs resolve
+- **Data consistency** (10%): Numbers consistent across sections
+- **Schema compliance** (15%): Valid JSON structure
+
+---
+
 #### `run_appraisal_single_pass()`
 
 Single appraisal + validation cycle without iterative correction.
@@ -871,7 +1017,7 @@ def load_schema(publication_type: str) -> dict[str, Any]
 
 **Supported Types:**
 - **Extraction schemas**: `interventional_trial`, `observational_analytic`, `evidence_synthesis`, `prediction_prognosis`, `editorials_opinion`
-- **Pipeline schemas**: `classification`, `validation`, `appraisal`, `appraisal_validation`
+- **Pipeline schemas**: `classification`, `validation`, `appraisal`, `appraisal_validation`, `report`, `report_validation`
 
 **Returns:**
 JSON schema dictionary (Draft 2020-12)
@@ -1111,6 +1257,37 @@ def load_appraisal_correction_prompt() -> str
 **Files:**
 - `prompts/Appraisal-validation.txt`
 - `prompts/Appraisal-correction.txt`
+
+---
+
+### Report Prompts
+
+#### `load_report_generation_prompt()`
+
+Load report generation prompt.
+
+**Signature:**
+```python
+def load_report_generation_prompt() -> str
+```
+
+**File:** `prompts/Report-generation.txt`
+
+---
+
+#### `load_report_validation_prompt()` / `load_report_correction_prompt()`
+
+Load validation/correction prompts for reports.
+
+**Signatures:**
+```python
+def load_report_validation_prompt() -> str
+def load_report_correction_prompt() -> str
+```
+
+**Files:**
+- `prompts/Report-validation.txt`
+- `prompts/Report-correction.txt`
 
 ---
 
@@ -1485,7 +1662,7 @@ CLI entry point for pipeline execution.
 - `--max-pages`: Limit number of pages (default: all pages)
 - `--keep-tmp`: Keep intermediate files (flag, default: False)
 - `--llm-provider`: Choose LLM provider (choices: `openai`, `claude`, default: `openai`)
-- `--step`: Run specific step (choices: `classification`, `extraction`, `validation`, `correction`, `validation_correction`, `appraisal`)
+- `--step`: Run specific step (choices: `classification`, `extraction`, `validation`, `correction`, `validation_correction`, `appraisal`, `report_generation`)
 
 #### Validation/Correction Thresholds
 - `--max-iterations`: Max correction attempts for validation_correction (default: 3)
@@ -1501,17 +1678,27 @@ CLI entry point for pipeline execution.
 - `--appraisal-schema-threshold`: Min schema compliance for appraisal (0.0-1.0, default: 0.95)
 - `--appraisal-single-pass`: Skip iterative correction for appraisal (flag, default: False)
 
+#### Report Generation Options
+- `--report-language`: Report language (choices: `nl`, `en`, default: `nl`)
+- `--report-renderer`: Rendering engine (choices: `latex`, `weasyprint`, default: `latex`)
+- `--report-compile-pdf` / `--no-report-compile-pdf`: Enable/disable PDF compilation (default: enabled)
+- `--enable-figures` / `--disable-figures`: Enable/disable figure generation (default: enabled)
+- `--skip-report`: Skip report generation in full pipeline (flag)
+
 ---
 
 ### Usage Examples
 
 #### Full Pipeline
 ```bash
-# Run complete 4-step pipeline with defaults
+# Run complete 5-step pipeline with defaults
 python run_pipeline.py paper.pdf
 
 # Use Claude with custom page limit
 python run_pipeline.py paper.pdf --llm-provider claude --max-pages 50
+
+# Skip report generation (4-step pipeline)
+python run_pipeline.py paper.pdf --skip-report
 ```
 
 #### Single Step Execution
@@ -1539,6 +1726,21 @@ python run_pipeline.py paper.pdf --step appraisal --appraisal-max-iter 3
 python run_pipeline.py paper.pdf --step appraisal --appraisal-single-pass
 ```
 
+#### Report Generation
+```bash
+# Run report generation only (requires existing extraction + appraisal)
+python run_pipeline.py paper.pdf --step report_generation
+
+# Custom language and renderer
+python run_pipeline.py paper.pdf --step report_generation --report-language en --report-renderer weasyprint
+
+# LaTeX source only (no PDF compilation)
+python run_pipeline.py paper.pdf --step report_generation --no-report-compile-pdf
+
+# Disable figure generation
+python run_pipeline.py paper.pdf --step report_generation --disable-figures
+```
+
 ---
 
 ## Cross-References & Dependencies
@@ -1564,6 +1766,11 @@ python run_pipeline.py paper.pdf --step appraisal --appraisal-single-pass
    - Inputs: `extraction_result`, `classification_result["publication_type"]` → routes to appraisal prompt
    - Outputs: Risk of bias assessment, GRADE ratings, applicability
 
+6. **Report Generation** (requires: classification, extraction, appraisal)
+   - Inputs: `classification_result`, `extraction_result`, `appraisal_result`
+   - Outputs: Block-based report JSON, rendered PDF/LaTeX/Markdown
+   - Dependency gating: Blocks if extraction quality < 0.70 or appraisal missing RoB
+
 ### Key Data Flows
 
 - `classification_result["publication_type"]` → routes to appropriate extraction/appraisal prompts
@@ -1584,6 +1791,13 @@ python run_pipeline.py paper.pdf --step appraisal --appraisal-single-pass
 - `evidence_support_score` ≥ 0.90 (90%) - weight: 25%
 - `schema_compliance_score` ≥ 0.95 (95%) - weight: 15%
 
+#### Report Validation
+- `accuracy_score` ≥ 0.95 (95%) - weight: 35%
+- `completeness_score` ≥ 0.85 (85%) - weight: 30%
+- `cross_reference_consistency_score` ≥ 0.90 (90%) - weight: 10%
+- `data_consistency_score` ≥ 0.90 (90%) - weight: 10%
+- `schema_compliance_score` ≥ 0.95 (95%) - weight: 15%
+
 #### Schema Quality Threshold
 - `SCHEMA_QUALITY_THRESHOLD` = 0.5 (50%) - triggers LLM validation in dual validation
 
@@ -1594,7 +1808,10 @@ python run_pipeline.py paper.pdf --step appraisal --appraisal-single-pass
 - **Architecture**: [`ARCHITECTURE.md`](ARCHITECTURE.md)
 - **Feature Specifications**: [`features/`](features/)
   - Appraisal: [`features/appraisal.md`](features/appraisal.md)
+  - Report Generation: [`features/report-generation.md`](features/report-generation.md)
   - Validation/Correction: [`features/iterative-validation-correction.md`](features/iterative-validation-correction.md)
 - **Usage Guide**: [`README.md`](README.md)
 - **Appraisal Guide**: [`docs/appraisal.md`](docs/appraisal.md)
+- **Report Guide**: [`docs/report.md`](docs/report.md)
+- **LaTeX Templates**: [`templates/latex/vetrix/`](templates/latex/vetrix/)
 - **Changelog**: [`CHANGELOG.md`](CHANGELOG.md)
