@@ -135,3 +135,40 @@ def check_breakpoint(
         )
         return True
     return False
+
+
+def _call_progress_callback(
+    callback: Any, step_name: str, status: str, data: dict[str, Any]
+) -> None:
+    """
+    Helper to safely call progress callback if it exists.
+
+    Args:
+        callback: Callback function or None
+        step_name: Name of current step
+        status: Status string (starting, completed, failed, etc.)
+        data: Data dictionary
+    """
+    if callback:
+        try:
+            callback(step_name, status, data)
+        except Exception as e:
+            console.print(f"[yellow]⚠️ Progress callback failed: {e}[/yellow]")
+
+
+def _strip_metadata_for_pipeline(data: dict[str, Any]) -> dict[str, Any]:
+    """
+    Remove metadata fields to reduce token usage in pipeline steps.
+
+    Args:
+        data: Input dictionary
+
+    Returns:
+        Copy of dictionary with metadata removed
+    """
+    data_copy = data.copy()
+    if "metadata" in data_copy:
+        del data_copy["metadata"]
+    if "correction_notes" in data_copy:
+        del data_copy["correction_notes"]
+    return data_copy

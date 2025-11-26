@@ -45,6 +45,8 @@ SCHEMA_MAPPING = {
     # Report schemas (report generation outputs)
     "report": "report.schema.json",
     "report_validation": "report_validation.schema.json",
+    # Podcast schemas
+    "podcast": "podcast.schema.json",
 }
 
 
