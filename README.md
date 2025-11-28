@@ -27,6 +27,7 @@ This pipeline extracts structured data from medical research PDFs with a focus o
 - Publication-type-aware schemas for interventional, observational, synthesis, prognosis, opinion, and other papers.
 - Iterative validation/correction loop with configurable accuracy, completeness, and schema thresholds.
 - **Critical appraisal** with standardized tools (RoB 2, ROBINS-I, PROBAST, AMSTAR 2, GRADE ratings).
+- **Podcast script generation**: Audio-ready monologue scripts from extraction and appraisal data (English, 800-1500 words, GRADE-calibrated language).
 - Dual entry points: Streamlit dashboard for guided runs and CLI module for automation and scripting.
 - Structured JSON outputs with deterministic file naming in `tmp/` for each pipeline step.
 
@@ -180,6 +181,27 @@ This pipeline extracts structured data from medical research PDFs with a focus o
 │      Output: report.pdf, report.tex, report.md              │
 │                                                               │
 │  Status: passed / max_iterations_reached / early_stopped     │
+└──────────────────────────────────────────────────────────────┘
+                            │
+                            ↓
+┌──────────────────────────────────────────────────────────────┐
+│  STEP 6: Podcast Generation                                   │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │ • Combine extraction + appraisal JSON                   │ │
+│  │ • Generate audio-ready monologue script                │ │
+│  │ • English only, 800-1500 words (~5-10 min TTS)         │ │
+│  │ • GRADE-calibrated language (certainty mapping)        │ │
+│  │ • Max 3 numerical statements for clarity               │ │
+│  │ Output: podcast.json, podcast.md                       │ │
+│  └────────────────────────────────────────────────────────┘ │
+│                                                               │
+│  Validation:                                                  │
+│      • Word count check (800-1500 hard limits)              │
+│      • Numerical statement count (max 3)                     │
+│      • Metadata recalculation from transcript                │
+│      Output: podcast_validation.json                         │
+│                                                               │
+│  Status: passed / failed                                      │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -339,6 +361,9 @@ python run_pipeline.py path/to/paper.pdf --step report_generation ^
     --report-renderer weasyprint ^
     --disable-figures ^
     --no-report-compile-pdf
+
+# Generate podcast script only
+python run_pipeline.py path/to/paper.pdf --step podcast_generation
 ```
 
 #### Logs & troubleshooting
@@ -371,7 +396,7 @@ optional arguments:
   --keep-tmp            Keep intermediate files in tmp/
   --llm-provider {openai,claude}
                         Choose LLM provider (default: openai)
-  --step {classification,extraction,validation,correction,validation_correction}
+  --step {classification,extraction,validation,correction,validation_correction,podcast_generation}
                         Run specific pipeline step (default: run all steps)
   --max-iterations MAX_ITERATIONS
                         Maximum correction attempts for validation_correction (default: 3)
@@ -446,7 +471,10 @@ tmp/
 ├── sample_paper-validation1.json          # Validation after correction 1
 ├── sample_paper-extraction-best.json      # Best-scoring extraction (any iteration)
 ├── sample_paper-validation-best.json      # Validation paired with best extraction
-└── sample_paper-extraction-best-metadata.json
+├── sample_paper-extraction-best-metadata.json
+├── sample_paper-podcast.json              # Podcast script (metadata + transcript)
+├── sample_paper-podcast.md                # Human-readable markdown version
+└── sample_paper-podcast_validation.json   # Podcast validation results
 ```
 
 Iteration files are numbered (`extraction0`, `extraction1`, …) so you can track every correction pass. When the pipeline selects a best iteration it also writes `*-best.json` artefacts plus metadata about the choice. Failed runs may emit `*-failed.json` diagnostics.
