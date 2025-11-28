@@ -22,6 +22,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Podcast Generation Feature - Phase 3: Markdown Rendering** (#podcast-generation-phase3) - Human-readable markdown output for podcast scripts
+  - **Podcast Renderer Module:** `src/rendering/podcast_renderer.py` with:
+    - `render_podcast_to_markdown()` function for converting podcast JSON to markdown
+    - Simple structure: H1 title, metadata line (duration/word count/language/audience), continuous transcript, source footer
+    - Transcript preservation: no markdown escaping (TTS-ready plain text)
+    - Graceful defaults for missing metadata fields
+  - **File Output:** `{identifier}-podcast.md` saved to `tmp/` directory alongside podcast JSON
+  - **Error Handling:** Markdown rendering failures logged as warnings (non-fatal, JSON remains primary artifact)
+  - **Test Coverage:** 11 comprehensive unit tests in `tests/unit/test_podcast_renderer.py` covering structure validation, defaults, transcript preservation, error cases
+  - **Integration:** Markdown rendering integrated into `run_podcast_generation()` pipeline step
+
 - **Report Generation Feature - Phase 8: CLI Support** (#report-generation-phase8) - Complete CLI integration for report generation
   - **CLI Flags:** `--report-language {nl,en}`, `--report-renderer {latex,weasyprint}`, `--report-compile-pdf/--no-report-compile-pdf`, `--enable-figures/--disable-figures`
   - **Single Step Output:** Report generation single-step (`--step report_generation`) shows final status, iterations, quality score, and rendered artifact paths

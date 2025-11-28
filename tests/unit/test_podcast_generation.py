@@ -93,3 +93,47 @@ def test_run_podcast_generation_validation_warning(
     assert result["validation"]["status"] == "warnings"
     assert any("too short" in issue for issue in result["validation"]["issues"])
     assert any("abbreviations" in issue for issue in result["validation"]["issues"])
+
+
+@patch("src.pipeline.podcast_logic.render_podcast_to_markdown")
+@patch("src.pipeline.podcast_logic.load_schema")
+@patch("src.pipeline.podcast_logic.load_podcast_generation_prompt")
+@patch("src.pipeline.podcast_logic.get_llm_provider")
+def test_run_podcast_generation_creates_markdown(
+    mock_get_llm, mock_load_prompt, mock_load_schema, mock_render, mock_file_manager, mock_llm
+):
+    """Verify podcast generation creates markdown file."""
+    # Setup mocks
+    mock_get_llm.return_value = mock_llm
+    mock_load_schema.return_value = {"type": "object"}
+    mock_load_prompt.return_value = "Generate podcast"
+    mock_file_manager.identifier = "test-paper"
+    mock_file_manager.tmp_dir = MagicMock()
+    mock_file_manager.tmp_dir.__truediv__ = lambda self, other: f"tmp/{other}"
+
+    # Input data
+    extraction = {"data": "test"}
+    appraisal = {"rob": "low"}
+    classification = {"type": "trial"}
+
+    # Run function
+    result = run_podcast_generation(
+        extraction_result=extraction,
+        appraisal_result=appraisal,
+        classification_result=classification,
+        llm_provider="openai",
+        file_manager=mock_file_manager,
+    )
+
+    # Verify podcast JSON saved
+    mock_file_manager.save_json.assert_any_call(result["podcast"], "podcast")
+
+    # Verify validation JSON saved
+    mock_file_manager.save_json.assert_any_call(result["validation"], "podcast_validation")
+
+    # Verify markdown rendering was called
+    mock_render.assert_called_once()
+    # Verify it was called with the podcast JSON and correct path
+    call_args = mock_render.call_args
+    assert call_args[0][0] == result["podcast"]  # First arg is podcast JSON
+    assert "test-paper-podcast.md" in str(call_args[0][1])  # Second arg is path

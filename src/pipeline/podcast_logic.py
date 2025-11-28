@@ -7,6 +7,7 @@ from rich.console import Console
 
 from ..llm import get_llm_provider
 from ..prompts import load_podcast_generation_prompt
+from ..rendering.podcast_renderer import render_podcast_to_markdown
 from ..schemas_loader import load_schema
 from .file_manager import PipelineFileManager
 from .utils import _call_progress_callback, _strip_metadata_for_pipeline
@@ -146,6 +147,16 @@ PODCAST_SCHEMA:
 
         # Also save validation result
         file_manager.save_json(validation_result, "podcast_validation")
+
+        # Render markdown
+        try:
+            md_filename = f"{file_manager.identifier}-podcast.md"
+            md_path = file_manager.tmp_dir / md_filename
+            render_podcast_to_markdown(podcast_json, md_path)
+            console.print(f"[green]✅ Podcast markdown saved: {md_path}[/green]")
+        except Exception as e:
+            console.print(f"[yellow]⚠️  Failed to render podcast markdown: {e}[/yellow]")
+            # Continue - markdown is optional, don't fail the step
 
         _call_progress_callback(
             progress_callback,

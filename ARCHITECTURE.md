@@ -96,6 +96,15 @@ Outputs persisted to tmp/ and returned to caller
 - **File outputs**: Saves `{id}-report{N}.json`, `{id}-report_validation{N}.json`, best files, and rendered outputs (`render/report.pdf`, `render/report.tex`, `render/report.md`).
 - See `features/report-generation.md` for complete specification and `docs/report.md` for usage guide.
 
+### Podcast Generation (`src/pipeline/podcast_logic.py`, `src/rendering/podcast_renderer.py`)
+- **Podcast orchestration**: `run_podcast_generation()` executes single-pass podcast script generation from extraction + appraisal data.
+- **Monologue format**: Single speaker, English only, conversational tone optimized for audio consumption.
+- **TTS-ready output**: Transcript is continuous plain text with no abbreviations, no markdown formatting, calibrated language matching GRADE certainty.
+- **Light validation**: Single factcheck pass checking transcript length (>500 words), absence of abbreviations, and no markdown formatting. Validation status saved but no correction loop.
+- **Markdown rendering**: `src/rendering/podcast_renderer.py` converts podcast JSON to human-readable markdown with simple structure (title, metadata line, transcript, source footer).
+- **File outputs**: Saves `{id}-podcast.json`, `{id}-podcast_validation.json`, and `{id}-podcast.md` to `tmp/` directory.
+- See `features/podcast-generation.md` for complete specification including style rules, content flow, and acceptance criteria.
+
 ### LLM providers (`src/llm/`)
 - `BaseLLMProvider` defines `generate_json_with_pdf`, `generate_json_with_schema`, and `generate_text`.
 - `OpenAIProvider` and `ClaudeProvider` implement the interface with provider-specific retries, PDF upload limits, and error handling.

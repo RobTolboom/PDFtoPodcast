@@ -412,17 +412,17 @@ The markdown file contains a metadata header followed by the complete transcript
 **Goal**: Save podcast files and render markdown
 
 **Deliverables**:
-- [ ] `PipelineFileManager` extensions:
-  - `save_podcast()`
-  - `load_podcast()`
-- [ ] Markdown renderer for podcast script
-- [ ] Word count / duration estimation
-- [ ] Optional `podcast_validation.json` persisted alongside outputs
+- [x] `PipelineFileManager` extensions (optional - not implemented, YAGNI)
+  - ~~`save_podcast()`~~ (not needed - renderer writes directly)
+  - ~~`load_podcast()`~~ (not needed yet)
+- [x] Markdown renderer for podcast script (`src/rendering/podcast_renderer.py`)
+- [x] Word count / duration estimation (already in metadata from Phase 2)
+- [x] Optional `podcast_validation.json` persisted alongside outputs (Phase 2)
 
 **Acceptance**:
-- Files saved with correct naming
-- Markdown readable and well-formatted (metadata wrapper ok; transcript has no headings or structural markup)
-- Duration estimate accurate (±1 minute)
+- [x] Files saved with correct naming (`{identifier}-podcast.json`, `{identifier}-podcast.md`)
+- [x] Markdown readable and well-formatted (metadata wrapper ok; transcript has no headings or structural markup)
+- [x] Duration estimate accurate (±1 minute) (displayed from metadata)
 
 ### Phase 4: CLI Integration
 **Goal**: Add podcast step to CLI pipeline
