@@ -543,6 +543,18 @@ def main():
             for artifact_type, path in render_paths.items():
                 summary.add_row(f"  → {artifact_type}", str(path))
 
+    # Podcast generation summary
+    podcast = results.get("podcast_generation")
+    if podcast:
+        podcast_data = podcast.get("podcast", {})
+        validation = podcast.get("validation", {})
+        word_count = podcast_data.get("metadata", {}).get("word_count", 0)
+        duration = podcast_data.get("metadata", {}).get("estimated_duration_minutes", 0)
+        status = validation.get("status", "unknown")
+        summary.add_row("Podcast woorden", str(word_count))
+        summary.add_row("Podcast duur", f"~{duration} min")
+        summary.add_row("Podcast validatie", status)
+
     console.print(summary)
 
     if args.keep_tmp:

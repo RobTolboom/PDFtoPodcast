@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **CLI Summary Table: Add Podcast Results** - Display podcast word count, duration, and validation status in final CLI summary after full pipeline run
+
 - **CRITICAL: CLI Import Fix + Documentation Alignment** - External audit fixes
   - **CLI import broken**: Fixed `ImportError` - changed `run_four_step_pipeline` to `run_full_pipeline` (CLI was non-functional)
   - **Full-run table updated**: Added "6. Podcast generatie" to pipeline steps table (was missing)
