@@ -132,6 +132,47 @@ PODCAST_SCHEMA:
         if "# " in transcript or "**" in transcript:
             validation_issues.append("Transcript contains markdown formatting (headings/bold).")
 
+        # Check 4: Key outcomes presence (heuristic)
+        # Verify primary outcome from extraction is mentioned in transcript
+        primary_outcome = (
+            extraction_result.get("outcomes", {}).get("primary", {}).get("description", "")
+        )
+        if primary_outcome and primary_outcome.lower() not in transcript.lower():
+            validation_issues.append(
+                f"Primary outcome may not be mentioned: '{primary_outcome[:50]}...'"
+            )
+
+        # Check 5: Numeric accuracy (spot check sample size)
+        sample_size = extraction_result.get("participants", {}).get("sample_size", {}).get("total")
+        if sample_size and str(sample_size) not in transcript:
+            validation_issues.append(f"Sample size {sample_size} may not appear in transcript")
+
+        # Check 6: GRADE certainty alignment
+        # High-certainty words should not be used with low/very low GRADE evidence
+        grade_certainty = appraisal_result.get("grade", {}).get("certainty_overall", "").lower()
+        high_certainty_words = ["shows", "demonstrates", "reduces", "increases"]
+        transcript_lower = transcript.lower()
+        if grade_certainty in ["low", "very low"]:
+            for word in high_certainty_words:
+                if word in transcript_lower:
+                    validation_issues.append(
+                        f"High-certainty word '{word}' used with {grade_certainty} GRADE evidence"
+                    )
+                    break
+
+        # Check 7: "Insufficiently reported" for missing data
+        # If key fields are missing, transcript should acknowledge this
+        missing_fields = []
+        if not extraction_result.get("interventions"):
+            missing_fields.append("interventions")
+        if not extraction_result.get("outcomes", {}).get("primary"):
+            missing_fields.append("primary outcome")
+        if missing_fields and "insufficiently reported" not in transcript_lower:
+            validation_issues.append(
+                f"Missing data ({', '.join(missing_fields)}) but "
+                "'insufficiently reported' not found in transcript"
+            )
+
         validation_status = "passed" if not validation_issues else "warnings"
         # Only fail on critical schema violations (which generate_json_with_schema should catch)
 

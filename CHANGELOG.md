@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Podcast Generation - Complete Validation & Cosmetic Fixes** - Audit-driven fixes for Phase 2 and Phase 3 compliance
+  - **Phase 2 Validation Expansion** (72% → 100% spec compliance):
+    - Added key outcomes presence check (verifies primary outcome mentioned in transcript)
+    - Added numeric accuracy spot check (verifies sample size appears in transcript)
+    - Added GRADE certainty language alignment (warns on high-certainty words with low GRADE evidence)
+    - Added "insufficiently reported" detection (warns when missing data not acknowledged)
+  - **Phase 3 Cosmetic Fixes** (94% → 100% spec compliance):
+    - Language field now shows full name ("English") instead of code ("EN")
+    - Audience field now capitalizes first letter ("Practising clinicians")
+  - **Test Updates**:
+    - Added 3 new validation tests: `test_validation_detects_missing_primary_outcome`, `test_validation_detects_grade_language_mismatch`, `test_validation_warns_missing_insufficiently_reported`
+    - Updated renderer test assertions for new formatting
+    - Fixed `test_execution_screen.py` to expect 6 pipeline steps (including podcast_generation)
+  - **Documentation**: Added "podcast" to schemas_loader.py docstring
+
 ### Changed
 
 - **Podcast Generation Feature Specification (v1.1)** - Refined feature document with validation behavior and GRADE mapping

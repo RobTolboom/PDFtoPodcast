@@ -21,6 +21,12 @@ The renderer produces a simple structure:
 from pathlib import Path
 from typing import Any
 
+# Language code to full name mapping
+LANGUAGE_NAMES: dict[str, str] = {
+    "en": "English",
+    "nl": "Dutch",
+}
+
 
 def render_podcast_to_markdown(podcast: dict[str, Any], output_path: Path) -> Path:
     """
@@ -69,8 +75,11 @@ def render_podcast_to_markdown(podcast: dict[str, Any], output_path: Path) -> Pa
     title = metadata.get("title", "Podcast Script")
     word_count = metadata.get("word_count", 0)
     duration = metadata.get("estimated_duration_minutes", 0)
-    language = metadata.get("language", "en").upper()
-    audience = metadata.get("target_audience", "practising clinicians")
+    language = LANGUAGE_NAMES.get(metadata.get("language", "en"), "English")
+    audience = metadata.get("target_audience", "Practising clinicians")
+    # Capitalize first letter if lowercase
+    if audience and len(audience) > 0 and audience[0].islower():
+        audience = audience[0].upper() + audience[1:]
     study_id = metadata.get("study_id", "N/A")
 
     # Extract and validate transcript

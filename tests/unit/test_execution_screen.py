@@ -69,16 +69,17 @@ class TestStateManagement:
         assert execution["redirect_cancelled"] is False
         assert execution["redirect_countdown"] is None
 
-        # Assert: Step status initialized for all 5 steps (including appraisal and report_generation)
+        # Assert: Step status initialized for all 6 steps (including podcast_generation)
         assert "step_status" in mock_st.session_state
         step_status = mock_st.session_state["step_status"]
-        assert len(step_status) == 5
+        assert len(step_status) == 6
         for step_name in [
             "classification",
             "extraction",
             "validation_correction",
             "appraisal",
             "report_generation",
+            "podcast_generation",
         ]:
             assert step_name in step_status
             step = step_status[step_name]
@@ -134,15 +135,16 @@ class TestStateManagement:
         assert execution["redirect_cancelled"] is False
         assert execution["redirect_countdown"] is None
 
-        # Assert: Step status reset for all 5 steps (including appraisal and report_generation)
+        # Assert: Step status reset for all 6 steps (including podcast_generation)
         step_status = mock_st.session_state["step_status"]
-        assert len(step_status) == 5
+        assert len(step_status) == 6
         for step_name in [
             "classification",
             "extraction",
             "validation_correction",
             "appraisal",
             "report_generation",
+            "podcast_generation",
         ]:
             assert step_name in step_status
             step = step_status[step_name]

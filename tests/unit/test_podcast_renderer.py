@@ -49,8 +49,8 @@ def test_render_podcast_basic(tmp_path):
     assert "# Test Study - Efficacy of Drug X - Podcast Script" in content
     assert "**Duration**: ~6 minutes" in content
     assert "**Words**: 950" in content
-    assert "**Language**: EN" in content
-    assert "**Audience**: practising clinicians" in content
+    assert "**Language**: English" in content
+    assert "**Audience**: Practising clinicians" in content
     assert "This is a test podcast transcript" in content
     assert "*Generated from: doi:10.1234/test" in content
     assert "Sources: extraction-best.json, appraisal-best.json" in content
@@ -74,8 +74,8 @@ def test_render_podcast_metadata_defaults(tmp_path):
     # Validate defaults are applied
     assert "**Words**: 0" in content  # Default word_count
     assert "**Duration**: ~0 minutes" in content  # Default duration
-    assert "**Language**: EN" in content  # Default language (uppercased)
-    assert "**Audience**: practising clinicians" in content  # Default audience
+    assert "**Language**: English" in content  # Default language (full name)
+    assert "**Audience**: Practising clinicians" in content  # Default audience (capitalized)
     assert "*Generated from: N/A" in content  # Default study_id
 
     # Validate transcript still present
@@ -183,8 +183,8 @@ def test_render_podcast_creates_parent_directories(tmp_path):
     assert nested_path.parent.exists()
 
 
-def test_render_podcast_language_uppercased(tmp_path):
-    """Test that language field is converted to uppercase."""
+def test_render_podcast_language_full_name(tmp_path):
+    """Test that language code is converted to full name."""
     podcast = {
         "metadata": {"title": "Language Test", "language": "en"},
         "transcript": "Testing language field transformation.",
@@ -194,7 +194,7 @@ def test_render_podcast_language_uppercased(tmp_path):
     result_path = render_podcast_to_markdown(podcast, output_path)
 
     content = result_path.read_text(encoding="utf-8")
-    assert "**Language**: EN" in content  # Should be uppercase
+    assert "**Language**: English" in content  # Should be full name
 
 
 def test_render_podcast_multiline_transcript(tmp_path):
