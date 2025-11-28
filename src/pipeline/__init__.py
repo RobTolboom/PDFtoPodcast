@@ -3,7 +3,7 @@
 # Commercial use requires separate license - see LICENSE and COMMERCIAL_LICENSE.md
 
 """
-Five-step PDF extraction, appraisal, and report generation pipeline package.
+Six-step PDF extraction, appraisal, report generation, and podcast pipeline package.
 
 This package provides the core pipeline that coordinates:
 1. Classification - Identify publication type and extract metadata
@@ -11,6 +11,7 @@ This package provides the core pipeline that coordinates:
 3. Validation & Correction - Iterative schema + semantic validation with fixes
 4. Appraisal - Critical appraisal (risk of bias, GRADE, applicability)
 5. Report Generation - Structured report JSON with LaTeX/WeasyPrint rendering
+6. Podcast Generation - Audio script generation from extraction and appraisal data
 
 Main Components:
     - orchestrator: Main pipeline coordination (run_full_pipeline, run_single_step)

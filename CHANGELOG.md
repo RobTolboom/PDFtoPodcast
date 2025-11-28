@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **CRITICAL: CLI Import Fix + Documentation Alignment** - External audit fixes
+  - **CLI import broken**: Fixed `ImportError` - changed `run_four_step_pipeline` to `run_full_pipeline` (CLI was non-functional)
+  - **Full-run table updated**: Added "6. Podcast generatie" to pipeline steps table (was missing)
+  - **Schema validation added**: Podcast output now validated against `podcast.schema.json` (Phase 2 spec compliance)
+  - **>1500 words = hard fail**: Transcript exceeding 1500 words now triggers critical failure (was incorrectly a warning)
+  - **Documentation sync**: All "five-step" references updated to "six-step" (`run_pipeline.py`, `ARCHITECTURE.md`, `src/pipeline/__init__.py`)
+  - **ARCHITECTURE.md flow**: Added `run_podcast_generation()` to pipeline flow diagram
+
 - **Podcast Generation - Spec Compliance & UI Enhancement** - External review fixes
   - **Always save files per spec**: `podcast.json` and `podcast_validation.json` now saved even on validation failure (changed from raising `ValueError` to returning `status: "failed"`)
   - **Duration cap aligned with schema**: Changed from 15 to 10 minutes maximum
@@ -19,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Podcast Generation - Validation Round 2: Failed Status, Metadata Calc, Max Numbers** - Additional validation fixes based on external review
   - **Validation failure behavior**: Transcript < 800 words returns `status: "failed"` with files saved
-  - **Soft warning**: Transcript > 1500 words triggers warning (soft fail)
+  - **Hard fail**: Transcript > 1500 words now triggers critical failure (aligns with schema maxLength)
   - **Metadata recalculation**:
     - `word_count` and `estimated_duration_minutes` now calculated from actual transcript
     - Duration estimate: ~150 words per minute (spoken pace)

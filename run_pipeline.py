@@ -4,7 +4,7 @@
 
 # run_pipeline.py
 """
-Five-step PDF extraction pipeline with direct PDF upload and schema-based validation.
+Six-step PDF extraction pipeline with direct PDF upload and schema-based validation.
 
 Pipeline Steps:
     1. Classification - Identify publication type and extract metadata via PDF upload
@@ -12,6 +12,7 @@ Pipeline Steps:
     3. Validation & Correction - Iterative validation and correction loop
     4. Appraisal - Critical appraisal with risk of bias and GRADE assessment
     5. Report Generation - Generate structured reports with LaTeX/WeasyPrint rendering
+    6. Podcast Generation - Generate audio script from extraction and appraisal data
 
 PDF Upload Strategy:
     All LLM steps use direct PDF upload (no text extraction) to preserve:
@@ -65,7 +66,7 @@ from rich.table import Table
 
 # Import pipeline functionality
 try:
-    from src.pipeline import run_four_step_pipeline, run_single_step
+    from src.pipeline import run_full_pipeline, run_single_step
     from src.pipeline.file_manager import PipelineFileManager
 
     HAVE_LLM_SUPPORT = True
@@ -416,8 +417,8 @@ def main():
 
     else:
         # Full pipeline execution
-        # Updated pipeline steps for 5-component system
-        table = Table(title="Pipeline stappen (5-step systeem)", box=box.SIMPLE_HEAVY)
+        # Updated pipeline steps for 6-component system
+        table = Table(title="Pipeline stappen (6-step systeem)", box=box.SIMPLE_HEAVY)
         table.add_column("Stap", style="cyan", no_wrap=True)
         table.add_column("Status", style="green")
         steps = [
@@ -426,16 +427,17 @@ def main():
             ("3. Validatie & Correctie", ""),
             ("4. Critical Appraisal", ""),
             ("5. Rapportgeneratie", ""),
+            ("6. Podcast generatie", ""),
         ]
         for s, st in steps:
             table.add_row(s, st)
         console.print(table)
 
-        # Run the five-step pipeline with selected LLM provider
+        # Run the six-step pipeline with selected LLM provider
         with console.status(
-            "[bold cyan]Bezig met vijf-staps extractie pipeline...[/bold cyan]", spinner="dots"
+            "[bold cyan]Bezig met zes-staps extractie pipeline...[/bold cyan]", spinner="dots"
         ):
-            results = run_four_step_pipeline(
+            results = run_full_pipeline(
                 pdf_path=pdf_path,
                 max_pages=args.max_pages,
                 llm_provider=args.llm_provider,

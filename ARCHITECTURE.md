@@ -1,6 +1,6 @@
 # Architecture Overview
 
-PDFtoPodcast extracts structured medical research data by streaming PDF content through a five-stage pipeline with iterative validation/correction loops. This document describes the runtime architecture, major components, data flow, and extensibility points. For implementation-level detail, see `src/README.md`, `schemas/readme.md`, `VALIDATION_STRATEGY.md`, `features/appraisal.md`, and `features/report-generation.md`.
+PDFtoPodcast extracts structured medical research data by streaming PDF content through a six-stage pipeline with iterative validation/correction loops. This document describes the runtime architecture, major components, data flow, and extensibility points. For implementation-level detail, see `src/README.md`, `schemas/readme.md`, `VALIDATION_STRATEGY.md`, `features/appraisal.md`, and `features/report-generation.md`.
 
 ## System summary
 
@@ -51,13 +51,19 @@ run_report_with_correction()
     • outputs: report.pdf, report.tex, report.md
         |
         v
+run_podcast_generation()
+    • podcast script generation (combine extraction + appraisal)
+    • light validation (factcheck, word count, GRADE alignment)
+    • outputs: podcast.json, podcast.md, podcast_validation.json
+        |
+        v
 Outputs persisted to tmp/ and returned to caller
 ```
 
 ## Component architecture
 
 ### Orchestrator (`src/pipeline/orchestrator.py`)
-- Public APIs: `run_four_step_pipeline`, `run_single_step`, `run_validation_with_correction`, `run_appraisal_with_correction`.
+- Public APIs: `run_full_pipeline`, `run_single_step`, `run_validation_with_correction`, `run_appraisal_with_correction`, `run_podcast_generation`.
 - Extraction iterative loop tracks quality metrics (completeness, accuracy, schema compliance) and selects the highest-scoring iteration.
 - Appraisal iterative loop tracks appraisal-specific metrics (logical consistency, completeness, evidence support, schema compliance) and selects the highest-scoring iteration.
 - Uses `PipelineFileManager` to write iteration files (`extraction{N}.json`, `appraisal{N}.json`) and best-result artefacts (`extraction-best.json`, `appraisal-best.json`, metadata files).

@@ -3,6 +3,8 @@ import re
 from collections.abc import Callable
 from typing import Any
 
+from jsonschema import ValidationError as JsonSchemaValidationError
+from jsonschema import validate as jsonschema_validate
 from rich.console import Console
 
 from ..llm import get_llm_provider
@@ -101,12 +103,18 @@ PODCAST_SCHEMA:
         validation_issues = []  # Non-critical issues (warnings)
         critical_issues = []  # Critical issues (hard fail)
 
+        # Check 0: Schema validation (hard requirement)
+        try:
+            jsonschema_validate(podcast_json, schema)
+        except JsonSchemaValidationError as e:
+            critical_issues.append(f"Schema validation failed: {e.message}")
+
         # Check 1: Length check (hard requirement: 800-1500 words)
         word_count = actual_word_count
         if word_count < 800:
             critical_issues.append(f"Transcript too short ({word_count} words). Minimum: 800.")
         elif word_count > 1500:
-            validation_issues.append(f"Transcript too long ({word_count} words). Maximum: 1500.")
+            critical_issues.append(f"Transcript too long ({word_count} words). Maximum: 1500.")
 
         # Check 2: No abbreviations (enhanced with regex for word boundaries)
         common_abbrs = [
