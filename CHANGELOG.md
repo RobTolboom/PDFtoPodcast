@@ -57,6 +57,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Podcast Generation Feature - Phase 4: CLI Integration** (#podcast-generation-phase4) - CLI support for podcast generation step
+  - Added `podcast_generation` to `--step` argument choices
+  - Updated CLI description: "Five-step" → "Six-step pipeline" (Classification → Extraction → Validation → Appraisal → Report → Podcast)
+  - Added podcast example to CLI help text: `python run_pipeline.py paper.pdf --step podcast_generation`
+
 - **Podcast Generation Feature - Phase 3: Markdown Rendering** (#podcast-generation-phase3) - Human-readable markdown output for podcast scripts
   - **Podcast Renderer Module:** `src/rendering/podcast_renderer.py` with:
     - `render_podcast_to_markdown()` function for converting podcast JSON to markdown

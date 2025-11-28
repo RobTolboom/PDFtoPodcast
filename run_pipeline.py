@@ -86,11 +86,12 @@ def main():
     parser = argparse.ArgumentParser(
         description=(
             "PDFtoPodcast Pipeline - Extract structured data from medical research PDFs\n\n"
-            "Five-step pipeline: Classification → Extraction → Validation → Appraisal → Report\n\n"
+            "Six-step pipeline: Classification → Extraction → Validation → Appraisal → Report → Podcast\n\n"
             "Full Pipeline: python run_pipeline.py paper.pdf\n"
             "Single Step: python run_pipeline.py paper.pdf --step validation_correction --max-iterations 2\n"
             "Appraisal: python run_pipeline.py paper.pdf --step appraisal --appraisal-max-iter 3\n"
-            "Report: python run_pipeline.py paper.pdf --step report_generation --report-language en"
+            "Report: python run_pipeline.py paper.pdf --step report_generation --report-language en\n"
+            "Podcast: python run_pipeline.py paper.pdf --step podcast_generation"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -122,6 +123,7 @@ def main():
             "validation_correction",
             "appraisal",
             "report_generation",
+            "podcast_generation",
         ],
         default=None,
         help="Run specific pipeline step (default: run all steps)",
