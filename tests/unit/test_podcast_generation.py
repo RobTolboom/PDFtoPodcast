@@ -15,10 +15,11 @@ def mock_file_manager():
 @pytest.fixture
 def mock_llm():
     llm = MagicMock()
+    # Need 800+ words: 11 words * 75 = 825 words
     llm.generate_json_with_schema.return_value = {
         "podcast_version": "v1.0",
         "metadata": {"title": "Test Podcast", "word_count": 1000, "estimated_duration_minutes": 6},
-        "transcript": "This is a test transcript that is long enough to pass validation. " * 50,
+        "transcript": "This is a test transcript that is long enough to pass validation. " * 75,
     }
     return llm
 
@@ -35,11 +36,11 @@ def test_run_podcast_generation_success(
     mock_load_prompt.return_value = "Generate podcast from {{EXTRACTION_JSON}}"
 
     # Override transcript to include primary outcome (mortality) for validation
-    # Need 500+ words: 9 words * 60 = 540 words
+    # Need 800+ words: 9 words * 90 = 810 words
     mock_llm.generate_json_with_schema.return_value = {
         "podcast_version": "v1.0",
         "metadata": {"title": "Test Podcast", "word_count": 1000, "estimated_duration_minutes": 6},
-        "transcript": "This study examined mortality outcomes and found significant results. " * 60,
+        "transcript": "This study examined mortality outcomes and found significant results. " * 90,
     }
 
     # Input data with required fields to pass all validation checks
@@ -75,34 +76,67 @@ def test_run_podcast_generation_success(
 @patch("src.pipeline.podcast_logic.load_schema")
 @patch("src.pipeline.podcast_logic.load_podcast_generation_prompt")
 @patch("src.pipeline.podcast_logic.get_llm_provider")
-def test_run_podcast_generation_validation_warning(
+def test_run_podcast_generation_raises_on_short_transcript(
     mock_get_llm, mock_load_prompt, mock_load_schema, mock_file_manager, mock_llm
 ):
+    """Test that short transcript (<800 words) raises ValueError (hard fail)."""
     # Setup mocks
     mock_get_llm.return_value = mock_llm
     mock_load_schema.return_value = {"type": "object"}
     mock_load_prompt.return_value = "Generate podcast"
 
-    # Return short transcript with abbreviation
+    # Return short transcript (critical issue)
     mock_llm.generate_json_with_schema.return_value = {
         "podcast_version": "v1.0",
         "metadata": {"title": "Short", "word_count": 100, "estimated_duration_minutes": 1},
-        "transcript": "Short transcript with ICU abbreviation.",
+        "transcript": "Short transcript that is way too short.",
+    }
+
+    # Run function - should raise ValueError
+    with pytest.raises(ValueError, match="Transcript too short"):
+        run_podcast_generation(
+            extraction_result={},
+            appraisal_result={},
+            classification_result={},
+            llm_provider="openai",
+            file_manager=mock_file_manager,
+        )
+
+    # Verify no files were saved (hard fail)
+    mock_file_manager.save_json.assert_not_called()
+
+
+@patch("src.pipeline.podcast_logic.load_schema")
+@patch("src.pipeline.podcast_logic.load_podcast_generation_prompt")
+@patch("src.pipeline.podcast_logic.get_llm_provider")
+def test_run_podcast_generation_validation_warning_abbreviations(
+    mock_get_llm, mock_load_prompt, mock_load_schema, mock_file_manager, mock_llm
+):
+    """Test that abbreviations trigger warning (not failure) with valid length."""
+    # Setup mocks
+    mock_get_llm.return_value = mock_llm
+    mock_load_schema.return_value = {"type": "object"}
+    mock_load_prompt.return_value = "Generate podcast"
+
+    # Return valid-length transcript with abbreviation (9 words × 90 = 810)
+    mock_llm.generate_json_with_schema.return_value = {
+        "podcast_version": "v1.0",
+        "metadata": {"title": "Test", "word_count": 1000, "estimated_duration_minutes": 6},
+        "transcript": "This study found results in the ICU intensive care unit. " * 90,
     }
 
     # Run function
     result = run_podcast_generation(
-        extraction_result={},
+        extraction_result={"interventions": [{"name": "X"}], "outcomes": {"primary": {}}},
         appraisal_result={},
         classification_result={},
         llm_provider="openai",
         file_manager=mock_file_manager,
     )
 
-    # Verify warnings
-    assert result["status"] == "success"  # Still success, but with warnings
+    # Verify warnings (not failure)
+    assert result["status"] == "success"
     assert result["validation"]["status"] == "warnings"
-    assert any("too short" in issue for issue in result["validation"]["issues"])
     assert any("abbreviations" in issue for issue in result["validation"]["issues"])
 
 
@@ -161,11 +195,11 @@ def test_validation_detects_missing_primary_outcome(
     mock_load_schema.return_value = {"type": "object"}
     mock_load_prompt.return_value = "Generate podcast"
 
-    # Transcript does NOT mention the primary outcome
+    # Transcript does NOT mention the primary outcome (need 800+ words: 8 words × 100 = 800)
     mock_llm.generate_json_with_schema.return_value = {
         "podcast_version": "v1.0",
         "metadata": {"title": "Test", "word_count": 1000, "estimated_duration_minutes": 6},
-        "transcript": "This is a long transcript about a study. " * 50,
+        "transcript": "This is a long transcript about a study. " * 100,
     }
 
     # Extraction has a primary outcome that should be mentioned
@@ -199,11 +233,11 @@ def test_validation_detects_grade_language_mismatch(
     mock_load_schema.return_value = {"type": "object"}
     mock_load_prompt.return_value = "Generate podcast"
 
-    # Transcript uses high-certainty words like "demonstrates"
+    # Transcript uses high-certainty words like "demonstrates" (need 800+ words: 6 words × 135 = 810)
     mock_llm.generate_json_with_schema.return_value = {
         "podcast_version": "v1.0",
         "metadata": {"title": "Test", "word_count": 1000, "estimated_duration_minutes": 6},
-        "transcript": "This study demonstrates a clear benefit. " * 50,
+        "transcript": "This study demonstrates a clear benefit. " * 135,
     }
 
     # Appraisal indicates low GRADE certainty
@@ -235,11 +269,11 @@ def test_validation_warns_missing_insufficiently_reported(
     mock_load_schema.return_value = {"type": "object"}
     mock_load_prompt.return_value = "Generate podcast"
 
-    # Transcript does NOT mention "insufficiently reported"
+    # Transcript does NOT mention "insufficiently reported" (need 800+ words: 7 words × 115 = 805)
     mock_llm.generate_json_with_schema.return_value = {
         "podcast_version": "v1.0",
         "metadata": {"title": "Test", "word_count": 1000, "estimated_duration_minutes": 6},
-        "transcript": "This is a study about something important. " * 50,
+        "transcript": "This is a study about something important. " * 115,
     }
 
     # Extraction is missing key fields (no interventions, no primary outcome)
@@ -255,3 +289,77 @@ def test_validation_warns_missing_insufficiently_reported(
 
     assert result["validation"]["status"] == "warnings"
     assert any("insufficiently reported" in issue for issue in result["validation"]["issues"])
+
+
+@patch("src.pipeline.podcast_logic.load_schema")
+@patch("src.pipeline.podcast_logic.load_podcast_generation_prompt")
+@patch("src.pipeline.podcast_logic.get_llm_provider")
+def test_validation_warns_on_too_many_numbers(
+    mock_get_llm, mock_load_prompt, mock_load_schema, mock_file_manager, mock_llm
+):
+    """Test that validation warns when transcript contains >3 numerical values."""
+    mock_get_llm.return_value = mock_llm
+    mock_load_schema.return_value = {"type": "object"}
+    mock_load_prompt.return_value = "Generate podcast"
+
+    # Transcript with many numbers (>3 significant numbers)
+    # Base sentence repeated to get 800+ words, with numbers interspersed
+    base = "This study enrolled participants and measured outcomes carefully. "
+    numbers_section = (
+        "The study found 42 patients improved, 37 showed no change, 15 declined, and 8 withdrew. "
+    )
+    mock_llm.generate_json_with_schema.return_value = {
+        "podcast_version": "v1.0",
+        "metadata": {"title": "Test", "word_count": 1000, "estimated_duration_minutes": 6},
+        "transcript": base * 100 + numbers_section,  # 100 × 8 = 800 words + numbers section
+    }
+
+    result = run_podcast_generation(
+        extraction_result={"interventions": [{"name": "X"}], "outcomes": {"primary": {}}},
+        appraisal_result={},
+        classification_result={},
+        llm_provider="openai",
+        file_manager=mock_file_manager,
+    )
+
+    assert result["validation"]["status"] == "warnings"
+    assert any("numerical values" in issue for issue in result["validation"]["issues"])
+
+
+@patch("src.pipeline.podcast_logic.load_schema")
+@patch("src.pipeline.podcast_logic.load_podcast_generation_prompt")
+@patch("src.pipeline.podcast_logic.get_llm_provider")
+def test_metadata_recalculated_from_transcript(
+    mock_get_llm, mock_load_prompt, mock_load_schema, mock_file_manager, mock_llm
+):
+    """Test that word_count and estimated_duration are recalculated from actual transcript."""
+    mock_get_llm.return_value = mock_llm
+    mock_load_schema.return_value = {"type": "object"}
+    mock_load_prompt.return_value = "Generate podcast"
+
+    # LLM returns incorrect metadata, but actual transcript has ~900 words (9 × 100)
+    mock_llm.generate_json_with_schema.return_value = {
+        "podcast_version": "v1.0",
+        "metadata": {
+            "title": "Test",
+            "word_count": 500,  # Wrong - should be recalculated
+            "estimated_duration_minutes": 3,  # Wrong - should be recalculated
+        },
+        "transcript": "This study examined mortality outcomes and found significant results. "
+        * 100,
+    }
+
+    result = run_podcast_generation(
+        extraction_result={
+            "interventions": [{"name": "X"}],
+            "outcomes": {"primary": {"description": "mortality"}},
+        },
+        appraisal_result={"grade": {"certainty_overall": "high"}},
+        classification_result={},
+        llm_provider="openai",
+        file_manager=mock_file_manager,
+    )
+
+    # Verify metadata was recalculated
+    assert result["podcast"]["metadata"]["word_count"] == 900  # 9 words × 100
+    assert result["podcast"]["metadata"]["estimated_duration_minutes"] == 6  # 900 / 150 = 6

@@ -85,14 +85,28 @@ PODCAST_SCHEMA:
             schema_name="podcast_generation",
         )
 
-        # Light validation (single pass)
-        validation_issues = []
+        # Recalculate metadata from actual transcript
         transcript = podcast_json.get("transcript", "")
+        actual_word_count = len(transcript.split())
+        # Estimate duration: ~150 words per minute (spoken pace)
+        actual_duration = round(actual_word_count / 150)
 
-        # Check 1: Length check
-        word_count = len(transcript.split())
-        if word_count < 500:
-            validation_issues.append(f"Transcript too short ({word_count} words). Target > 800.")
+        # Update metadata with actual values
+        if "metadata" not in podcast_json:
+            podcast_json["metadata"] = {}
+        podcast_json["metadata"]["word_count"] = actual_word_count
+        podcast_json["metadata"]["estimated_duration_minutes"] = max(1, min(actual_duration, 15))
+
+        # Light validation (single pass)
+        validation_issues = []  # Non-critical issues (warnings)
+        critical_issues = []  # Critical issues (hard fail)
+
+        # Check 1: Length check (hard requirement: 800-1500 words)
+        word_count = actual_word_count
+        if word_count < 800:
+            critical_issues.append(f"Transcript too short ({word_count} words). Minimum: 800.")
+        elif word_count > 1500:
+            validation_issues.append(f"Transcript too long ({word_count} words). Maximum: 1500.")
 
         # Check 2: No abbreviations (enhanced with regex for word boundaries)
         common_abbrs = [
@@ -173,16 +187,48 @@ PODCAST_SCHEMA:
                 "'insufficiently reported' not found in transcript"
             )
 
-        validation_status = "passed" if not validation_issues else "warnings"
-        # Only fail on critical schema violations (which generate_json_with_schema should catch)
+        # Check 8: Max 3 numerical statements
+        # Heuristic: count numbers in transcript (integers and decimals)
+        numbers_in_transcript = re.findall(r"\b\d+(?:\.\d+)?\b", transcript)
+        # Filter out small numbers (1, 2, 3) which are often non-data
+        significant_numbers = [n for n in numbers_in_transcript if len(n) > 1 or int(n) > 3]
+        if len(significant_numbers) > 3:
+            validation_issues.append(
+                f"Transcript contains {len(significant_numbers)} numerical values "
+                f"(max 3 recommended): {', '.join(significant_numbers[:5])}..."
+            )
+
+        # Determine validation status
+        # Critical issues → failed (hard fail, no file save)
+        # Non-critical issues → warnings (step succeeds with warnings)
+        # No issues → passed
+        if critical_issues:
+            validation_status = "failed"
+        elif validation_issues:
+            validation_status = "warnings"
+        else:
+            validation_status = "passed"
 
         validation_result = {
             "status": validation_status,
-            "issues": validation_issues,
-            "ready_for_tts": True,  # Always true unless catastrophic failure
+            "issues": validation_issues + critical_issues,
+            "critical_issues": critical_issues,
+            "ready_for_tts": validation_status != "failed",
         }
 
-        # Save results
+        # Hard fail on critical issues - raise exception, don't save files
+        if validation_status == "failed":
+            error_msg = f"Podcast validation failed: {'; '.join(critical_issues)}"
+            console.print(f"[red]❌ {error_msg}[/red]")
+            _call_progress_callback(
+                progress_callback,
+                STEP_PODCAST_GENERATION,
+                "failed",
+                {"error": error_msg, "validation": validation_result},
+            )
+            raise ValueError(error_msg)
+
+        # Save results (only if validation passed or has warnings)
         podcast_file = file_manager.save_json(podcast_json, "podcast")
         console.print(f"[green]✅ Podcast script saved: {podcast_file}[/green]")
 

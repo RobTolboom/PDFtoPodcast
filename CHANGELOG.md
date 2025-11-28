@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Podcast Generation - Validation Round 2: Failed Status, Metadata Calc, Max Numbers** - Additional validation fixes based on external review
+  - **Hard fail on critical issues**:
+    - Transcript < 800 words now raises `ValueError` (hard fail) - podcast.json not saved
+    - Transcript > 1500 words triggers warning (soft fail)
+  - **Metadata recalculation**:
+    - `word_count` and `estimated_duration_minutes` now calculated from actual transcript
+    - Duration estimate: ~150 words per minute (spoken pace)
+  - **Max 3 numerical statements check**:
+    - Warns when transcript contains >3 significant numbers (style guideline)
+  - **Validation result structure**:
+    - Added `critical_issues` field to distinguish hard failures from warnings
+    - `ready_for_tts` now false when status is "failed"
+  - **Test Updates**:
+    - Updated all tests to use ≥800 word transcripts
+    - Added `test_validation_raises_on_short_transcript` (ValueError expected)
+    - Added `test_validation_warns_on_too_many_numbers`
+    - Added `test_metadata_recalculated_from_transcript`
+
 - **Podcast Generation - Complete Validation & Cosmetic Fixes** - Audit-driven fixes for Phase 2 and Phase 3 compliance
   - **Phase 2 Validation Expansion** (72% → 100% spec compliance):
     - Added key outcomes presence check (verifies primary outcome mentioned in transcript)
