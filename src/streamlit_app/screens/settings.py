@@ -159,6 +159,12 @@ def show_settings_screen():
                 "name": "Report Generation",
                 "help": "Generate structured report JSON ready for LaTeX rendering",
             },
+            {
+                "key": "podcast_generation",
+                "number": "6",
+                "name": "Podcast Generation",
+                "help": "Generate podcast script from extraction and appraisal data",
+            },
         ]
 
         # Smart defaults: auto-select steps that don't have results yet

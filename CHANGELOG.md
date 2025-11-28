@@ -57,6 +57,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Podcast Generation Feature - Phase 5: Streamlit UI Integration** (#podcast-generation-phase5) - UI support for podcast generation step
+  - Added Step 6 "Podcast Generation" to settings step selector
+  - Added podcast step display in execution progress (3 locations)
+  - Added `display_podcast_artifacts()` function with download buttons for JSON and markdown
+  - Added transcript preview with expander in artifacts section
+
 - **Podcast Generation Feature - Phase 4: CLI Integration** (#podcast-generation-phase4) - CLI support for podcast generation step
   - Added `podcast_generation` to `--step` argument choices
   - Updated CLI description: "Five-step" → "Six-step pipeline" (Classification → Extraction → Validation → Appraisal → Report → Podcast)
