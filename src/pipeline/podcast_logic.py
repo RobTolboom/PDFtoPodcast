@@ -95,7 +95,7 @@ PODCAST_SCHEMA:
         if "metadata" not in podcast_json:
             podcast_json["metadata"] = {}
         podcast_json["metadata"]["word_count"] = actual_word_count
-        podcast_json["metadata"]["estimated_duration_minutes"] = max(1, min(actual_duration, 15))
+        podcast_json["metadata"]["estimated_duration_minutes"] = max(1, min(actual_duration, 10))
 
         # Light validation (single pass)
         validation_issues = []  # Non-critical issues (warnings)
@@ -216,19 +216,7 @@ PODCAST_SCHEMA:
             "ready_for_tts": validation_status != "failed",
         }
 
-        # Hard fail on critical issues - raise exception, don't save files
-        if validation_status == "failed":
-            error_msg = f"Podcast validation failed: {'; '.join(critical_issues)}"
-            console.print(f"[red]❌ {error_msg}[/red]")
-            _call_progress_callback(
-                progress_callback,
-                STEP_PODCAST_GENERATION,
-                "failed",
-                {"error": error_msg, "validation": validation_result},
-            )
-            raise ValueError(error_msg)
-
-        # Save results (only if validation passed or has warnings)
+        # Always save files per spec (even on failure)
         podcast_file = file_manager.save_json(podcast_json, "podcast")
         console.print(f"[green]✅ Podcast script saved: {podcast_file}[/green]")
 
@@ -244,6 +232,18 @@ PODCAST_SCHEMA:
         except Exception as e:
             console.print(f"[yellow]⚠️  Failed to render podcast markdown: {e}[/yellow]")
             # Continue - markdown is optional, don't fail the step
+
+        # Handle validation failure (files saved, but step marked as failed)
+        if validation_status == "failed":
+            error_msg = f"Podcast validation failed: {'; '.join(critical_issues)}"
+            console.print(f"[red]❌ {error_msg}[/red]")
+            _call_progress_callback(
+                progress_callback,
+                STEP_PODCAST_GENERATION,
+                "failed",
+                {"file": str(podcast_file), "error": error_msg, "validation": validation_result},
+            )
+            return {"podcast": podcast_json, "status": "failed", "validation": validation_result}
 
         _call_progress_callback(
             progress_callback,

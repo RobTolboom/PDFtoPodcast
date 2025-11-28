@@ -76,10 +76,10 @@ def test_run_podcast_generation_success(
 @patch("src.pipeline.podcast_logic.load_schema")
 @patch("src.pipeline.podcast_logic.load_podcast_generation_prompt")
 @patch("src.pipeline.podcast_logic.get_llm_provider")
-def test_run_podcast_generation_raises_on_short_transcript(
+def test_run_podcast_generation_fails_on_short_transcript(
     mock_get_llm, mock_load_prompt, mock_load_schema, mock_file_manager, mock_llm
 ):
-    """Test that short transcript (<800 words) raises ValueError (hard fail)."""
+    """Test that short transcript (<800 words) returns status 'failed' but saves files."""
     # Setup mocks
     mock_get_llm.return_value = mock_llm
     mock_load_schema.return_value = {"type": "object"}
@@ -92,18 +92,23 @@ def test_run_podcast_generation_raises_on_short_transcript(
         "transcript": "Short transcript that is way too short.",
     }
 
-    # Run function - should raise ValueError
-    with pytest.raises(ValueError, match="Transcript too short"):
-        run_podcast_generation(
-            extraction_result={},
-            appraisal_result={},
-            classification_result={},
-            llm_provider="openai",
-            file_manager=mock_file_manager,
-        )
+    # Run function - should return status "failed" (not raise)
+    result = run_podcast_generation(
+        extraction_result={},
+        appraisal_result={},
+        classification_result={},
+        llm_provider="openai",
+        file_manager=mock_file_manager,
+    )
 
-    # Verify no files were saved (hard fail)
-    mock_file_manager.save_json.assert_not_called()
+    # Verify result
+    assert result["status"] == "failed"
+    assert result["validation"]["status"] == "failed"
+    assert "Transcript too short" in str(result["validation"]["critical_issues"])
+    assert result["validation"]["ready_for_tts"] is False
+
+    # Verify files WERE saved (per spec: always save, even on failure)
+    assert mock_file_manager.save_json.call_count == 2  # podcast + validation
 
 
 @patch("src.pipeline.podcast_logic.load_schema")

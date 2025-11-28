@@ -9,12 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Podcast Generation - Spec Compliance & UI Enhancement** - External review fixes
+  - **Always save files per spec**: `podcast.json` and `podcast_validation.json` now saved even on validation failure (changed from raising `ValueError` to returning `status: "failed"`)
+  - **Duration cap aligned with schema**: Changed from 15 to 10 minutes maximum
+  - **Copy transcript button**: Added text area in Streamlit UI for easy copying to TTS tools
+  - **Updated tests**: Reflect new "return status" behavior instead of exception raising
+
 - **CLI: Add podcast_generation result display** - Show word count, duration, validation status, TTS readiness, and issues in CLI output (follows pattern of other steps)
 
 - **Podcast Generation - Validation Round 2: Failed Status, Metadata Calc, Max Numbers** - Additional validation fixes based on external review
-  - **Hard fail on critical issues**:
-    - Transcript < 800 words now raises `ValueError` (hard fail) - podcast.json not saved
-    - Transcript > 1500 words triggers warning (soft fail)
+  - **Validation failure behavior**: Transcript < 800 words returns `status: "failed"` with files saved
+  - **Soft warning**: Transcript > 1500 words triggers warning (soft fail)
   - **Metadata recalculation**:
     - `word_count` and `estimated_duration_minutes` now calculated from actual transcript
     - Duration estimate: ~150 words per minute (spoken pace)

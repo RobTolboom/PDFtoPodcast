@@ -1673,6 +1673,21 @@ def display_podcast_artifacts():
         with st.expander("📄 Preview Transcript"):
             st.markdown(content)
 
+    # Copy transcript button (load from JSON for clean transcript only)
+    if podcast_json.exists():
+        import json
+
+        with open(podcast_json) as f:
+            podcast_data = json.load(f)
+        transcript = podcast_data.get("transcript", "")
+        if transcript:
+            st.text_area(
+                "📋 Copy Transcript (for TTS)",
+                transcript,
+                height=150,
+                key="podcast_transcript_copy",
+            )
+
     if not has_any:
         st.info("No podcast artifacts available yet. Run podcast generation to produce script.")
 
