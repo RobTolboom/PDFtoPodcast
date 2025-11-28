@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **CLI: Add podcast_generation result display** - Show word count, duration, validation status, TTS readiness, and issues in CLI output (follows pattern of other steps)
+
 - **Podcast Generation - Validation Round 2: Failed Status, Metadata Calc, Max Numbers** - Additional validation fixes based on external review
   - **Hard fail on critical issues**:
     - Transcript < 800 words now raises `ValueError` (hard fail) - podcast.json not saved

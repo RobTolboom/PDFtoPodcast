@@ -382,6 +382,25 @@ def main():
                 console.print("[cyan]Rendered artifacts:[/cyan]")
                 for key, path in render_paths.items():
                     console.print(f"[dim]  → {key}: {path}[/dim]")
+        elif args.step == "podcast_generation":
+            podcast = result.get("podcast", {})
+            validation = result.get("validation", {})
+            metadata = podcast.get("metadata", {})
+
+            word_count = metadata.get("word_count", 0)
+            duration = metadata.get("estimated_duration_minutes", 0)
+            validation_status = validation.get("status", "unknown")
+            ready_for_tts = validation.get("ready_for_tts", False)
+            issues = validation.get("issues", [])
+
+            console.print(f"[cyan]Word count:[/cyan] {word_count}")
+            console.print(f"[cyan]Duration:[/cyan] ~{duration} minutes")
+            console.print(f"[cyan]Validation:[/cyan] {validation_status}")
+            console.print(f"[cyan]TTS ready:[/cyan] {ready_for_tts}")
+            if issues:
+                console.print(f"[yellow]Issues:[/yellow] {len(issues)}")
+                for issue in issues[:3]:  # Show first 3
+                    console.print(f"[dim]  → {issue}[/dim]")
         elif args.step in ["validation"]:
             validation_status = result.get("verification_summary", {}).get("overall_status", "—")
             completeness = result.get("verification_summary", {}).get("completeness_score", 0)
