@@ -61,9 +61,6 @@ extraction_warnings   # array of objects (not strings)
 
 SECTION REQUIREMENTS
 
-document
-- { filename, content_type, page_count }
-
 metadata
 - { title, authors[], journal, published_date (+ optional precision), volume/issue/pages if present }
 - If you emit metadata.vancouver_citation, also include metadata.vancouver_source (SourceRef).

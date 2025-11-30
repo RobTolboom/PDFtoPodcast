@@ -19,34 +19,6 @@
       "pattern": "^v\\d+\\.\\d+(\\.\\d+)?$",
       "description": "Semantic-like version tag, e.g. v1.0 or v1.2.3"
     },
-    "document": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "filename",
-        "page_count"
-      ],
-      "properties": {
-        "filename": {
-          "type": "string"
-        },
-        "content_type": {
-          "type": "string",
-          "enum": [
-            "application/pdf"
-          ],
-          "default": "application/pdf"
-        },
-        "size_bytes": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "page_count": {
-          "type": "integer",
-          "minimum": 1
-        }
-      }
-    },
     "study_id": {
       "type": "string",
       "pattern": "^[A-Za-z0-9._-]+$",

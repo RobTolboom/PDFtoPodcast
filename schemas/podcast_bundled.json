@@ -1,0 +1,138 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Podcast Script Schema",
+  "type": "object",
+  "required": [
+    "podcast_version",
+    "metadata",
+    "transcript"
+  ],
+  "properties": {
+    "podcast_version": {
+      "type": "string",
+      "const": "v1.0"
+    },
+    "metadata": {
+      "type": "object",
+      "required": [
+        "title",
+        "word_count",
+        "estimated_duration_minutes"
+      ],
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "study_id": {
+          "type": "string"
+        },
+        "language": {
+          "const": "en"
+        },
+        "target_audience": {
+          "type": "string",
+          "default": "practising clinicians"
+        },
+        "word_count": {
+          "type": "integer",
+          "minimum": 800,
+          "maximum": 1500
+        },
+        "estimated_duration_minutes": {
+          "type": "integer",
+          "minimum": 5,
+          "maximum": 10
+        },
+        "generation_timestamp": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "transcript": {
+      "type": "string",
+      "description": "Complete podcast script as one continuous, SSML-ready text. No headings, bullets, or structural markup. Written for natural speech synthesis.",
+      "minLength": 500
+    },
+    "tts_config": {
+      "type": "object",
+      "description": "Optional TTS configuration for future audio generation (v1.1+)",
+      "properties": {
+        "voice_id": {
+          "type": "string",
+          "description": "TTS provider voice identifier"
+        },
+        "speed": {
+          "type": "number",
+          "default": 1.0,
+          "minimum": 0.5,
+          "maximum": 2.0
+        },
+        "pitch": {
+          "type": "number",
+          "default": 0,
+          "minimum": -10,
+          "maximum": 10
+        },
+        "output_format": {
+          "enum": [
+            "mp3",
+            "wav",
+            "ogg"
+          ],
+          "default": "mp3"
+        },
+        "branding": {
+          "type": "object",
+          "description": "Podcast branding for intro/outro generation",
+          "properties": {
+            "podcast_name": {
+              "type": "string",
+              "default": "Vetrix Anesthesiology"
+            },
+            "include_intro": {
+              "type": "boolean",
+              "default": true
+            },
+            "include_outro": {
+              "type": "boolean",
+              "default": true
+            },
+            "include_ai_disclaimer": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        }
+      }
+    },
+    "ssml_hints": {
+      "type": "object",
+      "description": "Optional SSML preparation hints for TTS (v1.2+)",
+      "properties": {
+        "emphasis_phrases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Key phrases that should receive emphasis in speech"
+        },
+        "pronunciation_overrides": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Word -> phonetic pronunciation mappings for medical terms"
+        },
+        "pause_after_sentences": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          },
+          "description": "Sentence indices (0-based) after which to insert longer pauses"
+        }
+      }
+    }
+  },
+  "$defs": {}
+}
