@@ -88,6 +88,7 @@ def check_existing_results(identifier: str | None) -> dict:
             "validation_correction": False,
             "appraisal": False,
             "report_generation": False,
+            "podcast_generation": False,
         }
 
     tmp_dir = Path("tmp")
@@ -100,6 +101,7 @@ def check_existing_results(identifier: str | None) -> dict:
         "appraisal": any(tmp_dir.glob(f"{identifier}-appraisal[0-9]*.json")),
         "report_generation": any(tmp_dir.glob(f"{identifier}-report[0-9]*.json"))
         or (tmp_dir / f"{identifier}-report-best.json").exists(),
+        "podcast_generation": (tmp_dir / f"{identifier}-podcast.json").exists(),
     }
     return results
 

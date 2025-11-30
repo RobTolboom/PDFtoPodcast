@@ -156,22 +156,41 @@ PODCAST_SCHEMA:
 
         # Check 4: Key outcomes presence (heuristic)
         # Verify primary outcome from extraction is mentioned in transcript
-        primary_outcome = (
-            extraction_result.get("outcomes", {}).get("primary", {}).get("description", "")
-        )
+        # outcomes can be a list (most schemas) or dict, handle both
+        outcomes = extraction_result.get("outcomes", [])
+        if isinstance(outcomes, list) and outcomes:
+            primary_outcome = (
+                outcomes[0].get("description", "") if isinstance(outcomes[0], dict) else ""
+            )
+        elif isinstance(outcomes, dict):
+            primary_outcome = outcomes.get("primary", {}).get("description", "")
+        else:
+            primary_outcome = ""
         if primary_outcome and primary_outcome.lower() not in transcript.lower():
             validation_issues.append(
                 f"Primary outcome may not be mentioned: '{primary_outcome[:50]}...'"
             )
 
         # Check 5: Numeric accuracy (spot check sample size)
-        sample_size = extraction_result.get("participants", {}).get("sample_size", {}).get("total")
+        # participants structure varies per schema, handle defensively
+        participants = extraction_result.get("participants", {})
+        if isinstance(participants, dict):
+            sample_size_obj = participants.get("sample_size", {})
+            sample_size = (
+                sample_size_obj.get("total") if isinstance(sample_size_obj, dict) else None
+            )
+        else:
+            sample_size = None
         if sample_size and str(sample_size) not in transcript:
             validation_issues.append(f"Sample size {sample_size} may not appear in transcript")
 
         # Check 6: GRADE certainty alignment
         # High-certainty words should not be used with low/very low GRADE evidence
-        grade_certainty = appraisal_result.get("grade", {}).get("certainty_overall", "").lower()
+        grade = appraisal_result.get("grade", {})
+        if isinstance(grade, dict):
+            grade_certainty = grade.get("certainty_overall", "").lower()
+        else:
+            grade_certainty = ""
         high_certainty_words = ["shows", "demonstrates", "reduces", "increases"]
         transcript_lower = transcript.lower()
         if grade_certainty in ["low", "very low"]:
@@ -185,9 +204,18 @@ PODCAST_SCHEMA:
         # Check 7: "Insufficiently reported" for missing data
         # If key fields are missing, transcript should acknowledge this
         missing_fields = []
-        if not extraction_result.get("interventions"):
+        interventions = extraction_result.get("interventions")
+        if not interventions or (isinstance(interventions, list) and len(interventions) == 0):
             missing_fields.append("interventions")
-        if not extraction_result.get("outcomes", {}).get("primary"):
+        # Check outcomes - can be list or dict
+        outcomes_check = extraction_result.get("outcomes", [])
+        if isinstance(outcomes_check, list):
+            if len(outcomes_check) == 0:
+                missing_fields.append("primary outcome")
+        elif isinstance(outcomes_check, dict):
+            if not outcomes_check.get("primary"):
+                missing_fields.append("primary outcome")
+        else:
             missing_fields.append("primary outcome")
         if missing_fields and "insufficiently reported" not in transcript_lower:
             validation_issues.append(
