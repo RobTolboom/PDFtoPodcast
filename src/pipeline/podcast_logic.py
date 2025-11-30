@@ -102,13 +102,18 @@ PODCAST_SCHEMA:
         podcast_json["metadata"]["word_count"] = actual_word_count
         podcast_json["metadata"]["estimated_duration_minutes"] = max(1, min(actual_duration, 10))
 
+        # Strip EXTRA metadata before validation (same pattern as report generation)
+        # This removes _metadata, _pipeline_metadata, usage, correction_notes
+        # but KEEPS the schema "metadata" field (part of podcast schema)
+        podcast_clean = _strip_metadata_for_pipeline(podcast_json)
+
         # Light validation (single pass)
         validation_issues = []  # Non-critical issues (warnings)
         critical_issues = []  # Critical issues (hard fail)
 
         # Check 0: Schema validation (hard requirement)
         try:
-            jsonschema_validate(podcast_json, schema)
+            jsonschema_validate(podcast_clean, schema)
         except JsonSchemaValidationError as e:
             critical_issues.append(f"Schema validation failed: {e.message}")
 

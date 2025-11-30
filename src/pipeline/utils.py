@@ -158,17 +158,41 @@ def _call_progress_callback(
 
 def _strip_metadata_for_pipeline(data: dict[str, Any]) -> dict[str, Any]:
     """
-    Remove metadata fields to reduce token usage in pipeline steps.
+    Remove EXTRA metadata fields added by code before schema validation.
+
+    After each pipeline step, the code adds EXTRA tracking/debugging metadata to the
+    result JSON and saves it to file. When loading this JSON for the next step,
+    these EXTRA fields must be stripped before schema validation, otherwise it fails
+    with "Additional properties are not allowed".
+
+    Strips EXTRA fields that are NOT part of the schema:
+    - usage: Token consumption statistics (added by LLM providers)
+    - _metadata: LLM response metadata (response_id, model, etc.)
+    - _pipeline_metadata: Pipeline execution metadata (step, timestamp, etc.)
+    - correction_notes: Debugging notes from correction step
+
+    IMPORTANT: Does NOT remove the schema "metadata" field (title, authors, DOI, etc.)
+    which is a required part of the extraction/report/podcast schema.
 
     Args:
-        data: Input dictionary
+        data: Input dictionary loaded from JSON file
 
     Returns:
-        Copy of dictionary with metadata removed
+        Copy of dictionary with EXTRA metadata removed, ready for schema validation
     """
     data_copy = data.copy()
-    if "metadata" in data_copy:
-        del data_copy["metadata"]
-    if "correction_notes" in data_copy:
-        del data_copy["correction_notes"]
+
+    # Remove EXTRA LLM metadata fields (added by providers after generation)
+    data_copy.pop("usage", None)
+    data_copy.pop("_metadata", None)
+
+    # Remove EXTRA pipeline metadata (added by orchestrator after each step)
+    data_copy.pop("_pipeline_metadata", None)
+
+    # Remove EXTRA debugging fields (added during correction)
+    data_copy.pop("correction_notes", None)
+
+    # KEEP schema "metadata" field - it's part of the schema!
+    # Do NOT remove it
+
     return data_copy
