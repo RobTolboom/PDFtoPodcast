@@ -44,7 +44,7 @@ Example .env file:
 Usage:
     >>> from src.config import llm_settings
     >>> llm_settings.openai_model
-    'gpt-5'
+    'gpt-5.1'
 """
 
 import os
@@ -107,7 +107,7 @@ class LLMSettings:
     openai_model: str = os.getenv(
         "OPENAI_MODEL", "gpt-5.1"
     )  # gpt-5.1 supports structured outputs + reasoning
-    # Set very high default (128K context window for gpt-5)
+    # Set very high default (128K context window for gpt-5.1)
     # Actual output limit depends on model (typically 4K-16K for completion)
     # OpenAI API will enforce model-specific limits automatically
     openai_max_tokens: int = int(os.getenv("OPENAI_MAX_TOKENS", "128000"))
@@ -146,7 +146,7 @@ class Settings:
     """
 
     api_key: str = os.getenv("OPENAI_API_KEY", "")
-    model: str = os.getenv("OPENAI_MODEL", "gpt-5")  # Updated from gpt-4.1 to valid model
+    model: str = os.getenv("OPENAI_MODEL", "gpt-5.1")  # Updated from gpt-4.1 to valid model
     max_tokens: int = int(os.getenv("MAX_TOKENS", "4096"))
 
 
