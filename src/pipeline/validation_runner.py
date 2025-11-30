@@ -125,12 +125,15 @@ Verify the extracted data against the original PDF document. Check for hallucina
 """
 
             # Run LLM validation with PDF upload for direct comparison
+            from ..config import llm_settings
+
             llm_validation = llm.generate_json_with_pdf(
                 pdf_path=pdf_path,
                 schema=validation_schema,
                 system_prompt=validation_prompt + "\n\n" + validation_context,
                 max_pages=max_pages,
                 schema_name="validation_report",
+                reasoning_effort=llm_settings.reasoning_effort_validation,
             )
 
             # Combine schema and LLM validation results

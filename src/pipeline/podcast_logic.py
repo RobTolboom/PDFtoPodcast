@@ -80,11 +80,14 @@ PODCAST_SCHEMA:
         # Use generate_json_with_schema for structured output
         # system_prompt = instructions (from Podcast-generation.txt)
         # prompt = data (extraction, appraisal, classification, schema)
+        from ..config import llm_settings
+
         podcast_json = llm.generate_json_with_schema(
             schema=schema,
             system_prompt=prompt_template,
             prompt=prompt_context,
             schema_name="podcast_generation",
+            reasoning_effort=llm_settings.reasoning_effort_podcast,
         )
 
         # Recalculate metadata from actual transcript

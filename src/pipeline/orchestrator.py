@@ -979,12 +979,15 @@ def _run_extraction_step(
         console.print("[dim]Uploading PDF for extraction...[/dim]")
 
         # Run schema-based extraction with direct PDF upload
+        from ..config import llm_settings
+
         extraction_result = llm.generate_json_with_pdf(
             pdf_path=pdf_path,
             schema=extraction_schema,
             system_prompt=extraction_prompt,
             max_pages=max_pages,
             schema_name=f"{publication_type}_extraction",
+            reasoning_effort=llm_settings.reasoning_effort_extraction,
         )
 
         console.print("[green]✅ Schema-conforming extraction completed[/green]")
@@ -1238,12 +1241,15 @@ Systematically address all identified issues and produce corrected, complete,\
 
         # Run correction with PDF upload for direct reference
         console.print("[dim]Running correction with PDF upload...[/dim]")
+        from ..config import llm_settings
+
         corrected_extraction = llm.generate_json_with_pdf(
             pdf_path=pdf_path,
             schema=extraction_schema,
             system_prompt=correction_prompt + "\n\n" + correction_context,
             max_pages=max_pages,
             schema_name=f"{publication_type}_extraction_corrected",
+            reasoning_effort=llm_settings.reasoning_effort_correction,
         )
 
         # Ensure correction metadata
@@ -2282,12 +2288,15 @@ def _run_classification_step(
 
         # Run classification with direct PDF upload
         console.print("[dim]Uploading PDF for classification...[/dim]")
+        from ..config import llm_settings
+
         classification_result = llm.generate_json_with_pdf(
             pdf_path=pdf_path,
             schema=classification_schema,
             system_prompt=classification_prompt,
             max_pages=max_pages,
             schema_name="classification",
+            reasoning_effort=llm_settings.reasoning_effort_classification,
         )
 
         publication_type = classification_result.get("publication_type", "unknown")
@@ -2441,11 +2450,14 @@ def _run_appraisal_step(
 
         # Run appraisal with extraction context (no PDF needed)
         # Appraisal works from extraction data, not original PDF
+        from ..config import llm_settings
+
         appraisal_result = llm.generate_json_with_schema(
             schema=appraisal_schema,
             system_prompt=appraisal_prompt,
             prompt=f"EXTRACTION_JSON:\n{json.dumps(extraction_clean, indent=2)}",
             schema_name=f"{publication_type}_appraisal",
+            reasoning_effort=llm_settings.reasoning_effort_appraisal,
         )
 
         console.print("[green]✅ Critical appraisal completed[/green]")
@@ -3866,11 +3878,14 @@ REPORT_SCHEMA:
     console.print(f"[dim]Publication type: {publication_type}, Language: {language}[/dim]")
 
     try:
+        from ..config import llm_settings
+
         report_json = llm.generate_json_with_schema(
             schema=report_schema,
             system_prompt=report_prompt,
             prompt=prompt_context,
             schema_name="report_generation",
+            reasoning_effort=llm_settings.reasoning_effort_report,
         )
     except LLMError as e:
         console.print(f"[red]❌ LLM call failed: {e}[/red]")

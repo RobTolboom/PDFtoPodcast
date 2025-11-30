@@ -85,6 +85,7 @@ class BaseLLMProvider(ABC):
         schema: dict[str, Any],
         system_prompt: str | None = None,
         schema_name: str | None = None,
+        reasoning_effort: str | None = None,
         **kwargs,
     ) -> dict[str, Any]:
         """
@@ -95,6 +96,7 @@ class BaseLLMProvider(ABC):
             schema: JSON schema dictionary defining the expected output structure
             system_prompt: Optional system prompt for additional instructions
             schema_name: Optional name for the schema (used by some providers)
+            reasoning_effort: Optional reasoning effort level ("low", "medium", "high") for GPT-5.1+ (ignored by Claude)
             **kwargs: Additional provider-specific arguments
 
         Returns:
@@ -113,6 +115,7 @@ class BaseLLMProvider(ABC):
         system_prompt: str | None = None,
         max_pages: int | None = None,
         schema_name: str | None = None,
+        reasoning_effort: str | None = None,
         **kwargs,
     ) -> dict[str, Any]:
         """
@@ -132,6 +135,7 @@ class BaseLLMProvider(ABC):
             system_prompt: Optional system prompt with extraction instructions
             max_pages: Optional limit on pages to process (max 100 per API limits)
             schema_name: Optional name for schema (used by some providers)
+            reasoning_effort: Optional reasoning effort level ("low", "medium", "high") for GPT-5.1+ (ignored by Claude)
             **kwargs: Additional provider-specific arguments
 
         Returns:
