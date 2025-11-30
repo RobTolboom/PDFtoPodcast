@@ -200,6 +200,11 @@ def get_result_file_info(identifier: str, step: str) -> dict | None:
                     return None
                 file_path = max(report_files, key=lambda p: p.stat().st_mtime)
 
+    elif step == "podcast_generation":
+        file_path = tmp_dir / f"{identifier}-podcast.json"
+        if not file_path.exists():
+            return None
+
     else:
         # Map step names to filenames for other steps
         file_map = {
