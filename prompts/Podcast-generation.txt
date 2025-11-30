@@ -19,6 +19,7 @@ STYLE & LANGUAGE RULES (MANDATORY):
 1. ABSOLUTE LANGUAGE RULES:
    - NO ABBREVIATIONS: Write "confidence interval" (not CI), "intensive care unit" (not ICU), "milligrams" (not mg).
    - NO HEADINGS/BULLETS: The transcript must be one continuous flow of text. No markdown formatting in the spoken text.
+   - PARAGRAPH BREAKS: Insert a blank line between major sections (Hook, Paper Identification, Clinical Question, Methods, Findings, etc.) for human readability. TTS engines handle this gracefully.
    - NO TECHNICAL IDENTIFIERS: No DOIs, PMIDs, or contact info.
 
 2. NUMBERS POLICY (STRICT):
@@ -34,13 +35,14 @@ STYLE & LANGUAGE RULES (MANDATORY):
 
 CONTENT FLOW (weave smooth transitions between sections; no visible headings in output):
 1. Hook: Brief opening on why this matters NOW for clinicians
-2. Clinical Question: State the question in plain language and why it matters
-3. Methods Summary: One compact passage covering study design, setting, participant numbers, study arms, primary outcome, time points (minimal numbers)
-4. Findings: Present results with minimal numerical statements; use qualitative interpretation and uncertainty language
-5. Quality of Evidence: Discuss risk of bias and certainty as per appraisal, WITHOUT naming external checklists (e.g., don't say "RoB 2 tool")
-6. Practice Implications: What this means at the bedside today - provide 2-3 concrete practice points AND what should NOT change yet
-7. Safety and Limitations: Brief summary in plain language
-8. Take-home: One clear sentence capturing overall judgement; invite listener to read the paper
+2. Paper Identification: "Today we discuss a paper by [first author surname] titled [title of study]." Use the first author surname and title from CLASSIFICATION_JSON or EXTRACTION_JSON metadata.
+3. Clinical Question: State the question in plain language and why it matters
+4. Methods Summary: One compact passage covering study design, setting, participant numbers, study arms, primary outcome, time points (minimal numbers)
+5. Findings: Present results with minimal numerical statements; use qualitative interpretation and uncertainty language
+6. Quality of Evidence: Discuss risk of bias and certainty as per appraisal, WITHOUT naming external checklists (e.g., don't say "RoB 2 tool")
+7. Practice Implications: What this means at the bedside today - provide 2-3 concrete practice points AND what should NOT change yet
+8. Safety and Limitations: Brief summary in plain language
+9. Take-home: One clear sentence capturing overall judgement. Do NOT add a disclaimer about reading the paper - this is handled by the standard podcast closing.
 
 INTERPRETATION REQUIREMENTS:
 1. Move beyond recital of figures - state plainly whether evidence suggests benefit, harm, no important difference, or insufficient evidence
