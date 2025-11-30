@@ -8,11 +8,31 @@ INPUT DATA:
 
 AUDIENCE & TONE:
 - Speak directly to the listener using "you"
-- Professional but conversational
+- Professional but genuinely conversational - like explaining to a colleague, not lecturing
 - Active voice preferred
 - One idea per sentence
 - Vary sentence length for natural rhythm
 - Target duration: 5-10 minutes (800-1,500 words)
+
+CONVERSATIONAL TECHNIQUES (ESSENTIAL FOR SPOKEN AUDIO):
+Write as if speaking to a colleague over coffee, not presenting at a conference.
+
+USE THESE ELEMENTS THROUGHOUT:
+- Rhetorical questions: "So what does this mean for your practice?", "Sound familiar?"
+- Transition phrases: "Now here's where it gets interesting...", "Let me break this down...", "The thing is..."
+- Conversational connectors: "Now...", "Look...", "Okay, so...", "Here's the deal..."
+- Brief acknowledgments: "Right?", "...and honestly...", "...which makes sense..."
+- Simplified restatements: "In other words...", "Put simply...", "Basically..."
+- Shared experience: "If you're like most of us...", "You've probably seen this...", "We've all been there..."
+
+AVOID:
+- Formal academic transitions: "Furthermore", "Moreover", "It is worth noting that"
+- Passive constructions: "It was observed that" -> "They found that"
+- Stiff phrasing: "The clinical question is straightforward" -> "So here's the question"
+
+EXAMPLE TRANSFORMATION:
+❌ "The clinical question is straightforward. In healthy preschool children awaiting elective surgery, does intravenous S-ketamine provide better preoperative anxiolysis than intravenous midazolam?"
+✅ "So here's the question: if you've got a healthy preschooler who's anxious before surgery, does S-ketamine actually do a better job calming them down than midazolam? And more importantly - what trade-offs are you signing up for?"
 
 STYLE & LANGUAGE RULES (MANDATORY):
 
