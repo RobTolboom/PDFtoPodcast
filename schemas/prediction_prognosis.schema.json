@@ -1262,7 +1262,7 @@
                   "$ref": "common.schema.json#/$defs/EffectCI"
                 }
               },
-              "description": "Harrell's C voor time-to-event, indien gerapporteerd"
+              "description": "Harrell's C for time-to-event, if reported"
             },
             "pr_auc": {
               "type": "object",
@@ -1471,7 +1471,7 @@
         },
         "threshold_metrics": {
           "type": "array",
-          "description": "Metrics bij specifieke beslisdrempels",
+          "description": "Metrics at specific decision thresholds",
           "items": {
             "type": "object",
             "additionalProperties": false,

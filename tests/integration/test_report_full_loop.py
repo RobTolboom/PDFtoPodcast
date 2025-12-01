@@ -320,7 +320,7 @@ class TestReportFullLoop:
                 classification_result=mock_classification_interventional,
                 llm_provider="openai",
                 file_manager=file_manager,
-                language="nl",
+                language="en",
                 max_iterations=3,
             )
 
@@ -369,7 +369,7 @@ class TestReportFullLoop:
                 classification_result=mock_classification_interventional,
                 llm_provider="openai",
                 file_manager=file_manager,
-                language="nl",
+                language="en",
                 max_iterations=3,
             )
 
@@ -422,7 +422,7 @@ class TestReportFullLoop:
                 classification_result=mock_classification_interventional,
                 llm_provider="openai",
                 file_manager=file_manager,
-                language="nl",
+                language="en",
                 max_iterations=3,
             )
 
@@ -479,7 +479,7 @@ class TestReportFullLoop:
                 classification_result=mock_classification_interventional,
                 llm_provider="openai",
                 file_manager=file_manager,
-                language="nl",
+                language="en",
                 max_iterations=3,
             )
 
@@ -512,7 +512,7 @@ class TestReportFullLoop:
                 classification_result=mock_classification_interventional,
                 llm_provider="openai",
                 file_manager=file_manager,
-                language="nl",
+                language="en",
                 max_iterations=3,
             )
 
@@ -544,7 +544,7 @@ class TestReportFullLoop:
                 classification_result=mock_classification_interventional,
                 llm_provider="openai",
                 file_manager=file_manager,
-                language="nl",
+                language="en",
                 max_iterations=3,
             )
 
@@ -574,7 +574,7 @@ class TestReportFullLoop:
                 classification_result=mock_classification_interventional,
                 llm_provider="openai",
                 file_manager=file_manager,
-                language="nl",
+                language="en",
                 max_iterations=3,
             )
 
@@ -611,7 +611,7 @@ class TestReportFullLoop:
                 classification_result=mock_classification_interventional,
                 llm_provider="openai",
                 file_manager=file_manager,
-                language="nl",
+                language="en",
                 max_iterations=3,
             )
 
@@ -673,7 +673,7 @@ class TestReportFullLoop:
                 classification_result=mock_classification_interventional,
                 llm_provider="openai",
                 file_manager=file_manager,
-                language="nl",
+                language="en",
                 max_iterations=3,
                 quality_thresholds=custom_thresholds,
             )
@@ -711,7 +711,7 @@ class TestReportFullLoop:
                 classification_result=mock_classification_interventional,
                 llm_provider="openai",
                 file_manager=file_manager,
-                language="nl",
+                language="en",
                 max_iterations=3,
             )
 

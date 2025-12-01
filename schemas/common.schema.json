@@ -320,7 +320,7 @@
         "content_hash_sha256": {
           "type": "string",
           "pattern": "^[a-fA-F0-9]{64}$",
-          "description": "SHA-256 hash van bronbestand of platte tekst (64-char hex)"
+          "description": "SHA-256 hash of source file or plain text (64-char hex)"
         }
       },
       "dependentSchemas": {

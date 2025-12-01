@@ -1439,7 +1439,7 @@ def show_execution_screen():
                 max_correction_iterations=max_iter_setting,
                 quality_thresholds=quality_thresholds,
                 enable_iterative_correction=enable_iterative,
-                report_language=settings.get("report_language", "nl"),
+                report_language=settings.get("report_language", "en"),
                 report_compile_pdf=settings.get("report_compile_pdf", True),
                 report_enable_figures=settings.get("report_enable_figures", True),
                 report_renderer=settings.get("report_renderer", "latex"),

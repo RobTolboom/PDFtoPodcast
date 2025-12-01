@@ -58,7 +58,7 @@ def test_run_four_step_pipeline_passes_report_flags(monkeypatch, tmp_path):
     orchestrator.run_four_step_pipeline(
         pdf_path=pdf_path,
         llm_provider="openai",
-        report_language="nl",
+        report_language="en",
         report_renderer="weasyprint",
         report_compile_pdf=False,
         report_enable_figures=False,

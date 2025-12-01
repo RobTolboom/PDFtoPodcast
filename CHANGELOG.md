@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **[BREAKING] English-Only System** - Removed bilingual (Dutch/English) support
+  - Translated `prompts/Classification.txt` from Dutch to English (full 171-line prompt rewrite)
+  - Removed Dutch terminology and examples from `prompts/Report-generation.txt`
+  - Translated schema descriptions in `schemas/prediction_prognosis.schema.json` and `schemas/common.schema.json`
+  - Changed language parameter defaults from "nl" to "en" in orchestrator and all call sites
+  - Updated test files: all `language="nl"` changed to `language="en"` (10+ test files)
+  - Updated Streamlit UI default language from "nl" to "en"
+  - Regenerated bundled schemas with English translations
+  - Impact: Users expecting Dutch output will now receive English only
+  - Migration: System now defaults to English; no action needed unless custom configurations exist
+
 - **Podcast validation constants extracted** - Refactored hardcoded validation thresholds (800, 1500, 150, 3) to named module-level constants (`PODCAST_MIN_WORDS`, `PODCAST_MAX_WORDS`, `WORDS_PER_MINUTE`, `MAX_NUMERICAL_STATEMENTS`) for improved maintainability
 
 ### Fixed

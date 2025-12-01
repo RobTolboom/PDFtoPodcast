@@ -3221,7 +3221,7 @@ def run_report_with_correction(
     classification_result: dict[str, Any],
     llm_provider: str,
     file_manager: PipelineFileManager,
-    language: str = "nl",
+    language: str = "en",
     max_iterations: int = 3,
     quality_thresholds: dict | None = None,
     compile_pdf: bool = True,
@@ -3287,7 +3287,7 @@ def run_report_with_correction(
         ...     classification_result=classification,
         ...     llm_provider="openai",
         ...     file_manager=file_mgr,
-        ...     language="nl",
+        ...     language="en",
         ...     max_iterations=3
         ... )
         >>> report_result['final_status']
@@ -4193,7 +4193,7 @@ def run_single_step(
     max_correction_iterations: int | None = None,
     quality_thresholds: dict[str, Any] | None = None,
     enable_iterative_correction: bool = True,
-    report_language: str | None = None,
+    report_language: str = "en",
     report_compile_pdf: bool = True,
     report_enable_figures: bool = True,
     report_renderer: str = "latex",
@@ -4604,7 +4604,7 @@ def run_single_step(
                 classification_result=classification_result,
                 llm_provider=llm_provider,
                 file_manager=file_manager,
-                language=report_language or "nl",
+                language=report_language,
                 max_iterations=max_correction_iterations or 3,
                 quality_thresholds=quality_thresholds,
                 compile_pdf=report_compile_pdf,
