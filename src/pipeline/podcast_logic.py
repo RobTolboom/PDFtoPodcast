@@ -17,6 +17,12 @@ from .utils import _call_progress_callback, _strip_metadata_for_pipeline
 # Constants
 STEP_PODCAST_GENERATION = "podcast_generation"
 
+# Podcast validation thresholds
+PODCAST_MIN_WORDS = 800
+PODCAST_MAX_WORDS = 1500
+WORDS_PER_MINUTE = 150  # Spoken pace for duration estimation
+MAX_NUMERICAL_STATEMENTS = 3  # Maximum recommended numerical values in transcript
+
 console = Console()
 
 
@@ -93,8 +99,8 @@ PODCAST_SCHEMA:
         # Recalculate metadata from actual transcript
         transcript = podcast_json.get("transcript", "")
         actual_word_count = len(transcript.split())
-        # Estimate duration: ~150 words per minute (spoken pace)
-        actual_duration = round(actual_word_count / 150)
+        # Estimate duration based on spoken pace
+        actual_duration = round(actual_word_count / WORDS_PER_MINUTE)
 
         # Update metadata with actual values
         if "metadata" not in podcast_json:
@@ -117,12 +123,16 @@ PODCAST_SCHEMA:
         except JsonSchemaValidationError as e:
             critical_issues.append(f"Schema validation failed: {e.message}")
 
-        # Check 1: Length check (hard requirement: 800-1500 words)
+        # Check 1: Length check (hard requirement)
         word_count = actual_word_count
-        if word_count < 800:
-            critical_issues.append(f"Transcript too short ({word_count} words). Minimum: 800.")
-        elif word_count > 1500:
-            critical_issues.append(f"Transcript too long ({word_count} words). Maximum: 1500.")
+        if word_count < PODCAST_MIN_WORDS:
+            critical_issues.append(
+                f"Transcript too short ({word_count} words). Minimum: {PODCAST_MIN_WORDS}."
+            )
+        elif word_count > PODCAST_MAX_WORDS:
+            critical_issues.append(
+                f"Transcript too long ({word_count} words). Maximum: {PODCAST_MAX_WORDS}."
+            )
 
         # Check 2: No abbreviations (enhanced with regex for word boundaries)
         common_abbrs = [
@@ -231,15 +241,15 @@ PODCAST_SCHEMA:
                 "'insufficiently reported' not found in transcript"
             )
 
-        # Check 8: Max 3 numerical statements
+        # Check 8: Max numerical statements
         # Heuristic: count numbers in transcript (integers and decimals)
         numbers_in_transcript = re.findall(r"\b\d+(?:\.\d+)?\b", transcript)
         # Filter out small numbers (1, 2, 3) which are often non-data
         significant_numbers = [n for n in numbers_in_transcript if len(n) > 1 or int(n) > 3]
-        if len(significant_numbers) > 3:
+        if len(significant_numbers) > MAX_NUMERICAL_STATEMENTS:
             validation_issues.append(
                 f"Transcript contains {len(significant_numbers)} numerical values "
-                f"(max 3 recommended): {', '.join(significant_numbers[:5])}..."
+                f"(max {MAX_NUMERICAL_STATEMENTS} recommended): {', '.join(significant_numbers[:5])}..."
             )
 
         # Determine validation status

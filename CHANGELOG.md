@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Podcast validation constants extracted** - Refactored hardcoded validation thresholds (800, 1500, 150, 3) to named module-level constants (`PODCAST_MIN_WORDS`, `PODCAST_MAX_WORDS`, `WORDS_PER_MINUTE`, `MAX_NUMERICAL_STATEMENTS`) for improved maintainability
+
 ### Fixed
 
 - **CLI Summary Table: Add Podcast Results** - Display podcast word count, duration, and validation status in final CLI summary after full pipeline run
