@@ -523,6 +523,7 @@ class OpenAIProvider(BaseLLMProvider):
         schema: dict[str, Any],
         system_prompt: str | None = None,
         schema_name: str | None = None,
+        reasoning_effort: str | None = None,
         **kwargs,
     ) -> dict[str, Any]:
         """
@@ -538,6 +539,7 @@ class OpenAIProvider(BaseLLMProvider):
             schema: JSON schema dictionary (Draft 2020-12 format) to guide output structure
             system_prompt: Optional system-level extraction instructions
             schema_name: Optional name for the schema (defaults to schema["title"] or "extraction_schema")
+            reasoning_effort: Optional reasoning effort level ("low", "medium", "high") for GPT-5.1+
             **kwargs: Additional OpenAI API parameters
 
         Returns:
@@ -585,6 +587,7 @@ class OpenAIProvider(BaseLLMProvider):
                 instructions=system_prompt,
                 max_output_tokens=self.settings.openai_max_tokens,
                 # temperature not supported for reasoning models (GPT-5, o-series)
+                reasoning={"effort": reasoning_effort} if reasoning_effort else None,
                 text={
                     "format": {
                         "type": "json_schema",
@@ -620,6 +623,7 @@ class OpenAIProvider(BaseLLMProvider):
         system_prompt: str | None = None,
         max_pages: int | None = None,
         schema_name: str | None = None,
+        reasoning_effort: str | None = None,
         **kwargs,
     ) -> dict[str, Any]:
         """
@@ -636,6 +640,7 @@ class OpenAIProvider(BaseLLMProvider):
             system_prompt: Optional system-level extraction instructions
             max_pages: Optional limit on number of pages to process (for cost control)
             schema_name: Optional name for the schema (defaults to schema["title"] or "extraction_schema")
+            reasoning_effort: Optional reasoning effort level ("low", "medium", "high") for GPT-5.1+
             **kwargs: Additional OpenAI API parameters
 
         Returns:
@@ -726,6 +731,7 @@ class OpenAIProvider(BaseLLMProvider):
                 instructions=system_prompt,
                 max_output_tokens=self.settings.openai_max_tokens,
                 # temperature not supported for reasoning models (GPT-5, o-series)
+                reasoning={"effort": reasoning_effort} if reasoning_effort else None,
                 text={
                     "format": {
                         "type": "json_schema",

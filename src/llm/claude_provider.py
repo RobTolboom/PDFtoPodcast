@@ -191,6 +191,7 @@ class ClaudeProvider(BaseLLMProvider):
         schema: dict[str, Any],
         system_prompt: str | None = None,
         schema_name: str | None = None,
+        reasoning_effort: str | None = None,
         **kwargs,
     ) -> dict[str, Any]:
         """
@@ -198,6 +199,8 @@ class ClaudeProvider(BaseLLMProvider):
 
         Note: Claude doesn't have native structured outputs like OpenAI,
         so we include schema information in the prompt and validate post-generation.
+        The reasoning_effort parameter is accepted for API compatibility but ignored
+        as Claude doesn't support explicit reasoning effort levels.
         """
         try:
             # Include schema information in system prompt
@@ -295,6 +298,7 @@ class ClaudeProvider(BaseLLMProvider):
         system_prompt: str | None = None,
         max_pages: int | None = None,
         schema_name: str | None = None,
+        reasoning_effort: str | None = None,
         **kwargs,
     ) -> dict[str, Any]:
         """
@@ -302,6 +306,8 @@ class ClaudeProvider(BaseLLMProvider):
 
         Uses Claude's PDF processing to analyze documents including tables, images,
         and charts. PDF is base64-encoded and sent directly in the message.
+        The reasoning_effort parameter is accepted for API compatibility but ignored
+        as Claude doesn't support explicit reasoning effort levels.
         """
         try:
             # Normalize to Path object

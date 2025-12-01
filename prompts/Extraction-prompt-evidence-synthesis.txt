@@ -65,9 +65,6 @@ DISALLOWED ANYWHERE
 
 SECTION REQUIREMENTS
 
-document
-- { filename, content_type, page_count }
-
 metadata
 - { title, authors[] (each with last_name REQUIRED; initials, given_names, orcid, affiliations, corresponding, email optional), journal, published_date (+ precision if available), volume/issue/pages if present }
 - If vancouver_citation is emitted, also emit vancouver_source (SourceRef).

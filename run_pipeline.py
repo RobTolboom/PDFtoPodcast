@@ -4,7 +4,7 @@
 
 # run_pipeline.py
 """
-Five-step PDF extraction pipeline with direct PDF upload and schema-based validation.
+Six-step PDF extraction pipeline with direct PDF upload and schema-based validation.
 
 Pipeline Steps:
     1. Classification - Identify publication type and extract metadata via PDF upload
@@ -12,6 +12,7 @@ Pipeline Steps:
     3. Validation & Correction - Iterative validation and correction loop
     4. Appraisal - Critical appraisal with risk of bias and GRADE assessment
     5. Report Generation - Generate structured reports with LaTeX/WeasyPrint rendering
+    6. Podcast Generation - Generate audio script from extraction and appraisal data
 
 PDF Upload Strategy:
     All LLM steps use direct PDF upload (no text extraction) to preserve:
@@ -65,7 +66,7 @@ from rich.table import Table
 
 # Import pipeline functionality
 try:
-    from src.pipeline import run_four_step_pipeline, run_single_step
+    from src.pipeline import run_full_pipeline, run_single_step
     from src.pipeline.file_manager import PipelineFileManager
 
     HAVE_LLM_SUPPORT = True
@@ -86,11 +87,12 @@ def main():
     parser = argparse.ArgumentParser(
         description=(
             "PDFtoPodcast Pipeline - Extract structured data from medical research PDFs\n\n"
-            "Five-step pipeline: Classification → Extraction → Validation → Appraisal → Report\n\n"
+            "Six-step pipeline: Classification → Extraction → Validation → Appraisal → Report → Podcast\n\n"
             "Full Pipeline: python run_pipeline.py paper.pdf\n"
             "Single Step: python run_pipeline.py paper.pdf --step validation_correction --max-iterations 2\n"
             "Appraisal: python run_pipeline.py paper.pdf --step appraisal --appraisal-max-iter 3\n"
-            "Report: python run_pipeline.py paper.pdf --step report_generation --report-language en"
+            "Report: python run_pipeline.py paper.pdf --step report_generation --report-language en\n"
+            "Podcast: python run_pipeline.py paper.pdf --step podcast_generation"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
@@ -122,6 +124,7 @@ def main():
             "validation_correction",
             "appraisal",
             "report_generation",
+            "podcast_generation",
         ],
         default=None,
         help="Run specific pipeline step (default: run all steps)",
@@ -380,6 +383,25 @@ def main():
                 console.print("[cyan]Rendered artifacts:[/cyan]")
                 for key, path in render_paths.items():
                     console.print(f"[dim]  → {key}: {path}[/dim]")
+        elif args.step == "podcast_generation":
+            podcast = result.get("podcast", {})
+            validation = result.get("validation", {})
+            metadata = podcast.get("metadata", {})
+
+            word_count = metadata.get("word_count", 0)
+            duration = metadata.get("estimated_duration_minutes", 0)
+            validation_status = validation.get("status", "unknown")
+            ready_for_tts = validation.get("ready_for_tts", False)
+            issues = validation.get("issues", [])
+
+            console.print(f"[cyan]Word count:[/cyan] {word_count}")
+            console.print(f"[cyan]Duration:[/cyan] ~{duration} minutes")
+            console.print(f"[cyan]Validation:[/cyan] {validation_status}")
+            console.print(f"[cyan]TTS ready:[/cyan] {ready_for_tts}")
+            if issues:
+                console.print(f"[yellow]Issues:[/yellow] {len(issues)}")
+                for issue in issues[:3]:  # Show first 3
+                    console.print(f"[dim]  → {issue}[/dim]")
         elif args.step in ["validation"]:
             validation_status = result.get("verification_summary", {}).get("overall_status", "—")
             completeness = result.get("verification_summary", {}).get("completeness_score", 0)
@@ -395,8 +417,8 @@ def main():
 
     else:
         # Full pipeline execution
-        # Updated pipeline steps for 5-component system
-        table = Table(title="Pipeline stappen (5-step systeem)", box=box.SIMPLE_HEAVY)
+        # Updated pipeline steps for 6-component system
+        table = Table(title="Pipeline stappen (6-step systeem)", box=box.SIMPLE_HEAVY)
         table.add_column("Stap", style="cyan", no_wrap=True)
         table.add_column("Status", style="green")
         steps = [
@@ -405,16 +427,17 @@ def main():
             ("3. Validatie & Correctie", ""),
             ("4. Critical Appraisal", ""),
             ("5. Rapportgeneratie", ""),
+            ("6. Podcast generatie", ""),
         ]
         for s, st in steps:
             table.add_row(s, st)
         console.print(table)
 
-        # Run the five-step pipeline with selected LLM provider
+        # Run the six-step pipeline with selected LLM provider
         with console.status(
-            "[bold cyan]Bezig met vijf-staps extractie pipeline...[/bold cyan]", spinner="dots"
+            "[bold cyan]Bezig met zes-staps extractie pipeline...[/bold cyan]", spinner="dots"
         ):
-            results = run_four_step_pipeline(
+            results = run_full_pipeline(
                 pdf_path=pdf_path,
                 max_pages=args.max_pages,
                 llm_provider=args.llm_provider,
@@ -519,6 +542,18 @@ def main():
         if render_paths:
             for artifact_type, path in render_paths.items():
                 summary.add_row(f"  → {artifact_type}", str(path))
+
+    # Podcast generation summary
+    podcast = results.get("podcast_generation")
+    if podcast:
+        podcast_data = podcast.get("podcast", {})
+        validation = podcast.get("validation", {})
+        word_count = podcast_data.get("metadata", {}).get("word_count", 0)
+        duration = podcast_data.get("metadata", {}).get("estimated_duration_minutes", 0)
+        status = validation.get("status", "unknown")
+        summary.add_row("Podcast woorden", str(word_count))
+        summary.add_row("Podcast duur", f"~{duration} min")
+        summary.add_row("Podcast validatie", status)
 
     console.print(summary)
 

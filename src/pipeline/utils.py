@@ -135,3 +135,64 @@ def check_breakpoint(
         )
         return True
     return False
+
+
+def _call_progress_callback(
+    callback: Any, step_name: str, status: str, data: dict[str, Any]
+) -> None:
+    """
+    Helper to safely call progress callback if it exists.
+
+    Args:
+        callback: Callback function or None
+        step_name: Name of current step
+        status: Status string (starting, completed, failed, etc.)
+        data: Data dictionary
+    """
+    if callback:
+        try:
+            callback(step_name, status, data)
+        except Exception as e:
+            console.print(f"[yellow]⚠️ Progress callback failed: {e}[/yellow]")
+
+
+def _strip_metadata_for_pipeline(data: dict[str, Any]) -> dict[str, Any]:
+    """
+    Remove EXTRA metadata fields added by code before schema validation.
+
+    After each pipeline step, the code adds EXTRA tracking/debugging metadata to the
+    result JSON and saves it to file. When loading this JSON for the next step,
+    these EXTRA fields must be stripped before schema validation, otherwise it fails
+    with "Additional properties are not allowed".
+
+    Strips EXTRA fields that are NOT part of the schema:
+    - usage: Token consumption statistics (added by LLM providers)
+    - _metadata: LLM response metadata (response_id, model, etc.)
+    - _pipeline_metadata: Pipeline execution metadata (step, timestamp, etc.)
+    - correction_notes: Debugging notes from correction step
+
+    IMPORTANT: Does NOT remove the schema "metadata" field (title, authors, DOI, etc.)
+    which is a required part of the extraction/report/podcast schema.
+
+    Args:
+        data: Input dictionary loaded from JSON file
+
+    Returns:
+        Copy of dictionary with EXTRA metadata removed, ready for schema validation
+    """
+    data_copy = data.copy()
+
+    # Remove EXTRA LLM metadata fields (added by providers after generation)
+    data_copy.pop("usage", None)
+    data_copy.pop("_metadata", None)
+
+    # Remove EXTRA pipeline metadata (added by orchestrator after each step)
+    data_copy.pop("_pipeline_metadata", None)
+
+    # Remove EXTRA debugging fields (added during correction)
+    data_copy.pop("correction_notes", None)
+
+    # KEEP schema "metadata" field - it's part of the schema!
+    # Do NOT remove it
+
+    return data_copy

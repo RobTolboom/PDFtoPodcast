@@ -16,8 +16,8 @@ Environment Variables:
 
     # OpenAI Configuration
     OPENAI_API_KEY: OpenAI API key
-    OPENAI_MODEL: Model name (default: gpt-5, supports structured outputs)
-    OPENAI_MAX_TOKENS: Maximum output tokens (default: 4096)
+    OPENAI_MODEL: Model name (default: gpt-5.1, supports structured outputs + reasoning)
+    OPENAI_MAX_TOKENS: Maximum output tokens (default: 128000)
 
     # Anthropic Configuration
     ANTHROPIC_API_KEY: Anthropic API key
@@ -34,7 +34,9 @@ Environment Variables:
 
 Example .env file:
     OPENAI_API_KEY=sk-...
-    OPENAI_MODEL=gpt-5
+    OPENAI_MODEL=gpt-5.1
+    REASONING_EFFORT_EXTRACTION=high
+    REASONING_EFFORT_APPRAISAL=high
     ANTHROPIC_API_KEY=sk-ant-...
     LLM_TEMPERATURE=0.0
     LLM_TIMEOUT=120
@@ -42,7 +44,7 @@ Example .env file:
 Usage:
     >>> from src.config import llm_settings
     >>> llm_settings.openai_model
-    'gpt-5'
+    'gpt-5.1'
 """
 
 import os
@@ -79,8 +81,15 @@ class LLMSettings:
     Attributes:
         default_provider: Which LLM provider to use by default
         openai_api_key: OpenAI API key from OPENAI_API_KEY env var
-        openai_model: Model name (default: gpt-5, supports structured outputs)
-        openai_max_tokens: Max output tokens for OpenAI (default: 4096)
+        openai_model: Model name (default: gpt-5.1, supports structured outputs + reasoning)
+        openai_max_tokens: Max output tokens for OpenAI (default: 128000)
+        reasoning_effort_classification: Reasoning effort for classification (low/medium/high, default: low)
+        reasoning_effort_extraction: Reasoning effort for extraction (low/medium/high, default: high)
+        reasoning_effort_validation: Reasoning effort for validation (low/medium/high, default: medium)
+        reasoning_effort_correction: Reasoning effort for correction (low/medium/high, default: medium)
+        reasoning_effort_appraisal: Reasoning effort for appraisal (low/medium/high, default: high)
+        reasoning_effort_report: Reasoning effort for report generation (low/medium/high, default: medium)
+        reasoning_effort_podcast: Reasoning effort for podcast generation (low/medium/high, default: medium)
         anthropic_api_key: Anthropic API key from ANTHROPIC_API_KEY env var
         anthropic_model: Claude model name (default: claude-3-5-sonnet-20241022)
         anthropic_max_tokens: Max output tokens for Claude (default: 4096)
@@ -95,11 +104,23 @@ class LLMSettings:
 
     # OpenAI configuration
     openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
-    openai_model: str = os.getenv("OPENAI_MODEL", "gpt-5")  # gpt-5 supports structured outputs
-    # Set very high default (128K context window for gpt-5)
+    openai_model: str = os.getenv(
+        "OPENAI_MODEL", "gpt-5.1"
+    )  # gpt-5.1 supports structured outputs + reasoning
+    # Set very high default (128K context window for gpt-5.1)
     # Actual output limit depends on model (typically 4K-16K for completion)
     # OpenAI API will enforce model-specific limits automatically
     openai_max_tokens: int = int(os.getenv("OPENAI_MAX_TOKENS", "128000"))
+
+    # Reasoning effort per pipeline step (low/medium/high)
+    # Higher effort = more thinking tokens, better quality, higher cost/latency
+    reasoning_effort_classification: str = os.getenv("REASONING_EFFORT_CLASSIFICATION", "low")
+    reasoning_effort_extraction: str = os.getenv("REASONING_EFFORT_EXTRACTION", "high")
+    reasoning_effort_validation: str = os.getenv("REASONING_EFFORT_VALIDATION", "medium")
+    reasoning_effort_correction: str = os.getenv("REASONING_EFFORT_CORRECTION", "medium")
+    reasoning_effort_appraisal: str = os.getenv("REASONING_EFFORT_APPRAISAL", "high")
+    reasoning_effort_report: str = os.getenv("REASONING_EFFORT_REPORT", "medium")
+    reasoning_effort_podcast: str = os.getenv("REASONING_EFFORT_PODCAST", "medium")
 
     # Anthropic Claude configuration
     anthropic_api_key: str = os.getenv("ANTHROPIC_API_KEY", "")
@@ -125,7 +146,7 @@ class Settings:
     """
 
     api_key: str = os.getenv("OPENAI_API_KEY", "")
-    model: str = os.getenv("OPENAI_MODEL", "gpt-5")  # Updated from gpt-4.1 to valid model
+    model: str = os.getenv("OPENAI_MODEL", "gpt-5.1")  # Updated from gpt-4.1 to valid model
     max_tokens: int = int(os.getenv("MAX_TOKENS", "4096"))
 
 

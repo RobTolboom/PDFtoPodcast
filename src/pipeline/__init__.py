@@ -3,7 +3,7 @@
 # Commercial use requires separate license - see LICENSE and COMMERCIAL_LICENSE.md
 
 """
-Five-step PDF extraction, appraisal, and report generation pipeline package.
+Six-step PDF extraction, appraisal, report generation, and podcast pipeline package.
 
 This package provides the core pipeline that coordinates:
 1. Classification - Identify publication type and extract metadata
@@ -11,17 +11,18 @@ This package provides the core pipeline that coordinates:
 3. Validation & Correction - Iterative schema + semantic validation with fixes
 4. Appraisal - Critical appraisal (risk of bias, GRADE, applicability)
 5. Report Generation - Structured report JSON with LaTeX/WeasyPrint rendering
+6. Podcast Generation - Audio script generation from extraction and appraisal data
 
 Main Components:
-    - orchestrator: Main pipeline coordination (run_four_step_pipeline, run_single_step)
+    - orchestrator: Main pipeline coordination (run_full_pipeline, run_single_step)
     - file_manager: File naming and storage management
     - validation_runner: Dual validation strategy implementation
     - utils: Helper functions (DOI handling, breakpoints, etc.)
 
 Usage:
     >>> from pathlib import Path
-    >>> from src.pipeline import run_four_step_pipeline, run_single_step
-    >>> results = run_four_step_pipeline(
+    >>> from src.pipeline import run_full_pipeline, run_single_step
+    >>> results = run_full_pipeline(
     ...     pdf_path=Path("research_paper.pdf"),
     ...     max_pages=20,
     ...     llm_provider="openai"
@@ -30,7 +31,7 @@ Usage:
     'interventional_trial'
 
 Public API:
-    - run_four_step_pipeline: Main pipeline entry point (steps 1-4)
+    - run_full_pipeline: Main pipeline entry point (steps 1-6)
     - run_single_step: Execute individual steps including report_generation
     - PipelineFileManager: File management class
     - run_dual_validation: Dual validation function
@@ -38,14 +39,15 @@ Public API:
 """
 
 from .file_manager import PipelineFileManager
-from .orchestrator import run_four_step_pipeline, run_single_step
+from .orchestrator import run_full_pipeline, run_single_step, run_validation_with_correction
 from .utils import check_breakpoint, doi_to_safe_filename, get_file_identifier, get_next_step
 from .validation_runner import SCHEMA_QUALITY_THRESHOLD, run_dual_validation
 
 __all__ = [
     # Main pipeline orchestration
-    "run_four_step_pipeline",
+    "run_full_pipeline",
     "run_single_step",
+    "run_validation_with_correction",
     # File management
     "PipelineFileManager",
     # Validation

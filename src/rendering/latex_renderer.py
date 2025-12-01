@@ -45,10 +45,6 @@ def _escape_latex(text: str) -> str:
         "<": r"\textless{}",
         ">": r"\textgreater{}",
         "*": r"\textasteriskcentered{}",
-        "+": r"{+}",
-        "=": r"{=}",
-        "/": r"{/}",
-        "@": r"@",  # Usually safe but good to be explicit if needed, though @ is special in some contexts
         "⊕": r"$\oplus$",  # GRADE certainty symbol
         "○": r"$\circ$",  # GRADE certainty symbol
         "≥": r"$\geq$",

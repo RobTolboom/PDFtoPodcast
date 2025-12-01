@@ -7,7 +7,103 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Podcast validation constants extracted** - Refactored hardcoded validation thresholds (800, 1500, 150, 3) to named module-level constants (`PODCAST_MIN_WORDS`, `PODCAST_MAX_WORDS`, `WORDS_PER_MINUTE`, `MAX_NUMERICAL_STATEMENTS`) for improved maintainability
+
+### Fixed
+
+- **CLI Summary Table: Add Podcast Results** - Display podcast word count, duration, and validation status in final CLI summary after full pipeline run
+
+- **CRITICAL: CLI Import Fix + Documentation Alignment** - External audit fixes
+  - **CLI import broken**: Fixed `ImportError` - changed `run_four_step_pipeline` to `run_full_pipeline` (CLI was non-functional)
+  - **Full-run table updated**: Added "6. Podcast generatie" to pipeline steps table (was missing)
+  - **Schema validation added**: Podcast output now validated against `podcast.schema.json` (Phase 2 spec compliance)
+  - **>1500 words = hard fail**: Transcript exceeding 1500 words now triggers critical failure (was incorrectly a warning)
+  - **Documentation sync**: All "five-step" references updated to "six-step" (`run_pipeline.py`, `ARCHITECTURE.md`, `src/pipeline/__init__.py`)
+  - **ARCHITECTURE.md flow**: Added `run_podcast_generation()` to pipeline flow diagram
+
+- **Podcast Generation - Spec Compliance & UI Enhancement** - External review fixes
+  - **Always save files per spec**: `podcast.json` and `podcast_validation.json` now saved even on validation failure (changed from raising `ValueError` to returning `status: "failed"`)
+  - **Duration cap aligned with schema**: Changed from 15 to 10 minutes maximum
+  - **Copy transcript button**: Added text area in Streamlit UI for easy copying to TTS tools
+  - **Updated tests**: Reflect new "return status" behavior instead of exception raising
+
+- **CLI: Add podcast_generation result display** - Show word count, duration, validation status, TTS readiness, and issues in CLI output (follows pattern of other steps)
+
+- **Podcast Generation - Validation Round 2: Failed Status, Metadata Calc, Max Numbers** - Additional validation fixes based on external review
+  - **Validation failure behavior**: Transcript < 800 words returns `status: "failed"` with files saved
+  - **Hard fail**: Transcript > 1500 words now triggers critical failure (aligns with schema maxLength)
+  - **Metadata recalculation**:
+    - `word_count` and `estimated_duration_minutes` now calculated from actual transcript
+    - Duration estimate: ~150 words per minute (spoken pace)
+  - **Max 3 numerical statements check**:
+    - Warns when transcript contains >3 significant numbers (style guideline)
+  - **Validation result structure**:
+    - Added `critical_issues` field to distinguish hard failures from warnings
+    - `ready_for_tts` now false when status is "failed"
+  - **Test Updates**:
+    - Updated all tests to use ≥800 word transcripts
+    - Added `test_validation_raises_on_short_transcript` (ValueError expected)
+    - Added `test_validation_warns_on_too_many_numbers`
+    - Added `test_metadata_recalculated_from_transcript`
+
+- **Podcast Generation - Complete Validation & Cosmetic Fixes** - Audit-driven fixes for Phase 2 and Phase 3 compliance
+  - **Phase 2 Validation Expansion** (72% → 100% spec compliance):
+    - Added key outcomes presence check (verifies primary outcome mentioned in transcript)
+    - Added numeric accuracy spot check (verifies sample size appears in transcript)
+    - Added GRADE certainty language alignment (warns on high-certainty words with low GRADE evidence)
+    - Added "insufficiently reported" detection (warns when missing data not acknowledged)
+  - **Phase 3 Cosmetic Fixes** (94% → 100% spec compliance):
+    - Language field now shows full name ("English") instead of code ("EN")
+    - Audience field now capitalizes first letter ("Practising clinicians")
+  - **Test Updates**:
+    - Added 3 new validation tests: `test_validation_detects_missing_primary_outcome`, `test_validation_detects_grade_language_mismatch`, `test_validation_warns_missing_insufficiently_reported`
+    - Updated renderer test assertions for new formatting
+    - Fixed `test_execution_screen.py` to expect 6 pipeline steps (including podcast_generation)
+  - **Documentation**: Added "podcast" to schemas_loader.py docstring
+
+### Changed
+
+- **Podcast Generation Feature Specification (v1.1)** - Refined feature document with validation behavior and GRADE mapping
+  - Added explicit GRADE-verb mapping: enforce calibrated language based on certainty level (High→shows/demonstrates, Moderate→likely/probably, Low→may/might, Very Low→very uncertain)
+  - Added Section 0: Validation Behaviour (light, single-pass) - single factcheck after generation, `podcast_validation.json` artefact with status/issues/ready_for_tts
+  - Clarified numerical statements: priority order, qualitative fallback for extra outcomes, documented future `allow_extra_numbers` flag
+  - Added transcript formatting rule: no headings in transcript, markdown wrapper may include metadata only
+  - Updated verification checklist: verbs must reflect APPRAISAL/GRADE mapping
+  - Clarified file outputs: added `podcast_validation.json`, documented naming pattern (no `-best` suffix for podcasts)
+  - Simplified Phase 2: removed language parameter support (English only), added validation artefact deliverable
+  - Updated acceptance criteria: validation runs once with status surfaced, no correction loop
+  - Location: features/podcast-generation.md
+
 ### Added
+
+- **Podcast Generation Feature - Phase 6: Testing & Documentation** (#podcast-generation-phase6) - Final documentation and test coverage
+  - Added `TestLoadPodcastGenerationPrompt` class (3 tests) to `tests/unit/test_prompts.py`
+  - Updated README.md: Key Features, Architecture diagram (STEP 6), CLI usage examples, Output Structure
+  - Completes podcast-generation feature implementation
+
+- **Podcast Generation Feature - Phase 5: Streamlit UI Integration** (#podcast-generation-phase5) - UI support for podcast generation step
+  - Added Step 6 "Podcast Generation" to settings step selector
+  - Added podcast step display in execution progress (3 locations)
+  - Added `display_podcast_artifacts()` function with download buttons for JSON and markdown
+  - Added transcript preview with expander in artifacts section
+
+- **Podcast Generation Feature - Phase 4: CLI Integration** (#podcast-generation-phase4) - CLI support for podcast generation step
+  - Added `podcast_generation` to `--step` argument choices
+  - Updated CLI description: "Five-step" → "Six-step pipeline" (Classification → Extraction → Validation → Appraisal → Report → Podcast)
+  - Added podcast example to CLI help text: `python run_pipeline.py paper.pdf --step podcast_generation`
+
+- **Podcast Generation Feature - Phase 3: Markdown Rendering** (#podcast-generation-phase3) - Human-readable markdown output for podcast scripts
+  - **Podcast Renderer Module:** `src/rendering/podcast_renderer.py` with:
+    - `render_podcast_to_markdown()` function for converting podcast JSON to markdown
+    - Simple structure: H1 title, metadata line (duration/word count/language/audience), continuous transcript, source footer
+    - Transcript preservation: no markdown escaping (TTS-ready plain text)
+    - Graceful defaults for missing metadata fields
+  - **File Output:** `{identifier}-podcast.md` saved to `tmp/` directory alongside podcast JSON
+  - **Error Handling:** Markdown rendering failures logged as warnings (non-fatal, JSON remains primary artifact)
+  - **Test Coverage:** 11 comprehensive unit tests in `tests/unit/test_podcast_renderer.py` covering structure validation, defaults, transcript preservation, error cases
+  - **Integration:** Markdown rendering integrated into `run_podcast_generation()` pipeline step
 
 - **Report Generation Feature - Phase 8: CLI Support** (#report-generation-phase8) - Complete CLI integration for report generation
   - **CLI Flags:** `--report-language {nl,en}`, `--report-renderer {latex,weasyprint}`, `--report-compile-pdf/--no-report-compile-pdf`, `--enable-figures/--disable-figures`

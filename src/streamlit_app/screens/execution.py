@@ -78,6 +78,7 @@ from src.pipeline.orchestrator import (
     STEP_CLASSIFICATION,
     STEP_CORRECTION,
     STEP_EXTRACTION,
+    STEP_PODCAST_GENERATION,
     STEP_REPORT_GENERATION,
     STEP_VALIDATION,
     STEP_VALIDATION_CORRECTION,
@@ -1385,6 +1386,7 @@ def show_execution_screen():
         display_step_status(STEP_VALIDATION_CORRECTION, "Validation & Correction", 3)
         display_step_status(STEP_APPRAISAL, "Appraisal", 4)
         display_step_status(STEP_REPORT_GENERATION, "Report Generation", 5)
+        display_step_status(STEP_PODCAST_GENERATION, "Podcast Generation", 6)
 
         # Check if all steps completed
         if current_step_index >= len(steps_to_run):
@@ -1506,11 +1508,15 @@ def show_execution_screen():
         display_step_status(STEP_VALIDATION_CORRECTION, "Validation & Correction", 3)
         display_step_status(STEP_APPRAISAL, "Appraisal", 4)
         display_step_status(STEP_REPORT_GENERATION, "Report Generation", 5)
+        display_step_status(STEP_PODCAST_GENERATION, "Podcast Generation", 6)
 
         st.markdown("---")
 
         # Report artifacts
         display_report_artifacts()
+
+        # Podcast artifacts
+        display_podcast_artifacts()
 
         st.markdown("---")
 
@@ -1592,11 +1598,15 @@ def show_execution_screen():
         display_step_status(STEP_VALIDATION_CORRECTION, "Validation & Correction", 3)
         display_step_status(STEP_APPRAISAL, "Appraisal", 4)
         display_step_status(STEP_REPORT_GENERATION, "Report Generation", 5)
+        display_step_status(STEP_PODCAST_GENERATION, "Podcast Generation", 6)
 
         st.markdown("---")
 
         # If report artifacts exist, still offer downloads
         display_report_artifacts()
+
+        # Podcast artifacts
+        display_podcast_artifacts()
 
 
 def display_report_artifacts():
@@ -1632,6 +1642,54 @@ def display_report_artifacts():
             st.download_button("⬇️ Download Markdown (.md)", f, file_name=md_file.name)
     if not has_any:
         st.info("No report artifacts available yet. Run report generation to produce .tex/.pdf.")
+
+
+def display_podcast_artifacts():
+    """
+    Show download buttons for podcast artifacts (.json/.md) if available.
+    """
+    if not st.session_state.pdf_path:
+        return
+    fm = PipelineFileManager(Path(st.session_state.pdf_path))
+    podcast_json = fm.tmp_dir / f"{fm.identifier}-podcast.json"
+    podcast_md = fm.tmp_dir / f"{fm.identifier}-podcast.md"
+
+    st.markdown("### Podcast Artifacts")
+    has_any = False
+
+    if podcast_json.exists():
+        has_any = True
+        with open(podcast_json, "rb") as f:
+            st.download_button("⬇️ Download Podcast JSON", f, file_name=podcast_json.name)
+
+    if podcast_md.exists():
+        has_any = True
+        with open(podcast_md, "rb") as f:
+            st.download_button("⬇️ Download Podcast Script (.md)", f, file_name=podcast_md.name)
+
+        # Also show transcript preview
+        with open(podcast_md) as f:
+            content = f.read()
+        with st.expander("📄 Preview Transcript"):
+            st.markdown(content)
+
+    # Copy transcript button (load from JSON for clean transcript only)
+    if podcast_json.exists():
+        import json
+
+        with open(podcast_json) as f:
+            podcast_data = json.load(f)
+        transcript = podcast_data.get("transcript", "")
+        if transcript:
+            st.text_area(
+                "📋 Copy Transcript (for TTS)",
+                transcript,
+                height=150,
+                key="podcast_transcript_copy",
+            )
+
+    if not has_any:
+        st.info("No podcast artifacts available yet. Run podcast generation to produce script.")
 
 
 def _display_report_result(result: dict):

@@ -188,6 +188,12 @@ def get_all_available_prompts() -> dict[str, str]:
     except PromptLoadError:
         pass
 
+    try:
+        load_podcast_generation_prompt()
+        prompts["podcast_generation"] = "Podcast script generation from extraction and appraisal"
+    except PromptLoadError:
+        pass
+
     return prompts
 
 
@@ -349,6 +355,27 @@ def load_report_correction_prompt() -> str:
         raise PromptLoadError(f"Error reading report correction prompt: {e}") from e
 
 
+def load_podcast_generation_prompt() -> str:
+    """
+    Load the podcast generation prompt from Podcast-generation.txt.
+
+    Returns:
+        Podcast generation prompt text
+
+    Raises:
+        PromptLoadError: If prompt file not found or cannot be read
+    """
+    prompt_file = PROMPTS_DIR / "Podcast-generation.txt"
+
+    if not prompt_file.exists():
+        raise PromptLoadError(f"Podcast generation prompt not found: {prompt_file}")
+
+    try:
+        return prompt_file.read_text(encoding="utf-8").strip()
+    except Exception as e:
+        raise PromptLoadError(f"Error reading podcast generation prompt: {e}") from e
+
+
 def validate_prompt_directory() -> dict[str, bool]:
     """
     Validate that all expected prompt files are present in the prompts directory.
@@ -377,6 +404,8 @@ def validate_prompt_directory() -> dict[str, bool]:
         "Report-generation.txt",
         "Report-validation.txt",
         "Report-correction.txt",
+        # Podcast prompts
+        "Podcast-generation.txt",
     ]
 
     validation_results = {}

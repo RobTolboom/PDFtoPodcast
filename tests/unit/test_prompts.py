@@ -15,6 +15,7 @@ from src.prompts import (
     load_classification_prompt,
     load_correction_prompt,
     load_extraction_prompt,
+    load_podcast_generation_prompt,
     load_validation_prompt,
 )
 
@@ -183,6 +184,31 @@ class TestLoadCorrectionPrompt:
                 load_correction_prompt()
 
             assert "Correction prompt not found" in str(exc_info.value)
+
+
+class TestLoadPodcastGenerationPrompt:
+    """Tests for podcast generation prompt loading."""
+
+    def test_load_podcast_generation_prompt_success(self):
+        """Test that podcast generation prompt loads successfully."""
+        prompt = load_podcast_generation_prompt()
+        assert prompt is not None
+        assert len(prompt) > 0
+
+    def test_load_podcast_generation_prompt_contains_required_sections(self):
+        """Test that podcast prompt contains key instruction sections."""
+        prompt = load_podcast_generation_prompt()
+        # Check for key sections mentioned in feature spec
+        assert "EXTRACTION_JSON" in prompt or "extraction" in prompt.lower()
+        assert "APPRAISAL_JSON" in prompt or "appraisal" in prompt.lower()
+
+    def test_load_podcast_generation_prompt_file_not_found_raises_error(self):
+        """Test that missing podcast prompt file raises PromptLoadError."""
+        with patch("src.prompts.PROMPTS_DIR", Path("/nonexistent")):
+            with pytest.raises(PromptLoadError) as exc_info:
+                load_podcast_generation_prompt()
+
+            assert "Podcast generation prompt not found" in str(exc_info.value)
 
 
 class TestPromptsModuleConstants:

@@ -7,7 +7,7 @@
 Five-step PDF extraction + appraisal + reporting pipeline orchestration.
 
 This module contains the main pipeline orchestration logic that coordinates
-the five primary steps: Classification → Extraction → Validation & Correction → Appraisal → Report Generation.
+the six primary steps: Classification → Extraction → Validation & Correction → Appraisal → Report Generation → Podcast Generation.
 
 Pipeline Steps:
     1. Classification - Identify publication type and extract metadata
@@ -15,12 +15,13 @@ Pipeline Steps:
     3. Validation & Correction - Iterative validation with automatic correction
     4. Appraisal - Critical appraisal (risk of bias, GRADE, applicability)
     5. Report Generation - Generate structured report and render to PDF
+    6. Podcast Generation - Generate audio script from extraction and appraisal
 
 Public APIs:
     - run_single_step(): Execute individual pipeline steps with dependency validation
       Enables step-by-step execution with UI updates between steps.
 
-    - run_four_step_pipeline(): Execute all four steps sequentially (legacy API)
+    - run_full_pipeline(): Execute all steps sequentially
       Runs the complete pipeline in one call without intermediate updates.
 
 Step-by-Step Execution Example:
@@ -57,7 +58,6 @@ PDF Upload Strategy:
     Benefit: Complete data fidelity - no loss of tables, images, or formatting
 """
 
-import copy
 import functools
 import json
 import re
@@ -87,7 +87,8 @@ from ..rendering.markdown_renderer import render_report_to_markdown
 from ..rendering.weasy_renderer import WeasyRendererError, render_report_with_weasyprint
 from ..schemas_loader import SchemaLoadError, load_schema, validate_schema_compatibility
 from .file_manager import PipelineFileManager
-from .utils import check_breakpoint
+from .podcast_logic import run_podcast_generation
+from .utils import _call_progress_callback, _strip_metadata_for_pipeline, check_breakpoint
 from .validation_runner import run_dual_validation
 
 # Pipeline step name constants
@@ -99,6 +100,7 @@ STEP_VALIDATION_CORRECTION = "validation_correction"
 STEP_APPRAISAL = "appraisal"
 STEP_APPRAISAL_VALIDATION = "appraisal_validation"
 STEP_REPORT_GENERATION = "report_generation"
+STEP_PODCAST_GENERATION = "podcast_generation"
 
 # Default pipeline steps (validation_correction replaces separate validation+correction)
 ALL_PIPELINE_STEPS = [
@@ -107,6 +109,7 @@ ALL_PIPELINE_STEPS = [
     STEP_VALIDATION_CORRECTION,
     STEP_APPRAISAL,  # Critical appraisal after extraction validation
     STEP_REPORT_GENERATION,  # Report generation after appraisal
+    STEP_PODCAST_GENERATION,  # Podcast generation after report
 ]
 # Note: STEP_VALIDATION and STEP_CORRECTION remain available for CLI backward compatibility
 
@@ -116,6 +119,7 @@ STEP_DISPLAY_NAMES = {
     STEP_VALIDATION_CORRECTION: "Step 3 - Validation & Correction",
     STEP_APPRAISAL: "Step 4 - Appraisal",
     STEP_REPORT_GENERATION: "Step 5 - Report Generation",
+    STEP_PODCAST_GENERATION: "Step 6 - Podcast Generation",
 }
 
 
@@ -215,79 +219,6 @@ class UnsupportedPublicationType(ValueError):
                 f"evidence_synthesis, prediction_prognosis, diagnostic, editorials_opinion."
             )
         super().__init__(message)
-
-
-def _call_progress_callback(
-    callback: Callable[[str, str, dict], None] | None,
-    step_name: str,
-    status: str,
-    data: dict,
-) -> None:
-    """
-    Safely call progress callback if provided.
-
-    Wraps callback in try/except to prevent callback errors from breaking pipeline.
-    Logs callback errors but does not propagate them.
-
-    Args:
-        callback: Optional callback function (None = no callback)
-        step_name: Step identifier ("classification", "extraction", "validation", "correction")
-        status: Step status ("starting", "running", "completed", "failed", "skipped")
-        data: Dictionary with step-specific information (results, errors, timing, etc.)
-
-    Example:
-        >>> _call_progress_callback(my_callback, "classification", "starting", {"pdf_path": "..."})
-    """
-    if callback is None:
-        return
-
-    try:
-        callback(step_name, status, data)
-    except Exception as e:
-        # Log but don't propagate - callback errors shouldn't break pipeline
-        console.print(f"[yellow]⚠️  Progress callback error in {step_name}: {e}[/yellow]")
-
-
-def _strip_metadata_for_pipeline(data: dict) -> dict:
-    """
-    Remove metadata fields before passing data to next pipeline step.
-
-    Strips fields that contain execution metadata but are not part of
-    the schema-defined data structure:
-
-    - usage: LLM token usage (input/output/cached tokens)
-    - _metadata: LLM API response metadata (response_id, model, etc.)
-    - _pipeline_metadata: Pipeline execution metadata (timestamp, duration, etc.)
-    - correction_notes: Notes added by correction step (not part of extraction schema)
-
-    This ensures:
-    1. Schema validation doesn't fail on unexpected fields
-    2. LLM prompts don't receive metadata clutter
-    3. Step dependencies only see clean, schema-valid data
-
-    Args:
-        data: Dictionary containing step results with potential metadata
-
-    Returns:
-        Deep copy of data with metadata fields removed. Deep copy ensures
-        modifications to nested objects don't affect the original data.
-
-    Example:
-        >>> result = {
-        ...     "publication_type": "interventional_trial",
-        ...     "usage": {"input_tokens": 1000},
-        ...     "_metadata": {"response_id": "resp_123"}
-        ... }
-        >>> clean = _strip_metadata_for_pipeline(result)
-        >>> clean
-        {'publication_type': 'interventional_trial'}
-    """
-    clean_data = copy.deepcopy(data)
-    clean_data.pop("usage", None)
-    clean_data.pop("_metadata", None)
-    clean_data.pop("_pipeline_metadata", None)
-    clean_data.pop("correction_notes", None)
-    return clean_data
 
 
 def _get_provider_name(llm: Any) -> str:
@@ -1048,12 +979,15 @@ def _run_extraction_step(
         console.print("[dim]Uploading PDF for extraction...[/dim]")
 
         # Run schema-based extraction with direct PDF upload
+        from ..config import llm_settings
+
         extraction_result = llm.generate_json_with_pdf(
             pdf_path=pdf_path,
             schema=extraction_schema,
             system_prompt=extraction_prompt,
             max_pages=max_pages,
             schema_name=f"{publication_type}_extraction",
+            reasoning_effort=llm_settings.reasoning_effort_extraction,
         )
 
         console.print("[green]✅ Schema-conforming extraction completed[/green]")
@@ -1307,12 +1241,15 @@ Systematically address all identified issues and produce corrected, complete,\
 
         # Run correction with PDF upload for direct reference
         console.print("[dim]Running correction with PDF upload...[/dim]")
+        from ..config import llm_settings
+
         corrected_extraction = llm.generate_json_with_pdf(
             pdf_path=pdf_path,
             schema=extraction_schema,
             system_prompt=correction_prompt + "\n\n" + correction_context,
             max_pages=max_pages,
             schema_name=f"{publication_type}_extraction_corrected",
+            reasoning_effort=llm_settings.reasoning_effort_correction,
         )
 
         # Ensure correction metadata
@@ -2351,12 +2288,15 @@ def _run_classification_step(
 
         # Run classification with direct PDF upload
         console.print("[dim]Uploading PDF for classification...[/dim]")
+        from ..config import llm_settings
+
         classification_result = llm.generate_json_with_pdf(
             pdf_path=pdf_path,
             schema=classification_schema,
             system_prompt=classification_prompt,
             max_pages=max_pages,
             schema_name="classification",
+            reasoning_effort=llm_settings.reasoning_effort_classification,
         )
 
         publication_type = classification_result.get("publication_type", "unknown")
@@ -2510,11 +2450,14 @@ def _run_appraisal_step(
 
         # Run appraisal with extraction context (no PDF needed)
         # Appraisal works from extraction data, not original PDF
+        from ..config import llm_settings
+
         appraisal_result = llm.generate_json_with_schema(
             schema=appraisal_schema,
             system_prompt=appraisal_prompt,
             prompt=f"EXTRACTION_JSON:\n{json.dumps(extraction_clean, indent=2)}",
             schema_name=f"{publication_type}_appraisal",
+            reasoning_effort=llm_settings.reasoning_effort_appraisal,
         )
 
         console.print("[green]✅ Critical appraisal completed[/green]")
@@ -3935,11 +3878,14 @@ REPORT_SCHEMA:
     console.print(f"[dim]Publication type: {publication_type}, Language: {language}[/dim]")
 
     try:
+        from ..config import llm_settings
+
         report_json = llm.generate_json_with_schema(
             schema=report_schema,
             system_prompt=report_prompt,
             prompt=prompt_context,
             schema_name="report_generation",
+            reasoning_effort=llm_settings.reasoning_effort_report,
         )
     except LLMError as e:
         console.print(f"[red]❌ LLM call failed: {e}[/red]")
@@ -4434,6 +4380,35 @@ def run_single_step(
                 "Only run correction when validation status is not 'passed'."
             )
 
+    elif step_name == STEP_REPORT_GENERATION:
+        classification_result = _get_or_load_result("classification")
+        extraction_result = _get_or_load_result("extraction")
+        appraisal_result = _get_or_load_result("appraisal")
+
+        # Try to use best results from validation_correction and appraisal if available
+        try:
+            validation_correction_result = _get_or_load_result("validation_correction")
+            if validation_correction_result and validation_correction_result.get("best_extraction"):
+                extraction_result = validation_correction_result["best_extraction"]
+        except (ValueError, FileNotFoundError):
+            pass
+
+        # Try to use best_appraisal if available (from iterative appraisal)
+        if isinstance(appraisal_result, dict) and appraisal_result.get("best_appraisal"):
+            appraisal_result = appraisal_result["best_appraisal"]
+
+        previous_results[STEP_CLASSIFICATION] = classification_result
+        previous_results[STEP_EXTRACTION] = extraction_result
+        previous_results[STEP_APPRAISAL] = appraisal_result
+
+    elif step_name == STEP_PODCAST_GENERATION:
+        classification_result = _get_or_load_result("classification")
+        extraction_result = _get_or_load_result("extraction")
+        appraisal_result = _get_or_load_result("appraisal")
+        previous_results[STEP_CLASSIFICATION] = classification_result
+        previous_results[STEP_EXTRACTION] = extraction_result
+        previous_results[STEP_APPRAISAL] = appraisal_result
+
     elif step_name == STEP_VALIDATION_CORRECTION:
         classification_result = _get_or_load_result("classification")
         extraction_result = _get_or_load_result("extraction")
@@ -4649,12 +4624,33 @@ def run_single_step(
                 language=report_language or "en",
             )
 
+    elif step_name == STEP_PODCAST_GENERATION:
+        classification_result = previous_results[STEP_CLASSIFICATION]
+        extraction_result = previous_results[STEP_EXTRACTION]
+        appraisal_result = previous_results[STEP_APPRAISAL]
+
+        # Use corrected extraction if available
+        if STEP_CORRECTION in previous_results:
+            extraction_result = previous_results[STEP_CORRECTION]["extraction_corrected"]
+        elif STEP_VALIDATION_CORRECTION in previous_results:
+            if previous_results[STEP_VALIDATION_CORRECTION].get("best_extraction"):
+                extraction_result = previous_results[STEP_VALIDATION_CORRECTION]["best_extraction"]
+
+        return run_podcast_generation(
+            extraction_result=extraction_result,
+            appraisal_result=appraisal_result,
+            classification_result=classification_result,
+            llm_provider=llm_provider,
+            file_manager=file_manager,
+            progress_callback=progress_callback,
+        )
+
     else:
         # Should never reach here due to validation above
         raise ValueError(f"Unknown step: {step_name}")
 
 
-def run_four_step_pipeline(
+def run_full_pipeline(
     pdf_path: Path,
     max_pages: int | None = None,
     llm_provider: str = "openai",
@@ -4668,7 +4664,7 @@ def run_four_step_pipeline(
     progress_callback: Callable[[str, str, dict], None] | None = None,
 ) -> dict[str, Any]:
     """
-    Four-step extraction-and-appraisal pipeline with optional step filtering.
+    Full extraction-and-appraisal pipeline with optional step filtering.
 
     Coordinates the full pipeline from PDF to validated evidence outputs:
     1. Classification - Identify publication type + extract metadata
@@ -4676,6 +4672,7 @@ def run_four_step_pipeline(
     3. Validation & Correction - Iterative quality control with automatic fixes
     4. Appraisal - Critical appraisal (RoB, GRADE, applicability)
     5. Report Generation - Compose structured report JSON (optional)
+    6. Podcast Generation - Generate audio script (optional)
 
     Args:
         pdf_path: Path to PDF file to process
@@ -4716,8 +4713,8 @@ def run_four_step_pipeline(
 
     Example:
         >>> from pathlib import Path
-        >>> # Basic usage (backwards compatible)
-        >>> results = run_four_step_pipeline(
+        >>> # Basic usage
+        >>> results = run_full_pipeline(
         ...     pdf_path=Path("paper.pdf"),
         ...     max_pages=20,
         ...     llm_provider="openai"
@@ -4726,7 +4723,7 @@ def run_four_step_pipeline(
         'interventional_trial'
         >>>
         >>> # With step filtering
-        >>> results = run_four_step_pipeline(
+        >>> results = run_full_pipeline(
         ...     pdf_path=Path("paper.pdf"),
         ...     steps_to_run=["classification", "extraction"]
         ... )
@@ -4734,7 +4731,7 @@ def run_four_step_pipeline(
         >>> # With progress callback
         >>> def my_callback(step, status, data):
         ...     print(f"{step}: {status}")
-        >>> results = run_four_step_pipeline(
+        >>> results = run_full_pipeline(
         ...     pdf_path=Path("paper.pdf"),
         ...     progress_callback=my_callback
         ... )

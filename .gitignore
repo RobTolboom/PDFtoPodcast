@@ -24,6 +24,7 @@ env.bak/
 # ---- Environment variables ----
 .env
 .env.*
+!.env.example
 
 # ---- Project outputs ----
 out/

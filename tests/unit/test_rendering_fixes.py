@@ -45,10 +45,11 @@ class TestLatexEscaping:
         assert r"\textless{}" in escaped
         assert r"\textgreater{}" in escaped
         assert r"\textasteriskcentered{}" in escaped
-        assert r"{+}" in escaped
-        assert r"{=}" in escaped
-        assert r"{/}" in escaped
-        assert "@" in escaped  # @ is preserved
+        # +, =, /, @ are NOT special LaTeX characters - they should pass through unchanged
+        assert " + " in escaped
+        assert " = " in escaped
+        assert " / " in escaped
+        assert " @" in escaped
 
     def test_escape_latex_grade_symbols(self):
         """Test escaping of GRADE symbols."""

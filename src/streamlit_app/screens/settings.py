@@ -159,6 +159,12 @@ def show_settings_screen():
                 "name": "Report Generation",
                 "help": "Generate structured report JSON ready for LaTeX rendering",
             },
+            {
+                "key": "podcast_generation",
+                "number": "6",
+                "name": "Podcast Generation",
+                "help": "Generate podcast script from extraction and appraisal data",
+            },
         ]
 
         # Smart defaults: auto-select steps that don't have results yet
@@ -271,7 +277,7 @@ def show_settings_screen():
         with col1:
             openai_selected = st.radio(
                 "Select LLM provider",
-                ["OpenAI (GPT-5)", "Claude (Coming Soon)"],
+                ["OpenAI (GPT-5.1)", "Claude (Coming Soon)"],
                 index=0,
                 disabled=False,
                 label_visibility="collapsed",
@@ -287,7 +293,7 @@ def show_settings_screen():
         with col2:
             st.info(
                 """
-                **OpenAI (GPT-5)**
+                **OpenAI (GPT-5.1)**
                 - Fast processing
                 - Cost-effective
                 - Reliable for most documents

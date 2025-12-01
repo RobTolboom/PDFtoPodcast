@@ -45,6 +45,8 @@ SCHEMA_MAPPING = {
     # Report schemas (report generation outputs)
     "report": "report.schema.json",
     "report_validation": "report_validation.schema.json",
+    # Podcast schemas
+    "podcast": "podcast.schema.json",
 }
 
 
@@ -69,7 +71,8 @@ def load_schema(publication_type: str) -> dict[str, Any]:
     Args:
         publication_type: One of: interventional_trial, observational_analytic,
                          evidence_synthesis, prediction_prognosis, editorials_opinion,
-                         classification, validation, appraisal, appraisal_validation
+                         classification, validation, appraisal, appraisal_validation,
+                         report, report_validation, podcast
 
     Returns:
         Dictionary containing the JSON schema (Draft 2020-12 format)

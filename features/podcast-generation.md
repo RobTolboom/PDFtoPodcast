@@ -1,0 +1,601 @@
+# Feature: Podcast Script Generation
+
+**Status**: Planning
+**Branch**: `feature/podcast-generation`
+**Created**: 2025-11-24
+**Author**: Rob Tolboom (with Claude Code)
+
+**Summary**
+- New pipeline step that generates a written podcast script based on extraction + appraisal data.
+- Monologue format (single speaker), English only.
+- Light validation (factchecking) without full correction loop in v1.
+- TTS integration planned as future extension.
+
+## Scope
+
+**In scope**
+- Podcast script generation as new step after report generation
+- Monologue format (narrative explanation by single host)
+- English language only
+- SSML-ready schema for structured script output (prepared for TTS integration)
+- Light validation: factchecking against extraction/appraisal
+- CLI and Streamlit UI integration
+
+**Out of scope (v1)**
+- Text-to-Speech (TTS) integration
+- Dialogue format (two speakers)
+- Audio effects, timing markers, music cues
+- Full iterative correction loop
+- Non-English languages (Dutch, etc.)
+
+---
+
+## Problem Statement
+
+### Current Situation
+
+The pipeline generates:
+1. **Classification** → publication type
+2. **Extraction** → structured data
+3. **Appraisal** → risk of bias + GRADE
+4. **Report** → PDF report
+
+**No audio-friendly output**:
+- ❌ No podcast script for oral presentation
+- ❌ Report is too technical/formal for audio
+- ❌ No narrative summary of findings
+
+### Motivation
+
+- **Accessibility**: Audio content reaches different audience than written reports
+- **Efficiency**: Clinicians can listen while commuting, exercising, etc.
+- **Engagement**: Narrative format makes complex studies more accessible
+- **Reuse**: Extraction + appraisal data already available as foundation
+
+---
+
+## Desired Situation
+
+### Pipeline Workflow (with Podcast)
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  CURRENT PIPELINE                                                │
+└──────────────────────────────────────────────────────────────────┘
+  1. Classification → publication_type
+  2. Extraction → extraction-best.json
+  3. Appraisal → appraisal-best.json
+  4. Report → report-best.json + report-best.pdf
+           │
+           ▼
+┌──────────────────────────────────────────────────────────────────┐
+│  NEW STEP: PODCAST GENERATION                                    │
+└──────────────────────────────────────────────────────────────────┘
+           │
+           ▼
+  ┌────────────────────────┐
+  │  PODCAST GENERATION    │
+  │  (LLM prompt)          │
+  └────────────────────────┘
+           │
+           ├─ Input: extraction-best + appraisal-best + classification
+           └─ Output: Narrative monologue script (English)
+           │
+           ▼
+  ┌────────────────────────┐
+  │  PODCAST VALIDATION    │
+  │  (Light factchecking)  │
+  └────────────────────────┘
+           │
+           ├─ Check: Key outcomes present?
+           ├─ Check: Numbers match extraction?
+           ├─ Check: Conclusion aligned with GRADE?
+           └─ Output: Validation report (issues, no correction)
+           │
+           ▼
+  podcast.json + podcast.md
+           │
+           ▼
+┌──────────────────────────────────────────────────────────────────┐
+│  FUTURE EXTENSION                                                │
+└──────────────────────────────────────────────────────────────────┘
+  6. TTS Integration → podcast.mp3
+```
+
+---
+
+## Style & Language Rules
+
+The podcast script must be optimized for audio consumption. These rules are **mandatory** for the generation prompt.
+
+### Absolute Language Rules
+
+1. **No abbreviations or acronyms** anywhere in the transcript
+   - Always write terms in full: "confidence interval" (not "CI"), "intensive care unit" (not "ICU"), "hazard ratio" (not "HR"), "milligrams" (not "mg"), "hours" (not "h")
+   - This is critical for audio clarity and accessibility
+
+2. **Continuous narrative only**
+   - No titles, headings, bullet points, or numbered lists in the spoken text
+   - No brackets, stage directions, or markup
+   - Produce only flowing paragraphs with natural transitions
+   - Transcript must contain no headings; markdown wrapper may include metadata only
+
+3. **No technical identifiers**
+   - No DOIs, PMIDs, ISSNs, or author contact details
+   - Reference the study by descriptive name if needed
+
+### Numbers Policy
+
+Keep data light and focus on meaning:
+
+1. **Maximum 3 numerical statements** in the entire transcript
+   - Priority order: primary outcome, one key secondary outcome, one key safety outcome (if important)
+   - If more critical outcomes exist, describe the rest qualitatively without numbers
+   - Optional future flag `allow_extra_numbers` (default false) can relax the cap when explicitly set
+
+2. **Format for numbers**:
+   - Give absolute counts first, then one essential relative measure only if it changes interpretation
+   - Express numbers in words where reasonable ("twelve out of one hundred")
+   - Keep numerical statements concise
+
+3. **Qualitative interpretation elsewhere**:
+   - Summarise results in plain language without numbers
+   - Focus on direction and likely size of effect: "little to no difference", "a small reduction", "a moderate improvement"
+   - Emphasise uncertainty where appropriate
+
+### Calibrated Language
+
+Use language that reflects the certainty of evidence:
+
+| Evidence Certainty | Example Phrases |
+|-------------------|-----------------|
+| High | "shows", "demonstrates", "reduces" |
+| Moderate | "likely", "probably", "appears to" |
+| Low | "may", "might", "suggests" |
+| Very Low | "is very uncertain", "we cannot conclude", "insufficient evidence" |
+
+Enforce mapping between APPRAISAL/GRADE certainty and permitted verbs:
+- High → shows / demonstrates / reduces / increases
+- Moderate → likely / probably / appears to
+- Low → may / might / suggests
+- Very Low → very uncertain / cannot conclude / insufficient evidence
+
+### Interpretation Requirements
+
+1. **Move beyond recital of figures** - State plainly whether evidence suggests benefit, harm, no important difference, or insufficient evidence
+2. **Base judgement on appraisal** - Internal validity, precision, and applicability should inform the narrative
+3. **Clinical importance** - If a threshold for clinical importance is specified, state whether it was met; if not reported, acknowledge this
+4. **Practice implications** - Make explicit what might reasonably change now and what should not change yet
+
+### Conflicts and Gaps
+
+- If APPRAISAL_JSON and EXTRACTION_JSON disagree, follow EXTRACTION_JSON for raw figures and state uncertainty clearly
+- If information is missing, state "insufficiently reported" rather than inferring
+
+---
+
+## Technical Design
+
+### 0. Validation Behaviour (light, single-pass)
+
+- Run a single factcheck after generation: presence of key outcomes, numeric match to extraction, conclusion no higher than GRADE certainty, missing info stated as "insufficiently reported".
+- Emit `tmp/{identifier}-podcast_validation.json` with fields:
+  - `status`: passed | warnings | failed
+  - `issues`: list of issue messages
+  - `ready_for_tts`: boolean (true unless status is failed)
+- Pipeline behaviour: always save `podcast.json` and `.md`; if status is failed, mark step failed and surface messages but do not regenerate or run a correction loop.
+
+### 1. Schema Design
+
+**New schema**: `schemas/podcast.schema.json`
+
+The schema is SSML-ready: metadata, continuous transcript, and optional TTS configuration for future audio generation. This produces output that can be directly fed to TTS services.
+
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Podcast Script Schema",
+  "type": "object",
+  "required": ["podcast_version", "metadata", "transcript"],
+  "properties": {
+    "podcast_version": {
+      "type": "string",
+      "const": "v1.0"
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["title", "word_count", "estimated_duration_minutes"],
+      "properties": {
+        "title": { "type": "string" },
+        "study_id": { "type": "string" },
+        "language": { "const": "en" },
+        "target_audience": { "type": "string", "default": "practising clinicians" },
+        "word_count": { "type": "integer", "minimum": 800, "maximum": 1500 },
+        "estimated_duration_minutes": { "type": "integer", "minimum": 5, "maximum": 10 },
+        "generation_timestamp": { "type": "string", "format": "date-time" }
+      }
+    },
+    "transcript": {
+      "type": "string",
+      "description": "Complete podcast script as one continuous, SSML-ready text. No headings, bullets, or structural markup. Written for natural speech synthesis.",
+      "minLength": 500
+    },
+    "tts_config": {
+      "type": "object",
+      "description": "Optional TTS configuration for future audio generation (v1.1+)",
+      "properties": {
+        "voice_id": { "type": "string", "description": "TTS provider voice identifier" },
+        "speed": { "type": "number", "default": 1.0, "minimum": 0.5, "maximum": 2.0 },
+        "pitch": { "type": "number", "default": 0, "minimum": -10, "maximum": 10 },
+        "output_format": { "enum": ["mp3", "wav", "ogg"], "default": "mp3" },
+        "branding": {
+          "type": "object",
+          "description": "Podcast branding for intro/outro generation",
+          "properties": {
+            "podcast_name": { "type": "string", "default": "Vetrix Anesthesiology" },
+            "include_intro": { "type": "boolean", "default": true },
+            "include_outro": { "type": "boolean", "default": true },
+            "include_ai_disclaimer": { "type": "boolean", "default": true }
+          }
+        }
+      }
+    },
+    "ssml_hints": {
+      "type": "object",
+      "description": "Optional SSML preparation hints for TTS (v1.2+)",
+      "properties": {
+        "emphasis_phrases": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Key phrases that should receive emphasis in speech"
+        },
+        "pronunciation_overrides": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "Word -> phonetic pronunciation mappings for medical terms"
+        },
+        "pause_after_sentences": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "description": "Sentence indices (0-based) after which to insert longer pauses"
+        }
+      }
+    }
+  }
+}
+```
+
+### 2. Prompt Architecture
+
+**New prompts**:
+
+#### `prompts/Podcast-generation.txt`
+
+**Purpose**: Generate narrative podcast script from extraction + appraisal
+
+**Input**:
+- EXTRACTION_JSON: Validated extraction data
+- APPRAISAL_JSON: Risk of bias + GRADE assessment
+- CLASSIFICATION_JSON: Publication type
+- PODCAST_SCHEMA: podcast.schema.json
+
+**Audience and Tone**:
+- Speak directly to the listener using "you"
+- Professional but conversational
+- Active voice preferred
+- One idea per sentence
+- Vary sentence length for natural rhythm
+- Target duration: 5-10 minutes (800-1,500 words)
+
+**Content Flow** (no visible headings in output; weave smooth transitions):
+
+1. **Hook** - Brief opening on why this matters now for clinicians
+2. **Clinical Question** - State the question in plain language and why it matters
+3. **Methods Summary** - One compact passage: study design, setting, participant numbers, study arms, primary outcome, time points (minimal numbers)
+4. **Findings** - Present results with minimal numerical statements; use qualitative interpretation and uncertainty language
+5. **Quality of Evidence** - Discuss risk of bias and certainty as per appraisal, without naming external checklists (e.g., don't say "RoB 2 tool")
+6. **Practice Implications** - What this means at the bedside today: 2-3 concrete practice points and what should not change yet
+7. **Safety and Limitations** - Brief summary in plain language
+8. **Take-home** - One clear sentence capturing overall judgement; invite listener to read the paper
+
+**Self-Check (integrated in prompt)**:
+
+Before finalizing the transcript, the LLM must verify:
+1. Every number matches EXTRACTION_JSON exactly
+2. Conclusions do not exceed GRADE certainty from APPRAISAL_JSON
+3. No facts stated that are not in the source JSONs
+4. Missing information stated as "insufficiently reported", not inferred
+5. Verbs reflect the APPRAISAL/GRADE mapping (see calibrated language table)
+
+**Output**: podcast.json (metadata + transcript)
+
+### 3. API Design
+
+```python
+# src/pipeline/orchestrator.py
+
+def run_podcast_generation(
+    extraction_result: dict,
+    appraisal_result: dict,
+    classification_result: dict,
+    llm_provider: str,
+    file_manager: PipelineFileManager,
+    progress_callback: Callable | None = None,
+) -> dict:
+    """
+    Generate podcast script from extraction + appraisal data.
+
+    Args:
+        extraction_result: Validated extraction JSON
+        appraisal_result: Best appraisal JSON
+        classification_result: Classification result
+        llm_provider: LLM provider name ("openai" | "claude")
+        file_manager: File manager for saving output
+        progress_callback: Optional callback for progress updates
+
+    Returns:
+        dict: {
+            'podcast': dict,           # Generated podcast (metadata + transcript + optional tts_config/ssml_hints)
+            'status': str,             # "success" | "failed"
+        }
+    """
+```
+
+### 4. File Management
+
+**Podcast File Naming**:
+
+```
+tmp/
+  ├── paper-extraction-best.json
+  ├── paper-appraisal-best.json
+  ├── paper-report-best.json
+  │
+  ├── paper-podcast.json              # Generated script (NEW, single pass)
+  ├── paper-podcast.md                # Human-readable version (NEW)
+  └── paper-podcast_validation.json   # Optional validation artefact (NEW)
+```
+
+Filenames follow the existing `PipelineFileManager` pattern: `{identifier}-{step}{iteration?}{-status?}.json` using the source PDF stem as `identifier`; no `-best` or iteration suffix for podcasts.
+
+### 5. Markdown Rendering
+
+**Output**: `paper-podcast.md`
+
+The markdown file contains a metadata header followed by the complete transcript. No section headings in the transcript itself - it's TTS-ready continuous text.
+
+```markdown
+# [Study Title] - Podcast Script
+
+**Duration**: ~6 minutes | **Words**: 950 | **Language**: English | **Audience**: Practising clinicians
+
+---
+
+[Complete transcript as continuous flowing text, ready for TTS...]
+
+---
+
+*Generated from: [Study ID] | Sources: extraction-best.json, appraisal-best.json*
+```
+
+---
+
+## Implementation Phases
+
+### Phase 1: Schema & Prompt
+**Goal**: Define podcast structure and create generation prompt
+
+**Deliverables**:
+- [ ] `schemas/podcast.schema.json` - Simple schema (metadata + transcript)
+- [ ] `prompts/Podcast-generation.txt` - Generation prompt with integrated self-check
+
+**Acceptance**:
+- Schema validates sample podcast JSON
+- Prompt includes all style rules and self-check instructions
+- Output is TTS-ready continuous text
+
+### Phase 2: Core Generation
+**Goal**: Implement podcast generation in orchestrator
+
+**Deliverables**:
+- [ ] `run_podcast_generation()` in orchestrator
+- [ ] Schema validation of output
+- [ ] Validation artefact `podcast_validation.json` with status + issues
+
+**Acceptance**:
+- Podcast generates for all study types
+- Output matches schema
+- Transcript is continuous text without structural markup
+- Validation runs once; status surfaced; no correction loop
+
+### Phase 3: File Management & Rendering
+**Goal**: Save podcast files and render markdown
+
+**Deliverables**:
+- [x] `PipelineFileManager` extensions (optional - not implemented, YAGNI)
+  - ~~`save_podcast()`~~ (not needed - renderer writes directly)
+  - ~~`load_podcast()`~~ (not needed yet)
+- [x] Markdown renderer for podcast script (`src/rendering/podcast_renderer.py`)
+- [x] Word count / duration estimation (already in metadata from Phase 2)
+- [x] Optional `podcast_validation.json` persisted alongside outputs (Phase 2)
+
+**Acceptance**:
+- [x] Files saved with correct naming (`{identifier}-podcast.json`, `{identifier}-podcast.md`)
+- [x] Markdown readable and well-formatted (metadata wrapper ok; transcript has no headings or structural markup)
+- [x] Duration estimate accurate (±1 minute) (displayed from metadata)
+
+### Phase 4: CLI Integration
+**Goal**: Add podcast step to CLI pipeline
+
+**Deliverables**:
+- [ ] `--step podcast` option
+- [ ] Progress output during generation
+- [ ] Integration in full pipeline run
+
+**Example Usage**:
+```bash
+# Generate podcast (requires extraction + appraisal)
+python run_pipeline.py paper.pdf --step podcast --llm openai
+
+# Full pipeline including podcast
+python run_pipeline.py paper.pdf --llm openai --include-podcast
+```
+
+**Acceptance**:
+- CLI generates podcast successfully
+- Clear progress/status output
+
+### Phase 5: UI Integration (Streamlit)
+**Goal**: Add podcast step to Streamlit execution screen
+
+**Deliverables**:
+- [ ] New execution step: "Podcast" (after Report)
+- [ ] Display generated transcript in UI
+- [ ] Download button for markdown
+- [ ] Copy transcript button (for TTS tools)
+
+**UI Mock**:
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ 6. PODCAST SCRIPT                                        ✅     │
+├─────────────────────────────────────────────────────────────────┤
+│ Duration: ~6 min | Words: 950                                   │
+│                                                                 │
+│ Preview:                                                        │
+│ ┌─────────────────────────────────────────────────────────────┐ │
+│ │ What if a simple change in pain management could reduce    │ │
+│ │ opioid use by forty percent? That is exactly what          │ │
+│ │ researchers set out to investigate in this new trial...    │ │
+│ └─────────────────────────────────────────────────────────────┘ │
+│                                                                 │
+│ [View Full Script] [Download .md] [Copy for TTS] [Regenerate]   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Acceptance**:
+- Podcast step visible in UI
+- Script preview works
+- Download produces valid markdown
+- Copy button provides clean transcript for TTS
+
+### Phase 6: Testing & Documentation
+**Goal**: Comprehensive testing and documentation
+
+**Deliverables**:
+- [ ] Unit tests:
+  - Schema validation
+  - Prompt loading
+  - Generation function
+- [ ] Integration tests:
+  - Full podcast generation for each study type
+  - Output is valid continuous text
+- [ ] Documentation:
+  - README update
+  - ARCHITECTURE update
+  - CHANGELOG entry
+
+**Acceptance**:
+- Test coverage ≥ 85% for podcast code
+- All tests pass
+- Documentation complete
+
+---
+
+## Risks and Mitigations
+
+### Risk 1: Narrative Quality is Subjective
+**Description**: Difficult to define/validate "good" podcast style
+
+**Impact**: Medium - script may be technically correct but boring
+
+**Mitigation**:
+- Prompt contains concrete style examples
+- User can regenerate with feedback
+- Future: A/B testing with sample listeners
+
+### Risk 2: Numbers/Facts Incorrectly Transcribed
+**Description**: LLM introduces errors during narrative translation
+
+**Impact**: High - factual errors in audio are serious
+
+**Mitigation**:
+- Self-check instructions in generation prompt
+- Prompt explicitly requires matching EXTRACTION_JSON exactly
+- Numbers policy limits numerical statements to max 3 (reduces error surface)
+
+### Risk 3: Conclusions Overstated
+**Description**: Podcast sounds more enthusiastic than GRADE certainty justifies
+
+**Impact**: Medium - misleading clinical implications
+
+**Mitigation**:
+- Validation checks alignment with GRADE
+- Prompt instructions: "Match enthusiasm to evidence quality"
+- Limitations section required
+
+---
+
+## Acceptance Criteria
+
+### Functional
+
+1. **Podcast generates for all 5 study types** as continuous SSML-ready text
+2. **English only** - no language selection required
+3. **Output in JSON and Markdown** available, plus optional validation JSON
+4. **CLI and UI integration** complete
+
+### Technical
+
+1. **Schema validates** all generated scripts (metadata + transcript + optional tts_config/ssml_hints)
+2. **Prompt loads correctly** with all style rules
+3. **Validation artefact** emitted with status + issues when validation is run
+4. **File management** saves with correct naming
+5. **Duration estimate** accurate within ±1 minute
+6. **Transcript is SSML-ready** - no structural markup (headings, bullets, etc.), natural speech flow
+
+### Quality
+
+1. **Factual accuracy**: Numbers match extraction (self-check in prompt)
+2. **GRADE alignment**: Conclusions calibrated to evidence certainty
+3. **Completeness**: Key outcomes and limitations present
+4. **SSML-ready**: Continuous narrative, no abbreviations, natural speech flow for TTS processing
+
+---
+
+## Future Extensions
+
+### v1.1: TTS Integration
+- Text-to-Speech generation using `tts_config` schema fields
+- SSML conversion from `ssml_hints` (emphasis, pronunciation, pauses)
+- Voice selection (provider-specific voice IDs)
+- **Branding injection** (intro/outro added in TTS phase, not in transcript):
+  ```
+  intro.mp3 → content.mp3 → outro.mp3 → final_podcast.mp3
+  ```
+- Intro/outro can be pre-recorded or TTS-generated from templates
+- AI disclaimer included per `branding.include_ai_disclaimer` setting
+- Output: podcast.mp3
+
+### v1.2: Dialogue Format
+- Two speakers (host + expert)
+- Turn-taking markers in schema
+- Different perspectives/questions
+
+### v1.3: Audio Enhancements
+- Intro/outro music
+- Section dividers
+- Background ambient sounds
+
+---
+
+## References
+
+### Related Features
+- `features/report-generation.md` - Report generation (similar architecture)
+- `features/appraisal.md` - Appraisal step (input for podcast)
+- `ARCHITECTURE.md` - Pipeline component documentation
+
+### Podcast Best Practices
+- Conversational tone guidelines
+- Audio-optimized writing techniques
+- Scientific communication for lay audiences

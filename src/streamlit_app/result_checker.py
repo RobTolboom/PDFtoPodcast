@@ -88,6 +88,7 @@ def check_existing_results(identifier: str | None) -> dict:
             "validation_correction": False,
             "appraisal": False,
             "report_generation": False,
+            "podcast_generation": False,
         }
 
     tmp_dir = Path("tmp")
@@ -100,6 +101,7 @@ def check_existing_results(identifier: str | None) -> dict:
         "appraisal": any(tmp_dir.glob(f"{identifier}-appraisal[0-9]*.json")),
         "report_generation": any(tmp_dir.glob(f"{identifier}-report[0-9]*.json"))
         or (tmp_dir / f"{identifier}-report-best.json").exists(),
+        "podcast_generation": (tmp_dir / f"{identifier}-podcast.json").exists(),
     }
     return results
 
@@ -197,6 +199,11 @@ def get_result_file_info(identifier: str, step: str) -> dict | None:
                 if not report_files:
                     return None
                 file_path = max(report_files, key=lambda p: p.stat().st_mtime)
+
+    elif step == "podcast_generation":
+        file_path = tmp_dir / f"{identifier}-podcast.json"
+        if not file_path.exists():
+            return None
 
     else:
         # Map step names to filenames for other steps
