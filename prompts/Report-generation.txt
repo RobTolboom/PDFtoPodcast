@@ -7,7 +7,7 @@ INPUTS
 - CLASSIFICATION_JSON: Publication type and metadata
 - EXTRACTION_JSON: Validated extraction data (best iteration)
 - APPRAISAL_JSON: Validated critical appraisal data (best iteration)
-- LANGUAGE: "nl" (Dutch) or "en" (English)
+- LANGUAGE: "en" (English)
 - GENERATION_TIMESTAMP: ISO 8601 timestamp
 - PIPELINE_VERSION: Current pipeline version
 
@@ -174,7 +174,7 @@ Section 6: results_secondary
 - Optional: Forest plot only if direction differs from primary or clinically very relevant
 
 Section 7: results_harms
-- Title: "Harms/Safety" (en) / "Bijwerkingen" (nl)
+- Title: "Harms/Safety"
 - Purpose: Balance benefit vs. harm
 - Content:
   * Adverse events per arm (event rates)

@@ -234,12 +234,11 @@ def show_settings_screen():
 
         st.markdown("---")
         st.markdown("### Report Settings")
-        current_lang = st.session_state.settings.get("report_language", "nl")
         lang_choice = st.selectbox(
             "Report language",
-            options=["nl", "en"],
-            index=0 if current_lang == "nl" else 1,
-            help="Language used for report generation (affects all report sections).",
+            options=["en"],
+            index=0,
+            help="Language used for report generation (English only).",
         )
         st.session_state.settings["report_language"] = lang_choice
 

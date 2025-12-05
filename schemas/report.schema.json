@@ -88,8 +88,8 @@
       "properties": {
         "language": {
           "type": "string",
-          "enum": ["nl", "en"],
-          "description": "Report language (Dutch or English)"
+          "enum": ["en"],
+          "description": "Report language (English only)"
         },
         "template": {
           "type": "string",

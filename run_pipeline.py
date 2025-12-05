@@ -155,9 +155,9 @@ def main():
     )
     parser.add_argument(
         "--report-language",
-        choices=["nl", "en"],
-        default="nl",
-        help="Language for report generation step (default: nl)",
+        choices=["en"],
+        default="en",
+        help="Language for report generation (English only)",
     )
     parser.add_argument(
         "--report-renderer",

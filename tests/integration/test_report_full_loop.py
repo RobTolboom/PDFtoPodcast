@@ -162,7 +162,7 @@ def mock_report_response():
             "pipeline_version": "1.0.0",
         },
         "layout": {
-            "language": "nl",
+            "language": "en",
         },
         "sections": [
             {

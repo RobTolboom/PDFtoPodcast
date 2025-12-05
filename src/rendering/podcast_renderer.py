@@ -24,7 +24,6 @@ from typing import Any
 # Language code to full name mapping
 LANGUAGE_NAMES: dict[str, str] = {
     "en": "English",
-    "nl": "Dutch",
 }
 
 

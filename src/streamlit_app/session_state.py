@@ -86,7 +86,7 @@ def init_session_state():
                 "schema_compliance_score": 0.95,
                 "critical_issues": 0,
             },
-            "report_language": "nl",
+            "report_language": "en",
             "report_renderer": "latex",
             "report_compile_pdf": True,
             "report_enable_figures": True,

@@ -3248,7 +3248,7 @@ def run_report_with_correction(
         classification_result: Classification result (for metadata + publication_type)
         llm_provider: LLM provider name ("openai" | "claude")
         file_manager: File manager for saving report iterations
-        language: Report language ("nl" | "en"), default: "nl"
+        language: Report language ("en")
         max_iterations: Maximum correction attempts after initial report (default: 3)
             Iteration 0: Initial report + validation
             Iterations 1-N: Correction attempts (if quality insufficient)
@@ -3781,7 +3781,7 @@ def run_report_generation(
         llm_provider: LLM provider name ("openai" | "claude")
         file_manager: File manager for saving report iterations
         progress_callback: Optional callback for progress updates
-        language: Report language ("en" or "nl"), default "en"
+        language: Report language ("en")
 
     Returns:
         dict: {
@@ -4223,7 +4223,7 @@ def run_single_step(
         max_correction_iterations: Max iterations for validation/appraisal correction loops
         quality_thresholds: Thresholds controlling iterative correction exit criteria
         enable_iterative_correction: Enable/disable iterative correction for appraisal
-        report_language: Language to use for report generation ("en" or "nl")
+        report_language: Language to use for report generation ("en")
 
     Returns:
         Dictionary containing step result. Key depends on step:
@@ -4683,7 +4683,7 @@ def run_full_pipeline(
         steps_to_run: Optional list of steps to execute.
             None = run all steps (default).
             Dependencies are validated automatically.
-        report_language: Language for report generation ("en" or "nl")
+        report_language: Language for report generation ("en")
         report_renderer: Renderer for reports ("latex" or "weasyprint")
         report_compile_pdf: Compile PDF when renderer supports it (LaTeX)
         report_enable_figures: Enable/disable figure generation in reports

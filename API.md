@@ -295,7 +295,7 @@ def run_report_with_correction(
     classification_result: dict[str, Any],
     llm: BaseLLMProvider,
     file_manager: PipelineFileManager,
-    language: str = "nl",
+    language: str = "en",
     max_iterations: int = 3,
     quality_thresholds: dict | None = None,
     progress_callback: Callable[[str, str, dict], None] | None = None,
@@ -308,7 +308,7 @@ def run_report_with_correction(
 - `classification_result`: Classification result (for publication_type + metadata)
 - `llm`: Instantiated LLM provider
 - `file_manager`: File manager for saving report iterations
-- `language`: Report language (`"nl"` or `"en"`, default: `"nl"`)
+- `language`: Report language (`"en"`)
 - `max_iterations`: Max correction attempts (default: 3)
 - `quality_thresholds`: Custom thresholds (default: `accuracy_score` ≥0.95, `completeness_score` ≥0.85, `cross_reference_consistency_score` ≥0.90, `data_consistency_score` ≥0.90, `schema_compliance_score` ≥0.95)
 - `progress_callback`: Optional callback for UI updates
@@ -340,7 +340,7 @@ report_result = run_report_with_correction(
     classification_result=classification,
     llm=llm,
     file_manager=file_mgr,
-    language="nl",
+    language="en",
     max_iterations=3
 )
 
@@ -366,7 +366,7 @@ def run_report_generation(
     classification_result: dict[str, Any],
     llm: BaseLLMProvider,
     report_schema: dict[str, Any],
-    language: str = "nl",
+    language: str = "en",
 ) -> dict[str, Any]
 ```
 
@@ -376,7 +376,7 @@ def run_report_generation(
 - `classification_result`: Classification result
 - `llm`: Instantiated LLM provider
 - `report_schema`: Report JSON schema
-- `language`: Report language (`"nl"` or `"en"`)
+- `language`: Report language (`"en"`)
 
 **Returns:**
 Report JSON conforming to `report.schema.json`
@@ -1679,7 +1679,7 @@ CLI entry point for pipeline execution.
 - `--appraisal-single-pass`: Skip iterative correction for appraisal (flag, default: False)
 
 #### Report Generation Options
-- `--report-language`: Report language (choices: `nl`, `en`, default: `nl`)
+- `--report-language`: Report language (choices: `en`, default: `en`)
 - `--report-renderer`: Rendering engine (choices: `latex`, `weasyprint`, default: `latex`)
 - `--report-compile-pdf` / `--no-report-compile-pdf`: Enable/disable PDF compilation (default: enabled)
 - `--enable-figures` / `--disable-figures`: Enable/disable figure generation (default: enabled)
