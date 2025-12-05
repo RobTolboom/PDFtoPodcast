@@ -7,7 +7,7 @@ INPUTS
 - CLASSIFICATION_JSON: Publication type and metadata
 - EXTRACTION_JSON: Validated extraction data (best iteration)
 - APPRAISAL_JSON: Validated critical appraisal data (best iteration)
-- LANGUAGE: "nl" (Dutch) or "en" (English)
+- LANGUAGE: "en" (English)
 - GENERATION_TIMESTAMP: ISO 8601 timestamp
 - PIPELINE_VERSION: Current pipeline version
 
@@ -58,24 +58,10 @@ CORE PRINCIPLES
    - Summary of Findings table before detailed results
 
 5. LANGUAGE CONSISTENCY
-   - Generate content directly in target LANGUAGE (nl or en)
-   - Use official Dutch translations for GRADE/RoB terminology when LANGUAGE=nl
+   - Generate content in English
    - No mixed language within same report
 
-TERMINOLOGY (when LANGUAGE="nl")
-- "Certainty of evidence" → "Zekerheid van bewijs"
-- "Risk of bias" → "Risico op bias"
-- "Summary of Findings" → "Samenvatting van bevindingen"
-- "Clinical bottom-line" → "Klinische bottom-line"
-- "Study snapshot" → "Studie-overzicht"
-- "Quality assessment" → "Kwaliteit en bias"
-- "Primary outcomes" → "Primaire uitkomsten"
-- "Secondary outcomes" → "Secundaire uitkomsten"
-- "Harms" → "Bijwerkingen"
-- "Limitations" → "Beperkingen"
-- "Implications" → "Implicaties"
-
-TERMINOLOGY (when LANGUAGE="en")
+TERMINOLOGY
 Use standard English evidence synthesis terminology from GRADE Handbook and Cochrane.
 
 REPORT STRUCTURE
@@ -85,7 +71,7 @@ The report contains core sections (all study types) plus type-specific sections 
 CORE SECTIONS (all study types):
 
 Section 1: exec_bottom_line
-- Title: "Clinical Bottom-line" (en) / "Klinische Bottom-line" (nl)
+- Title: "Clinical Bottom-line"
 - Purpose: Quick decision support (3-5 bullets, max 1 page)
 - Content:
   * Direction of effect (benefit/harm/no difference)
@@ -100,7 +86,7 @@ Section 1: exec_bottom_line
   * "Generalizable to tertiary centers, unclear for primary care"
 
 Section 2: study_snapshot
-- Title: "Study Snapshot" (en) / "Studie-overzicht" (nl)
+- Title: "Study Snapshot"
 - Purpose: One-screen PICOS overview (max 12 rows)
 - Content: PICOS/PECO + key figures
   * Study design (RCT, cohort, etc.)
@@ -134,7 +120,7 @@ Section 2: study_snapshot
   }
 
 Section 3: study_design
-- Title: "Study Design and Execution" (en) / "Studieontwerp en uitvoering" (nl)
+- Title: "Study Design and Execution"
 - Purpose: Reproducibility and plausibility
 - Subsections:
   3.1 Design/setting/centers
@@ -146,7 +132,7 @@ Section 3: study_design
 - Include: Study type, blinding, centers, recruitment period, N randomized/analyzed, attrition, adherence, protocol deviations, measurement tools, sample size calculation
 
 Section 4: quality_assessment
-- Title: "Quality & Bias" (en) / "Kwaliteit en bias" (nl)
+- Title: "Quality & Bias"
 - Purpose: Internal quality and certainty of evidence
 - Subsections:
   4.1 Risk-of-Bias overview
@@ -169,7 +155,7 @@ Section 4: quality_assessment
   }
 
 Section 5: results_primary
-- Title: "Primary Outcome(s)" (en) / "Primaire uitkomst(en)" (nl)
+- Title: "Primary Outcome(s)"
 - Purpose: Complete but scannable result of main question
 - Content per primary outcome:
   * Compact summary (1-2 sentences)
@@ -181,14 +167,14 @@ Section 5: results_primary
 - Optional: figureBlock (forest plot if subgroups relevant)
 
 Section 6: results_secondary
-- Title: "Secondary Outcomes" (en) / "Secundaire uitkomsten" (nl)
+- Title: "Secondary Outcomes"
 - Purpose: Completeness without overloading
 - Content: Same structure as Section 5, but more compact
 - Format: tableBlock (table_kind="outcomes") with columns: Outcome, Measure, Estimate, 95% CI, p, GRADE, N
 - Optional: Forest plot only if direction differs from primary or clinically very relevant
 
 Section 7: results_harms
-- Title: "Harms/Safety" (en) / "Bijwerkingen" (nl)
+- Title: "Harms/Safety"
 - Purpose: Balance benefit vs. harm
 - Content:
   * Adverse events per arm (event rates)
@@ -200,7 +186,7 @@ Section 7: results_harms
 - RULE: Never hide in appendix, always in main body
 
 Section 8: subgroups_sensitivity
-- Title: "Subgroups and Sensitivity" (en) / "Subgroepen en sensitiviteit" (nl)
+- Title: "Subgroups and Sensitivity"
 - Purpose: Robustness and heterogeneity
 - Content:
   * Subgroup analyses (only pre-specified; disclaim post-hoc)
@@ -211,7 +197,7 @@ Section 8: subgroups_sensitivity
 - Show interaction p-value always
 
 Section 9: contextualization
-- Title: "Contextualization" (en) / "Contextualisering" (nl)
+- Title: "Contextualization"
 - Purpose: Placement vs existing literature
 - Content:
   * Comparison with prior trials/meta-analyses (ONLY if in EXTRACTION_JSON)
@@ -222,7 +208,7 @@ Section 9: contextualization
 - RULE: Only synthesis from extraction, no hallucination
 
 Section 10: limitations
-- Title: "Limitations" (en) / "Beperkingen" (nl)
+- Title: "Limitations"
 - Purpose: Honest assessment of weaknesses
 - Content:
   * RoB concerns elaborated (link to Section 4 but more detail)
@@ -232,7 +218,7 @@ Section 10: limitations
 - Format: textBlock (bullets), 4-8 items, honest but not exaggerated
 
 Section 11: bottom_line_extended
-- Title: "Extended Bottom-line and Implications" (en) / "Uitgebreide bottom-line en implicaties" (nl)
+- Title: "Extended Bottom-line and Implications"
 - Purpose: Synthesis and take-home message
 - Content:
   * Summary of main findings (benefit + harm)
@@ -243,7 +229,7 @@ Section 11: bottom_line_extended
 - Format: textBlock (2-3 paragraphs) + optional calloutBlock (clinical_pearl)
 
 Section 12: source_map
-- Title: "Source Map" (en) / "Bronverwijzingen" (nl)
+- Title: "Source Map"
 - Purpose: Full traceability
 - Content: Table with Report-Item-ID → {page, section, anchor_text}
 - Format: tableBlock (table_kind="generic") with columns: Code, Page, Location, Anchor text
@@ -268,12 +254,12 @@ Branch based on study_type from CLASSIFICATION_JSON:
 
 IF study_type == "interventional":
   Add Section 13: consort_checklist
-    - Title: "CONSORT Checklist" (en) / "CONSORT Checklist" (nl)
+    - Title: "CONSORT Checklist"
     - Content: tableBlock with 25 CONSORT items, yes/no/page#
     - Columns: Item, Reported (Yes/No), Page
 
   Add Section 14: randomization_details
-    - Title: "Randomization Details" (en) / "Randomisatie details" (nl)
+    - Title: "Randomization Details"
     - Content: textBlock with:
       * Sequence generation method
       * Allocation concealment mechanism
@@ -285,46 +271,46 @@ IF study_type == "interventional":
 
 IF study_type == "observational":
   Add Section 13: confounding_framework
-    - Title: "Confounding Framework" (en) / "Confounding raamwerk" (nl)
+    - Title: "Confounding Framework"
     - Content: tableBlock (table_kind="confounding_matrix") with:
       * Columns: Variable, Adjustment method, Residual confounding
       * Rows from EXTRACTION_JSON.confounding fields
     - Optional: figureBlock (DAG if data available, figure_kind="dag")
 
   Add Section 14: robins_detail
-    - Title: "ROBINS-I Detail" (en) / "ROBINS-I Details" (nl)
+    - Title: "ROBINS-I Detail"
     - Content: tableBlock with 7 domains × signaling questions matrix
     - E-value calculations if in appraisal
 
 IF study_type == "systematic_review":
   Add Section 13: prisma_flow
-    - Title: "PRISMA Flow" (en) / "PRISMA Stroomdiagram" (nl)
+    - Title: "PRISMA Flow"
     - Content: figureBlock (figure_kind="prisma", data_ref="extraction.search_results.flow")
 
   Add Section 14: meta_analysis_results
-    - Title: "Meta-analysis Results" (en) / "Meta-analyse resultaten" (nl)
+    - Title: "Meta-analysis Results"
     - Content: tableBlock (table_kind="meta_results") with pooled effects, heterogeneity (I², τ²)
     - figureBlock (forest plot with meta-analysis, figure_kind="forest")
 
   Add Section 15: publication_bias
-    - Title: "Publication Bias Assessment" (en) / "Publicatiebias" (nl)
+    - Title: "Publication Bias Assessment"
     - Content: textBlock + optional figureBlock (funnel plot if available)
     - Include: Egger test, visual asymmetry assessment
 
 IF study_type == "prediction":
   Add Section 13: probast_assessment
-    - Title: "PROBAST Detail" (en) / "PROBAST Details" (nl)
+    - Title: "PROBAST Detail"
     - Content: tableBlock with 4 domains (Participants, Predictors, Outcome, Analysis) × risk + applicability
 
   Add Section 14: discrimination_calibration
-    - Title: "Discrimination and Calibration" (en) / "Discriminatie en calibratie" (nl)
+    - Title: "Discrimination and Calibration"
     - Content:
       * textBlock: C-statistic, AUC with 95% CI
       * figureBlock: ROC curve (figure_kind="roc")
       * figureBlock: Calibration plot (figure_kind="calibration")
 
   Add Section 15: clinical_utility
-    - Title: "Clinical Utility" (en) / "Klinisch nut" (nl)
+    - Title: "Clinical Utility"
     - Content: Decision curve analysis, net benefit
     - Optional: figureBlock (DCA curve)
 
@@ -430,15 +416,15 @@ EXAMPLE MINIMAL OUTPUT STRUCTURE
   "sections": [
     {
       "id": "exec_bottom_line",
-      "title": "Klinische Bottom-line",
+      "title": "Clinical Bottom-line",
       "blocks": [
         {
           "type": "text",
           "style": "bullets",
           "content": [
-            "Matige zekerheid dat interventie X pijn reduceert na 24u (RR 0.72, 95% BI 0.61-0.86)",
-            "Effect klinisch relevant (NNT=8) maar zorgen over ontbrekende data",
-            "Generaliseerbaar naar tertiaire centra, onduidelijk voor eerstelijn"
+            "Moderate certainty that intervention X reduces pain at 24h (RR 0.72, 95% CI 0.61-0.86)",
+            "Effect clinically relevant (NNT=8) but concerns about missing data",
+            "Generalizable to tertiary centers, unclear for primary care"
           ],
           "source_refs": ["S1", "S10", "S14"]
         }
@@ -446,20 +432,20 @@ EXAMPLE MINIMAL OUTPUT STRUCTURE
     },
     {
       "id": "study_snapshot",
-      "title": "Studie-overzicht",
+      "title": "Study Snapshot",
       "blocks": [
         {
           "type": "table",
           "label": "tbl_snapshot",
-          "caption": "Kernkarakteristieken van de studie",
+          "caption": "Core study characteristics",
           "table_kind": "snapshot",
           "columns": [
             {"key": "label", "header": "Item", "align": "l"},
-            {"key": "value", "header": "Waarde", "align": "l"}
+            {"key": "value", "header": "Value", "align": "l"}
           ],
           "rows": [
-            {"label": "Studieontwerp", "value": "Parallel-groep RCT", "source_refs": ["S3"]},
-            {"label": "Populatie", "value": "n=420 volwassenen, electieve chirurgie", "source_refs": ["S4"]}
+            {"label": "Study design", "value": "Parallel-group RCT", "source_refs": ["S3"]},
+            {"label": "Population", "value": "n=420 adults, elective surgery", "source_refs": ["S4"]}
           ]
         }
       ]
@@ -479,7 +465,7 @@ Generate the complete report JSON now, ensuring:
 2. Type-specific sections added based on study_type
 3. All blocks properly typed (text/table/figure/callout)
 4. Source references complete and traceable
-5. Language consistent with LANGUAGE parameter
+5. Language consistent (English only)
 6. No hallucinated data - evidence-locked only
 
 Return ONLY the JSON object, no markdown fences, no explanatory text.

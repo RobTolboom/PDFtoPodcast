@@ -247,7 +247,7 @@ Evidence-based medicine and scientific communication require **accessible, profe
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "language": {"enum": ["nl", "en"]},
+        "language": {"enum": ["en"]},
         "template": {"type": "string", "default": "vetrix"},
         "numbering": {"type": "boolean", "default": true}
       },
@@ -916,7 +916,7 @@ def run_report_with_correction(
     classification_result: dict,
     llm: BaseLLMProvider,
     file_manager: PipelineFileManager,
-    language: str = "nl",
+    language: str = "en",
     max_iterations: int = 3,
     quality_thresholds: dict | None = None,
     progress_callback: Callable | None = None,
@@ -940,7 +940,7 @@ def run_report_with_correction(
         classification_result: Classification result (for metadata + publication_type)
         llm: Instantiated provider from `get_llm_provider()`
         file_manager: File manager for saving report iterations
-        language: Report language ("nl" | "en")
+        language: Report language ("en")
         max_iterations: Maximum correction attempts after initial report (default: 3)
         quality_thresholds: Custom thresholds, defaults to:
             {
@@ -975,7 +975,7 @@ def run_report_with_correction(
         ...     classification_result=classification,
         ...     llm=llm,
         ...     file_manager=file_mgr,
-        ...     language="nl",
+        ...     language="en",
         ...     max_iterations=3
         ... )
         >>> report_result['final_status']
@@ -1014,7 +1014,7 @@ def run_report_with_correction(
   - Instantiate the LLM provider once per invocation (`llm = get_llm_provider(llm_provider_str)`) and call `_run_report_generation_step()` to obtain the iteration bundle; persist the returned best iteration plus raw iterations into `previous_results[STEP_REPORT]`.
 - **Full pipeline helper**: keep `run_four_step_pipeline()` for backward compatibility but add a documented `run_five_step_pipeline()` (or extend the existing function) that appends STEP_REPORT unless `skip_report` is flagged. This helper should respect the same progress callbacks and file_manager conventions as earlier steps.
 - **CLI (`run_pipeline.py`)**:
-  - Add `"report"` to `--step` choices and introduce report-specific options: `--report-language {nl,en}`, `--report-template`, `--report-max-iter`, `--report-single-pass`, `--skip-report`, and `--force-best-report`.
+  - Add `"report"` to `--step` choices and introduce report-specific options: `--report-language {en}`, `--report-template`, `--report-max-iter`, `--report-single-pass`, `--skip-report`, and `--force-best-report`.
   - When running the full pipeline, honour `--skip-report`; otherwise invoke the new report step after appraisal. For single-step mode, ensure `previous_results` is populated (by loading files if needed) before dispatching to `run_single_step("report", ...)`.
   - Surface output paths for `paper-report-best.json`, `paper-report_validation-best.json`, and the rendered PDF in the CLI summary, mirroring how extraction/appraisal results are currently reported.
 
@@ -1027,7 +1027,7 @@ def run_report_generation(
     classification_result: dict,
     llm: BaseLLMProvider,
     report_schema: dict,
-    language: str = "nl",
+    language: str = "en",
 ) -> dict:
     """
     Run single report generation (no iteration).

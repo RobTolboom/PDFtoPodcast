@@ -227,9 +227,8 @@ def test_report_schema_language_enum():
 
     language_enum = schema["properties"]["layout"]["properties"]["language"]["enum"]
 
-    assert "nl" in language_enum
     assert "en" in language_enum
-    assert len(language_enum) == 2
+    assert len(language_enum) == 1
 
 
 def test_report_schema_no_additional_properties():

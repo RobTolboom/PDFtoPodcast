@@ -3221,7 +3221,7 @@ def run_report_with_correction(
     classification_result: dict[str, Any],
     llm_provider: str,
     file_manager: PipelineFileManager,
-    language: str = "nl",
+    language: str = "en",
     max_iterations: int = 3,
     quality_thresholds: dict | None = None,
     compile_pdf: bool = True,
@@ -3248,7 +3248,7 @@ def run_report_with_correction(
         classification_result: Classification result (for metadata + publication_type)
         llm_provider: LLM provider name ("openai" | "claude")
         file_manager: File manager for saving report iterations
-        language: Report language ("nl" | "en"), default: "nl"
+        language: Report language ("en")
         max_iterations: Maximum correction attempts after initial report (default: 3)
             Iteration 0: Initial report + validation
             Iterations 1-N: Correction attempts (if quality insufficient)
@@ -3287,7 +3287,7 @@ def run_report_with_correction(
         ...     classification_result=classification,
         ...     llm_provider="openai",
         ...     file_manager=file_mgr,
-        ...     language="nl",
+        ...     language="en",
         ...     max_iterations=3
         ... )
         >>> report_result['final_status']
@@ -3781,7 +3781,7 @@ def run_report_generation(
         llm_provider: LLM provider name ("openai" | "claude")
         file_manager: File manager for saving report iterations
         progress_callback: Optional callback for progress updates
-        language: Report language ("en" or "nl"), default "en"
+        language: Report language ("en")
 
     Returns:
         dict: {
@@ -4193,7 +4193,7 @@ def run_single_step(
     max_correction_iterations: int | None = None,
     quality_thresholds: dict[str, Any] | None = None,
     enable_iterative_correction: bool = True,
-    report_language: str | None = None,
+    report_language: str = "en",
     report_compile_pdf: bool = True,
     report_enable_figures: bool = True,
     report_renderer: str = "latex",
@@ -4223,7 +4223,7 @@ def run_single_step(
         max_correction_iterations: Max iterations for validation/appraisal correction loops
         quality_thresholds: Thresholds controlling iterative correction exit criteria
         enable_iterative_correction: Enable/disable iterative correction for appraisal
-        report_language: Language to use for report generation ("en" or "nl")
+        report_language: Language to use for report generation ("en")
 
     Returns:
         Dictionary containing step result. Key depends on step:
@@ -4604,7 +4604,7 @@ def run_single_step(
                 classification_result=classification_result,
                 llm_provider=llm_provider,
                 file_manager=file_manager,
-                language=report_language or "nl",
+                language=report_language,
                 max_iterations=max_correction_iterations or 3,
                 quality_thresholds=quality_thresholds,
                 compile_pdf=report_compile_pdf,
@@ -4683,7 +4683,7 @@ def run_full_pipeline(
         steps_to_run: Optional list of steps to execute.
             None = run all steps (default).
             Dependencies are validated automatically.
-        report_language: Language for report generation ("en" or "nl")
+        report_language: Language for report generation ("en")
         report_renderer: Renderer for reports ("latex" or "weasyprint")
         report_compile_pdf: Compile PDF when renderer supports it (LaTeX)
         report_enable_figures: Enable/disable figure generation in reports

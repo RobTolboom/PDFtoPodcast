@@ -56,7 +56,7 @@
       "type": "string",
       "pattern": "^[a-z]{2,3}(-[A-Z]{2})?(-[a-z]{2,8})*$",
       "description": "BCP 47 language tag supporting language, region, and variants (e.g., 'en-US', 'zh-Hans-CN', 'ar-EG')",
-      "examples": ["en", "en-US", "en-GB", "nl", "nl-NL", "nl-BE", "de-DE", "fr-FR", "es-ES", "zh-Hans", "zh-Hant", "ar-EG", "he-IL"]
+      "examples": ["en", "en-US", "en-GB", "de-DE", "fr-FR", "es-ES", "zh-Hans", "zh-Hant", "ar-EG", "he-IL"]
     },
 
     "LanguageScript": {
@@ -320,7 +320,7 @@
         "content_hash_sha256": {
           "type": "string",
           "pattern": "^[a-fA-F0-9]{64}$",
-          "description": "SHA-256 hash van bronbestand of platte tekst (64-char hex)"
+          "description": "SHA-256 hash of source file or plain text (64-char hex)"
         }
       },
       "dependentSchemas": {

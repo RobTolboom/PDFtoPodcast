@@ -147,15 +147,13 @@ def test_report_correction_prompt_contains_correction_workflow():
 
 
 def test_report_generation_prompt_language_support():
-    """Test that report generation prompt supports both languages"""
+    """Test that report generation prompt supports English language"""
     prompt = load_report_generation_prompt()
 
     # Check for language mentions
     assert "LANGUAGE" in prompt
-    assert "nl" in prompt
     assert "en" in prompt
-    assert "Dutch" in prompt or "Nederlands" in prompt
-    assert "English" in prompt or "Engels" in prompt
+    assert "English" in prompt
 
 
 def test_report_generation_prompt_evidence_locked():
