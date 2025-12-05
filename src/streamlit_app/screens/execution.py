@@ -1332,7 +1332,7 @@ def show_execution_screen():
         settings = st.session_state.settings
         provider = settings["llm_provider"].upper()
         max_pages = settings["max_pages"] or "All"
-        report_lang = settings.get("report_language", "nl").upper()
+        report_lang = settings.get("report_language", "en").upper()
         steps = settings["steps_to_run"]
         steps_text = ", ".join([s.title() for s in steps])
 
