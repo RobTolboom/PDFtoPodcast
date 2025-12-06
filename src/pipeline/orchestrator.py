@@ -87,7 +87,10 @@ from ..rendering.markdown_renderer import render_report_to_markdown
 from ..rendering.weasy_renderer import WeasyRendererError, render_report_with_weasyprint
 from ..schemas_loader import SchemaLoadError, load_schema, validate_schema_compatibility
 from .file_manager import PipelineFileManager
+from .iterative import detect_quality_degradation as _detect_quality_degradation_new
+from .iterative import select_best_iteration as _select_best_iteration_new
 from .podcast_logic import run_podcast_generation
+from .quality import MetricType
 from .utils import _call_progress_callback, _strip_metadata_for_pipeline, check_breakpoint
 from .validation_runner import run_dual_validation
 
@@ -512,129 +515,22 @@ def _detect_quality_degradation(iterations: list[dict], window: int = 2) -> bool
     """
     Detect if quality has been degrading for the last N iterations.
 
+    DEPRECATED: This function delegates to the iterative module.
+    Use `from .iterative import detect_quality_degradation` directly.
+
     Early stopping prevents wasted LLM calls when corrections are making things worse.
-
-    Works with both extraction and appraisal iterations by checking for either
-    'overall_quality' (extraction) or 'quality_score' (appraisal) in metrics.
-
-    Args:
-        iterations: List of all iteration data (each with 'metrics' dict)
-        window: Number of consecutive degrading iterations to trigger stop (default: 2)
-
-    Returns:
-        True if quality degraded for 'window' consecutive iterations
-
-    Logic:
-        - Need at least (window + 1) iterations to detect trend
-        - Compare last 'window' iterations against the OVERALL best score seen so far
-        - Degradation = all iterations in window are worse than the peak quality
-        - This catches systematic degradation, not transient noise
-
-    Example:
-        iterations = [
-            {'metrics': {'overall_quality': 0.85}},  # iter 0
-            {'metrics': {'overall_quality': 0.88}},  # iter 1 (BEST - peak quality)
-            {'metrics': {'overall_quality': 0.86}},  # iter 2 (degraded from 0.88)
-            {'metrics': {'overall_quality': 0.84}}   # iter 3 (degraded again)
-        ]
-        _detect_quality_degradation(iterations, window=2) → True
-        # Last 2 iterations (0.86, 0.84) are BOTH worse than peak (0.88)
-        # This indicates systematic degradation → stop and use iteration 1
     """
-    if len(iterations) < window + 1:
-        return False
-
-    # Get quality scores - check for both extraction and appraisal metrics
-    # Extraction uses 'overall_quality', appraisal uses 'quality_score'
-    scores = []
-    for it in iterations:
-        metrics = it["metrics"]
-        # Try quality_score first (appraisal), fallback to overall_quality (extraction)
-        score = metrics.get("quality_score", metrics.get("overall_quality", 0))
-        scores.append(score)
-
-    # Find OVERALL peak quality (not just before window)
-    # This is the best score we've achieved across all iterations
-    peak_quality = max(scores)
-
-    # Check if last 'window' iterations are ALL worse than peak
-    # This indicates systematic degradation, not just a single bad iteration
-    window_scores = scores[-window:]
-    all_degraded = all(score < peak_quality for score in window_scores)
-
-    return all_degraded
+    return _detect_quality_degradation_new(iterations, window)
 
 
 def _select_best_iteration(iterations: list[dict]) -> dict:
     """
     Select best iteration when max iterations reached but quality insufficient.
 
-    Selection strategy:
-        1. Priority 1: No critical issues (mandatory)
-        2. Priority 2: Highest weighted quality score (40% completeness + 40% accuracy + 20% schema)
-        3. Priority 3: If tied, prefer higher completeness
-        4. Usually selects last iteration due to progressive improvement
-
-    Args:
-        iterations: List of iteration data dicts
-
-    Returns:
-        dict: Best iteration data with reason
-
-    Example:
-        >>> iterations = [
-        ...     {'iteration_num': 0, 'metrics': {'overall_quality': 0.85, 'critical_issues': 0}},
-        ...     {'iteration_num': 1, 'metrics': {'overall_quality': 0.92, 'critical_issues': 0}},
-        ...     {'iteration_num': 2, 'metrics': {'overall_quality': 0.89, 'critical_issues': 1}},
-        ... ]
-        >>> best = _select_best_iteration(iterations)
-        >>> best['iteration_num']  # 1 (highest quality, no critical issues)
+    DEPRECATED: This function delegates to the quality module.
+    Use `from .iterative import select_best_iteration` directly.
     """
-    if not iterations:
-        raise ValueError("No iterations to select from")
-
-    # Get last iteration
-    last = iterations[-1]
-
-    # Check if last is acceptable (no regression)
-    if len(iterations) == 1:
-        return {**last, "selection_reason": "only_iteration"}
-
-    # Priority ranking for selection
-    def quality_rank(iteration: dict) -> tuple:
-        """
-        Create sortable quality tuple using weighted composite score.
-        Returns: (critical_ok, overall_quality, completeness_tiebreaker)
-
-        Overall quality = weighted average:
-        - 40% completeness (how much PDF data extracted)
-        - 40% accuracy (correctness, no hallucinations)
-        - 20% schema compliance (structural correctness)
-        """
-        metrics = iteration["metrics"]
-        overall_quality = (
-            metrics.get("completeness_score", 0) * 0.40
-            + metrics.get("accuracy_score", 0) * 0.40
-            + metrics.get("schema_compliance_score", 0) * 0.20
-        )
-        return (
-            metrics.get("critical_issues", 999) == 0,  # Priority 1: No critical issues
-            overall_quality,  # Priority 2: Composite quality
-            metrics.get("completeness_score", 0),  # Priority 3: Completeness as tiebreaker
-        )
-
-    # Sort all iterations by quality (best first)
-    sorted_iterations = sorted(iterations, key=quality_rank, reverse=True)
-
-    best = sorted_iterations[0]
-
-    # Determine reason
-    if best["iteration_num"] == last["iteration_num"]:
-        reason = "final_iteration_best"
-    else:
-        reason = f"quality_peaked_at_iteration_{best['iteration_num']}"
-
-    return {**best, "selection_reason": reason}
+    return _select_best_iteration_new(iterations, MetricType.EXTRACTION)
 
 
 def is_appraisal_quality_sufficient(
@@ -703,75 +599,10 @@ def _select_best_appraisal_iteration(iterations: list[dict]) -> dict:
     """
     Select best appraisal iteration when max iterations reached but quality insufficient.
 
-    Selection strategy (prioritized):
-        1. Priority 1: No critical issues (mandatory filter)
-        2. Priority 2: Highest quality_score (weighted composite from validation)
-        3. Priority 3: If tied, prefer higher completeness_score
-        4. Priority 4: If still tied, prefer lowest iteration number (earlier success)
-
-    Quality score composition (computed by validation prompt):
-        - 35% logical_consistency (overall = worst domain, GRADE alignment)
-        - 25% completeness (all domains, all outcomes)
-        - 25% evidence_support (rationales match extraction)
-        - 15% schema_compliance (enums, required fields)
-
-    Args:
-        iterations: List of appraisal iteration data dicts
-
-    Returns:
-        dict: Best iteration data with selection_reason
-
-    Example:
-        >>> iterations = [
-        ...     {'iteration_num': 0, 'metrics': {'quality_score': 0.85, 'critical_issues': 0}},
-        ...     {'iteration_num': 1, 'metrics': {'quality_score': 0.92, 'critical_issues': 0}},
-        ...     {'iteration_num': 2, 'metrics': {'quality_score': 0.89, 'critical_issues': 1}},
-        ... ]
-        >>> best = _select_best_appraisal_iteration(iterations)
-        >>> best['iteration_num']  # 1 (highest quality_score, no critical issues)
+    DEPRECATED: This function delegates to the quality module.
+    Use `from .iterative import select_best_iteration` directly.
     """
-    if not iterations:
-        raise ValueError("No iterations to select from")
-
-    # Get last iteration
-    last = iterations[-1]
-
-    # Check if only one iteration
-    if len(iterations) == 1:
-        return {**last, "selection_reason": "only_iteration"}
-
-    # Priority ranking for selection
-    def quality_rank(iteration: dict) -> tuple:
-        """
-        Create sortable quality tuple using validation quality_score.
-
-        Returns: (critical_ok, quality_score, completeness_tiebreaker, neg_iteration)
-
-        Note: quality_score already incorporates weighted composite from validation,
-        unlike extraction which computes it here. We use the validated score directly.
-        """
-        metrics = iteration["metrics"]
-        quality_score = metrics.get("quality_score", 0)
-
-        return (
-            metrics.get("critical_issues", 999) == 0,  # Priority 1: No critical issues
-            quality_score,  # Priority 2: Quality score (from validation)
-            metrics.get("completeness_score", 0),  # Priority 3: Completeness tiebreaker
-            -iteration["iteration_num"],  # Priority 4: Prefer earlier iterations (lower num)
-        )
-
-    # Sort all iterations by quality (best first)
-    sorted_iterations = sorted(iterations, key=quality_rank, reverse=True)
-
-    best = sorted_iterations[0]
-
-    # Determine reason
-    if best["iteration_num"] == last["iteration_num"]:
-        reason = "final_iteration_best"
-    else:
-        reason = f"quality_peaked_at_iteration_{best['iteration_num']}"
-
-    return {**best, "selection_reason": reason}
+    return _select_best_iteration_new(iterations, MetricType.APPRAISAL)
 
 
 def is_report_quality_sufficient(
@@ -843,76 +674,10 @@ def _select_best_report_iteration(iterations: list[dict]) -> dict:
     """
     Select best report iteration when max iterations reached but quality insufficient.
 
-    Selection strategy (prioritized):
-        1. Priority 1: No critical issues (mandatory filter)
-        2. Priority 2: Highest quality_score (weighted composite from validation)
-        3. Priority 3: If tied, prefer higher accuracy_score (data correctness paramount)
-        4. Priority 4: If still tied, prefer lowest iteration number (earlier success)
-
-    Quality score composition (computed by validation prompt):
-        - 35% accuracy (data correctness paramount)
-        - 30% completeness (all core sections present)
-        - 10% cross_reference_consistency (table/figure refs valid)
-        - 10% data_consistency (bottom-line matches results)
-        - 15% schema_compliance (enums, required fields)
-
-    Args:
-        iterations: List of report iteration data dicts
-
-    Returns:
-        dict: Best iteration data with selection_reason
-
-    Example:
-        >>> iterations = [
-        ...     {'iteration_num': 0, 'metrics': {'quality_score': 0.85, 'critical_issues': 0}},
-        ...     {'iteration_num': 1, 'metrics': {'quality_score': 0.92, 'critical_issues': 0}},
-        ...     {'iteration_num': 2, 'metrics': {'quality_score': 0.89, 'critical_issues': 1}},
-        ... ]
-        >>> best = _select_best_report_iteration(iterations)
-        >>> best['iteration_num']  # 1 (highest quality_score, no critical issues)
+    DEPRECATED: This function delegates to the quality module.
+    Use `from .iterative import select_best_iteration` directly.
     """
-    if not iterations:
-        raise ValueError("No iterations to select from")
-
-    # Get last iteration
-    last = iterations[-1]
-
-    # Check if only one iteration
-    if len(iterations) == 1:
-        return {**last, "selection_reason": "only_iteration"}
-
-    # Priority ranking for selection
-    def quality_rank(iteration: dict) -> tuple:
-        """
-        Create sortable quality tuple using validation quality_score.
-
-        Returns: (critical_ok, quality_score, accuracy_tiebreaker, neg_iteration)
-
-        Note: For reports, accuracy is the primary tiebreaker (not completeness)
-        because data correctness is critical for clinical decision-making.
-        """
-        metrics = iteration["metrics"]
-        quality_score = metrics.get("quality_score", 0)
-
-        return (
-            metrics.get("critical_issues", 999) == 0,  # Priority 1: No critical issues
-            quality_score,  # Priority 2: Quality score (from validation)
-            metrics.get("accuracy_score", 0),  # Priority 3: Accuracy tiebreaker
-            -iteration["iteration_num"],  # Priority 4: Prefer earlier iterations (lower num)
-        )
-
-    # Sort all iterations by quality (best first)
-    sorted_iterations = sorted(iterations, key=quality_rank, reverse=True)
-
-    best = sorted_iterations[0]
-
-    # Determine reason
-    if best["iteration_num"] == last["iteration_num"]:
-        reason = "final_iteration_best"
-    else:
-        reason = f"quality_peaked_at_iteration_{best['iteration_num']}"
-
-    return {**best, "selection_reason": reason}
+    return _select_best_iteration_new(iterations, MetricType.REPORT)
 
 
 def _run_extraction_step(
