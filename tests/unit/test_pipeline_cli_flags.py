@@ -9,7 +9,7 @@ from pathlib import Path
 from src.pipeline import orchestrator
 
 
-def test_run_four_step_pipeline_passes_report_flags(monkeypatch, tmp_path):
+def test_run_full_pipeline_passes_report_flags(monkeypatch, tmp_path):
     """Ensure report renderer/compile/figure flags flow through the full pipeline."""
 
     pdf_path = Path(tmp_path / "paper.pdf")
@@ -55,7 +55,7 @@ def test_run_four_step_pipeline_passes_report_flags(monkeypatch, tmp_path):
 
     monkeypatch.setattr(orchestrator, "run_single_step", fake_run_single_step)
 
-    orchestrator.run_four_step_pipeline(
+    orchestrator.run_full_pipeline(
         pdf_path=pdf_path,
         llm_provider="openai",
         report_language="en",

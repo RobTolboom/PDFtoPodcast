@@ -69,6 +69,18 @@ Outputs persisted to tmp/ and returned to caller
 - Uses `PipelineFileManager` to write iteration files (`extraction{N}.json`, `appraisal{N}.json`) and best-result artefacts (`extraction-best.json`, `appraisal-best.json`, metadata files).
 - Breakpoints and progress callbacks support both CLI batching and Streamlit step-by-step execution.
 
+### Step Modules (`src/pipeline/steps/`)
+- **Modular step implementations**: Each pipeline step is implemented as a separate module for maintainability:
+  - `classification.py` - Publication type identification using LLM
+  - `extraction.py` - Schema-based structured data extraction
+  - `validation.py` - Dual validation (schema + LLM) with iterative correction loop
+  - `appraisal.py` - Critical appraisal (RoB, GRADE, applicability) with iterative correction
+  - `report.py` - Report generation with iterative correction and PDF/markdown rendering
+  - `podcast.py` - Re-exports from `podcast_logic.py` for consistency
+- **Quality thresholds**: Each step module defines its own quality thresholds (`DEFAULT_QUALITY_THRESHOLDS`, `APPRAISAL_QUALITY_THRESHOLDS`, `REPORT_QUALITY_THRESHOLDS`)
+- **Backward compatibility**: All modules provide aliases for legacy function names (e.g., `_run_classification_step`)
+- **Unified imports**: `from src.pipeline.steps import run_classification_step, run_extraction_step, ...`
+
 ### Validation runner (`src/pipeline/validation_runner.py`)
 - Runs schema validation via `validation.validate_extraction_quality`.
 - Invokes LLM validation when the schema quality score meets `SCHEMA_QUALITY_THRESHOLD` (default 0.5).

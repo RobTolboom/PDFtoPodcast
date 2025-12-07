@@ -64,13 +64,13 @@ Refactoring van de PDFtoPodcast codebase om technische schuld te verminderen, on
 - [ ] Refactor `run_report_with_correction()` → IterativeLoopRunner
 - [ ] Valideer bestaande tests
 
-### Fase 7: Step Modules (Optioneel)
-- [ ] `src/pipeline/steps/classification.py`
-- [ ] `src/pipeline/steps/extraction.py`
-- [ ] `src/pipeline/steps/validation.py`
-- [ ] `src/pipeline/steps/appraisal.py`
-- [ ] `src/pipeline/steps/report.py`
-- [ ] `src/pipeline/steps/podcast.py`
+### Fase 7: Step Modules (Optioneel) ✅
+- [x] `src/pipeline/steps/classification.py`
+- [x] `src/pipeline/steps/extraction.py`
+- [x] `src/pipeline/steps/validation.py`
+- [x] `src/pipeline/steps/appraisal.py`
+- [x] `src/pipeline/steps/report.py`
+- [x] `src/pipeline/steps/podcast.py`
 
 ### Fase 8: UI Formatters
 - [ ] `src/streamlit_app/formatters/__init__.py`

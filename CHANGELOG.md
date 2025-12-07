@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Codebase Refactoring Phase 7: Step Modules** - Extracted pipeline step implementations into dedicated modules
+  - Created `src/pipeline/steps/` package with individual step modules:
+    - `classification.py` - Publication type identification (~170 lines)
+    - `extraction.py` - Schema-based data extraction (~200 lines)
+    - `validation.py` - Dual validation with iterative correction (~700 lines)
+    - `appraisal.py` - Critical appraisal (RoB, GRADE, applicability) (~600 lines)
+    - `report.py` - Report generation with iterative correction (~650 lines)
+    - `podcast.py` - Re-export from `podcast_logic.py`
+  - Added `__init__.py` with all public exports for easy importing
+  - All modules include backward compatibility aliases
+  - Total extraction: ~2,300 lines moved to step modules
+
 - **[BREAKING] English-Only System** - Removed bilingual (Dutch/English) support
   - Translated `prompts/Classification.txt` from Dutch to English (full 171-line prompt rewrite)
   - Removed Dutch terminology and examples from `prompts/Report-generation.txt`
