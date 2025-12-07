@@ -1244,6 +1244,9 @@
         },
         "pooled": {
           "$ref": "#/$defs/PooledEffect"
+        },
+        "source": {
+          "$ref": "common.schema.json#/$defs/SourceRef"
         }
       }
     },

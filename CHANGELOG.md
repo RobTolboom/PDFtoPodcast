@@ -36,6 +36,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Schema: Add source field to PairwiseMetaAnalysis** - Fixed validation error where LLM-generated `source` field in `pairwise_meta` was rejected. Added `source: SourceRef` property to `PairwiseMetaAnalysis` schema definition for consistency with `umbrella_summary`.
+
+- **Null value removal in pipeline preprocessing** - Added `_remove_null_values()` function to strip null values from LLM output before schema validation. LLMs sometimes emit `"field": null` for absent optional fields despite prompt instructions to omit them, causing schema validation failures.
+
 - **CLI Summary Table: Add Podcast Results** - Display podcast word count, duration, and validation status in final CLI summary after full pipeline run
 
 - **CRITICAL: CLI Import Fix + Documentation Alignment** - External audit fixes

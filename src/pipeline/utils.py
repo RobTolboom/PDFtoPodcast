@@ -156,6 +156,27 @@ def _call_progress_callback(
             console.print(f"[yellow]⚠️ Progress callback failed: {e}[/yellow]")
 
 
+def _remove_null_values(obj: Any) -> Any:
+    """
+    Recursively remove null values from dicts and lists.
+
+    LLMs sometimes emit null for absent optional fields despite prompt instructions
+    to omit them (e.g., "Never emit null"). This causes schema validation failures
+    since null is not a valid type for most fields.
+
+    Args:
+        obj: Any JSON-compatible object (dict, list, or primitive)
+
+    Returns:
+        Object with all null values removed from dicts and lists
+    """
+    if isinstance(obj, dict):
+        return {k: _remove_null_values(v) for k, v in obj.items() if v is not None}
+    elif isinstance(obj, list):
+        return [_remove_null_values(item) for item in obj if item is not None]
+    return obj
+
+
 def _strip_metadata_for_pipeline(data: dict[str, Any]) -> dict[str, Any]:
     """
     Remove EXTRA metadata fields added by code before schema validation.
@@ -194,5 +215,8 @@ def _strip_metadata_for_pipeline(data: dict[str, Any]) -> dict[str, Any]:
 
     # KEEP schema "metadata" field - it's part of the schema!
     # Do NOT remove it
+
+    # Remove null values that LLM incorrectly included (should be omitted per prompt)
+    data_copy = _remove_null_values(data_copy)
 
     return data_copy
