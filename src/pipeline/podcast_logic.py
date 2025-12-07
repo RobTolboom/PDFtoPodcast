@@ -54,6 +54,10 @@ def run_podcast_generation(
     """
     _call_progress_callback(progress_callback, STEP_PODCAST_GENERATION, "starting", {})
 
+    # Print header for terminal output consistency with other pipeline steps
+    console.print("\n[bold magenta]═══ PODCAST GENERATION ═══[/bold magenta]\n")
+    console.print("[bold cyan]🎙️ Generating podcast script...[/bold cyan]")
+
     try:
         # Load schema and prompt
         schema = load_schema("podcast")

@@ -40,6 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Null value removal in pipeline preprocessing** - Added `_remove_null_values()` function to strip null values from LLM output before schema validation. LLMs sometimes emit `"field": null` for absent optional fields despite prompt instructions to omit them, causing schema validation failures.
 
+- **Add header to Podcast Generation step** - Added `═══ PODCAST GENERATION ═══` header to terminal output for consistency with other pipeline steps.
+
 - **CLI Summary Table: Add Podcast Results** - Display podcast word count, duration, and validation status in final CLI summary after full pipeline run
 
 - **CRITICAL: CLI Import Fix + Documentation Alignment** - External audit fixes
