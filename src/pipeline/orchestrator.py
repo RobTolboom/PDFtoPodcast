@@ -1873,6 +1873,14 @@ def _validate_step_dependencies(steps_to_run: list[str]) -> None:
         if STEP_EXTRACTION not in steps_to_run:
             raise ValueError("Appraisal step requires extraction step")
 
+    if STEP_PODCAST_GENERATION in steps_to_run:
+        if STEP_APPRAISAL not in steps_to_run:
+            raise ValueError("Podcast generation step requires appraisal step")
+        if STEP_CLASSIFICATION not in steps_to_run:
+            raise ValueError("Podcast generation step requires classification step")
+        if STEP_EXTRACTION not in steps_to_run:
+            raise ValueError("Podcast generation step requires extraction step")
+
 
 def _get_next_scheduled_step(current_step: str, steps_to_run: list[str] | None) -> str | None:
     """
