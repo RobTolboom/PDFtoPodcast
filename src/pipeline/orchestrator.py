@@ -96,6 +96,15 @@ from .quality import (
     extract_extraction_metrics_as_dict,
     extract_report_metrics_as_dict,
 )
+from .steps.appraisal import (
+    UnsupportedPublicationType,
+)
+from .steps.appraisal import _get_appraisal_prompt_name as _get_appraisal_prompt_name_impl
+from .steps.appraisal import (
+    is_appraisal_quality_sufficient as _is_appraisal_quality_sufficient,
+)
+from .steps.report import is_report_quality_sufficient as _is_report_quality_sufficient
+from .steps.validation import is_quality_sufficient as _is_quality_sufficient
 from .utils import (
     _call_progress_callback,
     _get_provider_name,
@@ -211,314 +220,36 @@ FINAL_STATUS_CODES = {
 console = Console()
 
 
-class UnsupportedPublicationType(ValueError):
-    """
-    Exception raised when a publication type has no appraisal support.
+# UnsupportedPublicationType is imported from steps.appraisal
 
-    This occurs when attempting to run appraisal on publication types
-    that don't have corresponding appraisal prompts (e.g., 'overig').
-
-    Attributes:
-        publication_type: The unsupported publication type
-        message: Human-readable error message
-    """
-
-    def __init__(self, publication_type: str, message: str | None = None):
-        self.publication_type = publication_type
-        if message is None:
-            message = (
-                f"Appraisal not supported for publication type '{publication_type}'. "
-                f"Supported types: interventional_trial, observational_analytic, "
-                f"evidence_synthesis, prediction_prognosis, diagnostic, editorials_opinion."
-            )
-        super().__init__(message)
-
-
-def _get_appraisal_prompt_name(publication_type: str) -> str:
-    """
-    Map publication type to corresponding appraisal prompt filename.
-
-    This function routes each publication type to its appropriate critical
-    appraisal prompt based on the methodology (RoB 2, ROBINS-I, PROBAST, etc.).
-
-    Args:
-        publication_type: Classification result publication type
-
-    Returns:
-        Prompt filename without .txt extension (e.g., "Appraisal-interventional")
-
-    Raises:
-        UnsupportedPublicationType: If publication type has no appraisal support
-
-    Mapping:
-        - interventional_trial → Appraisal-interventional (RoB 2)
-        - observational_analytic → Appraisal-observational (ROBINS-I/E)
-        - evidence_synthesis → Appraisal-evidence-synthesis (AMSTAR 2 + ROBIS)
-        - prediction_prognosis → Appraisal-prediction (PROBAST)
-        - diagnostic → Appraisal-prediction (QUADAS-2/C, shared with PROBAST)
-        - editorials_opinion → Appraisal-editorials (Argument quality)
-
-    Note:
-        The 'diagnostic' type shares the prediction prompt because PROBAST
-        and QUADAS tools have similar structure (Risk of Bias + Applicability
-        across multiple domains, plus performance evaluation).
-
-    Example:
-        >>> _get_appraisal_prompt_name("interventional_trial")
-        'Appraisal-interventional'
-        >>> _get_appraisal_prompt_name("diagnostic")
-        'Appraisal-prediction'  # Shared prompt
-        >>> _get_appraisal_prompt_name("overig")
-        UnsupportedPublicationType: ...
-    """
-    prompt_mapping = {
-        "interventional_trial": "Appraisal-interventional",
-        "observational_analytic": "Appraisal-observational",
-        "evidence_synthesis": "Appraisal-evidence-synthesis",
-        "prediction_prognosis": "Appraisal-prediction",
-        "diagnostic": "Appraisal-prediction",  # Shared prompt (PROBAST/QUADAS)
-        "editorials_opinion": "Appraisal-editorials",
-    }
-
-    if publication_type not in prompt_mapping:
-        raise UnsupportedPublicationType(publication_type)
-
-    return prompt_mapping[publication_type]
+# Alias for backward compatibility - delegate to steps.appraisal module
+_get_appraisal_prompt_name = _get_appraisal_prompt_name_impl
 
 
 # Aliases for backward compatibility - delegate to quality module
 _extract_appraisal_metrics = extract_appraisal_metrics_as_dict
 _extract_report_metrics = extract_report_metrics_as_dict
-
-
-def is_quality_sufficient(validation_result: dict | None, thresholds: dict | None = None) -> bool:
-    """
-    Check if validation quality meets thresholds for stopping iteration.
-
-    Args:
-        validation_result: Validation JSON with verification_summary (can be None)
-        thresholds: Quality thresholds to check against (defaults to DEFAULT_QUALITY_THRESHOLDS)
-
-    Returns:
-        bool: True if ALL thresholds are met, False otherwise
-
-    Edge Cases:
-        - validation_result is None → False
-        - verification_summary missing → False
-        - Any score is None → treated as 0 (fails threshold)
-        - Empty dict → False (all scores default to 0)
-
-    Example:
-        >>> validation = {
-        ...     'verification_summary': {
-        ...         'completeness_score': 0.92,
-        ...         'accuracy_score': 0.98,
-        ...         'schema_compliance_score': 0.97,
-        ...         'critical_issues': 0
-        ...     }
-        ... }
-        >>> is_quality_sufficient(validation)  # True
-        >>> is_quality_sufficient(None)  # False
-        >>> is_quality_sufficient({})  # False
-    """
-    # Use default thresholds if not provided
-    if thresholds is None:
-        thresholds = DEFAULT_QUALITY_THRESHOLDS
-
-    # Handle None validation_result
-    if validation_result is None:
-        return False
-
-    summary = validation_result.get("verification_summary", {})
-
-    # Handle missing or empty summary
-    if not summary:
-        return False
-
-    # Helper to safely extract numeric scores (handle None values)
-    def safe_score(key: str, default: float = 0.0) -> float:
-        val = summary.get(key, default)
-        return val if isinstance(val, int | float) else default
-
-    # Check all thresholds
-    return (
-        safe_score("completeness_score") >= thresholds["completeness_score"]
-        and safe_score("accuracy_score") >= thresholds["accuracy_score"]
-        and safe_score("schema_compliance_score") >= thresholds["schema_compliance_score"]
-        and safe_score("critical_issues", 999) <= thresholds["critical_issues"]
-    )
-
-
-# Alias for backward compatibility - delegates to quality module
 _extract_metrics = extract_extraction_metrics_as_dict
 
-
-def _detect_quality_degradation(iterations: list[dict], window: int = 2) -> bool:
-    """
-    Detect if quality has been degrading for the last N iterations.
-
-    DEPRECATED: This function delegates to the iterative module.
-    Use `from .iterative import detect_quality_degradation` directly.
-
-    Early stopping prevents wasted LLM calls when corrections are making things worse.
-    """
-    return _detect_quality_degradation_new(iterations, window)
+# Aliases for backward compatibility - delegate to step modules
+is_quality_sufficient = _is_quality_sufficient
+is_appraisal_quality_sufficient = _is_appraisal_quality_sufficient
+is_report_quality_sufficient = _is_report_quality_sufficient
+_detect_quality_degradation = _detect_quality_degradation_new
 
 
 def _select_best_iteration(iterations: list[dict]) -> dict:
-    """
-    Select best iteration when max iterations reached but quality insufficient.
-
-    DEPRECATED: This function delegates to the quality module.
-    Use `from .iterative import select_best_iteration` directly.
-    """
+    """Select best extraction iteration. Delegates to iterative module."""
     return _select_best_iteration_new(iterations, MetricType.EXTRACTION)
 
 
-def is_appraisal_quality_sufficient(
-    validation_result: dict | None, thresholds: dict | None = None
-) -> bool:
-    """
-    Check if appraisal validation quality meets thresholds for stopping iteration.
-
-    Args:
-        validation_result: Appraisal validation JSON with validation_summary (can be None)
-        thresholds: Quality thresholds to check against (defaults to APPRAISAL_QUALITY_THRESHOLDS)
-
-    Returns:
-        bool: True if ALL thresholds are met, False otherwise
-
-    Edge Cases:
-        - validation_result is None → False
-        - validation_summary missing → False
-        - Any score is None → treated as 0 (fails threshold)
-        - Empty dict → False (all scores default to 0)
-
-    Example:
-        >>> validation = {
-        ...     'validation_summary': {
-        ...         'logical_consistency_score': 0.95,
-        ...         'completeness_score': 0.90,
-        ...         'evidence_support_score': 0.92,
-        ...         'schema_compliance_score': 1.0,
-        ...         'critical_issues': 0
-        ...     }
-        ... }
-        >>> is_appraisal_quality_sufficient(validation)  # True
-        >>> is_appraisal_quality_sufficient(None)  # False
-        >>> is_appraisal_quality_sufficient({})  # False
-    """
-    # Use default appraisal thresholds if not provided
-    if thresholds is None:
-        thresholds = APPRAISAL_QUALITY_THRESHOLDS
-
-    # Handle None validation_result
-    if validation_result is None:
-        return False
-
-    summary = validation_result.get("validation_summary", {})
-
-    # Handle missing or empty summary
-    if not summary:
-        return False
-
-    # Helper to safely extract numeric scores (handle None values)
-    def safe_score(key: str, default: float = 0.0) -> float:
-        val = summary.get(key, default)
-        return val if isinstance(val, int | float) else default
-
-    # Check all appraisal thresholds
-    return (
-        safe_score("logical_consistency_score") >= thresholds["logical_consistency_score"]
-        and safe_score("completeness_score") >= thresholds["completeness_score"]
-        and safe_score("evidence_support_score") >= thresholds["evidence_support_score"]
-        and safe_score("schema_compliance_score") >= thresholds["schema_compliance_score"]
-        and safe_score("critical_issues", 999) <= thresholds["critical_issues"]
-    )
-
-
 def _select_best_appraisal_iteration(iterations: list[dict]) -> dict:
-    """
-    Select best appraisal iteration when max iterations reached but quality insufficient.
-
-    DEPRECATED: This function delegates to the quality module.
-    Use `from .iterative import select_best_iteration` directly.
-    """
+    """Select best appraisal iteration. Delegates to iterative module."""
     return _select_best_iteration_new(iterations, MetricType.APPRAISAL)
 
 
-def is_report_quality_sufficient(
-    validation_result: dict | None, thresholds: dict | None = None
-) -> bool:
-    """
-    Check if report validation quality meets thresholds for stopping iteration.
-
-    Args:
-        validation_result: Report validation JSON with validation_summary (can be None)
-        thresholds: Quality thresholds to check against (defaults to REPORT_QUALITY_THRESHOLDS)
-
-    Returns:
-        bool: True if ALL thresholds are met, False otherwise
-
-    Edge Cases:
-        - validation_result is None → False
-        - validation_summary missing → False
-        - Any score is None → treated as 0 (fails threshold)
-        - Empty dict → False (all scores default to 0)
-
-    Example:
-        >>> validation = {
-        ...     'validation_summary': {
-        ...         'completeness_score': 0.90,
-        ...         'accuracy_score': 0.95,
-        ...         'cross_reference_consistency_score': 0.92,
-        ...         'data_consistency_score': 0.88,
-        ...         'schema_compliance_score': 1.0,
-        ...         'critical_issues': 0
-        ...     }
-        ... }
-        >>> is_report_quality_sufficient(validation)  # True
-        >>> is_report_quality_sufficient(None)  # False
-        >>> is_report_quality_sufficient({})  # False
-    """
-    # Use default report thresholds if not provided
-    if thresholds is None:
-        thresholds = REPORT_QUALITY_THRESHOLDS
-
-    # Handle None validation_result
-    if validation_result is None:
-        return False
-
-    summary = validation_result.get("validation_summary", {})
-
-    # Handle missing or empty summary
-    if not summary:
-        return False
-
-    # Helper to safely extract numeric scores (handle None values)
-    def safe_score(key: str, default: float = 0.0) -> float:
-        val = summary.get(key, default)
-        return val if isinstance(val, int | float) else default
-
-    # Check all report thresholds
-    return (
-        safe_score("completeness_score") >= thresholds["completeness_score"]
-        and safe_score("accuracy_score") >= thresholds["accuracy_score"]
-        and safe_score("cross_reference_consistency_score")
-        >= thresholds["cross_reference_consistency_score"]
-        and safe_score("data_consistency_score") >= thresholds["data_consistency_score"]
-        and safe_score("schema_compliance_score") >= thresholds["schema_compliance_score"]
-        and safe_score("critical_issues", 999) <= thresholds["critical_issues"]
-    )
-
-
 def _select_best_report_iteration(iterations: list[dict]) -> dict:
-    """
-    Select best report iteration when max iterations reached but quality insufficient.
-
-    DEPRECATED: This function delegates to the quality module.
-    Use `from .iterative import select_best_iteration` directly.
-    """
+    """Select best report iteration. Delegates to iterative module."""
     return _select_best_iteration_new(iterations, MetricType.REPORT)
 
 
