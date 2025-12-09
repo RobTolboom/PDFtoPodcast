@@ -90,7 +90,12 @@ from .file_manager import PipelineFileManager
 from .iterative import detect_quality_degradation as _detect_quality_degradation_new
 from .iterative import select_best_iteration as _select_best_iteration_new
 from .podcast_logic import run_podcast_generation
-from .quality import MetricType
+from .quality import (
+    MetricType,
+    extract_appraisal_metrics_as_dict,
+    extract_extraction_metrics_as_dict,
+    extract_report_metrics_as_dict,
+)
 from .utils import (
     _call_progress_callback,
     _get_provider_name,
@@ -281,122 +286,9 @@ def _get_appraisal_prompt_name(publication_type: str) -> str:
     return prompt_mapping[publication_type]
 
 
-def _extract_appraisal_metrics(validation_result: dict) -> dict:
-    """
-    Extract key metrics from appraisal validation result for comparison.
-
-    Used for:
-    - Best iteration selection (_select_best_appraisal_iteration)
-    - Quality degradation detection (_detect_quality_degradation)
-    - Progress tracking and UI display
-
-    Returns dict with individual scores + computed 'quality_score':
-        - 35% logical_consistency (overall = worst domain, GRADE alignment)
-        - 25% completeness (all domains, all outcomes)
-        - 25% evidence_support (rationales match extraction)
-        - 15% schema_compliance (enums, required fields)
-
-    Note:
-        Unlike extraction validation, appraisal uses the validation_summary
-        field instead of verification_summary to differentiate the two processes.
-
-    Example:
-        >>> validation = {
-        ...     'validation_summary': {
-        ...         'logical_consistency_score': 0.95,
-        ...         'completeness_score': 0.90,
-        ...         'evidence_support_score': 0.92,
-        ...         'schema_compliance_score': 1.0,
-        ...         'critical_issues': 0,
-        ...         'quality_score': 0.94
-        ...     }
-        ... }
-        >>> metrics = _extract_appraisal_metrics(validation)
-        >>> metrics['quality_score']
-        0.94
-    """
-    summary = validation_result.get("validation_summary", {})
-
-    return {
-        "logical_consistency_score": summary.get("logical_consistency_score", 0),
-        "completeness_score": summary.get("completeness_score", 0),
-        "evidence_support_score": summary.get("evidence_support_score", 0),
-        "schema_compliance_score": summary.get("schema_compliance_score", 0),
-        "critical_issues": summary.get("critical_issues", 0),
-        "overall_status": summary.get("overall_status", "unknown"),
-        # Quality score computed by validation prompt (weighted composite)
-        # If not present, compute it here as fallback
-        "quality_score": summary.get(
-            "quality_score",
-            (
-                summary.get("logical_consistency_score", 0) * 0.35
-                + summary.get("completeness_score", 0) * 0.25
-                + summary.get("evidence_support_score", 0) * 0.25
-                + summary.get("schema_compliance_score", 0) * 0.15
-            ),
-        ),
-    }
-
-
-def _extract_report_metrics(validation_result: dict) -> dict:
-    """
-    Extract key metrics from report validation result for comparison.
-
-    Used for:
-    - Best iteration selection (_select_best_report_iteration)
-    - Quality degradation detection (_detect_quality_degradation)
-    - Progress tracking and UI display
-
-    Returns dict with individual scores + computed 'quality_score':
-        - 35% accuracy (data correctness paramount)
-        - 30% completeness (all core sections present)
-        - 10% cross_reference_consistency (table/figure refs valid)
-        - 10% data_consistency (bottom-line matches results)
-        - 15% schema_compliance (enums, required fields)
-
-    Note:
-        Report validation emphasizes accuracy (35%) over other dimensions because
-        data correctness is critical for clinical decision-making.
-
-    Example:
-        >>> validation = {
-        ...     'validation_summary': {
-        ...         'completeness_score': 0.90,
-        ...         'accuracy_score': 0.95,
-        ...         'cross_reference_consistency_score': 0.92,
-        ...         'data_consistency_score': 0.88,
-        ...         'schema_compliance_score': 1.0,
-        ...         'critical_issues': 0,
-        ...         'quality_score': 0.93
-        ...     }
-        ... }
-        >>> metrics = _extract_report_metrics(validation)
-        >>> metrics['quality_score']
-        0.93
-    """
-    summary = validation_result.get("validation_summary", {})
-
-    return {
-        "completeness_score": summary.get("completeness_score", 0),
-        "accuracy_score": summary.get("accuracy_score", 0),
-        "cross_reference_consistency_score": summary.get("cross_reference_consistency_score", 0),
-        "data_consistency_score": summary.get("data_consistency_score", 0),
-        "schema_compliance_score": summary.get("schema_compliance_score", 0),
-        "critical_issues": summary.get("critical_issues", 0),
-        "overall_status": summary.get("overall_status", "unknown"),
-        # Quality score computed by validation prompt (weighted composite)
-        # If not present, compute it here as fallback
-        "quality_score": summary.get(
-            "quality_score",
-            (
-                summary.get("accuracy_score", 0) * 0.35
-                + summary.get("completeness_score", 0) * 0.30
-                + summary.get("cross_reference_consistency_score", 0) * 0.10
-                + summary.get("data_consistency_score", 0) * 0.10
-                + summary.get("schema_compliance_score", 0) * 0.15
-            ),
-        ),
-    }
+# Aliases for backward compatibility - delegate to quality module
+_extract_appraisal_metrics = extract_appraisal_metrics_as_dict
+_extract_report_metrics = extract_report_metrics_as_dict
 
 
 def is_quality_sufficient(validation_result: dict | None, thresholds: dict | None = None) -> bool:
@@ -457,36 +349,8 @@ def is_quality_sufficient(validation_result: dict | None, thresholds: dict | Non
     )
 
 
-def _extract_metrics(validation_result: dict) -> dict:
-    """
-    Extract key metrics from validation result for comparison.
-
-    Used for:
-    - Best iteration selection (_select_best_iteration)
-    - Quality degradation detection (_detect_quality_degradation)
-    - Progress tracking and UI display
-
-    Returns dict with individual scores + computed 'overall_quality':
-        - 40% completeness (coverage of PDF data)
-        - 40% accuracy (correctness, no hallucinations)
-        - 20% schema compliance (structural correctness)
-    """
-    summary = validation_result.get("verification_summary", {})
-
-    return {
-        "completeness_score": summary.get("completeness_score", 0),
-        "accuracy_score": summary.get("accuracy_score", 0),
-        "schema_compliance_score": summary.get("schema_compliance_score", 0),
-        "critical_issues": summary.get("critical_issues", 0),
-        "total_issues": summary.get("total_issues", 0),
-        "overall_status": summary.get("overall_status", "unknown"),
-        # Derived composite score (used by ranking and degradation detection)
-        "overall_quality": (
-            summary.get("completeness_score", 0) * 0.4
-            + summary.get("accuracy_score", 0) * 0.4
-            + summary.get("schema_compliance_score", 0) * 0.2
-        ),
-    }
+# Alias for backward compatibility - delegates to quality module
+_extract_metrics = extract_extraction_metrics_as_dict
 
 
 def _detect_quality_degradation(iterations: list[dict], window: int = 2) -> bool:

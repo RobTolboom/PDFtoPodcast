@@ -24,7 +24,7 @@ from ...schemas_loader import SchemaLoadError, load_schema
 from ..file_manager import PipelineFileManager
 from ..iterative import detect_quality_degradation as _detect_quality_degradation_new
 from ..iterative import select_best_iteration as _select_best_iteration_new
-from ..quality import MetricType
+from ..quality import MetricType, extract_extraction_metrics_as_dict
 from ..utils import _call_progress_callback, _get_provider_name, _strip_metadata_for_pipeline
 from ..validation_runner import run_dual_validation
 
@@ -77,30 +77,8 @@ def is_quality_sufficient(validation_result: dict | None, thresholds: dict | Non
     )
 
 
-def _extract_metrics(validation_result: dict) -> dict:
-    """
-    Extract key metrics from validation result for comparison.
-
-    Returns dict with individual scores + computed 'overall_quality':
-        - 40% completeness (coverage of PDF data)
-        - 40% accuracy (correctness, no hallucinations)
-        - 20% schema compliance (structural correctness)
-    """
-    summary = validation_result.get("verification_summary", {})
-
-    return {
-        "completeness_score": summary.get("completeness_score", 0),
-        "accuracy_score": summary.get("accuracy_score", 0),
-        "schema_compliance_score": summary.get("schema_compliance_score", 0),
-        "critical_issues": summary.get("critical_issues", 0),
-        "total_issues": summary.get("total_issues", 0),
-        "overall_status": summary.get("overall_status", "unknown"),
-        "overall_quality": (
-            summary.get("completeness_score", 0) * 0.4
-            + summary.get("accuracy_score", 0) * 0.4
-            + summary.get("schema_compliance_score", 0) * 0.2
-        ),
-    }
+# Alias for backward compatibility - delegate to quality module
+_extract_metrics = extract_extraction_metrics_as_dict
 
 
 def _detect_quality_degradation(iterations: list[dict], window: int = 2) -> bool:

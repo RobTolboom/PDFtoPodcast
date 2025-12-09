@@ -241,3 +241,41 @@ def extract_metrics(validation_result: dict | None, metric_type: MetricType) -> 
         raise ValueError(f"Unknown metric type: {metric_type}")
 
     return extractor(validation_result)
+
+
+def extract_extraction_metrics_as_dict(validation_result: dict | None) -> dict:
+    """
+    Extract extraction metrics and return as dict for backward compatibility.
+
+    This wrapper function replaces the duplicate _extract_metrics() functions
+    in orchestrator.py and steps/validation.py.
+
+    Returns dict with 'overall_quality' key for backward compatibility.
+    """
+    metrics = extract_metrics(validation_result, MetricType.EXTRACTION)
+    result = metrics.to_dict()
+    # Add backward-compatible 'overall_quality' key (alias for quality_score)
+    result["overall_quality"] = metrics.quality_score
+    return result
+
+
+def extract_appraisal_metrics_as_dict(validation_result: dict | None) -> dict:
+    """
+    Extract appraisal metrics and return as dict for backward compatibility.
+
+    This wrapper function replaces the duplicate _extract_appraisal_metrics()
+    functions in orchestrator.py and steps/appraisal.py.
+    """
+    metrics = extract_metrics(validation_result, MetricType.APPRAISAL)
+    return metrics.to_dict()
+
+
+def extract_report_metrics_as_dict(validation_result: dict | None) -> dict:
+    """
+    Extract report metrics and return as dict for backward compatibility.
+
+    This wrapper function replaces the duplicate _extract_report_metrics()
+    functions in orchestrator.py and steps/report.py.
+    """
+    metrics = extract_metrics(validation_result, MetricType.REPORT)
+    return metrics.to_dict()

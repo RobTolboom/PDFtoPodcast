@@ -30,7 +30,7 @@ from ...schemas_loader import SchemaLoadError, load_schema
 from ..file_manager import PipelineFileManager
 from ..iterative import detect_quality_degradation as _detect_quality_degradation_new
 from ..iterative import select_best_iteration as _select_best_iteration_new
-from ..quality import MetricType
+from ..quality import MetricType, extract_report_metrics_as_dict
 from ..utils import _call_progress_callback, _get_provider_name, _strip_metadata_for_pipeline
 
 console = Console()
@@ -60,29 +60,8 @@ def _get_pipeline_version() -> str:
     return "0.0.0"
 
 
-def _extract_report_metrics(validation_result: dict) -> dict:
-    """Extract key metrics from report validation result for comparison."""
-    summary = validation_result.get("validation_summary", {})
-
-    return {
-        "completeness_score": summary.get("completeness_score", 0),
-        "accuracy_score": summary.get("accuracy_score", 0),
-        "cross_reference_consistency_score": summary.get("cross_reference_consistency_score", 0),
-        "data_consistency_score": summary.get("data_consistency_score", 0),
-        "schema_compliance_score": summary.get("schema_compliance_score", 0),
-        "critical_issues": summary.get("critical_issues", 0),
-        "overall_status": summary.get("overall_status", "unknown"),
-        "quality_score": summary.get(
-            "quality_score",
-            (
-                summary.get("accuracy_score", 0) * 0.35
-                + summary.get("completeness_score", 0) * 0.30
-                + summary.get("cross_reference_consistency_score", 0) * 0.10
-                + summary.get("data_consistency_score", 0) * 0.10
-                + summary.get("schema_compliance_score", 0) * 0.15
-            ),
-        ),
-    }
+# Alias for backward compatibility - delegate to quality module
+_extract_report_metrics = extract_report_metrics_as_dict
 
 
 def _detect_quality_degradation(iterations: list[dict], window: int = 2) -> bool:

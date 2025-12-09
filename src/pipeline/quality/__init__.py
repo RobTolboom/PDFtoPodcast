@@ -17,7 +17,14 @@ Public API:
     - REPORT_THRESHOLDS: Default thresholds for report generation
 """
 
-from .metrics import MetricType, QualityMetrics, extract_metrics
+from .metrics import (
+    MetricType,
+    QualityMetrics,
+    extract_appraisal_metrics_as_dict,
+    extract_extraction_metrics_as_dict,
+    extract_metrics,
+    extract_report_metrics_as_dict,
+)
 from .scoring import QualityWeights, quality_rank, safe_score
 from .thresholds import (
     APPRAISAL_THRESHOLDS,
@@ -36,6 +43,9 @@ __all__ = [
     "MetricType",
     # Functions
     "extract_metrics",
+    "extract_extraction_metrics_as_dict",
+    "extract_appraisal_metrics_as_dict",
+    "extract_report_metrics_as_dict",
     "safe_score",
     "quality_rank",
     "is_quality_sufficient",
