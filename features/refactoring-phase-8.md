@@ -10,22 +10,22 @@ Consolideren van gedupliceerde code, splitsen van grote bestanden, en verbeteren
 
 ## Scope
 
-### Fase 1: Quick Wins (2 uur)
-- [ ] `_get_provider_name()` consolideren naar `pipeline/utils.py`
-- [ ] `safe_score()` imports fixen (gebruik `quality/scoring.py`)
-- [ ] Error handling toevoegen in `quality/metrics.py`
-- [ ] Protocol types definiëren voor callbacks
+### Fase 1: Quick Wins (2 uur) ✅
+- [x] `_get_provider_name()` consolideren naar `pipeline/utils.py`
+- [x] `safe_score()` imports fixen (gebruik `quality/scoring.py`)
+- [x] Error handling toevoegen in `quality/metrics.py`
+- [x] Protocol types definiëren voor callbacks (`ProgressCallback` TypeAlias)
 
-### Fase 2: Metrics Consolidatie (2-3 uur)
-- [ ] `_extract_metrics()` varianten migreren naar `quality/metrics.py`
-- [ ] Verwijder duplicaten uit orchestrator.py en step modules
-- [ ] Quality thresholds consolideren in `quality/thresholds.py`
+### Fase 2: Metrics Consolidatie (2-3 uur) ✅
+- [x] `_extract_metrics()` varianten migreren naar `quality/metrics.py`
+- [x] Verwijder duplicaten uit orchestrator.py en step modules
+- [x] Quality thresholds consolideren in `quality/thresholds.py`
 
-### Fase 3: Orchestrator Splitting (4-6 uur)
-- [ ] Creëer `pipeline/thresholds.py` voor quality thresholds
-- [ ] Verplaats step delegation naar step modules
-- [ ] Verwijder duplicate helper functions
-- [ ] Reduceer orchestrator.py van 4624 naar <1500 regels
+### Fase 3: Orchestrator Splitting (4-6 uur) ✅
+- [x] Creëer `pipeline/thresholds.py` voor quality thresholds (reeds in `quality/thresholds.py`)
+- [x] Verplaats step delegation naar step modules
+- [x] Verwijder duplicate helper functions
+- [x] Reduceer orchestrator.py van 4466 naar **1127 regels** (75% reductie!)
 
 ### Fase 4: Execution Module Splitting (3-4 uur)
 - [ ] Creëer `streamlit_app/execution_state.py`
@@ -151,19 +151,32 @@ class ProgressCallback(Protocol):
 
 ## Acceptatiecriteria
 
-- [ ] Alle tests slagen na elke fase
-- [ ] `make lint` en `make format` slagen
-- [ ] orchestrator.py < 1500 regels
-- [ ] execution.py < 800 regels
-- [ ] Geen duplicate `_get_provider_name()` of `safe_score()` functies
-- [ ] Type hints op alle callback parameters
+- [x] Alle tests slagen na elke fase (130 tests passing)
+- [x] `make lint` en `make format` slagen
+- [x] orchestrator.py < 1500 regels (1127 regels, 75% reductie!)
+- [ ] execution.py < 800 regels (nog te doen in Fase 4)
+- [x] Geen duplicate `_get_provider_name()` of `safe_score()` functies
+- [x] Type hints op alle callback parameters
 
 ## Voortgang
 
 | Fase | Status | Commits |
 |------|--------|---------|
-| Fase 1: Quick Wins | TODO | - |
-| Fase 2: Metrics | TODO | - |
-| Fase 3: Orchestrator | TODO | - |
+| Fase 1: Quick Wins | ✅ Done | `d774dbd` |
+| Fase 2: Metrics | ✅ Done | `dc91016` |
+| Fase 3: Orchestrator | ✅ Done | `908a77e`, `cfb46e4` |
 | Fase 4: Execution | TODO | - |
 | Fase 5: Types | TODO | - |
+
+## Resultaten
+
+### orchestrator.py Reductie
+- **Oorspronkelijk:** 4466 regels
+- **Na Fase 3:** 1127 regels
+- **Reductie:** 3339 regels (75%)
+
+### Verwijderde Duplicaten
+- 13+ step wrapper functies → aliases naar step modules
+- 6+ `_extract_metrics()` varianten → `quality/metrics.py`
+- 5x `_get_provider_name()` → `pipeline/utils.py`
+- 3x inline `safe_score()` → `quality/scoring.py`
