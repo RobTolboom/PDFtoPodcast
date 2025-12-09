@@ -28,7 +28,7 @@ from ..file_manager import PipelineFileManager
 from ..iterative import detect_quality_degradation as _detect_quality_degradation_new
 from ..iterative import select_best_iteration as _select_best_iteration_new
 from ..quality import MetricType
-from ..utils import _call_progress_callback, _strip_metadata_for_pipeline
+from ..utils import _call_progress_callback, _get_provider_name, _strip_metadata_for_pipeline
 
 console = Console()
 
@@ -58,16 +58,6 @@ class UnsupportedPublicationType(ValueError):
                 f"evidence_synthesis, prediction_prognosis, diagnostic, editorials_opinion."
             )
         super().__init__(message)
-
-
-def _get_provider_name(llm: Any) -> str:
-    """Get provider name from LLM instance class name."""
-    class_name = llm.__class__.__name__
-    if "OpenAI" in class_name:
-        return "openai"
-    elif "Claude" in class_name:
-        return "claude"
-    return "unknown"
 
 
 def _get_appraisal_prompt_name(publication_type: str) -> str:

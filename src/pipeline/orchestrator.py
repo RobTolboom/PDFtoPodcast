@@ -91,7 +91,12 @@ from .iterative import detect_quality_degradation as _detect_quality_degradation
 from .iterative import select_best_iteration as _select_best_iteration_new
 from .podcast_logic import run_podcast_generation
 from .quality import MetricType
-from .utils import _call_progress_callback, _strip_metadata_for_pipeline, check_breakpoint
+from .utils import (
+    _call_progress_callback,
+    _get_provider_name,
+    _strip_metadata_for_pipeline,
+    check_breakpoint,
+)
 from .validation_runner import run_dual_validation
 
 # Pipeline step name constants
@@ -222,33 +227,6 @@ class UnsupportedPublicationType(ValueError):
                 f"evidence_synthesis, prediction_prognosis, diagnostic, editorials_opinion."
             )
         super().__init__(message)
-
-
-def _get_provider_name(llm: Any) -> str:
-    """
-    Get provider name from LLM instance class name.
-
-    Determines which LLM provider is being used by inspecting the
-    class name of the LLM instance. Used for pipeline metadata tracking.
-
-    Args:
-        llm: LLM provider instance (OpenAIProvider or ClaudeProvider)
-
-    Returns:
-        Provider name: "openai", "claude", or "unknown"
-
-    Example:
-        >>> from src.llm import get_llm_provider
-        >>> llm = get_llm_provider("openai")
-        >>> _get_provider_name(llm)
-        'openai'
-    """
-    class_name = llm.__class__.__name__
-    if "OpenAI" in class_name:
-        return "openai"
-    elif "Claude" in class_name:
-        return "claude"
-    return "unknown"
 
 
 def _get_appraisal_prompt_name(publication_type: str) -> str:

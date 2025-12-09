@@ -9,11 +9,16 @@ This module provides helper functions for DOI handling, step navigation,
 and breakpoint management used throughout the pipeline.
 """
 
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 from rich.console import Console
+
+# Type alias for progress callback function signature
+# Usage: progress_callback: ProgressCallback | None = None
+ProgressCallback: TypeAlias = Callable[[str, str, dict[str, Any]], None]
 
 if TYPE_CHECKING:
     from .file_manager import PipelineFileManager
@@ -135,6 +140,33 @@ def check_breakpoint(
         )
         return True
     return False
+
+
+def _get_provider_name(llm: Any) -> str:
+    """
+    Get provider name from LLM instance class name.
+
+    Determines which LLM provider is being used by inspecting the
+    class name of the LLM instance. Used for pipeline metadata tracking.
+
+    Args:
+        llm: LLM provider instance (OpenAIProvider or ClaudeProvider)
+
+    Returns:
+        Provider name: "openai", "claude", or "unknown"
+
+    Example:
+        >>> from src.llm import get_llm_provider
+        >>> llm = get_llm_provider("openai")
+        >>> _get_provider_name(llm)
+        'openai'
+    """
+    class_name = llm.__class__.__name__
+    if "OpenAI" in class_name:
+        return "openai"
+    elif "Claude" in class_name:
+        return "claude"
+    return "unknown"
 
 
 def _call_progress_callback(

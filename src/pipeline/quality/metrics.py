@@ -195,7 +195,7 @@ def _extract_report_metrics(validation_result: dict) -> QualityMetrics:
     )
 
 
-def extract_metrics(validation_result: dict, metric_type: MetricType) -> QualityMetrics:
+def extract_metrics(validation_result: dict | None, metric_type: MetricType) -> QualityMetrics:
     """
     Extract quality metrics from validation result based on type.
 
@@ -203,11 +203,13 @@ def extract_metrics(validation_result: dict, metric_type: MetricType) -> Quality
     _extract_*_metrics() functions in orchestrator.py.
 
     Args:
-        validation_result: Validation JSON with verification_summary or validation_summary
+        validation_result: Validation JSON with verification_summary or validation_summary.
+            Can be None or empty dict - returns default metrics in that case.
         metric_type: Type of metrics to extract (EXTRACTION, APPRAISAL, REPORT)
 
     Returns:
-        QualityMetrics: Unified metrics structure
+        QualityMetrics: Unified metrics structure. Returns default (zero) metrics
+            if validation_result is None or empty.
 
     Example:
         >>> validation = {
@@ -221,7 +223,13 @@ def extract_metrics(validation_result: dict, metric_type: MetricType) -> Quality
         >>> metrics = extract_metrics(validation, MetricType.EXTRACTION)
         >>> metrics.quality_score
         0.95  # (0.92*0.4 + 0.98*0.4 + 0.97*0.2)
+        >>> extract_metrics(None, MetricType.EXTRACTION).quality_score
+        0.0  # Default for missing input
     """
+    # Handle None or empty input gracefully
+    if not validation_result:
+        return QualityMetrics(metric_type=metric_type, overall_status="missing")
+
     extractors = {
         MetricType.EXTRACTION: _extract_extraction_metrics,
         MetricType.APPRAISAL: _extract_appraisal_metrics,

@@ -20,36 +20,9 @@ from ...llm import LLMError
 from ...prompts import PromptLoadError, load_extraction_prompt
 from ...schemas_loader import SchemaLoadError, load_schema, validate_schema_compatibility
 from ..file_manager import PipelineFileManager
-from ..utils import _call_progress_callback, _strip_metadata_for_pipeline
+from ..utils import _call_progress_callback, _get_provider_name, _strip_metadata_for_pipeline
 
 console = Console()
-
-
-def _get_provider_name(llm: Any) -> str:
-    """
-    Get provider name from LLM instance class name.
-
-    Determines which LLM provider is being used by inspecting the
-    class name of the LLM instance. Used for pipeline metadata tracking.
-
-    Args:
-        llm: LLM provider instance (OpenAIProvider or ClaudeProvider)
-
-    Returns:
-        Provider name: "openai", "claude", or "unknown"
-
-    Example:
-        >>> from src.llm import get_llm_provider
-        >>> llm = get_llm_provider("openai")
-        >>> _get_provider_name(llm)
-        'openai'
-    """
-    class_name = llm.__class__.__name__
-    if "OpenAI" in class_name:
-        return "openai"
-    elif "Claude" in class_name:
-        return "claude"
-    return "unknown"
 
 
 def run_extraction_step(
