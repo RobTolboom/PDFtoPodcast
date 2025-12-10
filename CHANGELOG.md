@@ -36,6 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Streamlit: Fix iterative validation loop restart** - Added execution lock to prevent Streamlit page reruns from restarting pipeline steps mid-execution. Long-running LLM calls in the validation/correction loop would restart at "Iteration 0" when the page rerendered. Now shows "⏳ Step is currently executing. Please wait..." instead of restarting.
+
 - **Schema: Add source field to PairwiseMetaAnalysis** - Fixed validation error where LLM-generated `source` field in `pairwise_meta` was rejected. Added `source: SourceRef` property to `PairwiseMetaAnalysis` schema definition for consistency with `umbrella_summary`.
 
 - **Null value removal in pipeline preprocessing** - Added `_remove_null_values()` function to strip null values from LLM output before schema validation. LLMs sometimes emit `"field": null` for absent optional fields despite prompt instructions to omit them, causing schema validation failures.

@@ -187,6 +187,9 @@ def reset_execution_state():
         "redirect_countdown": None,
     }
 
+    # Clear execution lock to allow new runs
+    st.session_state["_execution_in_progress"] = False
+
     st.session_state.step_status = {
         step: {
             "status": "pending",
@@ -1406,6 +1409,16 @@ def show_execution_screen():
             st.rerun()  # Refresh UI to show "running" status before executing
             return
 
+        # Guard: Prevent re-execution if step is already in progress
+        # This handles Streamlit reruns during long-running LLM calls
+        if st.session_state.get("_execution_in_progress"):
+            st.info("⏳ Step is currently executing. Please wait...")
+            st.stop()
+            return
+
+        # Set execution lock BEFORE starting step
+        st.session_state["_execution_in_progress"] = True
+
         try:
             # Create progress callback for real-time updates
             callback = create_progress_callback()
@@ -1465,6 +1478,9 @@ def show_execution_screen():
             # Move to next step
             st.session_state.execution["current_step_index"] += 1
 
+            # Clear execution lock before rerun
+            st.session_state["_execution_in_progress"] = False
+
             # Rerun to execute next step (or show completion)
             st.rerun()
 
@@ -1485,6 +1501,9 @@ def show_execution_screen():
             st.session_state.execution["error"] = str(e)
             st.session_state.execution["status"] = "failed"
             st.session_state.execution["end_time"] = datetime.now()
+
+            # Clear execution lock before rerun
+            st.session_state["_execution_in_progress"] = False
 
             st.rerun()
 
