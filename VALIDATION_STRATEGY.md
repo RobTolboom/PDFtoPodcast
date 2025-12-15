@@ -98,7 +98,7 @@ Output:
 | `critical_issues`         | LLM verification summary        | Count of blocking issues; any value > 0 fails thresholds      |
 | `overall_quality`         | Iteration metadata              | Composite score used when picking the best iteration          |
 
-Default quality thresholds (from `DEFAULT_QUALITY_THRESHOLDS` in `src/pipeline/orchestrator.py`):
+Default quality thresholds (from `EXTRACTION_THRESHOLDS` in `src/pipeline/quality/thresholds.py`):
 
 - Completeness score >= 0.90
 - Accuracy score >= 0.95
@@ -135,7 +135,7 @@ Issues found? ---> Correction (combined feedback)
 ## Configuration
 
 ```python
-# run_pipeline.py
+# run_pipeline.py / src/config.py
 SCHEMA_QUALITY_THRESHOLD = 0.5  # 50%
 ```
 
@@ -146,15 +146,15 @@ Tuning the threshold:
 
 ## Iterative Loop and Termination
 
-The correction cycle lives in `run_validation_with_correction` (`src/pipeline/orchestrator.py`) and runs after an extraction fails the quality thresholds.
+The correction cycle lives in `run_validation_with_correction` (`src/pipeline/steps/validation.py`) and is implemented with the shared `IterativeLoopRunner`. It runs after an extraction fails the quality thresholds.
 
 1. Run validation (schema + conditional LLM) against the current extraction.
-2. Compare scores to `DEFAULT_QUALITY_THRESHOLDS`.
+2. Compare scores to `EXTRACTION_THRESHOLDS`.
 3. If thresholds are missed and `iteration_num < max_iterations`, call the correction prompt (`prompts/Extraction-correction.txt`) to produce a new extraction, then loop.
 4. Stop early when quality degrades over consecutive iterations, schema quality drops below the 0.5 threshold, or LLM calls fail repeatedly.
 5. Persist results for every pass (`extraction{N}.json`, `validation{N}.json`), record quality metrics, and pick the best-scoring iteration before returning.
 
-`max_iterations` (default: 3 corrections, yielding up to four total passes) is configurable through `--max-iterations` on the CLI or the Streamlit sliders.
+`max_iterations` (default: 3 corrections, yielding up to four total passes) is configurable through `--max-iterations` on the CLI or the Streamlit sliders. Early stopping on quality degradation and schema quality < 0.5 is enforced inside `IterativeLoopRunner`.
 
 ## Output Artefacts
 
@@ -237,7 +237,8 @@ With dual validation (current approach):
 The dual-validation approach lives in:
 - `src/validation.py` - schema validation implementation and scoring
 - `src/pipeline/validation_runner.py` - dual validation orchestration
-- `src/pipeline/orchestrator.py` - iterative correction loop and quality thresholds
+- `src/pipeline/steps/validation.py` - IterativeLoopRunner wiring + retry logic
+- `src/pipeline/quality/thresholds.py` - centralized extraction thresholds
 - `prompts/Extraction-validation.txt` - LLM validation prompt design
 - `prompts/Extraction-correction.txt` - correction prompt consumed during retries
 - `run_pipeline.py` - CLI wiring and defaults
@@ -246,5 +247,5 @@ To modify behavior:
 1. Adjust `SCHEMA_QUALITY_THRESHOLD` in `run_pipeline.py`, or pass a custom value to `run_dual_validation`.
 2. Update weighting or completeness rules in `validate_extraction_quality` (`src/validation.py`).
 3. Refine the validation or correction prompts to emphasise domain-specific checks.
-4. Tweak `DEFAULT_QUALITY_THRESHOLDS` and `max_iterations` in `src/pipeline/orchestrator.py` to balance cost with quality targets.
+4. Tweak `EXTRACTION_THRESHOLDS` (`src/pipeline/quality/thresholds.py`) and `max_iterations` to balance cost with quality targets.
 5. Extend `PipelineFileManager` if additional audit artefacts are required.

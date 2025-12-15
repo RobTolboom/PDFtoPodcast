@@ -27,6 +27,7 @@ from ...rendering.latex_renderer import LatexRenderError, render_report_to_pdf
 from ...rendering.markdown_renderer import render_report_to_markdown
 from ...rendering.weasy_renderer import WeasyRendererError, render_report_with_weasyprint
 from ...schemas_loader import SchemaLoadError, load_schema
+from ...validation import ValidationError
 from ..file_manager import PipelineFileManager
 from ..iterative import IterativeLoopConfig, IterativeLoopRunner
 from ..iterative import detect_quality_degradation as _detect_quality_degradation_new
@@ -195,7 +196,7 @@ REPORT_SCHEMA:
             progress_callback(
                 STEP_REPORT_GENERATION, "failed", {"error": f"Schema validation: {error_msg}"}
             )
-        raise SchemaLoadError(f"Report schema validation failed:\n{error_msg}")
+        raise ValidationError(f"Report schema validation failed:\n{error_msg}")
 
     console.print("[green]+ Report schema validation passed[/green]")
 
@@ -303,7 +304,7 @@ APPRAISAL_JSON (for quality assessment cross-checking):
 
         return validation_result
 
-    except (PromptLoadError, SchemaLoadError, LLMError) as e:
+    except (PromptLoadError, SchemaLoadError, ValidationError, LLMError) as e:
         elapsed = time.time() - start_time
         console.print(f"[red]X Report validation error: {e}[/red]")
 
@@ -394,7 +395,7 @@ REPORT_SCHEMA:
 
         return corrected_report
 
-    except (PromptLoadError, SchemaLoadError, LLMError) as e:
+    except (PromptLoadError, SchemaLoadError, ValidationError, LLMError) as e:
         elapsed = time.time() - start_time
         console.print(f"[red]X Report correction error: {e}[/red]")
 
@@ -489,7 +490,7 @@ def run_report_with_correction(
             language=language,
         )
         initial_report = result["report"]
-    except (PromptLoadError, SchemaLoadError, LLMError) as e:
+    except (PromptLoadError, SchemaLoadError, ValidationError, LLMError) as e:
         console.print(f"[red]X Initial report generation failed: {e}[/red]")
         raise
 
