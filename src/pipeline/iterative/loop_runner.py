@@ -357,9 +357,12 @@ class IterativeLoopRunner:
                 )
 
     def _get_schema_quality(self, validation_result: dict) -> float:
-        """Get schema quality score from validation result."""
+        """Get schema quality score from validation result.
+
+        Defaults to 0.0 if quality_score is missing (fail-safe behavior).
+        """
         schema_validation = validation_result.get("schema_validation", {})
-        return schema_validation.get("quality_score", 1.0)
+        return schema_validation.get("quality_score", 0.0)
 
     def _call_progress(self, status: str, iteration: int, step: str) -> None:
         """Call progress callback if available."""

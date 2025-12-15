@@ -149,6 +149,15 @@ Outputs persisted to tmp/ and returned to caller
 - Provides local quality scoring and completeness metrics.
 - Outputs a dictionary with schema compliance, completeness, field coverage, and error details consumed by the validation runner.
 
+### Null value handling (`src/pipeline/utils.py`)
+- **Purpose**: The `_remove_null_values()` function strips explicit null values from LLM output before schema validation.
+- **Why this exists**: Some LLMs emit `"field": null` for absent optional fields despite prompt instructions to omit them. JSON Schema validation expects these fields to be omitted, not null, which causes spurious validation failures.
+- **Behavior**:
+  - Recursively removes all `None` values from dicts (removes key-value pairs)
+  - Recursively removes `None` items from lists
+  - Preserves `False`, `0`, and empty strings (only removes `None`)
+- **Location**: Called during extraction and validation preprocessing in step modules.
+
 ### File management (`src/pipeline/file_manager.py`)
 - Derives an identifier from the PDF filename and generates output paths within `tmp/`.
 - Naming patterns:

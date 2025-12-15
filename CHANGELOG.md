@@ -59,6 +59,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Report generation step dependency validation** - Added missing validation that report generation requires appraisal step. Previously, running `steps_to_run=["classification","extraction","report_generation"]` would cause KeyError when accessing appraisal results.
+
+- **Schema quality default to 0.0 (fail-safe)** - Changed `_get_schema_quality()` default from 1.0 to 0.0 in `IterativeLoopRunner`. Missing quality score now triggers correction rather than incorrectly passing validation.
+
+- **Tests for _remove_null_values()** - Added comprehensive test suite (15 tests) covering edge cases: nested structures, lists of dicts, preserving False/0/empty strings, deeply nested nulls.
+
+- **Null value handling documentation** - Added "Null value handling" section to ARCHITECTURE.md explaining why `_remove_null_values()` exists and its behavior.
+
 - **Streamlit: Fix iterative validation loop restart** - Added execution lock to prevent Streamlit page reruns from restarting pipeline steps mid-execution. Long-running LLM calls in the validation/correction loop would restart at "Iteration 0" when the page rerendered. Now shows "⏳ Step is currently executing. Please wait..." instead of restarting.
 
 - **Schema: Add source field to PairwiseMetaAnalysis** - Fixed validation error where LLM-generated `source` field in `pairwise_meta` was rejected. Added `source: SourceRef` property to `PairwiseMetaAnalysis` schema definition for consistency with `umbrella_summary`.

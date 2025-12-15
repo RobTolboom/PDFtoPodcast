@@ -249,6 +249,8 @@ def _validate_step_dependencies(steps_to_run: list[str]) -> None:
     - Correction requires validation (cannot correct without validation report)
     - Extraction requires classification (cannot extract without knowing type)
     - Appraisal requires classification + extraction (cannot appraise without data and type)
+    - Podcast generation requires appraisal + classification + extraction
+    - Report generation requires appraisal + classification + extraction
 
     Args:
         steps_to_run: List of steps to execute
@@ -284,6 +286,14 @@ def _validate_step_dependencies(steps_to_run: list[str]) -> None:
             raise ValueError("Podcast generation step requires classification step")
         if STEP_EXTRACTION not in steps_to_run:
             raise ValueError("Podcast generation step requires extraction step")
+
+    if STEP_REPORT_GENERATION in steps_to_run:
+        if STEP_APPRAISAL not in steps_to_run:
+            raise ValueError("Report generation step requires appraisal step")
+        if STEP_CLASSIFICATION not in steps_to_run:
+            raise ValueError("Report generation step requires classification step")
+        if STEP_EXTRACTION not in steps_to_run:
+            raise ValueError("Report generation step requires extraction step")
 
 
 def _get_next_scheduled_step(current_step: str, steps_to_run: list[str] | None) -> str | None:
