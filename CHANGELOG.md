@@ -11,8 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Codebase Refactoring Phase 9: IterativeLoopRunner Migration** - Replaced manual while-loops with generic runner
   - Migrated `appraisal.py` to use `IterativeLoopRunner` (~100 lines removed)
+  - Migrated `report.py` to use `IterativeLoopRunner` (~100 lines removed)
   - Callbacks: `validate_fn`, `correct_fn`, `save_iteration_fn`, `save_best_fn`
-  - Preserves UnsupportedPublicationType handling and all quality metrics
+  - Preserves dependency gating, rendering, and all quality metrics
 
 - **Codebase Refactoring Phase 9: Thresholds & Utils Consolidation** - Centralized duplicated code
   - Created `src/pipeline/version.py` with cached `get_pipeline_version()` function

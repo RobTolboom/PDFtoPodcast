@@ -28,6 +28,7 @@ from ...rendering.markdown_renderer import render_report_to_markdown
 from ...rendering.weasy_renderer import WeasyRendererError, render_report_with_weasyprint
 from ...schemas_loader import SchemaLoadError, load_schema
 from ..file_manager import PipelineFileManager
+from ..iterative import IterativeLoopConfig, IterativeLoopRunner
 from ..iterative import detect_quality_degradation as _detect_quality_degradation_new
 from ..iterative import select_best_iteration as _select_best_iteration_new
 from ..quality import MetricType, extract_report_metrics_as_dict
@@ -476,215 +477,115 @@ def run_report_with_correction(
 
     console.print("  [green]+ Dependency checks passed[/green]")
 
-    iterations = []
-    current_report = None
-    current_validation = None
-    iteration_num = 0
+    # Step 1: Run initial report generation (before iterative loop)
+    try:
+        result = run_report_generation(
+            extraction_result=extraction_result,
+            appraisal_result=appraisal_result,
+            classification_result=classification_result,
+            llm_provider=llm_provider,
+            file_manager=file_manager,
+            progress_callback=progress_callback,
+            language=language,
+        )
+        initial_report = result["report"]
+    except (PromptLoadError, SchemaLoadError, LLMError) as e:
+        console.print(f"[red]X Initial report generation failed: {e}[/red]")
+        raise
 
-    while iteration_num <= max_iterations:
-        console.print(f"\n[bold cyan]--- Iteration {iteration_num} ---[/bold cyan]")
+    # Step 2: Configure and run iterative validation/correction loop
+    config = IterativeLoopConfig(
+        metric_type=MetricType.REPORT,
+        max_iterations=max_iterations,
+        quality_thresholds=REPORT_THRESHOLDS,
+        degradation_window=2,
+        step_name="REPORT VALIDATION & CORRECTION",
+        step_number=5,
+        show_banner=False,  # We already printed our own banner
+    )
+
+    # Define callbacks that capture the required context
+    def validate_fn(report_result: dict) -> dict:
+        return run_report_validation_step(
+            report_result=report_result,
+            extraction_result=extraction_result,
+            appraisal_result=appraisal_result,
+            llm=llm,
+            file_manager=file_manager,
+            progress_callback=progress_callback,
+        )
+
+    def correct_fn(report_result: dict, validation_result: dict) -> dict:
+        corrected = run_report_correction_step(
+            report_result=report_result,
+            validation_result=validation_result,
+            extraction_result=extraction_result,
+            appraisal_result=appraisal_result,
+            llm=llm,
+            file_manager=file_manager,
+            progress_callback=progress_callback,
+        )
+        return _strip_metadata_for_pipeline(corrected)
+
+    def save_iteration_fn(
+        iteration_num: int, report_result: dict, validation_result: dict
+    ) -> tuple:
+        return file_manager.save_report_iteration(
+            iteration=iteration_num,
+            report_result=report_result,
+            validation_result=validation_result,
+        )
+
+    def save_best_fn(report_result: dict, validation_result: dict) -> tuple:
+        return file_manager.save_best_report(report_result, validation_result)
+
+    runner = IterativeLoopRunner(
+        config=config,
+        initial_result=initial_report,
+        validate_fn=validate_fn,
+        correct_fn=correct_fn,
+        save_iteration_fn=save_iteration_fn,
+        save_best_fn=save_best_fn,
+        progress_callback=progress_callback,
+        console_instance=console,
+    )
+
+    loop_result = runner.run()
+
+    # Step 3: Convert to dict and add rendering for successful runs
+    result_dict = loop_result.to_dict(result_key="best_report")
+
+    # Step 4: Render PDF/markdown only if quality passed
+    if loop_result.final_status == "passed" and loop_result.best_result:
+        render_dirs = {}
+        render_root = file_manager.tmp_dir / "render"
 
         try:
-            if iteration_num == 0:
-                result = run_report_generation(
-                    extraction_result=extraction_result,
-                    appraisal_result=appraisal_result,
-                    classification_result=classification_result,
-                    llm_provider=llm_provider,
-                    file_manager=file_manager,
-                    progress_callback=progress_callback,
-                    language=language,
+            if renderer == "weasyprint":
+                render_dirs = render_report_with_weasyprint(loop_result.best_result, render_root)
+            else:
+                render_dirs = render_report_to_pdf(
+                    loop_result.best_result,
+                    render_root,
+                    compile_pdf=compile_pdf,
+                    enable_figures=enable_figures,
                 )
-                current_report = result["report"]
+        except (LatexRenderError, WeasyRendererError) as e:
+            console.print(f"[yellow]! Failed to render report: {e}[/yellow]")
+            render_dirs = {"error": str(e), "renderer": renderer}
+        except Exception as e:
+            console.print(f"[yellow]! Failed to render report: {e}[/yellow]")
+            render_dirs = {}
 
-            current_validation = run_report_validation_step(
-                report_result=current_report,
-                extraction_result=extraction_result,
-                appraisal_result=appraisal_result,
-                llm=llm,
-                file_manager=file_manager,
-                progress_callback=progress_callback,
-            )
+        try:
+            md_path = render_report_to_markdown(loop_result.best_result, render_root)
+            render_dirs["markdown"] = md_path
+        except Exception as e:
+            console.print(f"[yellow]! Failed to write markdown: {e}[/yellow]")
 
-            report_file, validation_file = file_manager.save_report_iteration(
-                iteration=iteration_num,
-                report_result=current_report,
-                validation_result=current_validation,
-            )
-            console.print(f"[dim]Saved: {report_file.name}[/dim]")
-            if validation_file:
-                console.print(f"[dim]Saved: {validation_file.name}[/dim]")
+        result_dict["rendered_paths"] = render_dirs
 
-            metrics = _extract_report_metrics(current_validation)
-
-            iteration_data = {
-                "iteration_num": iteration_num,
-                "report": current_report,
-                "validation": current_validation,
-                "metrics": metrics,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            }
-            iterations.append(iteration_data)
-
-            console.print(f"\n[bold]Quality Scores (Iteration {iteration_num}):[/bold]")
-            console.print(f"  Completeness:          {metrics['completeness_score']:.2f}")
-            console.print(f"  Accuracy:              {metrics['accuracy_score']:.2f}")
-            console.print(
-                f"  Cross-Ref Consistency: {metrics['cross_reference_consistency_score']:.2f}"
-            )
-            console.print(f"  Data Consistency:      {metrics['data_consistency_score']:.2f}")
-            console.print(f"  Schema Compliance:     {metrics['schema_compliance_score']:.2f}")
-            console.print(f"  [bold]Quality Score:         {metrics['quality_score']:.2f}[/bold]")
-            console.print(f"  Critical Issues:       {metrics['critical_issues']}")
-
-            if len(iterations) > 1:
-                prev_score = iterations[-2]["metrics"]["quality_score"]
-                delta = metrics["quality_score"] - prev_score
-                if delta > 0:
-                    symbol, color = "^", "green"
-                elif delta < 0:
-                    symbol, color = "v", "red"
-                else:
-                    symbol, color = "->", "yellow"
-                console.print(
-                    f"  [{color}]Improvement: {symbol} {delta:+.3f} (prev: {prev_score:.2f})[/{color}]"
-                )
-
-            if is_report_quality_sufficient(current_validation, quality_thresholds):
-                console.print(
-                    f"\n[green]+ Quality sufficient at iteration {iteration_num}! Stopping.[/green]"
-                )
-
-                file_manager.save_best_report(current_report, current_validation)
-
-                # Render PDF/markdown
-                render_dirs = {}
-                render_root = file_manager.tmp_dir / "render"
-                try:
-                    if renderer == "weasyprint":
-                        render_dirs = render_report_with_weasyprint(current_report, render_root)
-                    else:
-                        render_dirs = render_report_to_pdf(
-                            current_report,
-                            render_root,
-                            compile_pdf=compile_pdf,
-                            enable_figures=enable_figures,
-                        )
-                except (LatexRenderError, WeasyRendererError) as e:
-                    console.print(f"[yellow]! Failed to render report: {e}[/yellow]")
-                    render_dirs = {"error": str(e), "renderer": renderer}
-                except Exception as e:
-                    console.print(f"[yellow]! Failed to render report: {e}[/yellow]")
-                    render_dirs = {}
-
-                try:
-                    md_path = render_report_to_markdown(current_report, render_root)
-                    render_dirs["markdown"] = md_path
-                except Exception as e:
-                    console.print(f"[yellow]! Failed to write markdown: {e}[/yellow]")
-
-                return {
-                    "best_report": current_report,
-                    "best_validation": current_validation,
-                    "best_iteration": iteration_num,
-                    "iterations": iterations,
-                    "final_status": "passed",
-                    "iteration_count": iteration_num + 1,
-                    "improvement_trajectory": [it["metrics"]["quality_score"] for it in iterations],
-                    "rendered_paths": render_dirs,
-                }
-
-            if _detect_quality_degradation(iterations, window=2):
-                console.print(
-                    "\n[yellow]! Quality degrading - stopping early and selecting best[/yellow]"
-                )
-
-                best = _select_best_report_iteration(iterations)
-                file_manager.save_best_report(best["report"], best["validation"])
-
-                return {
-                    "best_report": best["report"],
-                    "best_validation": best["validation"],
-                    "best_iteration": best["iteration_num"],
-                    "iterations": iterations,
-                    "final_status": "early_stopped_degradation",
-                    "iteration_count": len(iterations),
-                    "improvement_trajectory": [it["metrics"]["quality_score"] for it in iterations],
-                }
-
-            if iteration_num >= max_iterations:
-                console.print(
-                    f"\n[yellow]! Max iterations ({max_iterations}) reached - selecting best[/yellow]"
-                )
-
-                best = _select_best_report_iteration(iterations)
-                file_manager.save_best_report(best["report"], best["validation"])
-
-                return {
-                    "best_report": best["report"],
-                    "best_validation": best["validation"],
-                    "best_iteration": best["iteration_num"],
-                    "iterations": iterations,
-                    "final_status": "max_iterations_reached",
-                    "iteration_count": len(iterations),
-                    "improvement_trajectory": [it["metrics"]["quality_score"] for it in iterations],
-                }
-
-            console.print(
-                f"\n[yellow]Quality insufficient (iteration {iteration_num}). Running correction...[/yellow]"
-            )
-
-            current_report = run_report_correction_step(
-                report_result=current_report,
-                validation_result=current_validation,
-                extraction_result=extraction_result,
-                appraisal_result=appraisal_result,
-                llm=llm,
-                file_manager=file_manager,
-                progress_callback=progress_callback,
-            )
-
-            iteration_num += 1
-
-        except (PromptLoadError, SchemaLoadError) as e:
-            console.print(f"\n[red]X Fatal error: {e}[/red]")
-
-            if iterations:
-                best = _select_best_report_iteration(iterations)
-                file_manager.save_best_report(best["report"], best["validation"])
-
-                return {
-                    "best_report": best["report"],
-                    "best_validation": best["validation"],
-                    "best_iteration": best["iteration_num"],
-                    "iterations": iterations,
-                    "final_status": "failed",
-                    "iteration_count": len(iterations),
-                    "improvement_trajectory": [it["metrics"]["quality_score"] for it in iterations],
-                    "error": str(e),
-                }
-            raise
-
-        except LLMError as e:
-            console.print(f"\n[red]X LLM error at iteration {iteration_num}: {e}[/red]")
-
-            if iterations:
-                best = _select_best_report_iteration(iterations)
-                file_manager.save_best_report(best["report"], best["validation"])
-
-                return {
-                    "best_report": best["report"],
-                    "best_validation": best["validation"],
-                    "best_iteration": best["iteration_num"],
-                    "iterations": iterations,
-                    "final_status": "failed_llm_error",
-                    "iteration_count": len(iterations),
-                    "improvement_trajectory": [it["metrics"]["quality_score"] for it in iterations],
-                    "error": str(e),
-                }
-            raise
-
-    raise RuntimeError("Report loop exited unexpectedly")
+    return result_dict
 
 
 # Backward compatibility aliases
