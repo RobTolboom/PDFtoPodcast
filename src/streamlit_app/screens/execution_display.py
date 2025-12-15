@@ -727,16 +727,16 @@ def display_step_status(step_name: str, step_label: str, step_number: int):
     step = st.session_state.step_status[step_name]
     status = step["status"]
 
-    # Status icon mapping
+    # Status icon mapping (emoji icons work in all contexts)
     icons = {
-        "pending": "hourglass",
-        "running": "arrows-spin",
-        "success": "check",
-        "failed": "x",
-        "skipped": "forward",
+        "pending": "⏳",
+        "running": "🔄",
+        "success": "✅",
+        "failed": "❌",
+        "skipped": "⏭️",
     }
 
-    icon = icons.get(status, "question")
+    icon = icons.get(status, "❓")
     label = f"Step {step_number}: {step_label}"
 
     # Calculate elapsed time (only for completed/failed steps)
@@ -748,17 +748,17 @@ def display_step_status(step_name: str, step_label: str, step_number: int):
     # Status container configuration
     if status == "pending":
         # Not expandable for pending
-        st.markdown(f":material/{icon}: **{label}** - Not yet started")
+        st.markdown(f"{icon} **{label}** - Not yet started")
 
     elif status == "running":
         # Auto-expanded for running (no elapsed time - it's static during execution)
-        with st.status(f":material/{icon}: {label} - Running", expanded=True):
+        with st.status(f"{icon} {label} - Running", expanded=True):
             st.write(f"**Started:** {step['start_time'].strftime('%H:%M:%S')}")
             st.write("Executing pipeline step...")
 
     elif status == "success":
         # Collapsed by default for success, with result summary
-        with st.status(f":material/{icon}: {label} - Completed{elapsed_text}", expanded=False):
+        with st.status(f"{icon} {label} - Completed{elapsed_text}", expanded=False):
             # Show timing
             st.write(f"**Completed:** {step['end_time'].strftime('%H:%M:%S')}")
 
@@ -796,9 +796,7 @@ def display_step_status(step_name: str, step_label: str, step_number: int):
 
     elif status == "failed":
         # Auto-expanded for errors with actionable guidance
-        with st.status(
-            f":material/{icon}: {label} - Failed{elapsed_text}", expanded=True, state="error"
-        ):
+        with st.status(f"{icon} {label} - Failed{elapsed_text}", expanded=True, state="error"):
             # Display error with guidance and troubleshooting steps
             display_error_with_guidance(step["error"], step_name, step)
 
@@ -811,7 +809,7 @@ def display_step_status(step_name: str, step_label: str, step_number: int):
 
     elif status == "skipped":
         # Simple text for skipped
-        st.markdown(f":material/{icon}: **{label}** - Skipped")
+        st.markdown(f"{icon} **{label}** - Skipped")
 
 
 def display_report_artifacts():
