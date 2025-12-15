@@ -9,11 +9,16 @@ This module provides helper functions for DOI handling, step navigation,
 and breakpoint management used throughout the pipeline.
 """
 
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 from rich.console import Console
+
+# Type alias for progress callback function signature
+# Usage: progress_callback: ProgressCallback | None = None
+ProgressCallback: TypeAlias = Callable[[str, str, dict[str, Any]], None]
 
 if TYPE_CHECKING:
     from .file_manager import PipelineFileManager
@@ -89,10 +94,18 @@ def get_next_step(current_step: str) -> str:
     Example:
         >>> get_next_step("classification")
         'extraction'
-        >>> get_next_step("correction")
+        >>> get_next_step("podcast_generation")
         'None'
     """
-    steps = ["classification", "extraction", "validation", "correction"]
+    # All pipeline steps in execution order
+    steps = [
+        "classification",
+        "extraction",
+        "validation_correction",
+        "appraisal",
+        "report_generation",
+        "podcast_generation",
+    ]
     try:
         idx = steps.index(current_step)
         return steps[idx + 1] if idx + 1 < len(steps) else "None"
@@ -137,6 +150,33 @@ def check_breakpoint(
     return False
 
 
+def _get_provider_name(llm: Any) -> str:
+    """
+    Get provider name from LLM instance class name.
+
+    Determines which LLM provider is being used by inspecting the
+    class name of the LLM instance. Used for pipeline metadata tracking.
+
+    Args:
+        llm: LLM provider instance (OpenAIProvider or ClaudeProvider)
+
+    Returns:
+        Provider name: "openai", "claude", or "unknown"
+
+    Example:
+        >>> from src.llm import get_llm_provider
+        >>> llm = get_llm_provider("openai")
+        >>> _get_provider_name(llm)
+        'openai'
+    """
+    class_name = llm.__class__.__name__
+    if "OpenAI" in class_name:
+        return "openai"
+    elif "Claude" in class_name:
+        return "claude"
+    return "unknown"
+
+
 def _call_progress_callback(
     callback: Any, step_name: str, status: str, data: dict[str, Any]
 ) -> None:
@@ -154,6 +194,27 @@ def _call_progress_callback(
             callback(step_name, status, data)
         except Exception as e:
             console.print(f"[yellow]⚠️ Progress callback failed: {e}[/yellow]")
+
+
+def _remove_null_values(obj: Any) -> Any:
+    """
+    Recursively remove null values from dicts and lists.
+
+    LLMs sometimes emit null for absent optional fields despite prompt instructions
+    to omit them (e.g., "Never emit null"). This causes schema validation failures
+    since null is not a valid type for most fields.
+
+    Args:
+        obj: Any JSON-compatible object (dict, list, or primitive)
+
+    Returns:
+        Object with all null values removed from dicts and lists
+    """
+    if isinstance(obj, dict):
+        return {k: _remove_null_values(v) for k, v in obj.items() if v is not None}
+    elif isinstance(obj, list):
+        return [_remove_null_values(item) for item in obj if item is not None]
+    return obj
 
 
 def _strip_metadata_for_pipeline(data: dict[str, Any]) -> dict[str, Any]:
@@ -194,5 +255,8 @@ def _strip_metadata_for_pipeline(data: dict[str, Any]) -> dict[str, Any]:
 
     # KEEP schema "metadata" field - it's part of the schema!
     # Do NOT remove it
+
+    # Remove null values that LLM incorrectly included (should be omitted per prompt)
+    data_copy = _remove_null_values(data_copy)
 
     return data_copy

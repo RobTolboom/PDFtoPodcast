@@ -22,11 +22,20 @@ from src.pipeline.orchestrator import (
     STEP_CLASSIFICATION,
     STEP_CORRECTION,
     STEP_EXTRACTION,
+    STEP_PODCAST_GENERATION,
     STEP_REPORT_GENERATION,
     STEP_VALIDATION,
     STEP_VALIDATION_CORRECTION,
     run_single_step,
 )
+from src.pipeline.quality.thresholds import (
+    APPRAISAL_THRESHOLDS,
+    EXTRACTION_THRESHOLDS,
+    REPORT_THRESHOLDS,
+)
+from src.pipeline.steps.appraisal import APPRAISAL_QUALITY_THRESHOLDS
+from src.pipeline.steps.report import REPORT_QUALITY_THRESHOLDS
+from src.pipeline.steps.validation import DEFAULT_QUALITY_THRESHOLDS as EXTRACTION_DEFAULTS
 
 
 class TestBackwardCompatibility:
@@ -132,6 +141,16 @@ class TestBackwardCompatibility:
         assert result["extraction_corrected"] == corrected_extraction
         assert result["validation_corrected"] == final_validation
 
+    def test_default_threshold_aliases_match_central_definitions(self):
+        """Step modules moeten dezelfde thresholds houden als quality.thresholds."""
+        assert EXTRACTION_DEFAULTS["completeness_score"] == EXTRACTION_THRESHOLDS.completeness_score
+        assert EXTRACTION_DEFAULTS["accuracy_score"] == EXTRACTION_THRESHOLDS.accuracy_score
+        assert (
+            APPRAISAL_QUALITY_THRESHOLDS["logical_consistency_score"]
+            == APPRAISAL_THRESHOLDS.logical_consistency_score
+        )
+        assert REPORT_QUALITY_THRESHOLDS["accuracy_score"] == REPORT_THRESHOLDS.accuracy_score
+
     @patch("src.pipeline.orchestrator.run_validation_with_correction")
     def test_new_combined_step_returns_loop_result(self, mock_loop, mock_dependencies):
         """STEP_VALIDATION_CORRECTION moet iterative loop result returnen."""
@@ -186,5 +205,6 @@ class TestBackwardCompatibility:
             STEP_VALIDATION_CORRECTION,
             STEP_APPRAISAL,
             STEP_REPORT_GENERATION,  # Phase 2: Report generation added
+            STEP_PODCAST_GENERATION,  # Podcast generation after report
         ]
         assert ALL_PIPELINE_STEPS == expected_steps

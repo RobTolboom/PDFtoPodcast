@@ -18,7 +18,8 @@ Note: These tests verify Phase 2 implementation (single-pass generation).
 import pytest
 
 from src.pipeline.file_manager import PipelineFileManager
-from src.pipeline.orchestrator import STEP_REPORT_GENERATION, _get_pipeline_version
+from src.pipeline.steps.report import STEP_REPORT_GENERATION
+from src.pipeline.version import get_pipeline_version as _get_pipeline_version
 
 
 class TestFileManagerReportMethods:

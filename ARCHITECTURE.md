@@ -25,14 +25,14 @@ Select extraction prompt + schema
 Extraction prompt -> extraction0.json
         |
         v
-run_validation_with_correction()
+run_validation_with_correction()  # implemented via IterativeLoopRunner
     • schema validation (always)
     • LLM validation (quality >= 0.5)
     • correction iterations (<= max)
     • best iteration saved (extraction-best.json, validation-best.json)
         |
         v
-run_appraisal_with_correction()
+run_appraisal_with_correction()  # implemented via IterativeLoopRunner
     • study-type routing (RoB 2, ROBINS-I, PROBAST, AMSTAR 2, etc.)
     • appraisal execution (risk of bias + GRADE ratings)
     • appraisal validation (logical consistency, completeness, evidence support)
@@ -40,7 +40,7 @@ run_appraisal_with_correction()
     • best iteration saved (appraisal-best.json, appraisal-validation-best.json)
         |
         v
-run_report_with_correction()
+run_report_with_correction()  # implemented via IterativeLoopRunner
     • report generation (combine classification + extraction + appraisal)
     • block-based JSON structure (text, table, figure, callout blocks)
     • report validation (accuracy, completeness, consistency)
@@ -63,17 +63,29 @@ Outputs persisted to tmp/ and returned to caller
 ## Component architecture
 
 ### Orchestrator (`src/pipeline/orchestrator.py`)
-- Public APIs: `run_full_pipeline`, `run_single_step`, `run_validation_with_correction`, `run_appraisal_with_correction`, `run_podcast_generation`.
-- Extraction iterative loop tracks quality metrics (completeness, accuracy, schema compliance) and selects the highest-scoring iteration.
-- Appraisal iterative loop tracks appraisal-specific metrics (logical consistency, completeness, evidence support, schema compliance) and selects the highest-scoring iteration.
-- Uses `PipelineFileManager` to write iteration files (`extraction{N}.json`, `appraisal{N}.json`) and best-result artefacts (`extraction-best.json`, `appraisal-best.json`, metadata files).
+- Public APIs: `run_full_pipeline`, `run_single_step`, `run_validation_with_correction`, `run_appraisal_with_correction`, `run_report_with_correction`, `run_podcast_generation`.
+- Delegates iterative loops to `IterativeLoopRunner` (shared engine) via the step modules.
+- Uses centralized thresholds/metrics (`src/pipeline/quality/*`) and version helper (`src/pipeline/version.py`) for metadata.
+- Uses `PipelineFileManager` to write iteration files (`extraction{N}.json`, `appraisal{N}.json`, `report{N}.json`) and best-result artefacts.
 - Breakpoints and progress callbacks support both CLI batching and Streamlit step-by-step execution.
+
+### Step Modules (`src/pipeline/steps/`)
+- **Modular step implementations**: Each pipeline step is implemented as a separate module for maintainability:
+  - `classification.py` - Publication type identification using LLM
+  - `extraction.py` - Schema-based structured data extraction
+  - `validation.py` - Dual validation (schema + LLM) with iterative correction loop (IterativeLoopRunner)
+  - `appraisal.py` - Critical appraisal (RoB, GRADE, applicability) with iterative correction (IterativeLoopRunner)
+  - `report.py` - Report generation with iterative correction and PDF/markdown rendering (IterativeLoopRunner)
+  - `podcast.py` - Re-exports from `podcast_logic.py` for consistency
+- **Quality thresholds**: Single source in `src/pipeline/quality/thresholds.py` (extraction, appraisal, report profiles).
+- **Backward compatibility**: All modules provide aliases for legacy function names (e.g., `_run_classification_step`).
+- **Unified imports**: `from src.pipeline.steps import run_classification_step, run_extraction_step, ...`
 
 ### Validation runner (`src/pipeline/validation_runner.py`)
 - Runs schema validation via `validation.validate_extraction_quality`.
 - Invokes LLM validation when the schema quality score meets `SCHEMA_QUALITY_THRESHOLD` (default 0.5).
 - Merges schema results and LLM feedback into a single report (`validation_bundled.json` schema).
-- See `VALIDATION_STRATEGY.md` for quality metrics, thresholds, and exit codes.
+- See `VALIDATION_STRATEGY.md` for quality metrics, thresholds, and exit codes (all driven by `IterativeLoopRunner`).
 
 ### Critical Appraisal (`src/pipeline/orchestrator.py` - appraisal functions)
 - **Study-type routing**: Maps publication types to appropriate appraisal tools via `_get_appraisal_prompt_name()`:
@@ -113,8 +125,8 @@ Outputs persisted to tmp/ and returned to caller
 
 ### LLM providers (`src/llm/`)
 - `BaseLLMProvider` defines `generate_json_with_pdf`, `generate_json_with_schema`, and `generate_text`.
-- `OpenAIProvider` and `ClaudeProvider` implement the interface with provider-specific retries, PDF upload limits, and error handling.
-- Configuration (API keys, model names, timeouts, 10 MB default upload cap) is drawn from `src/config.py` (`llm_settings`).
+- `OpenAIProvider` and `ClaudeProvider` implement the interface with provider-specific retries, PDF upload limits, and error handling; parsing helpers are unit-tested with fixtures.
+- Configuration (API keys, model names, timeouts, 10 MB default upload cap, 32 MB hard limit) is drawn from `src/config.py` (`llm_settings`).
 
 ### Prompts (`prompts/`)
 - Classification, type-specific extraction prompts, validation, correction, and appraisal prompts are stored as plain text.
@@ -137,6 +149,15 @@ Outputs persisted to tmp/ and returned to caller
 - Provides local quality scoring and completeness metrics.
 - Outputs a dictionary with schema compliance, completeness, field coverage, and error details consumed by the validation runner.
 
+### Null value handling (`src/pipeline/utils.py`)
+- **Purpose**: The `_remove_null_values()` function strips explicit null values from LLM output before schema validation.
+- **Why this exists**: Some LLMs emit `"field": null` for absent optional fields despite prompt instructions to omit them. JSON Schema validation expects these fields to be omitted, not null, which causes spurious validation failures.
+- **Behavior**:
+  - Recursively removes all `None` values from dicts (removes key-value pairs)
+  - Recursively removes `None` items from lists
+  - Preserves `False`, `0`, and empty strings (only removes `None`)
+- **Location**: Called during extraction and validation preprocessing in step modules.
+
 ### File management (`src/pipeline/file_manager.py`)
 - Derives an identifier from the PDF filename and generates output paths within `tmp/`.
 - Naming patterns:
@@ -155,6 +176,7 @@ Outputs persisted to tmp/ and returned to caller
 
 ### Streamlit app (`src/streamlit_app/`)
 - Mirrors CLI functionality with interactive upload, step selection, execution progress, and JSON previews.
+- `execution_display.py` has been split into `execution_results.py` (results/metrics tables) and `execution_artifacts.py` (downloads/render artefacts); re-exports preserve backward compatibility.
 - Uses session state to track configured steps, per-step status, and iteration history returned by the orchestrator.
 
 ## Execution modes
@@ -170,7 +192,7 @@ Both modes call `run_single_step` internally, ensuring consistent behaviour and 
 
 - Defaults come from `src/config.py` (`llm_settings` dataclass).
 - `.env` supplies API keys, model names, upload size overrides, and timeout settings.
-- Raising `MAX_PDF_SIZE_MB` above 10 requires that the chosen provider account permits larger uploads (hard limit 32 MB).
+- PDF upload: default 10 MB (`MAX_PDF_SIZE_MB`), configurable up to provider hard limit 32 MB (OpenAI/Claude).
 
 ## Error handling and resilience
 

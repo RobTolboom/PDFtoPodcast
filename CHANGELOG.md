@@ -9,6 +9,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Codebase Refactoring Phase 9: Streamlit Display Modularization** - Split large display module
+  - Created `execution_artifacts.py` (~120 lines) for report/podcast download buttons
+  - Created `execution_results.py` (~450 lines) for step result displays
+  - Reduced `execution_display.py` from 896 to 361 lines (core display logic only)
+  - Re-exports maintain backward compatibility for existing imports
+
+- **Codebase Refactoring Phase 9: IterativeLoopRunner Migration** - Replaced manual while-loops with generic runner
+  - Migrated `appraisal.py` to use `IterativeLoopRunner` (~100 lines removed)
+  - Migrated `report.py` to use `IterativeLoopRunner` (~100 lines removed)
+  - Migrated `validation.py` to use `IterativeLoopRunner` (~340 lines removed)
+  - Added `_with_llm_retry()` wrapper for exponential backoff retry (1s, 2s, 4s)
+  - Callbacks: `validate_fn`, `correct_fn`, `save_iteration_fn`, `save_best_fn`
+  - Preserves dependency gating, rendering, schema quality checks, and all quality metrics
+  - Total: ~540 lines of duplicate loop code removed across 3 files
+
+- **Codebase Refactoring Phase 9: Thresholds & Utils Consolidation** - Centralized duplicated code
+  - Created `src/pipeline/version.py` with cached `get_pipeline_version()` function
+  - Fixed `get_next_step()` in `utils.py` to include all 6 pipeline steps (was only 4)
+  - Consolidated quality thresholds: step modules now import from `quality/thresholds.py`
+  - Removed duplicates from `orchestrator.py`, `validation.py`, `appraisal.py`, `report.py`
+  - Updated PDF size documentation in `config.py` (default: 10 MB, provider max: 32 MB)
+  - Updated test imports to use new module locations
+
+- **Codebase Refactoring Phase 7: Step Modules** - Extracted pipeline step implementations into dedicated modules
+  - Created `src/pipeline/steps/` package with individual step modules:
+    - `classification.py` - Publication type identification (~170 lines)
+    - `extraction.py` - Schema-based data extraction (~200 lines)
+    - `validation.py` - Dual validation with iterative correction (~700 lines)
+    - `appraisal.py` - Critical appraisal (RoB, GRADE, applicability) (~600 lines)
+    - `report.py` - Report generation with iterative correction (~650 lines)
+    - `podcast.py` - Re-export from `podcast_logic.py`
+  - Added `__init__.py` with all public exports for easy importing
+  - All modules include backward compatibility aliases
+  - Total extraction: ~2,300 lines moved to step modules
+
 - **[BREAKING] English-Only System** - Removed bilingual (Dutch/English) support
   - Translated `prompts/Classification.txt` from Dutch to English (full 171-line prompt rewrite)
   - Removed Dutch terminology and examples from `prompts/Report-generation.txt`
@@ -23,6 +58,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Podcast validation constants extracted** - Refactored hardcoded validation thresholds (800, 1500, 150, 3) to named module-level constants (`PODCAST_MIN_WORDS`, `PODCAST_MAX_WORDS`, `WORDS_PER_MINUTE`, `MAX_NUMERICAL_STATEMENTS`) for improved maintainability
 
 ### Fixed
+
+- **Report generation step dependency validation** - Added missing validation that report generation requires appraisal step. Previously, running `steps_to_run=["classification","extraction","report_generation"]` would cause KeyError when accessing appraisal results.
+
+- **Schema quality default to 0.0 (fail-safe)** - Changed `_get_schema_quality()` default from 1.0 to 0.0 in `IterativeLoopRunner`. Missing quality score now triggers correction rather than incorrectly passing validation.
+
+- **Tests for _remove_null_values()** - Added comprehensive test suite (15 tests) covering edge cases: nested structures, lists of dicts, preserving False/0/empty strings, deeply nested nulls.
+
+- **Null value handling documentation** - Added "Null value handling" section to ARCHITECTURE.md explaining why `_remove_null_values()` exists and its behavior.
+
+- **Streamlit: Fix iterative validation loop restart** - Added execution lock to prevent Streamlit page reruns from restarting pipeline steps mid-execution. Long-running LLM calls in the validation/correction loop would restart at "Iteration 0" when the page rerendered. Now shows "⏳ Step is currently executing. Please wait..." instead of restarting.
+
+- **Schema: Add source field to PairwiseMetaAnalysis** - Fixed validation error where LLM-generated `source` field in `pairwise_meta` was rejected. Added `source: SourceRef` property to `PairwiseMetaAnalysis` schema definition for consistency with `umbrella_summary`.
+
+- **Null value removal in pipeline preprocessing** - Added `_remove_null_values()` function to strip null values from LLM output before schema validation. LLMs sometimes emit `"field": null` for absent optional fields despite prompt instructions to omit them, causing schema validation failures.
+
+- **Add header to Podcast Generation step** - Added `═══ PODCAST GENERATION ═══` header to terminal output for consistency with other pipeline steps.
 
 - **CLI Summary Table: Add Podcast Results** - Display podcast word count, duration, and validation status in final CLI summary after full pipeline run
 

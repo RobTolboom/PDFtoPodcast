@@ -96,7 +96,7 @@ class LLMSettings:
         temperature: Sampling temperature, 0.0 = deterministic (default: 0.0)
         timeout: Request timeout in seconds (default: 1800 = 30 minutes for long extractions)
         max_pdf_pages: Maximum pages to process from PDF (default: 100, API limit)
-        max_pdf_size_mb: Maximum PDF file size in MB (default: 32, API limit)
+        max_pdf_size_mb: Maximum PDF file size in MB (default: 10, provider max: 32)
     """
 
     # Default provider
@@ -133,7 +133,9 @@ class LLMSettings:
 
     # PDF processing limits (API constraints for direct PDF upload)
     max_pdf_pages: int = int(os.getenv("MAX_PDF_PAGES", "100"))  # 100 page limit (OpenAI + Claude)
-    max_pdf_size_mb: int = int(os.getenv("MAX_PDF_SIZE_MB", "10"))  # 32 MB limit (OpenAI + Claude)
+    max_pdf_size_mb: int = int(
+        os.getenv("MAX_PDF_SIZE_MB", "10")
+    )  # Default 10 MB, max 32 MB (provider limit)
 
 
 @dataclass(frozen=True)

@@ -95,17 +95,29 @@ class TestGetNextStep:
         """Test getting next step after extraction."""
         next_step = get_next_step("extraction")
 
-        assert next_step == "validation"
+        assert next_step == "validation_correction"
 
-    def test_next_step_after_validation(self):
-        """Test getting next step after validation."""
-        next_step = get_next_step("validation")
+    def test_next_step_after_validation_correction(self):
+        """Test getting next step after validation_correction."""
+        next_step = get_next_step("validation_correction")
 
-        assert next_step == "correction"
+        assert next_step == "appraisal"
 
-    def test_next_step_after_correction_is_none(self):
-        """Test that correction is the last step."""
-        next_step = get_next_step("correction")
+    def test_next_step_after_appraisal(self):
+        """Test getting next step after appraisal."""
+        next_step = get_next_step("appraisal")
+
+        assert next_step == "report_generation"
+
+    def test_next_step_after_report_generation(self):
+        """Test getting next step after report_generation."""
+        next_step = get_next_step("report_generation")
+
+        assert next_step == "podcast_generation"
+
+    def test_next_step_after_podcast_generation_is_none(self):
+        """Test that podcast_generation is the last step."""
+        next_step = get_next_step("podcast_generation")
 
         assert next_step == "None"
 

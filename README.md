@@ -26,10 +26,12 @@ This pipeline extracts structured data from medical research PDFs with a focus o
 - Direct PDF-to-LLM processing (no intermediate text extraction) to preserve tables, figures, and layout.
 - Publication-type-aware schemas for interventional, observational, synthesis, prognosis, opinion, and other papers.
 - Iterative validation/correction loop with configurable accuracy, completeness, and schema thresholds.
+- Shared `IterativeLoopRunner` drives validation/appraisal/report correction loops with centralized thresholds/metrics.
 - **Critical appraisal** with standardized tools (RoB 2, ROBINS-I, PROBAST, AMSTAR 2, GRADE ratings).
 - **Podcast script generation**: Audio-ready monologue scripts from extraction and appraisal data (English, 800-1500 words, GRADE-calibrated language).
 - Dual entry points: Streamlit dashboard for guided runs and CLI module for automation and scripting.
 - Structured JSON outputs with deterministic file naming in `tmp/` for each pipeline step.
+- Pipeline metadata uses a single version helper; PDF uploads default to 10 MB (configurable up to provider limit of 32 MB).
 
 ---
 

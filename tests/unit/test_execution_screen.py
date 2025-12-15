@@ -14,11 +14,13 @@ from unittest.mock import patch
 
 import pytest
 
-# Import functions to test
-from src.streamlit_app.screens.execution import (
-    _check_validation_warnings,
-    _extract_token_usage,
+# Import functions to test (from refactored modules)
+from src.streamlit_app.screens.execution_callbacks import (
     create_progress_callback,
+    extract_token_usage,
+)
+from src.streamlit_app.screens.execution_display import check_validation_warnings
+from src.streamlit_app.screens.execution_state import (
     init_execution_state,
     reset_execution_state,
 )
@@ -48,7 +50,7 @@ class MockSessionState(dict):
 class TestStateManagement:
     """Test execution state initialization and reset."""
 
-    @patch("src.streamlit_app.screens.execution.st")
+    @patch("src.streamlit_app.screens.execution_state.st")
     def test_init_execution_state(self, mock_st):
         """Test that init_execution_state() initializes all state correctly."""
         # Arrange: Mock session_state
@@ -91,7 +93,7 @@ class TestStateManagement:
             assert step["elapsed_seconds"] is None
             assert step["verbose_data"] == {}
 
-    @patch("src.streamlit_app.screens.execution.st")
+    @patch("src.streamlit_app.screens.execution_state.st")
     def test_reset_execution_state(self, mock_st):
         """Test that reset_execution_state() resets all state to initial values."""
         # Arrange: Mock session_state with completed execution
@@ -160,7 +162,7 @@ class TestStateManagement:
 class TestProgressCallback:
     """Test progress callback handler logic."""
 
-    @patch("src.streamlit_app.screens.execution.st")
+    @patch("src.streamlit_app.screens.execution_callbacks.st")
     def test_progress_callback_starting(self, mock_st):
         """Test callback updates step to 'running' status on 'starting' event."""
         # Arrange: Mock session_state with initialized step_status
@@ -193,7 +195,7 @@ class TestProgressCallback:
         assert step["verbose_data"]["starting"]["pdf_path"] == "test.pdf"
         assert step["verbose_data"]["starting"]["max_pages"] == 10
 
-    @patch("src.streamlit_app.screens.execution.st")
+    @patch("src.streamlit_app.screens.execution_callbacks.st")
     def test_progress_callback_completed(self, mock_st):
         """Test callback updates step to 'success' status on 'completed' event."""
         # Arrange: Mock session_state with running step
@@ -254,7 +256,7 @@ class TestProgressCallback:
         assert next_step["start_time"] is not None
         assert isinstance(next_step["start_time"], datetime)
 
-    @patch("src.streamlit_app.screens.execution.st")
+    @patch("src.streamlit_app.screens.execution_callbacks.st")
     def test_progress_callback_failed(self, mock_st):
         """Test callback updates step to 'failed' status on 'failed' event."""
         # Arrange: Mock session_state with running step
@@ -304,13 +306,13 @@ class TestProgressCallback:
 class TestHelperFunctions:
     """Test helper utility functions."""
 
-    def test_extract_token_usage_openai_format(self):
+    def testextract_token_usage_openai_format(self):
         """Test token extraction from OpenAI format response."""
         # Arrange: OpenAI format result
         result = {"usage": {"input_tokens": 1000, "output_tokens": 250}}
 
         # Act: Extract token usage
-        token_usage = _extract_token_usage(result)
+        token_usage = extract_token_usage(result)
 
         # Assert: Standardized format returned
         assert token_usage is not None
@@ -318,13 +320,13 @@ class TestHelperFunctions:
         assert token_usage["output"] == 250
         assert token_usage["total"] == 1250
 
-    def test_extract_token_usage_claude_format(self):
+    def testextract_token_usage_claude_format(self):
         """Test token extraction from Claude format response."""
         # Arrange: Claude format result
         result = {"usage": {"prompt_tokens": 500, "completion_tokens": 150}}
 
         # Act: Extract token usage
-        token_usage = _extract_token_usage(result)
+        token_usage = extract_token_usage(result)
 
         # Assert: Standardized format returned
         assert token_usage is not None
@@ -332,42 +334,42 @@ class TestHelperFunctions:
         assert token_usage["output"] == 150
         assert token_usage["total"] == 650
 
-    def test_extract_token_usage_missing_usage(self):
+    def testextract_token_usage_missing_usage(self):
         """Test token extraction returns None when usage data missing."""
         # Arrange: Result without usage data
         result = {"data": "value"}
 
         # Act: Extract token usage
-        token_usage = _extract_token_usage(result)
+        token_usage = extract_token_usage(result)
 
         # Assert: None returned
         assert token_usage is None
 
-    def test_extract_token_usage_empty_result(self):
+    def testextract_token_usage_empty_result(self):
         """Test token extraction handles empty result."""
         # Arrange: Empty result
         result = {}
 
         # Act: Extract token usage
-        token_usage = _extract_token_usage(result)
+        token_usage = extract_token_usage(result)
 
         # Assert: None returned
         assert token_usage is None
 
-    def test_check_validation_warnings_low_quality_score(self):
+    def testcheck_validation_warnings_low_quality_score(self):
         """Test validation warning detected for low quality score."""
         # Arrange: Validation result with low quality score
         result = {"is_valid": True, "quality_score": 6, "errors": []}
 
         # Act: Check for warnings
-        warnings = _check_validation_warnings(result)
+        warnings = check_validation_warnings(result)
 
         # Assert: Warning about low quality score
         assert len(warnings) == 1
         assert "quality score is 6/10" in warnings[0].lower()
         assert "below recommended 8" in warnings[0].lower()
 
-    def test_check_validation_warnings_minor_schema_errors(self):
+    def testcheck_validation_warnings_minor_schema_errors(self):
         """Test validation warning detected for minor schema errors."""
         # Arrange: Validation result with errors but passed
         result = {
@@ -377,31 +379,31 @@ class TestHelperFunctions:
         }
 
         # Act: Check for warnings
-        warnings = _check_validation_warnings(result)
+        warnings = check_validation_warnings(result)
 
         # Assert: Warning about minor errors
         assert len(warnings) == 1
         assert "2 minor schema issue(s)" in warnings[0]
         assert "validation passed" in warnings[0]
 
-    def test_check_validation_warnings_no_warnings(self):
+    def testcheck_validation_warnings_no_warnings(self):
         """Test no warnings for valid result with good quality score."""
         # Arrange: Validation result with good quality score
         result = {"is_valid": True, "quality_score": 9, "errors": []}
 
         # Act: Check for warnings
-        warnings = _check_validation_warnings(result)
+        warnings = check_validation_warnings(result)
 
         # Assert: No warnings
         assert len(warnings) == 0
 
-    def test_check_validation_warnings_multiple_issues(self):
+    def testcheck_validation_warnings_multiple_issues(self):
         """Test multiple warnings detected simultaneously."""
         # Arrange: Validation result with low score AND minor errors
         result = {"is_valid": True, "quality_score": 7, "errors": ["Field X issue"]}
 
         # Act: Check for warnings
-        warnings = _check_validation_warnings(result)
+        warnings = check_validation_warnings(result)
 
         # Assert: Both warnings present
         assert len(warnings) == 2
