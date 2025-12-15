@@ -12,8 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Codebase Refactoring Phase 9: IterativeLoopRunner Migration** - Replaced manual while-loops with generic runner
   - Migrated `appraisal.py` to use `IterativeLoopRunner` (~100 lines removed)
   - Migrated `report.py` to use `IterativeLoopRunner` (~100 lines removed)
+  - Migrated `validation.py` to use `IterativeLoopRunner` (~340 lines removed)
+  - Added `_with_llm_retry()` wrapper for exponential backoff retry (1s, 2s, 4s)
   - Callbacks: `validate_fn`, `correct_fn`, `save_iteration_fn`, `save_best_fn`
-  - Preserves dependency gating, rendering, and all quality metrics
+  - Preserves dependency gating, rendering, schema quality checks, and all quality metrics
+  - Total: ~540 lines of duplicate loop code removed across 3 files
 
 - **Codebase Refactoring Phase 9: Thresholds & Utils Consolidation** - Centralized duplicated code
   - Created `src/pipeline/version.py` with cached `get_pipeline_version()` function

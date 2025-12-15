@@ -22,6 +22,7 @@ from ...llm import LLMError, get_llm_provider
 from ...prompts import PromptLoadError, load_correction_prompt
 from ...schemas_loader import SchemaLoadError, load_schema
 from ..file_manager import PipelineFileManager
+from ..iterative import IterativeLoopConfig, IterativeLoopRunner
 from ..iterative import detect_quality_degradation as _detect_quality_degradation_new
 from ..iterative import select_best_iteration as _select_best_iteration_new
 from ..quality import MetricType, extract_extraction_metrics_as_dict
@@ -106,6 +107,38 @@ def _print_iteration_summary(
     best_file = file_manager.get_filename("extraction", status="best")
     if best_file.exists():
         console.print(f"  * Best: {best_file.name} (iteration {best_iteration})")
+
+
+def _with_llm_retry(
+    fn: Callable[[], Any], max_retries: int = 3, console_instance: Console | None = None
+) -> Any:
+    """
+    Execute a function with exponential backoff retry on LLMError.
+
+    Args:
+        fn: Function to execute (should be a lambda or callable with no arguments)
+        max_retries: Maximum number of retry attempts (default: 3)
+        console_instance: Console for output (uses module console if None)
+
+    Returns:
+        Result of the function call
+
+    Raises:
+        LLMError: If all retries are exhausted
+    """
+    _console = console_instance or console
+    for retry in range(max_retries + 1):
+        try:
+            return fn()
+        except LLMError:
+            if retry == max_retries:
+                raise
+            wait_time = 2**retry  # 1s, 2s, 4s
+            _console.print(
+                f"[yellow]! LLM call failed, retrying in {wait_time}s... "
+                f"(attempt {retry + 1}/{max_retries})[/yellow]"
+            )
+            time.sleep(wait_time)
 
 
 def run_validation_step(
@@ -482,432 +515,95 @@ def run_validation_with_correction(
             'improvement_trajectory': list[float],
         }
     """
-    # Initialize
-    iterations = []
-    current_extraction = extraction_result
-    current_validation = None
-    iteration_num = 0
-
-    # Default thresholds
-    if quality_thresholds is None:
-        quality_thresholds = DEFAULT_QUALITY_THRESHOLDS
-
     # Extract publication_type for correction step
     publication_type = classification_result.get("publication_type", "unknown")
 
-    # Display header and configuration
+    # Display header
     console.print(
         "\n[bold magenta]=== STEP 3: ITERATIVE VALIDATION & CORRECTION ===[/bold magenta]\n"
     )
     console.print(f"[blue]Publication type: {publication_type}[/blue]")
-    console.print(f"[blue]Max iterations: {max_iterations}[/blue]")
-    console.print(
-        f"[blue]Quality thresholds: Completeness >={quality_thresholds['completeness_score']:.0%}, "
-        f"Accuracy >={quality_thresholds['accuracy_score']:.0%}, "
-        f"Schema >={quality_thresholds['schema_compliance_score']:.0%}, "
-        f"Critical issues = {quality_thresholds['critical_issues']}[/blue]\n"
-    )
 
     # Get LLM instance
     llm = get_llm_provider(llm_provider)
 
-    while iteration_num <= max_iterations:
-        # Display iteration header
-        console.print(f"\n[bold cyan]--- Iteration {iteration_num} ---[/bold cyan]")
-
-        try:
-            # Progress callback
-            _call_progress_callback(
-                progress_callback,
-                STEP_VALIDATION_CORRECTION,
-                "starting",
-                {"iteration": iteration_num, "step": "validation"},
+    # Define callback functions for IterativeLoopRunner
+    def validate_fn(extraction: dict) -> dict:
+        """Validate extraction with LLM retry."""
+        return _with_llm_retry(
+            lambda: run_validation_step(
+                extraction_result=extraction,
+                pdf_path=pdf_path,
+                max_pages=None,
+                classification_result=classification_result,
+                llm=llm,
+                file_manager=file_manager,
+                progress_callback=progress_callback,
+                banner_label="VALIDATION",
             )
+        )
 
-            # STEP 1: Validate current extraction
-            if current_validation is None:
-                validation_result = run_validation_step(
-                    extraction_result=current_extraction,
-                    pdf_path=pdf_path,
-                    max_pages=None,
-                    classification_result=classification_result,
-                    llm=llm,
-                    file_manager=file_manager,
-                    progress_callback=progress_callback,
-                    banner_label=f"Iter {iteration_num} - VALIDATION",
-                )
-
-                # Check schema validation failure
-                schema_validation = validation_result.get("schema_validation", {})
-                quality_score = schema_validation.get("quality_score", 0)
-
-                if quality_score < 0.5:
-                    return {
-                        "best_extraction": None,
-                        "best_validation": validation_result,
-                        "iterations": iterations,
-                        "final_status": "failed_schema_validation",
-                        "iteration_count": iteration_num + 1,
-                        "error": f"Schema validation failed (quality: {quality_score:.2f}).",
-                        "failed_at_iteration": iteration_num,
-                    }
-
-                # Save validation with iteration number
-                validation_file = file_manager.save_json(
-                    validation_result, "validation", iteration_number=iteration_num
-                )
-                console.print(f"[dim]Saved validation: {validation_file}[/dim]")
-            else:
-                validation_result = current_validation
-                console.print(
-                    f"[dim]Reusing post-correction validation for iteration {iteration_num}[/dim]"
-                )
-
-            # Store iteration data
-            metrics = _extract_metrics(validation_result)
-            iteration_data = {
-                "iteration_num": iteration_num,
-                "extraction": current_extraction,
-                "validation": validation_result,
-                "metrics": metrics,
-                "timestamp": datetime.now().isoformat(),
-            }
-            iterations.append(iteration_data)
-
-            # Display quality scores
-            console.print(f"\n[bold]Quality Scores (Iteration {iteration_num}):[/bold]")
-            console.print(f"  [bold]Overall Quality:   {metrics['overall_quality']:.1%}[/bold]")
-            status = validation_result.get("verification_summary", {}).get(
-                "overall_status", "unknown"
-            )
-            console.print(f"  Validation Status: {status.title() if status else '-'}")
-
-            # Display improvement tracking
-            if len(iterations) > 1:
-                prev_quality = iterations[-2]["metrics"]["overall_quality"]
-                delta = metrics["overall_quality"] - prev_quality
-                if delta > 0:
-                    symbol, color = "^", "green"
-                elif delta < 0:
-                    symbol, color = "v", "red"
-                else:
-                    symbol, color = "->", "yellow"
-                console.print(
-                    f"  [{color}]Improvement: {symbol} {delta:+.3f} (prev: {prev_quality:.1%})[/{color}]"
-                )
-
-            # STEP 2: Check quality
-            if is_quality_sufficient(validation_result, quality_thresholds):
-                # SUCCESS: Quality is sufficient
-                best_extraction_file = file_manager.save_json(
-                    current_extraction, "extraction", status="best"
-                )
-                console.print(f"[green]+ Best extraction saved: {best_extraction_file}[/green]")
-
-                best_validation_file = file_manager.save_json(
-                    validation_result, "validation", status="best"
-                )
-                console.print(f"[green]+ Best validation saved: {best_validation_file}[/green]")
-
-                # Save metadata
-                selection_metadata = {
-                    "best_iteration_num": iteration_num,
-                    "overall_quality": metrics["overall_quality"],
-                    "completeness_score": metrics.get("completeness_score", 0),
-                    "accuracy_score": metrics.get("accuracy_score", 0),
-                    "schema_compliance_score": metrics.get("schema_compliance_score", 0),
-                    "selection_reason": "passed",
-                    "total_iterations": iteration_num + 1,
-                    "timestamp": datetime.now().isoformat(),
-                }
-                file_manager.save_json(selection_metadata, "extraction", status="best-metadata")
-
-                console.print(
-                    f"\n[green]+ Quality sufficient at iteration {iteration_num}! Stopping.[/green]"
-                )
-                _print_iteration_summary(file_manager, iterations, iteration_num)
-
-                _call_progress_callback(
-                    progress_callback,
-                    STEP_VALIDATION_CORRECTION,
-                    "completed",
-                    {
-                        "final_status": "passed",
-                        "iterations": iteration_num + 1,
-                        "reason": "quality_sufficient",
-                    },
-                )
-
-                return {
-                    "best_extraction": current_extraction,
-                    "best_validation": validation_result,
-                    "iterations": iterations,
-                    "final_status": "passed",
-                    "iteration_count": iteration_num + 1,
-                    "best_iteration": iteration_num,
-                    "improvement_trajectory": [
-                        it["metrics"]["overall_quality"] for it in iterations
-                    ],
-                }
-
-            # STEP 3A: Check for quality degradation
-            if iteration_num >= 2:
-                if _detect_quality_degradation(iterations, window=2):
-                    best = _select_best_iteration(iterations)
-
-                    best_extraction_file = file_manager.save_json(
-                        best["extraction"], "extraction", status="best"
-                    )
-                    console.print(f"[green]+ Best extraction saved: {best_extraction_file}[/green]")
-
-                    best_validation_file = file_manager.save_json(
-                        best["validation"], "validation", status="best"
-                    )
-                    console.print(f"[green]+ Best validation saved: {best_validation_file}[/green]")
-
-                    selection_metadata = {
-                        "best_iteration_num": best["iteration_num"],
-                        "overall_quality": best["metrics"]["overall_quality"],
-                        "selection_reason": "early_stopped_degradation",
-                        "total_iterations": len(iterations),
-                        "timestamp": datetime.now().isoformat(),
-                    }
-                    file_manager.save_json(selection_metadata, "extraction", status="best-metadata")
-
-                    console.print(
-                        "\n[yellow]! Quality degrading - stopping early and selecting best[/yellow]"
-                    )
-                    _print_iteration_summary(file_manager, iterations, best["iteration_num"])
-
-                    _call_progress_callback(
-                        progress_callback,
-                        STEP_VALIDATION_CORRECTION,
-                        "completed",
-                        {
-                            "final_status": "early_stopped_degradation",
-                            "iterations": len(iterations),
-                            "best_iteration": best["iteration_num"],
-                        },
-                    )
-
-                    return {
-                        "best_extraction": best["extraction"],
-                        "best_validation": best["validation"],
-                        "iterations": iterations,
-                        "final_status": "early_stopped_degradation",
-                        "iteration_count": len(iterations),
-                        "best_iteration": best["iteration_num"],
-                        "improvement_trajectory": [
-                            it["metrics"]["overall_quality"] for it in iterations
-                        ],
-                    }
-
-            # STEP 3B: Check if we can do another correction
-            if iteration_num >= max_iterations:
-                best = _select_best_iteration(iterations)
-
-                best_extraction_file = file_manager.save_json(
-                    best["extraction"], "extraction", status="best"
-                )
-                console.print(f"[green]+ Best extraction saved: {best_extraction_file}[/green]")
-
-                best_validation_file = file_manager.save_json(
-                    best["validation"], "validation", status="best"
-                )
-                console.print(f"[green]+ Best validation saved: {best_validation_file}[/green]")
-
-                selection_metadata = {
-                    "best_iteration_num": best["iteration_num"],
-                    "overall_quality": best["metrics"]["overall_quality"],
-                    "selection_reason": "max_iterations_reached",
-                    "total_iterations": len(iterations),
-                    "timestamp": datetime.now().isoformat(),
-                }
-                file_manager.save_json(selection_metadata, "extraction", status="best-metadata")
-
-                console.print(
-                    f"\n[yellow]! Max iterations ({max_iterations}) reached - selecting best[/yellow]"
-                )
-                _print_iteration_summary(file_manager, iterations, best["iteration_num"])
-
-                _call_progress_callback(
-                    progress_callback,
-                    STEP_VALIDATION_CORRECTION,
-                    "completed",
-                    {
-                        "final_status": "max_iterations_reached",
-                        "iterations": len(iterations),
-                        "best_iteration": best["iteration_num"],
-                    },
-                )
-
-                return {
-                    "best_extraction": best["extraction"],
-                    "best_validation": best["validation"],
-                    "iterations": iterations,
-                    "final_status": "max_iterations_reached",
-                    "iteration_count": len(iterations),
-                    "best_iteration": best["iteration_num"],
-                    "improvement_trajectory": [
-                        it["metrics"]["overall_quality"] for it in iterations
-                    ],
-                }
-
-            # STEP 4: Run correction for next iteration
-            console.print(
-                f"\n[yellow]Quality insufficient (iteration {iteration_num}). Running correction...[/yellow]"
-            )
-            iteration_num += 1
-
-            _call_progress_callback(
-                progress_callback,
-                STEP_VALIDATION_CORRECTION,
-                "starting",
-                {"iteration": iteration_num, "step": "correction"},
-            )
-
-            corrected_extraction, final_validation = run_correction_step(
-                extraction_result=current_extraction,
-                validation_result=validation_result,
+    def correct_fn(extraction: dict, validation: dict) -> dict:
+        """Correct extraction with LLM retry, return only corrected extraction."""
+        corrected, _ = _with_llm_retry(
+            lambda: run_correction_step(
+                extraction_result=extraction,
+                validation_result=validation,
                 pdf_path=pdf_path,
                 max_pages=None,
                 publication_type=publication_type,
                 llm=llm,
                 file_manager=file_manager,
                 progress_callback=progress_callback,
-                banner_label=f"Iter {iteration_num} - CORRECTION",
+                banner_label="CORRECTION",
             )
+        )
+        return _strip_metadata_for_pipeline(corrected)
 
-            # Save corrected extraction with iteration number
-            corrected_file = file_manager.save_json(
-                corrected_extraction, "extraction", iteration_number=iteration_num
-            )
-            console.print(f"[dim]Saved corrected extraction: {corrected_file}[/dim]")
+    def save_iteration_fn(
+        iteration_num: int, result: dict, validation: dict
+    ) -> tuple[Path | None, Path | None]:
+        """Save iteration files."""
+        extraction_file = file_manager.save_json(
+            result, "extraction", iteration_number=iteration_num
+        )
+        validation_file = file_manager.save_json(
+            validation, "validation", iteration_number=iteration_num
+        )
+        return extraction_file, validation_file
 
-            # Save post-correction validation with iteration number
-            validation_file = file_manager.save_json(
-                final_validation, "validation", iteration_number=iteration_num
-            )
-            console.print(f"[dim]Saved post-correction validation: {validation_file}[/dim]")
+    def save_best_fn(result: dict, validation: dict) -> tuple[Path | None, Path | None]:
+        """Save best extraction and validation files."""
+        extraction_file = file_manager.save_json(result, "extraction", status="best")
+        validation_file = file_manager.save_json(validation, "validation", status="best")
+        return extraction_file, validation_file
 
-            # Update current extraction and validation for next iteration
-            current_extraction = _strip_metadata_for_pipeline(corrected_extraction)
-            current_validation = final_validation
+    # Configure and run iterative loop
+    config = IterativeLoopConfig(
+        metric_type=MetricType.EXTRACTION,
+        max_iterations=max_iterations,
+        quality_thresholds=EXTRACTION_THRESHOLDS,
+        degradation_window=2,
+        step_name="ITERATIVE VALIDATION & CORRECTION",
+        step_number=3,
+        show_banner=False,  # We already printed banner above
+    )
 
-        except LLMError as e:
-            # LLM API failure - retry with exponential backoff
-            max_retries = 3
-            retry_successful = False
+    runner = IterativeLoopRunner(
+        config=config,
+        initial_result=extraction_result,
+        validate_fn=validate_fn,
+        correct_fn=correct_fn,
+        save_iteration_fn=save_iteration_fn,
+        save_best_fn=save_best_fn,
+        progress_callback=progress_callback,
+        console_instance=console,
+        check_schema_quality=True,
+        schema_quality_threshold=0.5,
+    )
 
-            for retry in range(max_retries):
-                wait_time = 2**retry
-                console.print(
-                    f"[yellow]! LLM call failed, retrying in {wait_time}s... "
-                    f"(attempt {retry+1}/{max_retries})[/yellow]"
-                )
-                time.sleep(wait_time)
-
-                try:
-                    if iteration_num == len(iterations):
-                        validation_result = run_validation_step(
-                            extraction_result=current_extraction,
-                            pdf_path=pdf_path,
-                            max_pages=None,
-                            classification_result=classification_result,
-                            llm=llm,
-                            file_manager=file_manager,
-                            progress_callback=progress_callback,
-                            banner_label=f"Iter {iteration_num} - VALIDATION",
-                        )
-                        retry_successful = True
-                        break
-                    else:
-                        corrected_extraction, final_validation = run_correction_step(
-                            extraction_result=current_extraction,
-                            validation_result=validation_result,
-                            pdf_path=pdf_path,
-                            max_pages=None,
-                            publication_type=publication_type,
-                            llm=llm,
-                            file_manager=file_manager,
-                            progress_callback=progress_callback,
-                            banner_label=f"Iter {iteration_num} - CORRECTION (retry)",
-                        )
-
-                        corrected_file = file_manager.save_json(
-                            corrected_extraction, "extraction", iteration_number=iteration_num
-                        )
-                        validation_file = file_manager.save_json(
-                            final_validation, "validation", iteration_number=iteration_num
-                        )
-
-                        current_extraction = _strip_metadata_for_pipeline(corrected_extraction)
-                        current_validation = final_validation
-                        retry_successful = True
-                        break
-                except LLMError:
-                    continue
-
-            if not retry_successful:
-                best = _select_best_iteration(iterations) if iterations else None
-
-                if best:
-                    file_manager.save_json(best["extraction"], "extraction", status="best")
-                    file_manager.save_json(best["validation"], "validation", status="best")
-
-                return {
-                    "best_extraction": best["extraction"] if best else current_extraction,
-                    "best_validation": best["validation"] if best else None,
-                    "iterations": iterations,
-                    "final_status": "failed_llm_error",
-                    "iteration_count": len(iterations),
-                    "best_iteration": best["iteration_num"] if best else 0,
-                    "error": f"LLM provider error after {max_retries} retries: {e!s}",
-                    "failed_at_iteration": iteration_num,
-                }
-
-        except json.JSONDecodeError as e:
-            console.print(
-                f"[red]X Correction returned invalid JSON at iteration {iteration_num}[/red]"
-            )
-            best = _select_best_iteration(iterations) if iterations else None
-
-            if best:
-                file_manager.save_json(best["extraction"], "extraction", status="best")
-                file_manager.save_json(best["validation"], "validation", status="best")
-
-            return {
-                "best_extraction": best["extraction"] if best else current_extraction,
-                "best_validation": best["validation"] if best else None,
-                "iterations": iterations,
-                "final_status": "failed_invalid_json",
-                "iteration_count": len(iterations),
-                "best_iteration": best["iteration_num"] if best else 0,
-                "error": f"Correction produced invalid JSON: {e!s}",
-                "failed_at_iteration": iteration_num,
-            }
-
-        except Exception as e:
-            console.print(f"[red]X Unexpected error at iteration {iteration_num}: {e!s}[/red]")
-            best = _select_best_iteration(iterations) if len(iterations) > 0 else None
-
-            if best:
-                file_manager.save_json(best["extraction"], "extraction", status="best")
-                file_manager.save_json(best["validation"], "validation", status="best")
-
-            return {
-                "best_extraction": best["extraction"] if best else current_extraction,
-                "best_validation": best["validation"] if best else None,
-                "iterations": iterations,
-                "final_status": "failed_unexpected_error",
-                "iteration_count": len(iterations),
-                "best_iteration": best["iteration_num"] if best else 0,
-                "error": f"Unexpected error: {e!s}",
-                "failed_at_iteration": iteration_num,
-            }
-
-    # Should never reach here
-    raise RuntimeError("Validation loop exited unexpectedly")
+    loop_result = runner.run()
+    return loop_result.to_dict(result_key="best_extraction")
 
 
 # Backward compatibility aliases
