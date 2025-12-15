@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Codebase Refactoring Phase 9: Thresholds & Utils Consolidation** - Centralized duplicated code
+  - Created `src/pipeline/version.py` with cached `get_pipeline_version()` function
+  - Fixed `get_next_step()` in `utils.py` to include all 6 pipeline steps (was only 4)
+  - Consolidated quality thresholds: step modules now import from `quality/thresholds.py`
+  - Removed duplicates from `orchestrator.py`, `validation.py`, `appraisal.py`, `report.py`
+  - Updated PDF size documentation in `config.py` (default: 10 MB, provider max: 32 MB)
+  - Updated test imports to use new module locations
+
 - **Codebase Refactoring Phase 7: Step Modules** - Extracted pipeline step implementations into dedicated modules
   - Created `src/pipeline/steps/` package with individual step modules:
     - `classification.py` - Publication type identification (~170 lines)

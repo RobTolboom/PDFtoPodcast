@@ -28,6 +28,7 @@ from ..file_manager import PipelineFileManager
 from ..iterative import detect_quality_degradation as _detect_quality_degradation_new
 from ..iterative import select_best_iteration as _select_best_iteration_new
 from ..quality import MetricType, extract_appraisal_metrics_as_dict
+from ..quality.thresholds import APPRAISAL_THRESHOLDS
 from ..utils import _call_progress_callback, _get_provider_name, _strip_metadata_for_pipeline
 
 console = Console()
@@ -37,12 +38,13 @@ STEP_APPRAISAL = "appraisal"
 STEP_APPRAISAL_VALIDATION = "appraisal_validation"
 
 # Quality thresholds for appraisal iterative correction loop
+# Derived from centralized thresholds for consistency
 APPRAISAL_QUALITY_THRESHOLDS = {
-    "logical_consistency_score": 0.90,
-    "completeness_score": 0.85,
-    "evidence_support_score": 0.90,
-    "schema_compliance_score": 0.95,
-    "critical_issues": 0,
+    "logical_consistency_score": APPRAISAL_THRESHOLDS.logical_consistency_score,
+    "completeness_score": APPRAISAL_THRESHOLDS.completeness_score,
+    "evidence_support_score": APPRAISAL_THRESHOLDS.evidence_support_score,
+    "schema_compliance_score": APPRAISAL_THRESHOLDS.schema_compliance_score,
+    "critical_issues": APPRAISAL_THRESHOLDS.critical_issues,
 }
 
 

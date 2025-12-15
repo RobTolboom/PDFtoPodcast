@@ -58,8 +58,6 @@ PDF Upload Strategy:
     Benefit: Complete data fidelity - no loss of tables, images, or formatting
 """
 
-import functools
-import re
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -140,67 +138,6 @@ STEP_DISPLAY_NAMES = {
     STEP_PODCAST_GENERATION: "Step 6 - Podcast Generation",
 }
 
-
-@functools.cache
-def _get_pipeline_version() -> str:
-    """
-    Retrieve pipeline version from installed package or pyproject.toml.
-    """
-    try:
-        from importlib.metadata import PackageNotFoundError, version
-
-        return version("pdftopodcast")
-    except ImportError:
-        pass
-    except PackageNotFoundError:
-        pass
-
-    pyproject_path = Path(__file__).resolve().parents[2] / "pyproject.toml"
-    if pyproject_path.exists():
-        in_project_section = False
-        for line in pyproject_path.read_text(encoding="utf-8").splitlines():
-            stripped = line.strip()
-            if not stripped or stripped.startswith("#"):
-                continue
-            if stripped.startswith("[") and stripped.endswith("]"):
-                in_project_section = stripped == "[project]"
-                continue
-            if in_project_section and stripped.startswith("version"):
-                match = re.search(r'version\s*=\s*"([^"]+)"', stripped)
-                if match:
-                    _PIPELINE_VERSION_CACHE = match.group(1)
-                    return _PIPELINE_VERSION_CACHE
-
-    _PIPELINE_VERSION_CACHE = "0.0.0"
-    return _PIPELINE_VERSION_CACHE
-
-
-# Default quality thresholds for iterative correction loop (extraction)
-DEFAULT_QUALITY_THRESHOLDS = {
-    "completeness_score": 0.90,  # ≥90% of PDF data extracted
-    "accuracy_score": 0.95,  # ≥95% correct data (max 5% errors)
-    "schema_compliance_score": 0.95,  # ≥95% schema compliant
-    "critical_issues": 0,  # Absolutely no critical errors
-}
-
-# Quality thresholds for appraisal iterative correction loop
-APPRAISAL_QUALITY_THRESHOLDS = {
-    "logical_consistency_score": 0.90,  # ≥90% logical consistency (overall = worst domain)
-    "completeness_score": 0.85,  # ≥85% completeness (all domains, outcomes)
-    "evidence_support_score": 0.90,  # ≥90% evidence support (rationales match extraction)
-    "schema_compliance_score": 0.95,  # ≥95% schema compliance (enums, required fields)
-    "critical_issues": 0,  # Absolutely no critical errors
-}
-
-# Quality thresholds for report iterative correction loop
-REPORT_QUALITY_THRESHOLDS = {
-    "completeness_score": 0.85,  # ≥85% completeness (all core sections present)
-    "accuracy_score": 0.95,  # ≥95% accuracy (data correctness paramount)
-    "cross_reference_consistency_score": 0.90,  # ≥90% cross-ref consistency (table/figure refs valid)
-    "data_consistency_score": 0.90,  # ≥90% data consistency (bottom-line matches results)
-    "schema_compliance_score": 0.95,  # ≥95% schema compliance (enums, required fields)
-    "critical_issues": 0,  # Absolutely no critical errors
-}
 
 # Final status codes for iterative loop results
 FINAL_STATUS_CODES = {

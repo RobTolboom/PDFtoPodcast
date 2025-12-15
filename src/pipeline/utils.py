@@ -94,10 +94,18 @@ def get_next_step(current_step: str) -> str:
     Example:
         >>> get_next_step("classification")
         'extraction'
-        >>> get_next_step("correction")
+        >>> get_next_step("podcast_generation")
         'None'
     """
-    steps = ["classification", "extraction", "validation", "correction"]
+    # All pipeline steps in execution order
+    steps = [
+        "classification",
+        "extraction",
+        "validation_correction",
+        "appraisal",
+        "report_generation",
+        "podcast_generation",
+    ]
     try:
         idx = steps.index(current_step)
         return steps[idx + 1] if idx + 1 < len(steps) else "None"

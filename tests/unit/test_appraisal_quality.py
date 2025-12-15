@@ -15,7 +15,7 @@ Tests cover:
 
 import pytest
 
-from src.pipeline.orchestrator import (
+from src.pipeline.steps.appraisal import (
     APPRAISAL_QUALITY_THRESHOLDS,
     UnsupportedPublicationType,
     _get_appraisal_prompt_name,

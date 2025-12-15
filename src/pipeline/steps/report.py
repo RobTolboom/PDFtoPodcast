@@ -31,7 +31,9 @@ from ..file_manager import PipelineFileManager
 from ..iterative import detect_quality_degradation as _detect_quality_degradation_new
 from ..iterative import select_best_iteration as _select_best_iteration_new
 from ..quality import MetricType, extract_report_metrics_as_dict
+from ..quality.thresholds import REPORT_THRESHOLDS
 from ..utils import _call_progress_callback, _get_provider_name, _strip_metadata_for_pipeline
+from ..version import get_pipeline_version
 
 console = Console()
 
@@ -39,25 +41,19 @@ console = Console()
 STEP_REPORT_GENERATION = "report_generation"
 
 # Quality thresholds for report iterative correction loop
+# Derived from centralized thresholds for consistency
 REPORT_QUALITY_THRESHOLDS = {
-    "completeness_score": 0.85,
-    "accuracy_score": 0.95,
-    "cross_reference_consistency_score": 0.90,
-    "data_consistency_score": 0.90,
-    "schema_compliance_score": 0.95,
-    "critical_issues": 0,
+    "completeness_score": REPORT_THRESHOLDS.completeness_score,
+    "accuracy_score": REPORT_THRESHOLDS.accuracy_score,
+    "cross_reference_consistency_score": REPORT_THRESHOLDS.cross_reference_consistency_score,
+    "data_consistency_score": REPORT_THRESHOLDS.data_consistency_score,
+    "schema_compliance_score": REPORT_THRESHOLDS.schema_compliance_score,
+    "critical_issues": REPORT_THRESHOLDS.critical_issues,
 }
 
 
-def _get_pipeline_version() -> str:
-    """Retrieve pipeline version from installed package or pyproject.toml."""
-    try:
-        from importlib.metadata import PackageNotFoundError, version
-
-        return version("pdftopodcast")
-    except (ImportError, PackageNotFoundError):
-        pass
-    return "0.0.0"
+# Alias for backward compatibility - delegate to centralized version module
+_get_pipeline_version = get_pipeline_version
 
 
 # Alias for backward compatibility - delegate to quality module

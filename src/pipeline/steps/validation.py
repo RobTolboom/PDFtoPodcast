@@ -25,6 +25,7 @@ from ..file_manager import PipelineFileManager
 from ..iterative import detect_quality_degradation as _detect_quality_degradation_new
 from ..iterative import select_best_iteration as _select_best_iteration_new
 from ..quality import MetricType, extract_extraction_metrics_as_dict
+from ..quality.thresholds import EXTRACTION_THRESHOLDS
 from ..utils import _call_progress_callback, _get_provider_name, _strip_metadata_for_pipeline
 from ..validation_runner import run_dual_validation
 
@@ -35,12 +36,12 @@ STEP_VALIDATION = "validation"
 STEP_CORRECTION = "correction"
 STEP_VALIDATION_CORRECTION = "validation_correction"
 
-# Default quality thresholds for iterative correction loop (extraction)
+# Default quality thresholds - derived from centralized EXTRACTION_THRESHOLDS
 DEFAULT_QUALITY_THRESHOLDS = {
-    "completeness_score": 0.90,  # >=90% of PDF data extracted
-    "accuracy_score": 0.95,  # >=95% correct data (max 5% errors)
-    "schema_compliance_score": 0.95,  # >=95% schema compliant
-    "critical_issues": 0,  # Absolutely no critical errors
+    "completeness_score": EXTRACTION_THRESHOLDS.completeness_score,
+    "accuracy_score": EXTRACTION_THRESHOLDS.accuracy_score,
+    "schema_compliance_score": EXTRACTION_THRESHOLDS.schema_compliance_score,
+    "critical_issues": EXTRACTION_THRESHOLDS.critical_issues,
 }
 
 
