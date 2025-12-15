@@ -25,6 +25,7 @@ from ...prompts import (
 )
 from ...schemas_loader import SchemaLoadError, load_schema
 from ..file_manager import PipelineFileManager
+from ..iterative import IterativeLoopConfig, IterativeLoopRunner
 from ..iterative import detect_quality_degradation as _detect_quality_degradation_new
 from ..iterative import select_best_iteration as _select_best_iteration_new
 from ..quality import MetricType, extract_appraisal_metrics_as_dict
@@ -502,181 +503,78 @@ def run_appraisal_with_correction(
         console.print(f"[red]X LLM provider error: {e}[/red]")
         raise
 
-    iterations = []
-    current_appraisal = None
-    current_validation = None
-    iteration_num = 0
+    # Step 1: Run initial appraisal (before iterative loop)
+    try:
+        initial_appraisal = run_appraisal_step(
+            extraction_result=extraction_result,
+            publication_type=publication_type,
+            llm=llm,
+            file_manager=file_manager,
+            progress_callback=progress_callback,
+        )
+    except (UnsupportedPublicationType, PromptLoadError, SchemaLoadError, LLMError) as e:
+        console.print(f"[red]X Initial appraisal failed: {e}[/red]")
+        raise
 
-    while iteration_num <= max_iterations:
-        console.print(f"\n[bold cyan]--- Iteration {iteration_num} ---[/bold cyan]")
+    # Step 2: Configure and run iterative validation/correction loop
+    config = IterativeLoopConfig(
+        metric_type=MetricType.APPRAISAL,
+        max_iterations=max_iterations,
+        quality_thresholds=APPRAISAL_THRESHOLDS,
+        degradation_window=2,
+        step_name="APPRAISAL VALIDATION & CORRECTION",
+        step_number=4,
+        show_banner=False,  # We already printed our own banner
+    )
 
-        try:
-            if iteration_num == 0:
-                current_appraisal = run_appraisal_step(
-                    extraction_result=extraction_result,
-                    publication_type=publication_type,
-                    llm=llm,
-                    file_manager=file_manager,
-                    progress_callback=progress_callback,
-                )
+    # Define callbacks that capture the required context
+    def validate_fn(appraisal_result: dict) -> dict:
+        return run_appraisal_validation_step(
+            appraisal_result=appraisal_result,
+            extraction_result=extraction_result,
+            llm=llm,
+            file_manager=file_manager,
+            progress_callback=progress_callback,
+        )
 
-            current_validation = run_appraisal_validation_step(
-                appraisal_result=current_appraisal,
-                extraction_result=extraction_result,
-                llm=llm,
-                file_manager=file_manager,
-                progress_callback=progress_callback,
-            )
+    def correct_fn(appraisal_result: dict, validation_result: dict) -> dict:
+        corrected = run_appraisal_correction_step(
+            appraisal_result=appraisal_result,
+            validation_result=validation_result,
+            extraction_result=extraction_result,
+            llm=llm,
+            file_manager=file_manager,
+            progress_callback=progress_callback,
+        )
+        return _strip_metadata_for_pipeline(corrected)
 
-            appraisal_file, validation_file = file_manager.save_appraisal_iteration(
-                iteration=iteration_num,
-                appraisal_result=current_appraisal,
-                validation_result=current_validation,
-            )
-            console.print(f"[dim]Saved: {appraisal_file.name}[/dim]")
-            if validation_file:
-                console.print(f"[dim]Saved: {validation_file.name}[/dim]")
+    def save_iteration_fn(
+        iteration_num: int, appraisal_result: dict, validation_result: dict
+    ) -> tuple:
+        return file_manager.save_appraisal_iteration(
+            iteration=iteration_num,
+            appraisal_result=appraisal_result,
+            validation_result=validation_result,
+        )
 
-            metrics = _extract_appraisal_metrics(current_validation)
+    def save_best_fn(appraisal_result: dict, validation_result: dict) -> tuple:
+        return file_manager.save_best_appraisal(appraisal_result, validation_result)
 
-            iteration_data = {
-                "iteration_num": iteration_num,
-                "appraisal": current_appraisal,
-                "validation": current_validation,
-                "metrics": metrics,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            }
-            iterations.append(iteration_data)
+    runner = IterativeLoopRunner(
+        config=config,
+        initial_result=initial_appraisal,
+        validate_fn=validate_fn,
+        correct_fn=correct_fn,
+        save_iteration_fn=save_iteration_fn,
+        save_best_fn=save_best_fn,
+        progress_callback=progress_callback,
+        console_instance=console,
+    )
 
-            console.print(f"\n[bold]Quality Scores (Iteration {iteration_num}):[/bold]")
-            console.print(f"  Logical Consistency: {metrics['logical_consistency_score']:.2f}")
-            console.print(f"  Completeness:        {metrics['completeness_score']:.2f}")
-            console.print(f"  Evidence Support:    {metrics['evidence_support_score']:.2f}")
-            console.print(f"  Schema Compliance:   {metrics['schema_compliance_score']:.2f}")
-            console.print(f"  [bold]Quality Score:       {metrics['quality_score']:.2f}[/bold]")
-            console.print(f"  Critical Issues:     {metrics['critical_issues']}")
+    loop_result = runner.run()
 
-            if len(iterations) > 1:
-                prev_score = iterations[-2]["metrics"]["quality_score"]
-                current_score = metrics["quality_score"]
-                delta = current_score - prev_score
-                if delta > 0:
-                    symbol, color = "^", "green"
-                elif delta < 0:
-                    symbol, color = "v", "red"
-                else:
-                    symbol, color = "->", "yellow"
-                console.print(
-                    f"  [{color}]Improvement: {symbol} {delta:+.3f} (prev: {prev_score:.2f})[/{color}]"
-                )
-
-            if is_appraisal_quality_sufficient(current_validation, quality_thresholds):
-                console.print(
-                    f"\n[green]+ Quality sufficient at iteration {iteration_num}! Stopping.[/green]"
-                )
-
-                file_manager.save_best_appraisal(current_appraisal, current_validation)
-
-                return {
-                    "best_appraisal": current_appraisal,
-                    "best_validation": current_validation,
-                    "best_iteration": iteration_num,
-                    "iterations": iterations,
-                    "final_status": "passed",
-                    "iteration_count": iteration_num + 1,
-                    "improvement_trajectory": [it["metrics"]["quality_score"] for it in iterations],
-                }
-
-            if _detect_quality_degradation(iterations, window=2):
-                console.print(
-                    "\n[yellow]! Quality degrading - stopping early and selecting best[/yellow]"
-                )
-
-                best = _select_best_appraisal_iteration(iterations)
-                file_manager.save_best_appraisal(best["appraisal"], best["validation"])
-
-                return {
-                    "best_appraisal": best["appraisal"],
-                    "best_validation": best["validation"],
-                    "best_iteration": best["iteration_num"],
-                    "iterations": iterations,
-                    "final_status": "early_stopped_degradation",
-                    "iteration_count": len(iterations),
-                    "improvement_trajectory": [it["metrics"]["quality_score"] for it in iterations],
-                }
-
-            if iteration_num >= max_iterations:
-                console.print(
-                    f"\n[yellow]! Max iterations ({max_iterations}) reached - selecting best[/yellow]"
-                )
-
-                best = _select_best_appraisal_iteration(iterations)
-                file_manager.save_best_appraisal(best["appraisal"], best["validation"])
-
-                return {
-                    "best_appraisal": best["appraisal"],
-                    "best_validation": best["validation"],
-                    "best_iteration": best["iteration_num"],
-                    "iterations": iterations,
-                    "final_status": "max_iterations_reached",
-                    "iteration_count": len(iterations),
-                    "improvement_trajectory": [it["metrics"]["quality_score"] for it in iterations],
-                }
-
-            console.print(
-                f"\n[yellow]Quality insufficient (iteration {iteration_num}). Running correction...[/yellow]"
-            )
-
-            current_appraisal = run_appraisal_correction_step(
-                appraisal_result=current_appraisal,
-                validation_result=current_validation,
-                extraction_result=extraction_result,
-                llm=llm,
-                file_manager=file_manager,
-                progress_callback=progress_callback,
-            )
-
-            iteration_num += 1
-
-        except (UnsupportedPublicationType, PromptLoadError, SchemaLoadError) as e:
-            console.print(f"\n[red]X Fatal error: {e}[/red]")
-
-            if iterations:
-                best = _select_best_appraisal_iteration(iterations)
-                file_manager.save_best_appraisal(best["appraisal"], best["validation"])
-
-                return {
-                    "best_appraisal": best["appraisal"],
-                    "best_validation": best["validation"],
-                    "iterations": iterations,
-                    "final_status": "failed",
-                    "iteration_count": len(iterations),
-                    "improvement_trajectory": [it["metrics"]["quality_score"] for it in iterations],
-                    "error": str(e),
-                    "error_type": type(e).__name__,
-                }
-            raise
-
-        except LLMError as e:
-            console.print(f"\n[red]X LLM error at iteration {iteration_num}: {e}[/red]")
-
-            if iterations:
-                best = _select_best_appraisal_iteration(iterations)
-                file_manager.save_best_appraisal(best["appraisal"], best["validation"])
-
-                return {
-                    "best_appraisal": best["appraisal"],
-                    "best_validation": best["validation"],
-                    "iterations": iterations,
-                    "final_status": "failed_llm_error",
-                    "iteration_count": len(iterations),
-                    "improvement_trajectory": [it["metrics"]["quality_score"] for it in iterations],
-                    "error": str(e),
-                    "error_type": type(e).__name__,
-                }
-            raise
-
-    raise RuntimeError("Appraisal loop exited unexpectedly")
+    # Step 3: Convert IterativeLoopResult to expected dict format
+    return loop_result.to_dict(result_key="best_appraisal")
 
 
 # Backward compatibility aliases
