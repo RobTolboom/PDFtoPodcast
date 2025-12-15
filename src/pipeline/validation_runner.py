@@ -150,12 +150,13 @@ Verify the extracted data against the original PDF document. Check for hallucina
 
             # Display validation results summary
             summary = validation_result.get("verification_summary", {})
-            overall_quality = (
-                summary.get("overall_quality") or summary.get("quality_score") or schema_quality
-            )
             console.print("\n[bold]Quality Summary:[/bold]")
-            if overall_quality is not None:
-                console.print(f"  Overall Quality:   {overall_quality:.1%}")
+            console.print(f"  Schema Compliance: {schema_quality:.1%}")
+            # Show LLM-derived quality scores if available
+            if summary.get("completeness_score") is not None:
+                console.print(f"  Completeness:      {summary.get('completeness_score'):.1%}")
+            if summary.get("accuracy_score") is not None:
+                console.print(f"  Accuracy:          {summary.get('accuracy_score'):.1%}")
             status = summary.get("overall_status")
             console.print(f"  Validation Status: {status.title() if status else 'Unknown'}")
 

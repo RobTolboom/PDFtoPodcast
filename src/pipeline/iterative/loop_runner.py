@@ -332,8 +332,12 @@ class IterativeLoopRunner:
     def _display_quality_scores(self, metrics: QualityMetrics, iteration_num: int) -> None:
         """Display quality scores for current iteration."""
         self.console.print(f"\n[bold]Quality Scores (Iteration {iteration_num}):[/bold]")
-        self.console.print(f"  [bold]Quality Score:     {metrics.quality_score:.1%}[/bold]")
         self.console.print(f"  Completeness:      {metrics.completeness_score:.1%}")
+        self.console.print(f"  Accuracy:          {metrics.accuracy_score:.1%}")
+        self.console.print(f"  Schema Compliance: {metrics.schema_compliance_score:.1%}")
+        self.console.print(
+            f"  [bold]Quality Score:     {metrics.quality_score:.1%}[/bold] (weighted)"
+        )
         self.console.print(f"  Status:            {metrics.overall_status.title()}")
 
         # Show improvement tracking

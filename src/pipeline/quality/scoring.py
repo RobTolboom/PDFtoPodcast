@@ -8,7 +8,11 @@ safe_score() and quality_rank() implementations in orchestrator.py.
 from dataclasses import dataclass
 from typing import Literal
 
+from rich.console import Console
+
 from .metrics import MetricType, QualityMetrics
+
+console = Console()
 
 
 @dataclass(frozen=True)
@@ -256,5 +260,16 @@ def select_best_iteration(
         reason = "final_iteration_best"
     else:
         reason = f"quality_peaked_at_iteration_{best['iteration_num']}"
+
+    # Post-selection schema compliance check
+    best_metrics = best.get("metrics", {})
+    schema_score = best_metrics.get("schema_compliance_score", 1.0)
+    schema_threshold = 0.95  # Default threshold
+
+    if schema_score < schema_threshold:
+        console.print(
+            f"[yellow]⚠ Warning: Best iteration has schema compliance "
+            f"{schema_score:.1%} < {schema_threshold:.0%} threshold[/yellow]"
+        )
 
     return {**best, "selection_reason": reason}

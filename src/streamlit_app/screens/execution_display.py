@@ -345,7 +345,7 @@ def display_validation_correction_result(result: dict):
 
         # Display as DataFrame
         df = pd.DataFrame(table_data)
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.dataframe(df, width="stretch", hide_index=True)
 
         trajectory = result.get("improvement_trajectory", [])
         if trajectory:
@@ -504,7 +504,7 @@ def display_appraisal_result(result: dict):
 
         # Display as DataFrame
         df = pd.DataFrame(table_data)
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.dataframe(df, width="stretch", hide_index=True)
 
     # Show metrics from best iteration
     if iterations and best_iteration < len(iterations):
@@ -602,7 +602,7 @@ def display_report_result(result: dict):
 
         # Display as DataFrame
         df = pd.DataFrame(table_data)
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.dataframe(df, width="stretch", hide_index=True)
 
     # Show metrics from best iteration
     if iterations and best_iteration < len(iterations):

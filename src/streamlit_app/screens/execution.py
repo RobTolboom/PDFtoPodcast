@@ -124,7 +124,7 @@ def show_execution_screen():
         status = st.session_state.execution["status"]
         if status == "running":
             # Show confirmation for navigation during execution
-            if st.button("Back", key="back_top", use_container_width=True, type="secondary"):
+            if st.button("Back", key="back_top", width="stretch", type="secondary"):
                 # Add confirmation state
                 if "confirm_navigation" not in st.session_state:
                     st.session_state.confirm_navigation = False
@@ -134,7 +134,7 @@ def show_execution_screen():
                     st.rerun()
         else:
             # Direct back for non-running states
-            if st.button("Back", key="back_top", use_container_width=True, type="secondary"):
+            if st.button("Back", key="back_top", width="stretch", type="secondary"):
                 reset_execution_state()
                 st.session_state.current_phase = "settings"
                 st.rerun()
@@ -147,13 +147,13 @@ def show_execution_screen():
         )
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("Yes, go back", use_container_width=True):
+            if st.button("Yes, go back", width="stretch"):
                 st.session_state.confirm_navigation = False
                 reset_execution_state()
                 st.session_state.current_phase = "settings"
                 st.rerun()
         with col2:
-            if st.button("Cancel", use_container_width=True):
+            if st.button("Cancel", width="stretch"):
                 st.session_state.confirm_navigation = False
                 st.rerun()
         st.markdown("---")
@@ -394,7 +394,7 @@ def show_execution_screen():
                         f"Redirecting to Settings screen in {countdown} second{'s' if countdown > 1 else ''}..."
                     )
                 with col2:
-                    if st.button("Cancel", key="cancel_redirect", use_container_width=True):
+                    if st.button("Cancel", key="cancel_redirect", width="stretch"):
                         execution["redirect_cancelled"] = True
                         st.rerun()
 
