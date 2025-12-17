@@ -7,8 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Iterative Loop Hang on Schema Failure** - Fixed bug where correction failures caused infinite loops
+  - Added `max_correction_retries` config option (default: 2) to `IterativeLoopConfig`
+  - When correction produces invalid schema, loop now retries from last good iteration
+  - After max retries reached, returns best result from tracker instead of hanging
+  - Schema quality check now runs after every correction, not just initial validation
+
 ### Changed
 
+- **Documentation** - Added docstrings for render CLI, pipeline entrypoint, and rendering helpers
+- **Utilities** - Moved `render_report_only.py` to `scripts/` and added repo-root import shim for standalone use
 - **Codebase Refactoring Phase 9: Streamlit Display Modularization** - Split large display module
   - Created `execution_artifacts.py` (~120 lines) for report/podcast download buttons
   - Created `execution_results.py` (~450 lines) for step result displays

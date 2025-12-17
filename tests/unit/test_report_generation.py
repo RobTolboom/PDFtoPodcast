@@ -220,7 +220,7 @@ class TestRunReportGeneration:
         mock_llm.generate_json_with_schema.return_value = mock_report_output
 
         # Mock get_llm_provider to return our mock
-        with patch("src.pipeline.orchestrator.get_llm_provider", return_value=mock_llm):
+        with patch("src.pipeline.steps.report.get_llm_provider", return_value=mock_llm):
             # Execute
             result = run_report_generation(
                 extraction_result=mock_extraction,
@@ -277,7 +277,7 @@ class TestRunReportGeneration:
         mock_llm = MagicMock()
         mock_llm.generate_json_with_schema.side_effect = LLMError("API timeout")
 
-        with patch("src.pipeline.orchestrator.get_llm_provider", return_value=mock_llm):
+        with patch("src.pipeline.steps.report.get_llm_provider", return_value=mock_llm):
             # Execute and verify error is raised
             with pytest.raises(LLMError, match="API timeout"):
                 run_report_generation(
@@ -308,7 +308,7 @@ class TestRunReportGeneration:
         mock_llm = MagicMock()
         mock_llm.generate_json_with_schema.return_value = invalid_report
 
-        with patch("src.pipeline.orchestrator.get_llm_provider", return_value=mock_llm):
+        with patch("src.pipeline.steps.report.get_llm_provider", return_value=mock_llm):
             # Execute and verify schema validation error is raised
             # validate_with_schema raises ValidationError (not SchemaLoadError) with strict=True
             from src.schemas_loader import SchemaLoadError

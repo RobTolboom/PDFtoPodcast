@@ -117,7 +117,7 @@ class TestIterativeValidationCorrection:
         """Mock classification result providing publication type."""
         return {"publication_type": "interventional_trial"}
 
-    @patch("src.pipeline.orchestrator.get_llm_provider")
+    @patch("src.pipeline.steps.validation.get_llm_provider")
     @patch("src.pipeline.orchestrator._run_correction_step")
     @patch("src.pipeline.orchestrator._run_validation_step")
     def test_correction_notes_stripped_from_final_result(
@@ -180,7 +180,7 @@ class TestIterativeValidationCorrection:
         assert result["iteration_count"] >= 1
         assert result["final_status"] == "passed"
 
-    @patch("src.pipeline.orchestrator.get_llm_provider")
+    @patch("src.pipeline.steps.validation.get_llm_provider")
     @patch("src.pipeline.orchestrator._run_correction_step")
     @patch("src.pipeline.orchestrator._run_validation_step")
     def test_correction_notes_stripped_from_all_iterations(
@@ -228,7 +228,7 @@ class TestIterativeValidationCorrection:
                 "correction_notes" not in iteration["extraction"]
             ), f"Iteration {i} extraction should not contain correction_notes"
 
-    @patch("src.pipeline.orchestrator.get_llm_provider")
+    @patch("src.pipeline.steps.validation.get_llm_provider")
     @patch("src.pipeline.orchestrator._run_correction_step")
     @patch("src.pipeline.orchestrator._run_validation_step")
     def test_metadata_fields_stripped_from_final_result(

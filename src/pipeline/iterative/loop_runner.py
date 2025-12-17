@@ -86,6 +86,7 @@ class IterativeLoopConfig:
         step_name: Display name for the step (e.g., "VALIDATION & CORRECTION")
         result_key: Key name for result in output (e.g., "best_extraction")
         quality_score_key: Key for quality score display (e.g., "overall_quality")
+        max_correction_retries: Max retries when correction fails schema validation
     """
 
     metric_type: MetricType
@@ -97,6 +98,7 @@ class IterativeLoopConfig:
     quality_score_key: str = "quality_score"
     show_banner: bool = True
     step_number: int = 3  # For display purposes
+    max_correction_retries: int = 2  # Max retries per correction when schema fails
 
 
 @dataclass
@@ -229,6 +231,11 @@ class IterativeLoopRunner:
         current_validation = None
         iteration_num = 0
 
+        # Track last good result/validation for retry on schema failure
+        last_good_result = self.initial_result
+        last_good_validation: dict | None = None
+        correction_retry_count = 0
+
         # Display header
         if self.config.show_banner:
             self._display_header()
@@ -252,6 +259,10 @@ class IterativeLoopRunner:
                             return self._create_schema_failure_result(
                                 validation_result, iteration_num, schema_quality
                             )
+
+                    # Update last good after successful schema validation
+                    last_good_result = current_result
+                    last_good_validation = validation_result
 
                     # Save iteration files
                     if self.save_iteration_fn:
@@ -303,6 +314,44 @@ class IterativeLoopRunner:
 
                 # Validate corrected result immediately
                 corrected_validation = self.validate_fn(corrected_result)
+
+                # Check schema quality of correction
+                if self.check_schema_quality:
+                    schema_quality = self._get_schema_quality(corrected_validation)
+                    if schema_quality < self.schema_quality_threshold:
+                        correction_retry_count += 1
+                        self.console.print(
+                            f"[red]Correction failed schema validation "
+                            f"(quality: {schema_quality:.2f})[/red]"
+                        )
+
+                        if correction_retry_count >= self.config.max_correction_retries:
+                            self.console.print(
+                                f"[red]Max correction retries "
+                                f"({self.config.max_correction_retries}) reached[/red]"
+                            )
+                            # Return best result we have so far
+                            if self.tracker.iteration_count > 0:
+                                return self._create_max_iterations_result()
+                            return self._create_schema_failure_result(
+                                corrected_validation, iteration_num, schema_quality
+                            )
+
+                        # Retry: reset to last good and try again
+                        self.console.print(
+                            f"[yellow]Retrying correction from last good iteration "
+                            f"(attempt {correction_retry_count + 1}/"
+                            f"{self.config.max_correction_retries})...[/yellow]"
+                        )
+                        current_result = last_good_result
+                        current_validation = last_good_validation
+                        iteration_num += 1
+                        continue  # Retry the loop
+
+                # Correction succeeded - update last good and reset retry counter
+                correction_retry_count = 0
+                last_good_result = corrected_result
+                last_good_validation = corrected_validation
 
                 # Save corrected iteration
                 if self.save_iteration_fn:
