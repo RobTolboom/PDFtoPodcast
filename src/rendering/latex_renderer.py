@@ -66,6 +66,7 @@ def _escape_latex(text: str) -> str:
 
 
 def _render_text_block(block: dict[str, Any]) -> str:
+    """Render a text block (paragraph/bullets/numbered) to LaTeX."""
     style = block.get("style", "paragraph")
     content = block.get("content", [])
     if style == "bullets":
@@ -79,6 +80,7 @@ def _render_text_block(block: dict[str, Any]) -> str:
 
 
 def _render_callout_block(block: dict[str, Any]) -> str:
+    """Render a callout block to a tcolorbox with variant title."""
     variant = block.get("variant", "note")
     variant_titles = {
         "warning": "Warning",
@@ -97,6 +99,7 @@ def _render_callout_block(block: dict[str, Any]) -> str:
 
 
 def _render_table_block(block: dict[str, Any]) -> str:
+    """Render a table block with optional tabularx layout and caption/label."""
     columns = block.get("columns", [])
     rows = block.get("rows", [])
     headers = " & ".join(_escape_latex(col.get("header", "")) for col in columns)
@@ -176,6 +179,7 @@ def _render_table_block(block: dict[str, Any]) -> str:
 
 
 def _render_block(block: dict[str, Any]) -> str:
+    """Render a single block (text, callout, table, figure) to LaTeX."""
     block_type = block.get("type")
     if block_type == "text":
         return _render_text_block(block)
@@ -211,6 +215,7 @@ def _render_block(block: dict[str, Any]) -> str:
 
 
 def _render_section(section: dict[str, Any], depth: int = 1) -> str:
+    """Render a section and its subsections recursively."""
     title = _escape_latex(section.get("title", ""))
     heading_cmd = {1: "\\section", 2: "\\subsection", 3: "\\subsubsection"}.get(
         depth, "\\paragraph"

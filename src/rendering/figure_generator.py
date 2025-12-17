@@ -21,6 +21,7 @@ class FigureGenerationError(RuntimeError):
 
 
 def _import_matplotlib():
+    """Import matplotlib with Agg backend and return pyplot, raising FigureGenerationError on failure."""
     try:
         import matplotlib
 
@@ -36,11 +37,13 @@ def _import_matplotlib():
 
 
 def _ensure_dir(path: Path) -> Path:
+    """Create directory if missing and return the path."""
     path.mkdir(parents=True, exist_ok=True)
     return path
 
 
 def _generate_rob_traffic_light(data: dict[str, Any], path: Path) -> None:
+    """Render a basic RoB 2 traffic light chart and save to path."""
     plt = _import_matplotlib()
     fig, ax = plt.subplots(figsize=(4.5, 2.2))
     domains = data.get("domains", [])
@@ -94,6 +97,7 @@ def _generate_rob_traffic_light(data: dict[str, Any], path: Path) -> None:
 
 
 def _generate_forest_basic(data: dict[str, Any], path: Path) -> None:
+    """Render a minimal forest plot with effect sizes and confidence intervals."""
     plt = _import_matplotlib()
     outcomes = data.get("outcomes", [{"name": "Outcome 1", "effect": -0.5, "ci": (-1.0, 0.0)}])
     fig, ax = plt.subplots(figsize=(4, 3))
