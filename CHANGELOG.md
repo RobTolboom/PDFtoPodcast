@@ -26,6 +26,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Applied same fix to `best_validation` in `execution_results.py`
   - Prevents `TypeError: argument of type 'NoneType' is not iterable` on schema failures
 
+### Added
+
+- **Save Failed Results for Debugging** - Schema validation failures now save results for analysis
+  - Added `save_failed_fn` callback to `IterativeLoopRunner` for saving failed results
+  - Failed appraisal and validation are saved with `-failed` suffix (e.g., `paper-appraisal-failed.json`)
+  - Console message indicates when failed results are saved
+  - Enables debugging of LLM output when schema validation fails
+
 ### Changed
 
 - **Documentation** - Added docstrings for render CLI, pipeline entrypoint, and rendering helpers

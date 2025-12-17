@@ -570,6 +570,14 @@ def run_appraisal_with_correction(
             progress_callback=progress_callback,
         )
 
+    def save_failed_fn(appraisal_result: dict, validation_result: dict) -> tuple:
+        """Save failed appraisal and validation for debugging."""
+        appraisal_path = file_manager.save_json(appraisal_result, "appraisal", status="failed")
+        validation_path = file_manager.save_json(
+            validation_result, "appraisal_validation", status="failed"
+        )
+        return (appraisal_path, validation_path)
+
     runner = IterativeLoopRunner(
         config=config,
         initial_result=initial_appraisal,
@@ -578,6 +586,7 @@ def run_appraisal_with_correction(
         save_iteration_fn=save_iteration_fn,
         save_best_fn=save_best_fn,
         regenerate_initial_fn=regenerate_initial_fn,
+        save_failed_fn=save_failed_fn,
         progress_callback=progress_callback,
         console_instance=console,
     )

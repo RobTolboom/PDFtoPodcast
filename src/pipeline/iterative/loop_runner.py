@@ -81,6 +81,14 @@ class RegenerateInitialFunc(Protocol):
         ...
 
 
+class SaveFailedFunc(Protocol):
+    """Protocol for saving failed result files for debugging."""
+
+    def __call__(self, result: dict, validation: dict) -> tuple[Path | None, Path | None]:
+        """Save failed result files for debugging, return (result_path, validation_path)."""
+        ...
+
+
 @dataclass
 class IterativeLoopConfig:
     """
@@ -191,6 +199,7 @@ class IterativeLoopRunner:
         save_iteration_fn: SaveIterationFunc | None = None,
         save_best_fn: SaveBestFunc | None = None,
         regenerate_initial_fn: RegenerateInitialFunc | None = None,
+        save_failed_fn: SaveFailedFunc | None = None,
         progress_callback: Callable | None = None,
         console_instance: Console | None = None,
         check_schema_quality: bool = True,
@@ -207,6 +216,7 @@ class IterativeLoopRunner:
             save_iteration_fn: Optional function to save iteration files
             save_best_fn: Optional function to save best result files
             regenerate_initial_fn: Optional function to regenerate initial result on schema failure
+            save_failed_fn: Optional function to save failed results for debugging
             progress_callback: Optional callback for progress updates
             console_instance: Console for output (uses default if None)
             check_schema_quality: Whether to check schema quality threshold
@@ -219,6 +229,7 @@ class IterativeLoopRunner:
         self.save_iteration_fn = save_iteration_fn
         self.save_best_fn = save_best_fn
         self.regenerate_initial_fn = regenerate_initial_fn
+        self.save_failed_fn = save_failed_fn
         self.progress_callback = progress_callback
         self.console = console_instance or console
         self.check_schema_quality = check_schema_quality
@@ -287,6 +298,12 @@ class IterativeLoopRunner:
                                         self.console.print(
                                             f"[red]Max initial retries "
                                             f"({self.config.max_initial_retries}) reached[/red]"
+                                        )
+                                    # Save failed result for debugging
+                                    if self.save_failed_fn:
+                                        self.save_failed_fn(current_result, validation_result)
+                                        self.console.print(
+                                            "[dim]Saved failed result for debugging[/dim]"
                                         )
                                     return self._create_schema_failure_result(
                                         validation_result, iteration_num, schema_quality
@@ -377,6 +394,10 @@ class IterativeLoopRunner:
                             # Return best result we have so far
                             if self.tracker.iteration_count > 0:
                                 return self._create_max_iterations_result()
+                            # Save failed result for debugging
+                            if self.save_failed_fn:
+                                self.save_failed_fn(corrected_result, corrected_validation)
+                                self.console.print("[dim]Saved failed result for debugging[/dim]")
                             return self._create_schema_failure_result(
                                 corrected_validation, iteration_num, schema_quality
                             )
