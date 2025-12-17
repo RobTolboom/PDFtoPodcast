@@ -15,6 +15,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - After max retries reached, returns best result from tracker instead of hanging
   - Schema quality check now runs after every correction, not just initial validation
 
+- **Initial Result Schema Retry** - Added retry support for initial result schema failures
+  - Added `max_initial_retries` config option (default: 2) to `IterativeLoopConfig`
+  - Added `regenerate_initial_fn` callback to `IterativeLoopRunner` for regenerating failed initial results
+  - Integrated regenerate callback in `appraisal.py` for retrying failed appraisals
+  - When initial appraisal fails schema validation, it's regenerated up to max retries
+
+- **Display NoneType Crash** - Fixed crash when schema validation fails and best_result is None
+  - Changed `result.get("best_appraisal", {})` to `result.get("best_appraisal") or {}` pattern
+  - Applied same fix to `best_validation` in `execution_results.py`
+  - Prevents `TypeError: argument of type 'NoneType' is not iterable` on schema failures
+
 ### Changed
 
 - **Documentation** - Added docstrings for render CLI, pipeline entrypoint, and rendering helpers

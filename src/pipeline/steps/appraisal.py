@@ -560,6 +560,16 @@ def run_appraisal_with_correction(
     def save_best_fn(appraisal_result: dict, validation_result: dict) -> tuple:
         return file_manager.save_best_appraisal(appraisal_result, validation_result)
 
+    def regenerate_initial_fn() -> dict:
+        """Regenerate the initial appraisal if it fails schema validation."""
+        return run_appraisal_step(
+            extraction_result=extraction_result,
+            publication_type=publication_type,
+            llm=llm,
+            file_manager=file_manager,
+            progress_callback=progress_callback,
+        )
+
     runner = IterativeLoopRunner(
         config=config,
         initial_result=initial_appraisal,
@@ -567,6 +577,7 @@ def run_appraisal_with_correction(
         correct_fn=correct_fn,
         save_iteration_fn=save_iteration_fn,
         save_best_fn=save_best_fn,
+        regenerate_initial_fn=regenerate_initial_fn,
         progress_callback=progress_callback,
         console_instance=console,
     )
