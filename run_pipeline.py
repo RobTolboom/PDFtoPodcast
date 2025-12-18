@@ -84,6 +84,7 @@ BREAKPOINT_AFTER_STEP = None  # Change this to move breakpoint
 
 
 def main():
+    """CLI entrypoint for the six-step PDF-to-Podcast pipeline."""
     parser = argparse.ArgumentParser(
         description=(
             "PDFtoPodcast Pipeline - Extract structured data from medical research PDFs\n\n"

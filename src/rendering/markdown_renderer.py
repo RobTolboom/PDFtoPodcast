@@ -12,8 +12,7 @@ from typing import Any
 
 
 def _escape_md(text: str) -> str:
-    # Minimal escaping for markdown
-    # Escape characters that have special meaning in Markdown
+    """Minimal Markdown escaping for special characters."""
     special_chars = [
         "\\",
         "`",
@@ -38,6 +37,7 @@ def _escape_md(text: str) -> str:
 
 
 def _render_block(block: dict[str, Any]) -> str:
+    """Render a block (text/callout/table/figure) to markdown."""
     block_type = block.get("type")
     if block_type == "text":
         style = block.get("style", "paragraph")
@@ -77,6 +77,7 @@ def _render_block(block: dict[str, Any]) -> str:
 
 
 def _render_section(section: dict[str, Any], depth: int = 1) -> str:
+    """Render a section and nested subsections to markdown headings + content."""
     hashes = "#" * min(depth, 6)
     title = _escape_md(section.get("title", ""))
     parts = [f"{hashes} {title}"]
