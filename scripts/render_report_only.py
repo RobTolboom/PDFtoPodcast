@@ -1,17 +1,33 @@
+"""
+Offline report renderer: convert an existing report JSON to PDF/HTML/Markdown without LLM calls.
+
+Usage:
+    python scripts/render_report_only.py tmp/<run>/report-best.json --renderer latex
+"""
+
 import argparse
 import json
+import sys
 from pathlib import Path
 
 from rich.console import Console
 
-from src.rendering.latex_renderer import LatexRenderError, render_report_to_pdf
-from src.rendering.markdown_renderer import render_report_to_markdown
-from src.rendering.weasy_renderer import WeasyRendererError, render_report_with_weasyprint
+ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from src.rendering.latex_renderer import LatexRenderError, render_report_to_pdf  # noqa: E402
+from src.rendering.markdown_renderer import render_report_to_markdown  # noqa: E402
+from src.rendering.weasy_renderer import (  # noqa: E402
+    WeasyRendererError,
+    render_report_with_weasyprint,
+)
 
 console = Console()
 
 
 def _load_json_if_exists(path: Path) -> dict | None:
+    """Load JSON from path if present; return None on missing file or parse errors."""
     if not path.exists():
         return None
     try:
@@ -65,6 +81,7 @@ def _figure_data_from_extraction(extraction: dict | None) -> dict:
 
 
 def _figure_data_from_appraisal(appraisal: dict | None) -> dict:
+    """Extract figure data from appraisal JSON (risk of bias traffic light)."""
     if not appraisal:
         return {}
     data: dict[str, dict] = {}
@@ -122,6 +139,7 @@ def _hydrate_figure_blocks(report: dict, base_dir: Path, prefix: str) -> dict:
 def render_report(
     report_path: Path, output_dir: Path, renderer: str, compile_pdf: bool, enable_figures: bool
 ) -> None:
+    """Render report JSON to PDF/HTML/Markdown, hydrating figure data when available."""
     report = json.loads(report_path.read_text())
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -160,6 +178,7 @@ def render_report(
 
 
 def main() -> None:
+    """CLI entrypoint to render an existing report JSON without rerunning the pipeline."""
     parser = argparse.ArgumentParser(
         description="Render an existing report JSON to PDF/HTML/Markdown without LLM calls.",
     )

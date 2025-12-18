@@ -366,6 +366,9 @@ python run_pipeline.py path/to/paper.pdf --step report_generation ^
 
 # Generate podcast script only
 python run_pipeline.py path/to/paper.pdf --step podcast_generation
+
+# Render an existing report JSON (no LLM calls; requires report-best.json etc.)
+python scripts/render_report_only.py tmp/<run>/report-best.json --output-dir tmp/render --renderer latex
 ```
 
 #### Logs & troubleshooting

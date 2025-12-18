@@ -18,6 +18,7 @@ class WeasyRendererError(RuntimeError):
 
 
 def _import_weasyprint():
+    """Import WeasyPrint HTML class or raise a friendly error."""
     try:
         from weasyprint import HTML  # type: ignore
     except Exception as e:
@@ -28,12 +29,14 @@ def _import_weasyprint():
 
 
 def _escape_html(text: str) -> str:
+    """HTML-escape text for safe rendering."""
     import html
 
     return html.escape(text)
 
 
 def _render_block(block: dict[str, Any]) -> str:
+    """Render a single block (text/callout/table/figure) to HTML."""
     block_type = block.get("type")
     if block_type == "text":
         style = block.get("style", "paragraph")
@@ -83,6 +86,7 @@ def _render_block(block: dict[str, Any]) -> str:
 
 
 def _render_section(section: dict[str, Any]) -> str:
+    """Render a section and nested subsections to HTML."""
     title = _escape_html(section.get("title", ""))
     blocks_html = []
     for block in section.get("blocks", []):
@@ -94,6 +98,7 @@ def _render_section(section: dict[str, Any]) -> str:
 
 
 def render_report_to_html(report: dict[str, Any]) -> str:
+    """Render report JSON to a standalone HTML string (no PDF)."""
     sections_html = "".join(_render_section(s) for s in report.get("sections", []))
     language = report.get("layout", {}).get("language", "en")
     return f"""<!DOCTYPE html>
