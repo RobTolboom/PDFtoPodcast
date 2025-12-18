@@ -26,6 +26,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Applied same fix to `best_validation` in `execution_results.py`
   - Prevents `TypeError: argument of type 'NoneType' is not iterable` on schema failures
 
+- **Schema Quality Field Path Mismatch** - Fixed `_get_schema_quality()` looking at wrong field
+  - Was looking for non-existent `schema_validation.quality_score` (always returned 0.0)
+  - Now correctly reads `validation_summary.schema_compliance_score` for appraisal validation
+  - Also supports `verification_summary.schema_compliance_score` for extraction validation
+  - Root cause of false schema failures (e.g., 95% compliance reported as 0%)
+
 ### Added
 
 - **Save Failed Results for Debugging** - Schema validation failures now save results for analysis

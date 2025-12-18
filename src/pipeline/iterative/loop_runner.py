@@ -473,10 +473,17 @@ class IterativeLoopRunner:
     def _get_schema_quality(self, validation_result: dict) -> float:
         """Get schema quality score from validation result.
 
-        Defaults to 0.0 if quality_score is missing (fail-safe behavior).
+        Supports both extraction (verification_summary) and appraisal (validation_summary)
+        validation structures. Defaults to 0.0 if score is missing (fail-safe behavior).
         """
-        schema_validation = validation_result.get("schema_validation", {})
-        return schema_validation.get("quality_score", 0.0)
+        # Try appraisal structure first (validation_summary)
+        validation_summary = validation_result.get("validation_summary", {})
+        if validation_summary:
+            return validation_summary.get("schema_compliance_score", 0.0)
+
+        # Fall back to extraction structure (verification_summary)
+        verification_summary = validation_result.get("verification_summary", {})
+        return verification_summary.get("schema_compliance_score", 0.0)
 
     def _call_progress(self, status: str, iteration: int, step: str) -> None:
         """Call progress callback if available."""
