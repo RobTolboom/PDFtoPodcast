@@ -188,6 +188,10 @@ syntheses
     consistency_assessment: { test_name, p_value, result },
     network_geometry,
     league_table_source,
+    # IMPORTANT: Only use type="network_meta" if you can extract actual pooled_effects
+    # data (treatment comparisons with effect sizes from league tables or forest plots).
+    # If the paper mentions NMA but doesn't report specific pairwise comparisons with
+    # effect estimates, use type="narrative" instead and describe findings in narrative_summary.
     # For narrative:
     narrative_summary,
     source
@@ -290,6 +294,7 @@ FINAL VALIDATION — PRE-FLIGHT CHECKLIST
 11) If metadata.vancouver_citation present, metadata.vancouver_source also present.
 12) No disallowed keys anywhere.
 13) Special characters (≤, ≥, ±, ×, etc.) appear as UTF-8 characters, NOT escape sequences (\u2264) or ASCII alternatives (<=).
+14) For network_meta syntheses: pooled_effects array must be non-empty with actual treatment comparison data. If no pooled_effects data available, use type="narrative" instead.
 
 OUTPUT
 - Emit exactly one JSON object that validates against the evidence_synthesis v2 schema. No extra text.

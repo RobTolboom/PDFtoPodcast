@@ -40,6 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Evidence Synthesis Extraction Prompt Improvements** - Updated prompt to match schema requirements
   - Fixed `sensitivity_analyses`: changed typo `analysis_change` to `analysis_type`, added REQUIRED labels and enum values
   - Fixed `network_meta`: added missing required fields (`treatments`, `reference_treatment`, `model`, `pooled_effects`)
+  - Added guidance to use `narrative` type when `pooled_effects` data not available (prevents empty network_meta)
+  - Added validation checklist item 14 for network_meta pooled_effects requirement
   - Improves LLM schema compliance for evidence synthesis extractions
 
 ### Added
