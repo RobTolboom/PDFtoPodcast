@@ -178,11 +178,16 @@ syntheses
     model ∈ {"fixed"|"random"},
     pooling_method,
     per_study_data[],         # { study_label, effect: {type, point, ci}, weight, source }
-    # For network_meta:
+    # For network_meta - REQUIRED FIELDS:
+    treatments: REQUIRED, array of treatment names (min 2 items),
+    reference_treatment: REQUIRED, the reference/comparator treatment name,
+    model: REQUIRED, one of "fixed" | "random" | "bayesian",
+    pooled_effects: REQUIRED, array of { treatment_a, treatment_b, effect: {type, point, ci} },
+    # Optional network_meta fields:
+    ranking[]: { treatment, metric_name (e.g. "SUCRA"), value },
+    consistency_assessment: { test_name, p_value, result },
     network_geometry,
-    treatment_rankings[],
     league_table_source,
-    consistency_assessment,
     # For narrative:
     narrative_summary,
     source
@@ -224,14 +229,13 @@ publication_bias
   }
 
 sensitivity_analyses
-- Array of: {
-    label,
-    analysis_change,
-    outcome_id,
-    effect: { type, point, ci },
-    heterogeneity,
-    conclusion_changed: true/false,
-    source
+- Array of sensitivity analyses. Each item REQUIRES these fields:
+    analysis_type: REQUIRED, one of "leave_one_out" | "fixed_vs_random" | "alternative_effect_measure" | "risk_of_bias_restriction" | "imputation_method" | "outlier_exclusion" | "subgroup_exclusion" | "publication_year_restriction" | "other",
+    outcome_id: REQUIRED, must reference an existing outcome_id from outcomes[],
+    # Optional fields:
+    description,
+    result: { effect: {type, point, ci}, heterogeneity, conclusion_changed: true/false },
+    source: { page, anchor }
   }
 
 tables_parsed

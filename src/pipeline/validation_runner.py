@@ -142,7 +142,7 @@ Verify the extracted data against the original PDF document. Check for hallucina
                 "schema_validation": schema_validation,
                 "verification_summary": {
                     **llm_validation.get("verification_summary", {}),
-                    "schema_compliance": schema_validation["quality_score"],
+                    "schema_compliance_score": schema_validation["quality_score"],
                 },
             }
 
@@ -173,7 +173,7 @@ Verify the extracted data against the original PDF document. Check for hallucina
                 "schema_validation": schema_validation,
                 "verification_summary": {
                     "overall_status": "failed",
-                    "schema_compliance": schema_validation["quality_score"],
+                    "schema_compliance_score": schema_validation["quality_score"],
                 },
                 "quality_assessment": "Schema validation failed. Skipped LLM validation for efficiency.",
                 "recommendations": [

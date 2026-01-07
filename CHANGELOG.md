@@ -32,6 +32,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Also supports `verification_summary.schema_compliance_score` for extraction validation
   - Root cause of false schema failures (e.g., 95% compliance reported as 0%)
 
+- **Validation Runner Schema Compliance Key Mismatch** - Fixed `validation_runner.py` setting wrong key
+  - Was setting `schema_compliance` but `loop_runner.py` reads `schema_compliance_score`
+  - Caused schema quality to always be 0.0 in retry logic, even when actual score was higher (e.g., 37.1%)
+  - Now correctly sets `schema_compliance_score` in both LLM and schema-only validation paths
+
+- **Evidence Synthesis Extraction Prompt Improvements** - Updated prompt to match schema requirements
+  - Fixed `sensitivity_analyses`: changed typo `analysis_change` to `analysis_type`, added REQUIRED labels and enum values
+  - Fixed `network_meta`: added missing required fields (`treatments`, `reference_treatment`, `model`, `pooled_effects`)
+  - Improves LLM schema compliance for evidence synthesis extractions
+
 ### Added
 
 - **Save Failed Results for Debugging** - Schema validation failures now save results for analysis
