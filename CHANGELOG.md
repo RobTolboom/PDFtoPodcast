@@ -46,6 +46,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **CLI `--output` Flag** - Control which outputs to generate from the pipeline
+  - `--output podcast` - Run all steps but skip report generation (faster for podcast-only workflows)
+  - `--output report` - Run all steps but skip podcast generation
+  - `--output both` - Generate both report and podcast (default, existing behavior)
+  - Pipeline steps table shows which outputs are skipped with ⏭️ indicator
+  - Added `skip_report` and `skip_podcast` parameters to `run_full_pipeline()`
+
 - **Save Failed Results for Debugging** - Schema validation failures now save results for analysis
   - Added `save_failed_fn` callback to `IterativeLoopRunner` for saving failed results
   - Failed appraisal and validation are saved with `-failed` suffix (e.g., `paper-appraisal-failed.json`)
