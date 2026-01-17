@@ -7,8 +7,81 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Off-by-One Bug in Retry Logic** - Fixed retry count being one less than configured
+  - Changed `>=` to `>` in retry limit checks for both initial and correction retries
+  - With `max_initial_retries=2`, now correctly allows 2 retries (3 total attempts)
+  - With `max_correction_retries=2`, now correctly allows 2 retries per correction step
+
+- **Correction Retry Counter Scope Bug** - Fixed retry count accumulating across iterations
+  - `correction_retry_count` was persisting across loop iterations, causing premature failures
+  - Now resets to 0 at the start of each correction step
+  - Each iteration gets its full retry budget independently
+
+- **Inconsistent save_failed_fn Behavior** - Fixed failed results not being saved consistently
+  - `save_failed_fn` was only called when `iteration_count == 0`
+  - Now always saves failed results before returning, regardless of iteration history
+  - Improves debugging by ensuring failed corrections are always captured
+
+- **Field Path Check in _get_schema_quality()** - Made key existence check explicit
+  - Changed `if validation_summary:` (True for empty dict) to `if "validation_summary" in validation_result:`
+  - Prevents incorrect fallback to extraction structure when appraisal structure is present but empty
+
+- **Iterative Loop Hang on Schema Failure** - Fixed bug where correction failures caused infinite loops
+  - Added `max_correction_retries` config option (default: 2) to `IterativeLoopConfig`
+  - When correction produces invalid schema, loop now retries from last good iteration
+  - After max retries reached, returns best result from tracker instead of hanging
+  - Schema quality check now runs after every correction, not just initial validation
+
+- **Initial Result Schema Retry** - Added retry support for initial result schema failures
+  - Added `max_initial_retries` config option (default: 2) to `IterativeLoopConfig`
+  - Added `regenerate_initial_fn` callback to `IterativeLoopRunner` for regenerating failed initial results
+  - Integrated regenerate callback in `appraisal.py` for retrying failed appraisals
+  - When initial appraisal fails schema validation, it's regenerated up to max retries
+
+- **Display NoneType Crash** - Fixed crash when schema validation fails and best_result is None
+  - Changed `result.get("best_appraisal", {})` to `result.get("best_appraisal") or {}` pattern
+  - Applied same fix to `best_validation` in `execution_results.py`
+  - Prevents `TypeError: argument of type 'NoneType' is not iterable` on schema failures
+
+- **Schema Quality Field Path Mismatch** - Fixed `_get_schema_quality()` looking at wrong field
+  - Was looking for non-existent `schema_validation.quality_score` (always returned 0.0)
+  - Now correctly reads `validation_summary.schema_compliance_score` for appraisal validation
+  - Also supports `verification_summary.schema_compliance_score` for extraction validation
+  - Root cause of false schema failures (e.g., 95% compliance reported as 0%)
+
+- **Validation Runner Schema Compliance Key Mismatch** - Fixed `validation_runner.py` setting wrong key
+  - Was setting `schema_compliance` but `loop_runner.py` reads `schema_compliance_score`
+  - Caused schema quality to always be 0.0 in retry logic, even when actual score was higher (e.g., 37.1%)
+  - Now correctly sets `schema_compliance_score` in both LLM and schema-only validation paths
+
+- **Evidence Synthesis Extraction Prompt Improvements** - Updated prompt to match schema requirements
+  - Fixed `sensitivity_analyses`: changed typo `analysis_change` to `analysis_type`, added REQUIRED labels and enum values
+  - Fixed `network_meta`: added missing required fields (`treatments`, `reference_treatment`, `model`, `pooled_effects`)
+  - Added guidance to use `narrative` type when `pooled_effects` data not available (prevents empty network_meta)
+  - Added validation checklist item 14 for network_meta pooled_effects requirement
+  - Improves LLM schema compliance for evidence synthesis extractions
+
+### Added
+
+- **CLI `--output` Flag** - Control which outputs to generate from the pipeline
+  - `--output podcast` - Run all steps but skip report generation (faster for podcast-only workflows)
+  - `--output report` - Run all steps but skip podcast generation
+  - `--output both` - Generate both report and podcast (default, existing behavior)
+  - Pipeline steps table shows which outputs are skipped with ⏭️ indicator
+  - Added `skip_report` and `skip_podcast` parameters to `run_full_pipeline()`
+
+- **Save Failed Results for Debugging** - Schema validation failures now save results for analysis
+  - Added `save_failed_fn` callback to `IterativeLoopRunner` for saving failed results
+  - Failed appraisal and validation are saved with `-failed` suffix (e.g., `paper-appraisal-failed.json`)
+  - Console message indicates when failed results are saved
+  - Enables debugging of LLM output when schema validation fails
+
 ### Changed
 
+- **Documentation** - Added docstrings for render CLI, pipeline entrypoint, and rendering helpers
+- **Utilities** - Moved `render_report_only.py` to `scripts/` and added repo-root import shim for standalone use
 - **Codebase Refactoring Phase 9: Streamlit Display Modularization** - Split large display module
   - Created `execution_artifacts.py` (~120 lines) for report/podcast download buttons
   - Created `execution_results.py` (~450 lines) for step result displays

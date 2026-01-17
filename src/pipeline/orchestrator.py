@@ -886,6 +886,8 @@ def run_full_pipeline(
     report_compile_pdf: bool = True,
     report_enable_figures: bool = True,
     progress_callback: Callable[[str, str, dict], None] | None = None,
+    skip_report: bool = False,
+    skip_podcast: bool = False,
 ) -> dict[str, Any]:
     """
     Full extraction-and-appraisal pipeline with optional step filtering.
@@ -911,6 +913,8 @@ def run_full_pipeline(
         report_renderer: Renderer for reports ("latex" or "weasyprint")
         report_compile_pdf: Compile PDF when renderer supports it (LaTeX)
         report_enable_figures: Enable/disable figure generation in reports
+        skip_report: Skip report generation step (default: False)
+        skip_podcast: Skip podcast generation step (default: False)
         progress_callback: Optional callback for progress updates.
             Signature: callback(step_name: str, status: str, data: dict)
             - step_name: "classification" | "extraction" | "validation_correction" | "appraisal"
@@ -983,6 +987,22 @@ def run_full_pipeline(
                     "Classification cannot be skipped - required for all other steps"
                 )
 
+            continue
+
+        # Skip report generation if skip_report is True
+        if step_name == STEP_REPORT_GENERATION and skip_report:
+            _call_progress_callback(
+                progress_callback, step_name, "skipped", {"reason": "skip_report flag"}
+            )
+            console.print("[yellow]⏭️  Report generation skipped (--output podcast)[/yellow]")
+            continue
+
+        # Skip podcast generation if skip_podcast is True
+        if step_name == STEP_PODCAST_GENERATION and skip_podcast:
+            _call_progress_callback(
+                progress_callback, step_name, "skipped", {"reason": "skip_podcast flag"}
+            )
+            console.print("[yellow]⏭️  Podcast generation skipped (--output report)[/yellow]")
             continue
 
         # Special handling for correction - skip if validation passed

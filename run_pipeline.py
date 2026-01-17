@@ -222,6 +222,12 @@ def main():
         default=0.95,
         help="Minimum schema compliance score for appraisal (default: 0.95)",
     )
+    parser.add_argument(
+        "--output",
+        choices=["podcast", "report", "both"],
+        default="both",
+        help="Output type: 'podcast' (skip report), 'report' (skip podcast), 'both' (default)",
+    )
     args = parser.parse_args()
 
     pdf_path = Path(args.pdf)
@@ -427,12 +433,14 @@ def main():
             ("2. Data extractie", ""),
             ("3. Validatie & Correctie", ""),
             ("4. Critical Appraisal", ""),
-            ("5. Rapportgeneratie", ""),
-            ("6. Podcast generatie", ""),
+            ("5. Rapportgeneratie", "⏭️" if args.output == "podcast" else ""),
+            ("6. Podcast generatie", "⏭️" if args.output == "report" else ""),
         ]
         for s, st in steps:
             table.add_row(s, st)
         console.print(table)
+        if args.output != "both":
+            console.print(f"[dim]Output mode: {args.output} (⏭️ = skipped)[/dim]")
 
         # Run the six-step pipeline with selected LLM provider
         with console.status(
@@ -448,6 +456,8 @@ def main():
                 report_renderer=args.report_renderer,
                 report_compile_pdf=args.report_compile_pdf,
                 report_enable_figures=args.report_enable_figures,
+                skip_report=(args.output == "podcast"),
+                skip_podcast=(args.output == "report"),
             )
 
     # Show detailed summary

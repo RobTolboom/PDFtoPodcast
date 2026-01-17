@@ -276,7 +276,8 @@ class TestIterativeLoopRunner:
             show_banner=False,
         )
 
-        validation_schema_fail = self._create_validation_result(schema_quality=0.3)
+        # Low schema_compliance triggers schema failure (schema_compliance_score is read by _get_schema_quality)
+        validation_schema_fail = self._create_validation_result(schema_compliance=0.3)
 
         validate_fn = MagicMock(return_value=validation_schema_fail)
         correct_fn = MagicMock()
@@ -412,6 +413,292 @@ class TestIterativeLoopRunner:
         assert len(result.improvement_trajectory) == 3
         # Quality should improve
         assert result.improvement_trajectory[-1] > result.improvement_trajectory[0]
+
+    def test_save_failed_fn_called_on_schema_failure(self):
+        """Test that save_failed_fn is called when schema validation fails."""
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            show_banner=False,
+        )
+
+        # Low schema_compliance triggers schema failure
+        validation_schema_fail = self._create_validation_result(schema_compliance=0.3)
+
+        validate_fn = MagicMock(return_value=validation_schema_fail)
+        correct_fn = MagicMock()
+        save_failed_fn = MagicMock(
+            return_value=(Path("/tmp/failed.json"), Path("/tmp/failed_val.json"))
+        )
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            check_schema_quality=True,
+            schema_quality_threshold=0.5,
+            save_failed_fn=save_failed_fn,
+        )
+        result = runner.run()
+
+        assert result.final_status == FINAL_STATUS_FAILED_SCHEMA
+        assert save_failed_fn.call_count == 1
+        # Verify correct arguments passed
+        save_failed_fn.assert_called_once_with({"data": "test"}, validation_schema_fail)
+
+    def test_initial_retry_exhaustion(self):
+        """Test that initial retry exhaustion returns schema failure."""
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            max_initial_retries=2,
+            show_banner=False,
+        )
+
+        # Low schema_compliance triggers schema failure
+        validation_schema_fail = self._create_validation_result(schema_compliance=0.3)
+
+        validate_fn = MagicMock(return_value=validation_schema_fail)
+        correct_fn = MagicMock()
+        regenerate_initial_fn = MagicMock(return_value={"data": "regenerated"})
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            regenerate_initial_fn=regenerate_initial_fn,
+            check_schema_quality=True,
+            schema_quality_threshold=0.5,
+        )
+        result = runner.run()
+
+        assert result.final_status == FINAL_STATUS_FAILED_SCHEMA
+        # With max_initial_retries=2 and the off-by-one fix (> instead of >=),
+        # we get exactly 2 regenerate calls (original + 2 retries = 3 attempts)
+        assert regenerate_initial_fn.call_count == 2
+        # Correct should not have been called (never passed schema check)
+        assert correct_fn.call_count == 0
+
+    def test_initial_retry_success_on_second_attempt(self):
+        """Test that initial retry succeeds on second attempt."""
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            max_initial_retries=2,
+            show_banner=False,
+        )
+
+        validation_schema_fail = self._create_validation_result(schema_compliance=0.3)
+        validation_pass = self._create_validation_result(
+            completeness=0.95, accuracy=0.98, schema_compliance=0.97
+        )
+
+        # First validation fails, second succeeds
+        validate_fn = MagicMock(side_effect=[validation_schema_fail, validation_pass])
+        correct_fn = MagicMock()
+        regenerate_initial_fn = MagicMock(return_value={"data": "regenerated"})
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            regenerate_initial_fn=regenerate_initial_fn,
+            check_schema_quality=True,
+            schema_quality_threshold=0.5,
+        )
+        result = runner.run()
+
+        assert result.final_status == FINAL_STATUS_PASSED
+        assert regenerate_initial_fn.call_count == 1
+        assert result.best_result == {"data": "regenerated"}
+
+    def test_correction_retry_exhaustion(self):
+        """Test that correction retry exhaustion returns max iterations result."""
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            max_correction_retries=2,
+            show_banner=False,
+        )
+
+        # Initial validation passes schema check but needs correction
+        validation_needs_correction = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.90
+        )
+        # Correction produces result that fails schema check
+        validation_correction_fail = self._create_validation_result(schema_compliance=0.3)
+
+        validate_fn = MagicMock(
+            side_effect=[validation_needs_correction] + [validation_correction_fail] * 10
+        )
+        correct_fn = MagicMock(return_value={"data": "corrected"})
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            check_schema_quality=True,
+            schema_quality_threshold=0.5,
+        )
+        result = runner.run()
+
+        # Should return max iterations since correction retries exhausted
+        assert result.final_status == FINAL_STATUS_MAX_ITERATIONS
+        # Correct should have been called (retries happen)
+        assert correct_fn.call_count >= 1
+
+    def test_correction_retry_count_resets_per_iteration(self):
+        """Test that correction retry count resets for each new iteration.
+
+        This verifies the fix for the bug where correction_retry_count persisted
+        across iterations, causing premature max retry failures.
+
+        Scenario:
+        - Iteration 0: Initial passes, correction fails once then succeeds
+        - Iteration 1: Correction fails once then succeeds
+        - Iteration 2: Quality passes
+
+        Without the fix, the retry count would accumulate across iterations.
+        With the fix, each iteration starts with retry_count=0.
+        """
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=5,
+            max_correction_retries=2,
+            show_banner=False,
+        )
+
+        # Initial validation needs correction (good schema, low quality)
+        validation_needs_correction = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.90
+        )
+        # Correction fails schema first time
+        validation_correction_fail = self._create_validation_result(schema_compliance=0.3)
+        # Correction succeeds on retry (good schema, still needs more correction)
+        validation_correction_retry_ok = self._create_validation_result(
+            completeness=0.85, accuracy=0.87, schema_compliance=0.92
+        )
+        # Final pass
+        validation_pass = self._create_validation_result(
+            completeness=0.95, accuracy=0.98, schema_compliance=0.97
+        )
+
+        # Sequence:
+        # 1. iter 0: validate initial -> needs correction
+        # 2. iter 0: correct -> validate -> schema fail
+        # 3. iter 0: retry correct -> validate -> ok but needs more
+        # 4. iter 1: reuse validation from step 3 (correction result)
+        # 5. iter 1: correct -> validate -> schema fail
+        # 6. iter 1: retry correct -> validate -> ok but needs more
+        # 7. iter 2: reuse validation, correct -> validate -> pass
+        validate_fn = MagicMock(
+            side_effect=[
+                validation_needs_correction,  # iter 0 initial
+                validation_correction_fail,  # iter 0 correction 1
+                validation_correction_retry_ok,  # iter 0 correction retry
+                validation_correction_fail,  # iter 1 correction 1
+                validation_correction_retry_ok,  # iter 1 correction retry
+                validation_pass,  # iter 2 correction -> pass
+            ]
+        )
+        correct_fn = MagicMock(return_value={"data": "corrected"})
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            check_schema_quality=True,
+            schema_quality_threshold=0.5,
+        )
+        result = runner.run()
+
+        # Should pass because retry count resets per iteration
+        assert result.final_status == FINAL_STATUS_PASSED
+        # Multiple corrections should have been called
+        assert correct_fn.call_count >= 3
+
+    def test_save_failed_fn_called_on_correction_retry_exhaustion_with_history(self):
+        """Test that save_failed_fn is called even when iteration_count > 0.
+
+        This verifies the fix for inconsistent save_failed_fn behavior.
+        Previously, save_failed_fn was only called when iteration_count == 0.
+        """
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            max_correction_retries=1,
+            show_banner=False,
+        )
+
+        # First validation passes schema but needs correction
+        validation_needs_correction = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.90
+        )
+        # Correction always fails schema
+        validation_correction_fail = self._create_validation_result(schema_compliance=0.3)
+
+        validate_fn = MagicMock(
+            side_effect=[validation_needs_correction] + [validation_correction_fail] * 10
+        )
+        correct_fn = MagicMock(return_value={"data": "corrected"})
+        save_failed_fn = MagicMock(
+            return_value=(Path("/tmp/failed.json"), Path("/tmp/failed_val.json"))
+        )
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            check_schema_quality=True,
+            schema_quality_threshold=0.5,
+            save_failed_fn=save_failed_fn,
+        )
+        result = runner.run()
+
+        # Should return max iterations (we have history from iteration 0)
+        assert result.final_status == FINAL_STATUS_MAX_ITERATIONS
+        # save_failed_fn MUST be called even though iteration_count > 0
+        assert save_failed_fn.call_count >= 1
+
+    def test_initial_retry_allows_full_retry_count(self):
+        """Test that max_initial_retries=2 allows exactly 2 retries (3 total attempts).
+
+        This verifies the off-by-one fix where >= was changed to >.
+        """
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            max_initial_retries=2,
+            show_banner=False,
+        )
+
+        validation_schema_fail = self._create_validation_result(schema_compliance=0.3)
+
+        validate_fn = MagicMock(return_value=validation_schema_fail)
+        correct_fn = MagicMock()
+        regenerate_initial_fn = MagicMock(return_value={"data": "regenerated"})
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            regenerate_initial_fn=regenerate_initial_fn,
+            check_schema_quality=True,
+            schema_quality_threshold=0.5,
+        )
+        result = runner.run()
+
+        assert result.final_status == FINAL_STATUS_FAILED_SCHEMA
+        # With max_initial_retries=2, we should get exactly 2 regenerate calls
+        # (original attempt + 2 retries = 3 attempts, but 2 regenerates)
+        assert regenerate_initial_fn.call_count == 2
 
 
 class TestIterativeLoopRunnerAppraisal:

@@ -73,6 +73,22 @@ class SaveBestFunc(Protocol):
         ...
 
 
+class RegenerateInitialFunc(Protocol):
+    """Protocol for regenerating the initial result when it fails schema validation."""
+
+    def __call__(self) -> dict:
+        """Regenerate the initial result."""
+        ...
+
+
+class SaveFailedFunc(Protocol):
+    """Protocol for saving failed result files for debugging."""
+
+    def __call__(self, result: dict, validation: dict) -> tuple[Path | None, Path | None]:
+        """Save failed result files for debugging, return (result_path, validation_path)."""
+        ...
+
+
 @dataclass
 class IterativeLoopConfig:
     """
@@ -86,6 +102,8 @@ class IterativeLoopConfig:
         step_name: Display name for the step (e.g., "VALIDATION & CORRECTION")
         result_key: Key name for result in output (e.g., "best_extraction")
         quality_score_key: Key for quality score display (e.g., "overall_quality")
+        max_correction_retries: Max retries when correction fails schema validation
+        max_initial_retries: Max retries when initial result fails schema validation
     """
 
     metric_type: MetricType
@@ -97,6 +115,8 @@ class IterativeLoopConfig:
     quality_score_key: str = "quality_score"
     show_banner: bool = True
     step_number: int = 3  # For display purposes
+    max_correction_retries: int = 2  # Max retries per correction when schema fails
+    max_initial_retries: int = 2  # Max retries for initial result schema failure
 
 
 @dataclass
@@ -178,6 +198,8 @@ class IterativeLoopRunner:
         correct_fn: CorrectFunc,
         save_iteration_fn: SaveIterationFunc | None = None,
         save_best_fn: SaveBestFunc | None = None,
+        regenerate_initial_fn: RegenerateInitialFunc | None = None,
+        save_failed_fn: SaveFailedFunc | None = None,
         progress_callback: Callable | None = None,
         console_instance: Console | None = None,
         check_schema_quality: bool = True,
@@ -193,6 +215,8 @@ class IterativeLoopRunner:
             correct_fn: Function to correct a result based on validation
             save_iteration_fn: Optional function to save iteration files
             save_best_fn: Optional function to save best result files
+            regenerate_initial_fn: Optional function to regenerate initial result on schema failure
+            save_failed_fn: Optional function to save failed results for debugging
             progress_callback: Optional callback for progress updates
             console_instance: Console for output (uses default if None)
             check_schema_quality: Whether to check schema quality threshold
@@ -204,6 +228,8 @@ class IterativeLoopRunner:
         self.correct_fn = correct_fn
         self.save_iteration_fn = save_iteration_fn
         self.save_best_fn = save_best_fn
+        self.regenerate_initial_fn = regenerate_initial_fn
+        self.save_failed_fn = save_failed_fn
         self.progress_callback = progress_callback
         self.console = console_instance or console
         self.check_schema_quality = check_schema_quality
@@ -229,6 +255,11 @@ class IterativeLoopRunner:
         current_validation = None
         iteration_num = 0
 
+        # Track last good result/validation for retry on schema failure
+        last_good_result = self.initial_result
+        last_good_validation: dict | None = None
+        correction_retry_count = 0
+
         # Display header
         if self.config.show_banner:
             self._display_header()
@@ -243,15 +274,56 @@ class IterativeLoopRunner:
 
                 # STEP 1: Validate current result
                 if current_validation is None:
-                    validation_result = self.validate_fn(current_result)
+                    # Initial validation with retry support for schema failures
+                    initial_retry_count = 0
+                    while True:
+                        validation_result = self.validate_fn(current_result)
 
-                    # Check schema quality (critical failure)
-                    if self.check_schema_quality:
-                        schema_quality = self._get_schema_quality(validation_result)
-                        if schema_quality < self.schema_quality_threshold:
-                            return self._create_schema_failure_result(
-                                validation_result, iteration_num, schema_quality
-                            )
+                        # Check schema quality (critical failure)
+                        if self.check_schema_quality:
+                            schema_quality = self._get_schema_quality(validation_result)
+                            if schema_quality < self.schema_quality_threshold:
+                                initial_retry_count += 1
+                                self.console.print(
+                                    f"[red]Initial result failed schema validation "
+                                    f"(quality: {schema_quality:.2f})[/red]"
+                                )
+
+                                # Can we retry?
+                                if (
+                                    initial_retry_count > self.config.max_initial_retries
+                                    or self.regenerate_initial_fn is None
+                                ):
+                                    if initial_retry_count >= self.config.max_initial_retries:
+                                        self.console.print(
+                                            f"[red]Max initial retries "
+                                            f"({self.config.max_initial_retries}) reached[/red]"
+                                        )
+                                    # Save failed result for debugging
+                                    if self.save_failed_fn:
+                                        self.save_failed_fn(current_result, validation_result)
+                                        self.console.print(
+                                            "[dim]Saved failed result for debugging[/dim]"
+                                        )
+                                    return self._create_schema_failure_result(
+                                        validation_result, iteration_num, schema_quality
+                                    )
+
+                                # Retry: regenerate initial result
+                                self.console.print(
+                                    f"[yellow]Retrying initial generation "
+                                    f"(retry {initial_retry_count}/"
+                                    f"{self.config.max_initial_retries})...[/yellow]"
+                                )
+                                current_result = self.regenerate_initial_fn()
+                                continue  # Retry validation
+
+                        # Schema check passed, exit retry loop
+                        break
+
+                    # Update last good after successful schema validation
+                    last_good_result = current_result
+                    last_good_validation = validation_result
 
                     # Save iteration files
                     if self.save_iteration_fn:
@@ -294,6 +366,11 @@ class IterativeLoopRunner:
                     return self._create_max_iterations_result()
 
                 # STEP 5: Run correction
+                # Reset correction retry count only for NEW corrections (not retries)
+                # We detect a retry by checking if we reused the validation (current_validation was not None)
+                is_retry = current_validation is not None
+                if not is_retry:
+                    correction_retry_count = 0
                 self._call_progress("starting", iteration_num, "correction")
                 self.console.print(
                     f"\n[yellow]Running correction (iteration {iteration_num})...[/yellow]"
@@ -303,6 +380,47 @@ class IterativeLoopRunner:
 
                 # Validate corrected result immediately
                 corrected_validation = self.validate_fn(corrected_result)
+
+                # Check schema quality of correction
+                if self.check_schema_quality:
+                    schema_quality = self._get_schema_quality(corrected_validation)
+                    if schema_quality < self.schema_quality_threshold:
+                        correction_retry_count += 1
+                        self.console.print(
+                            f"[red]Correction failed schema validation "
+                            f"(quality: {schema_quality:.2f})[/red]"
+                        )
+
+                        if correction_retry_count > self.config.max_correction_retries:
+                            self.console.print(
+                                f"[red]Max correction retries "
+                                f"({self.config.max_correction_retries}) reached[/red]"
+                            )
+                            # Always save failed result for debugging
+                            if self.save_failed_fn:
+                                self.save_failed_fn(corrected_result, corrected_validation)
+                                self.console.print("[dim]Saved failed result for debugging[/dim]")
+                            # Return best result we have so far, or fail
+                            if self.tracker.iteration_count > 0:
+                                return self._create_max_iterations_result()
+                            return self._create_schema_failure_result(
+                                corrected_validation, iteration_num, schema_quality
+                            )
+
+                        # Retry: reset to last good and try again
+                        self.console.print(
+                            f"[yellow]Retrying correction from last good iteration "
+                            f"(retry {correction_retry_count}/"
+                            f"{self.config.max_correction_retries})...[/yellow]"
+                        )
+                        current_result = last_good_result
+                        current_validation = last_good_validation
+                        iteration_num += 1
+                        continue  # Retry the loop
+
+                # Correction succeeded - update last good state
+                last_good_result = corrected_result
+                last_good_validation = corrected_validation
 
                 # Save corrected iteration
                 if self.save_iteration_fn:
@@ -359,10 +477,19 @@ class IterativeLoopRunner:
     def _get_schema_quality(self, validation_result: dict) -> float:
         """Get schema quality score from validation result.
 
-        Defaults to 0.0 if quality_score is missing (fail-safe behavior).
+        Supports both extraction (verification_summary) and appraisal (validation_summary)
+        validation structures. Defaults to 0.0 if score is missing (fail-safe behavior).
         """
-        schema_validation = validation_result.get("schema_validation", {})
-        return schema_validation.get("quality_score", 0.0)
+        # Try appraisal structure first (validation_summary)
+        if "validation_summary" in validation_result:
+            return validation_result["validation_summary"].get("schema_compliance_score", 0.0)
+
+        # Fall back to extraction structure (verification_summary)
+        if "verification_summary" in validation_result:
+            return validation_result["verification_summary"].get("schema_compliance_score", 0.0)
+
+        # No known structure found - fail-safe
+        return 0.0
 
     def _call_progress(self, status: str, iteration: int, step: str) -> None:
         """Call progress callback if available."""

@@ -64,7 +64,7 @@ _extract_report_metrics = extract_report_metrics_as_dict
 
 def _detect_quality_degradation(iterations: list[dict], window: int = 2) -> bool:
     """Detect if quality has been degrading for the last N iterations."""
-    return _detect_quality_degradation_new(iterations, window, MetricType.REPORT)
+    return _detect_quality_degradation_new(iterations, window)
 
 
 def _select_best_report_iteration(iterations: list[dict]) -> dict:

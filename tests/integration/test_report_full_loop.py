@@ -200,6 +200,7 @@ def mock_validation_passed():
     """Mock validation report with passing quality."""
     return {
         "validation_version": "v1.0",
+        "schema_validation": {"quality_score": 0.98},
         "validation_summary": {
             "overall_status": "passed",
             "completeness_score": 0.92,
@@ -219,6 +220,7 @@ def mock_validation_failed():
     """Mock validation report with failing quality."""
     return {
         "validation_version": "v1.0",
+        "schema_validation": {"quality_score": 0.90},
         "validation_summary": {
             "overall_status": "failed",
             "completeness_score": 0.70,  # Below threshold
@@ -304,7 +306,7 @@ class TestReportFullLoop:
         mock_validation_passed,
     ):
         """Test report that passes quality check on first iteration."""
-        with patch("src.pipeline.orchestrator.get_llm_provider") as mock_get_provider:
+        with patch("src.pipeline.steps.report.get_llm_provider") as mock_get_provider:
             # Setup mock LLM
             mock_llm = Mock()
             mock_llm.generate_json_with_schema.side_effect = [
@@ -351,7 +353,7 @@ class TestReportFullLoop:
         mock_validation_improved,
     ):
         """Test report that requires correction to meet quality thresholds."""
-        with patch("src.pipeline.orchestrator.get_llm_provider") as mock_get_provider:
+        with patch("src.pipeline.steps.report.get_llm_provider") as mock_get_provider:
             # Setup mock LLM
             mock_llm = Mock()
             mock_llm.generate_json_with_schema.side_effect = [
@@ -400,7 +402,7 @@ class TestReportFullLoop:
         mock_corrected_report,
     ):
         """Test that loop stops at max_iterations even if quality not met."""
-        with patch("src.pipeline.orchestrator.get_llm_provider") as mock_get_provider:
+        with patch("src.pipeline.steps.report.get_llm_provider") as mock_get_provider:
             # Setup mock LLM - all validations fail
             mock_llm = Mock()
             mock_llm.generate_json_with_schema.side_effect = [
@@ -446,7 +448,7 @@ class TestReportFullLoop:
         mock_corrected_report,
     ):
         """Test early stopping when quality degrades."""
-        with patch("src.pipeline.orchestrator.get_llm_provider") as mock_get_provider:
+        with patch("src.pipeline.steps.report.get_llm_provider") as mock_get_provider:
             # Setup mock LLM
             validation_degraded = {
                 "validation_version": "v1.0",
@@ -501,7 +503,7 @@ class TestReportFullLoop:
         low_quality_extraction = deepcopy(mock_extraction_interventional)
         low_quality_extraction["quality_score"] = 0.65
 
-        with patch("src.pipeline.orchestrator.get_llm_provider") as mock_get_provider:
+        with patch("src.pipeline.steps.report.get_llm_provider") as mock_get_provider:
             mock_llm = Mock()
             mock_get_provider.return_value = mock_llm
 
@@ -534,7 +536,7 @@ class TestReportFullLoop:
         bad_appraisal["final_status"] = "failed_schema_validation"
         bad_appraisal["risk_of_bias"] = None
 
-        with patch("src.pipeline.orchestrator.get_llm_provider") as mock_get_provider:
+        with patch("src.pipeline.steps.report.get_llm_provider") as mock_get_provider:
             mock_llm = Mock()
             mock_get_provider.return_value = mock_llm
 
@@ -564,7 +566,7 @@ class TestReportFullLoop:
         bad_appraisal["risk_of_bias"] = {"overall": "High risk"}  # present
         bad_appraisal["best_validation"] = {"validation_summary": {"overall_status": "failed"}}
 
-        with patch("src.pipeline.orchestrator.get_llm_provider") as mock_get_provider:
+        with patch("src.pipeline.steps.report.get_llm_provider") as mock_get_provider:
             mock_llm = Mock()
             mock_get_provider.return_value = mock_llm
 
@@ -600,7 +602,7 @@ class TestReportFullLoop:
             # Missing: risk_of_bias
         }
 
-        with patch("src.pipeline.orchestrator.get_llm_provider") as mock_get_provider:
+        with patch("src.pipeline.steps.report.get_llm_provider") as mock_get_provider:
             mock_llm = Mock()
             mock_get_provider.return_value = mock_llm
 
@@ -632,7 +634,7 @@ class TestReportFullLoop:
         mock_report_response,
     ):
         """Test using custom quality thresholds."""
-        with patch("src.pipeline.orchestrator.get_llm_provider") as mock_get_provider:
+        with patch("src.pipeline.steps.report.get_llm_provider") as mock_get_provider:
             # Validation with quality that would fail default but passes custom
             custom_validation = {
                 "validation_version": "v1.0",
@@ -694,7 +696,7 @@ class TestReportFullLoop:
         mock_validation_improved,
     ):
         """Test that all iteration files are persisted correctly."""
-        with patch("src.pipeline.orchestrator.get_llm_provider") as mock_get_provider:
+        with patch("src.pipeline.steps.report.get_llm_provider") as mock_get_provider:
             mock_llm = Mock()
             mock_llm.generate_json_with_schema.side_effect = [
                 mock_report_response,  # Iter 0

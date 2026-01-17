@@ -265,7 +265,7 @@ class TestIterativeLoop:
 
     @patch("src.pipeline.orchestrator._run_validation_step")
     @patch("src.pipeline.orchestrator._run_correction_step")
-    @patch("src.pipeline.orchestrator.get_llm_provider")
+    @patch("src.pipeline.steps.validation.get_llm_provider")
     def test_loop_passes_first_iteration(
         self, mock_get_llm, mock_correction, mock_validation, mock_dependencies
     ):
@@ -297,7 +297,7 @@ class TestIterativeLoop:
 
     @patch("src.pipeline.orchestrator._run_validation_step")
     @patch("src.pipeline.orchestrator._run_correction_step")
-    @patch("src.pipeline.orchestrator.get_llm_provider")
+    @patch("src.pipeline.steps.validation.get_llm_provider")
     def test_loop_max_iterations_reached(
         self, mock_get_llm, mock_correction, mock_validation, mock_dependencies
     ):
@@ -365,7 +365,7 @@ class TestIterativeLoop:
 
     @patch("src.pipeline.orchestrator._run_validation_step")
     @patch("src.pipeline.orchestrator._run_correction_step")
-    @patch("src.pipeline.orchestrator.get_llm_provider")
+    @patch("src.pipeline.steps.validation.get_llm_provider")
     def test_loop_early_stopping_degradation(
         self, mock_get_llm, mock_correction, mock_validation, mock_dependencies
     ):
@@ -460,7 +460,7 @@ class TestEdgeCases:
         }
 
     @patch("src.pipeline.orchestrator._run_validation_step")
-    @patch("src.pipeline.orchestrator.get_llm_provider")
+    @patch("src.pipeline.steps.validation.get_llm_provider")
     def test_schema_validation_failure(self, mock_get_llm, mock_validation, mock_dependencies):
         """Test loop stops when schema validation fails."""
         mock_llm = MagicMock()
@@ -479,7 +479,7 @@ class TestEdgeCases:
         assert result["best_extraction"] is None
 
     @patch("src.pipeline.orchestrator._run_validation_step")
-    @patch("src.pipeline.orchestrator.get_llm_provider")
+    @patch("src.pipeline.steps.validation.get_llm_provider")
     def test_llm_error_retries_exhausted(self, mock_get_llm, mock_validation, mock_dependencies):
         """Test loop handles LLM errors after exhausting retries."""
         from src.llm import LLMError
@@ -500,7 +500,7 @@ class TestEdgeCases:
 
     @patch("src.pipeline.orchestrator._run_validation_step")
     @patch("src.pipeline.orchestrator._run_correction_step")
-    @patch("src.pipeline.orchestrator.get_llm_provider")
+    @patch("src.pipeline.steps.validation.get_llm_provider")
     def test_json_decode_error(
         self, mock_get_llm, mock_correction, mock_validation, mock_dependencies
     ):
@@ -529,7 +529,7 @@ class TestEdgeCases:
         assert "invalid JSON" in result["error"]
 
     @patch("src.pipeline.orchestrator._run_validation_step")
-    @patch("src.pipeline.orchestrator.get_llm_provider")
+    @patch("src.pipeline.steps.validation.get_llm_provider")
     def test_unexpected_error(self, mock_get_llm, mock_validation, mock_dependencies):
         """Test loop handles unexpected errors gracefully."""
         mock_llm = MagicMock()
@@ -584,7 +584,7 @@ class TestEdgeCases:
 
         with (
             patch("src.pipeline.orchestrator._run_validation_step") as mock_validation,
-            patch("src.pipeline.orchestrator.get_llm_provider") as mock_get_llm,
+            patch("src.pipeline.steps.validation.get_llm_provider") as mock_get_llm,
         ):
             mock_llm = MagicMock()
             mock_get_llm.return_value = mock_llm
@@ -628,7 +628,7 @@ class TestEdgeCases:
         """Test loop respects custom quality thresholds."""
         with (
             patch("src.pipeline.orchestrator._run_validation_step") as mock_validation,
-            patch("src.pipeline.orchestrator.get_llm_provider") as mock_get_llm,
+            patch("src.pipeline.steps.validation.get_llm_provider") as mock_get_llm,
         ):
             mock_llm = MagicMock()
             mock_get_llm.return_value = mock_llm

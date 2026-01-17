@@ -224,7 +224,7 @@ def display_appraisal_result(result: dict):
     if not result:
         return
 
-    best_appraisal = result.get("best_appraisal", {})
+    best_appraisal = result.get("best_appraisal") or {}
     final_status = result.get("final_status", "unknown")
     iteration_count = result.get("iteration_count", 0)
     iterations = result.get("iterations", [])
@@ -392,7 +392,8 @@ def display_report_result(result: dict):
 
     final_status = result.get("final_status", result.get("_pipeline_metadata", {}).get("status"))
     best_iter = result.get("best_iteration")
-    quality = result.get("best_validation", {}).get("validation_summary", {}).get("quality_score")
+    best_validation = result.get("best_validation") or {}
+    quality = best_validation.get("validation_summary", {}).get("quality_score")
     warnings = result.get("_pipeline_metadata", {}).get("warnings")
 
     if best_iter is not None:
@@ -405,9 +406,7 @@ def display_report_result(result: dict):
         st.warning(f"{warnings}")
 
     # Show validation status if available
-    best_val_status = (
-        result.get("best_validation", {}).get("validation_summary", {}).get("overall_status")
-    )
+    best_val_status = best_validation.get("validation_summary", {}).get("overall_status")
     if best_val_status:
         st.write(f"**Validation:** {best_val_status}")
 
