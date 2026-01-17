@@ -291,7 +291,7 @@ class IterativeLoopRunner:
 
                                 # Can we retry?
                                 if (
-                                    initial_retry_count >= self.config.max_initial_retries
+                                    initial_retry_count > self.config.max_initial_retries
                                     or self.regenerate_initial_fn is None
                                 ):
                                     if initial_retry_count >= self.config.max_initial_retries:
@@ -366,6 +366,11 @@ class IterativeLoopRunner:
                     return self._create_max_iterations_result()
 
                 # STEP 5: Run correction
+                # Reset correction retry count only for NEW corrections (not retries)
+                # We detect a retry by checking if we reused the validation (current_validation was not None)
+                is_retry = current_validation is not None
+                if not is_retry:
+                    correction_retry_count = 0
                 self._call_progress("starting", iteration_num, "correction")
                 self.console.print(
                     f"\n[yellow]Running correction (iteration {iteration_num})...[/yellow]"
@@ -386,18 +391,18 @@ class IterativeLoopRunner:
                             f"(quality: {schema_quality:.2f})[/red]"
                         )
 
-                        if correction_retry_count >= self.config.max_correction_retries:
+                        if correction_retry_count > self.config.max_correction_retries:
                             self.console.print(
                                 f"[red]Max correction retries "
                                 f"({self.config.max_correction_retries}) reached[/red]"
                             )
-                            # Return best result we have so far
-                            if self.tracker.iteration_count > 0:
-                                return self._create_max_iterations_result()
-                            # Save failed result for debugging
+                            # Always save failed result for debugging
                             if self.save_failed_fn:
                                 self.save_failed_fn(corrected_result, corrected_validation)
                                 self.console.print("[dim]Saved failed result for debugging[/dim]")
+                            # Return best result we have so far, or fail
+                            if self.tracker.iteration_count > 0:
+                                return self._create_max_iterations_result()
                             return self._create_schema_failure_result(
                                 corrected_validation, iteration_num, schema_quality
                             )
@@ -413,8 +418,7 @@ class IterativeLoopRunner:
                         iteration_num += 1
                         continue  # Retry the loop
 
-                # Correction succeeded - update last good and reset retry counter
-                correction_retry_count = 0
+                # Correction succeeded - update last good state
                 last_good_result = corrected_result
                 last_good_validation = corrected_validation
 
@@ -477,13 +481,15 @@ class IterativeLoopRunner:
         validation structures. Defaults to 0.0 if score is missing (fail-safe behavior).
         """
         # Try appraisal structure first (validation_summary)
-        validation_summary = validation_result.get("validation_summary", {})
-        if validation_summary:
-            return validation_summary.get("schema_compliance_score", 0.0)
+        if "validation_summary" in validation_result:
+            return validation_result["validation_summary"].get("schema_compliance_score", 0.0)
 
         # Fall back to extraction structure (verification_summary)
-        verification_summary = validation_result.get("verification_summary", {})
-        return verification_summary.get("schema_compliance_score", 0.0)
+        if "verification_summary" in validation_result:
+            return validation_result["verification_summary"].get("schema_compliance_score", 0.0)
+
+        # No known structure found - fail-safe
+        return 0.0
 
     def _call_progress(self, status: str, iteration: int, step: str) -> None:
         """Call progress callback if available."""

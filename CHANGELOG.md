@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Off-by-One Bug in Retry Logic** - Fixed retry count being one less than configured
+  - Changed `>=` to `>` in retry limit checks for both initial and correction retries
+  - With `max_initial_retries=2`, now correctly allows 2 retries (3 total attempts)
+  - With `max_correction_retries=2`, now correctly allows 2 retries per correction step
+
+- **Correction Retry Counter Scope Bug** - Fixed retry count accumulating across iterations
+  - `correction_retry_count` was persisting across loop iterations, causing premature failures
+  - Now resets to 0 at the start of each correction step
+  - Each iteration gets its full retry budget independently
+
+- **Inconsistent save_failed_fn Behavior** - Fixed failed results not being saved consistently
+  - `save_failed_fn` was only called when `iteration_count == 0`
+  - Now always saves failed results before returning, regardless of iteration history
+  - Improves debugging by ensuring failed corrections are always captured
+
+- **Field Path Check in _get_schema_quality()** - Made key existence check explicit
+  - Changed `if validation_summary:` (True for empty dict) to `if "validation_summary" in validation_result:`
+  - Prevents incorrect fallback to extraction structure when appraisal structure is present but empty
+
 - **Iterative Loop Hang on Schema Failure** - Fixed bug where correction failures caused infinite loops
   - Added `max_correction_retries` config option (default: 2) to `IterativeLoopConfig`
   - When correction produces invalid schema, loop now retries from last good iteration
