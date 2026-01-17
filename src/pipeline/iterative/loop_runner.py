@@ -312,7 +312,7 @@ class IterativeLoopRunner:
                                 # Retry: regenerate initial result
                                 self.console.print(
                                     f"[yellow]Retrying initial generation "
-                                    f"(attempt {initial_retry_count + 1}/"
+                                    f"(retry {initial_retry_count}/"
                                     f"{self.config.max_initial_retries})...[/yellow]"
                                 )
                                 current_result = self.regenerate_initial_fn()
@@ -410,7 +410,7 @@ class IterativeLoopRunner:
                         # Retry: reset to last good and try again
                         self.console.print(
                             f"[yellow]Retrying correction from last good iteration "
-                            f"(attempt {correction_retry_count + 1}/"
+                            f"(retry {correction_retry_count}/"
                             f"{self.config.max_correction_retries})...[/yellow]"
                         )
                         current_result = last_good_result
