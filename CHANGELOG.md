@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **CLI `--quiet` and `--verbose` flags** - Control CLI output verbosity
+  - `--quiet` / `-q`: Minimal output (errors and final summary only) for CI/scripting
+  - `--verbose` / `-v`: Detailed output for debugging
+  - Default: Balanced progress info (existing behavior)
+
+- **PipelineOutputManager** - Centralized output management foundation
+  - New `src/pipeline/output_manager.py` module with `OutputLevel` enum (QUIET, NORMAL, VERBOSE)
+  - Singleton pattern with `get_instance()` for consistent output control
+  - Methods: `info()`, `success()`, `warning()`, `error()`, `detail()`, `step_header()`, `iteration_summary()`
+  - Foundation for future output improvements
+
+### Changed
+
+- **CLI Output Standardized to English** - All CLI output now in English
+  - Translated 42+ Dutch strings in `run_pipeline.py` to English
+  - Translated 2 Dutch strings in `orchestrator.py` to English
+  - Includes: CLI help text, progress messages, summary table headers and labels
+  - Examples: "Bezig met pipeline..." → "Running pipeline...", "Samenvatting" → "Summary"
+
+- **Fixed Spinner Overlap Issue** - Removed spinner that overlapped with status messages
+  - Replaced `console.status()` spinner with simple progress message
+  - Text no longer runs together during pipeline execution
+
+- **Consolidated Loop Runner Output** - Reduced verbose iteration output
+  - Changed from 6-7 lines per iteration to single compact line
+  - Format: `Iteration N: Quality X% | Schema Y% | Complete Z% | Status`
+  - Improvement delta shown inline when applicable (↑+1.2% or ↓-0.5%)
+
 ### Fixed
 
 - **Off-by-One Bug in Retry Logic** - Fixed retry count being one less than configured

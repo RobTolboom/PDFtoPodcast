@@ -386,10 +386,11 @@ usage: run_pipeline.py [-h] [--max-pages MAX_PAGES] [--keep-tmp]
                        [--completeness-threshold FLOAT]
                        [--accuracy-threshold FLOAT]
                        [--schema-threshold FLOAT]
-                       [--report-language {nl,en}]
+                       [--report-language {en}]
                        [--report-renderer {latex,weasyprint}]
                        [--report-compile-pdf] [--no-report-compile-pdf]
                        [--enable-figures] [--disable-figures]
+                       [--quiet] [--verbose]
                        pdf
 
 positional arguments:
@@ -411,8 +412,8 @@ optional arguments:
                         Minimum accuracy score 0.0-0.99 (default: 0.95)
   --schema-threshold FLOAT
                         Minimum schema compliance score 0.0-0.99 (default: 0.95)
-  --report-language {nl,en}
-                        Language for report generation (default: nl)
+  --report-language {en}
+                        Language for report generation (English only)
   --report-renderer {latex,weasyprint}
                         Renderer for report output (default: latex)
   --report-compile-pdf
@@ -421,6 +422,8 @@ optional arguments:
   --enable-figures
   --disable-figures
                         Toggle generation of report figures (traffic light, forest)
+  --quiet, -q           Minimal output (errors and final summary only)
+  --verbose, -v         Detailed output for debugging
 ```
 
 ### Programmatic Usage

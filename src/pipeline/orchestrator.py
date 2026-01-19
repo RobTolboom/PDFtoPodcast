@@ -746,10 +746,10 @@ def run_single_step(
         corrected_file = file_manager.save_json(
             corrected_extraction, "extraction", iteration_number=1
         )
-        console.print(f"[green]✅ Correctie opgeslagen: {corrected_file}[/green]")
+        console.print(f"[green]✅ Correction saved: {corrected_file}[/green]")
 
         validation_file = file_manager.save_json(final_validation, "validation", iteration_number=1)
-        console.print(f"[green]✅ Finale validatie opgeslagen: {validation_file}[/green]")
+        console.print(f"[green]✅ Final validation saved: {validation_file}[/green]")
 
         # Return both corrected extraction and final validation
         return {

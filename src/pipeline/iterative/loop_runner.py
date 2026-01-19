@@ -448,31 +448,30 @@ class IterativeLoopRunner:
         self.console.print(f"[blue]Max iterations: {self.config.max_iterations}[/blue]")
 
     def _display_quality_scores(self, metrics: QualityMetrics, iteration_num: int) -> None:
-        """Display quality scores for current iteration."""
-        self.console.print(f"\n[bold]Quality Scores (Iteration {iteration_num}):[/bold]")
-        self.console.print(f"  Completeness:      {metrics.completeness_score:.1%}")
-        self.console.print(f"  Accuracy:          {metrics.accuracy_score:.1%}")
-        self.console.print(f"  Schema Compliance: {metrics.schema_compliance_score:.1%}")
-        self.console.print(
-            f"  [bold]Quality Score:     {metrics.quality_score:.1%}[/bold] (weighted)"
-        )
-        self.console.print(f"  Status:            {metrics.overall_status.title()}")
+        """Display compact quality summary for current iteration."""
+        # Build compact single-line summary
+        status_str = metrics.overall_status.title()
 
-        # Show improvement tracking
+        # Calculate improvement delta if not first iteration
+        delta_str = ""
         if self.tracker.iteration_count > 1:
             prev_metrics = self.tracker.get_iteration(iteration_num - 1)
             if prev_metrics:
                 prev_score = prev_metrics.metrics.quality_score
                 delta = metrics.quality_score - prev_score
                 if delta > 0:
-                    symbol, color = "↑", "green"
+                    delta_str = f" [green]↑{delta:+.1%}[/green]"
                 elif delta < 0:
-                    symbol, color = "↓", "red"
-                else:
-                    symbol, color = "→", "yellow"
-                self.console.print(
-                    f"  [{color}]Improvement: {symbol} {delta:+.3f} (prev: {prev_score:.1%})[/{color}]"
-                )
+                    delta_str = f" [red]↓{delta:+.1%}[/red]"
+
+        # Single-line output
+        self.console.print(
+            f"[cyan]Iteration {iteration_num}:[/cyan] "
+            f"Quality {metrics.quality_score:.1%}{delta_str} | "
+            f"Schema {metrics.schema_compliance_score:.1%} | "
+            f"Complete {metrics.completeness_score:.1%} | "
+            f"{status_str}"
+        )
 
     def _get_schema_quality(self, validation_result: dict) -> float:
         """Get schema quality score from validation result.
