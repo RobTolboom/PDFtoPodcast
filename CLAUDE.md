@@ -81,7 +81,7 @@
     </key_directories>
 
     <gotchas>
-      <gotcha>After editing common.schema.json or type schemas: run `cd schemas and python json-bundler.py` to regenerate all 5 *_bundled.json files.</gotcha>
+      <gotcha>After editing common.schema.json or type schemas: run `make bundle-schemas` (or `cd schemas &amp;&amp; python json-bundler.py`) to regenerate all 5 *_bundled.json files.</gotcha>
       <gotcha>Pre-commit hooks may modify bundled JSON files (end-of-file-fixer). If first `make commit` fixes files, run it again.</gotcha>
       <gotcha>Tests use markers: @pytest.mark.unit, @pytest.mark.integration, @pytest.mark.slow. `make test-fast` runs unit tests only.</gotcha>
       <gotcha>Patch targets after refactoring: always mock the function where it is USED (src.pipeline.steps.*), not the backward-compat aliases in orchestrator.py.</gotcha>
