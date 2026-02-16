@@ -656,27 +656,6 @@ def run_single_step(
         previous_results[STEP_CLASSIFICATION] = classification_result
         previous_results[STEP_EXTRACTION] = extraction_result
 
-    elif step_name == STEP_REPORT_GENERATION:
-        classification_result = _get_or_load_result("classification")
-        extraction_result = _get_or_load_result("extraction")
-        appraisal_result = _get_or_load_result("appraisal")
-
-        # Try to use best results from validation_correction and appraisal if available
-        try:
-            validation_correction_result = _get_or_load_result("validation_correction")
-            if validation_correction_result and validation_correction_result.get("best_extraction"):
-                extraction_result = validation_correction_result["best_extraction"]
-        except (ValueError, FileNotFoundError):
-            pass
-
-        # Try to use best_appraisal if available (from iterative appraisal)
-        if isinstance(appraisal_result, dict) and appraisal_result.get("best_appraisal"):
-            appraisal_result = appraisal_result["best_appraisal"]
-
-        previous_results[STEP_CLASSIFICATION] = classification_result
-        previous_results[STEP_EXTRACTION] = extraction_result
-        previous_results[STEP_APPRAISAL] = appraisal_result
-
     # Check LLM support availability
     try:
         from ..llm import get_llm_provider
@@ -1045,6 +1024,30 @@ def run_full_pipeline(
                         f"[red]⏭️  Appraisal skipped - extraction validation failed: {error_msg}[/red]"
                     )
                     continue
+
+        # Skip report_generation if appraisal not available
+        if step_name == STEP_REPORT_GENERATION and not skip_report:
+            if STEP_APPRAISAL not in results:
+                _call_progress_callback(
+                    progress_callback,
+                    step_name,
+                    "skipped",
+                    {"reason": "appraisal_not_available"},
+                )
+                console.print("[red]⏭️  Report generation skipped - appraisal not available[/red]")
+                continue
+
+        # Skip podcast_generation if appraisal not available
+        if step_name == STEP_PODCAST_GENERATION and not skip_podcast:
+            if STEP_APPRAISAL not in results:
+                _call_progress_callback(
+                    progress_callback,
+                    step_name,
+                    "skipped",
+                    {"reason": "appraisal_not_available"},
+                )
+                console.print("[red]⏭️  Podcast generation skipped - appraisal not available[/red]")
+                continue
 
         try:
             # Run single step with previous results

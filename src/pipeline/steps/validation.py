@@ -29,6 +29,7 @@ from ..quality import MetricType, extract_extraction_metrics_as_dict
 from ..quality.thresholds import EXTRACTION_THRESHOLDS
 from ..utils import _call_progress_callback, _get_provider_name, _strip_metadata_for_pipeline
 from ..validation_runner import run_dual_validation
+from .extraction import run_extraction_step
 
 console = Console()
 
@@ -606,6 +607,29 @@ def run_validation_with_correction(
         validation_file = file_manager.save_json(validation, "validation", status="best")
         return extraction_file, validation_file
 
+    def regenerate_initial_fn() -> dict:
+        """Regenerate the initial extraction if it fails schema validation."""
+        return run_extraction_step(
+            pdf_path=pdf_path,
+            max_pages=None,
+            classification_result=classification_result,
+            llm=llm,
+            file_manager=file_manager,
+            progress_callback=progress_callback,
+        )
+
+    def save_failed_fn(
+        extraction_result_failed: dict, validation_result_failed: dict
+    ) -> tuple[Path | None, Path | None]:
+        """Save failed extraction and validation for debugging."""
+        extraction_path = file_manager.save_json(
+            extraction_result_failed, "extraction", status="failed"
+        )
+        validation_path = file_manager.save_json(
+            validation_result_failed, "validation", status="failed"
+        )
+        return extraction_path, validation_path
+
     # Configure and run iterative loop
     config = IterativeLoopConfig(
         metric_type=MetricType.EXTRACTION,
@@ -624,6 +648,8 @@ def run_validation_with_correction(
         correct_fn=correct_fn,
         save_iteration_fn=save_iteration_fn,
         save_best_fn=save_best_fn,
+        regenerate_initial_fn=regenerate_initial_fn,
+        save_failed_fn=save_failed_fn,
         progress_callback=progress_callback,
         console_instance=console,
         check_schema_quality=True,

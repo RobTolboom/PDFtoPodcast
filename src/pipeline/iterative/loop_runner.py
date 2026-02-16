@@ -386,6 +386,8 @@ class IterativeLoopRunner:
                 # Support both return styles: dict or (dict, dict) tuple
                 if isinstance(correction_output, tuple):
                     corrected_result, corrected_validation = correction_output
+                    if corrected_validation is None:
+                        corrected_validation = self.validate_fn(corrected_result)
                 else:
                     corrected_result = correction_output
                     corrected_validation = self.validate_fn(corrected_result)
@@ -430,6 +432,7 @@ class IterativeLoopRunner:
                 # Correction succeeded - update last good state
                 last_good_result = corrected_result
                 last_good_validation = corrected_validation
+                correction_retry_count = 0
 
                 # Save corrected iteration
                 if self.save_iteration_fn:

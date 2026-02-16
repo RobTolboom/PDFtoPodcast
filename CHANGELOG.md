@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Double validation after correction** - `correct_fn` discarded the post-correction validation from `run_correction_step()`, then `loop_runner.py` called `validate_fn()` again — wasting one full LLM validation call per correction cycle. `correct_fn` now returns `(corrected_extraction, validation)` tuple, and the loop runner reuses the returned validation instead of re-validating. Appraisal and report loops (which return plain `dict`) are unaffected via `isinstance(tuple)` check.
 
+- **Correction retry count carrying over between iterations** - `correction_retry_count` was not reset after a successful correction, causing the retry budget from a previous iteration's schema failures to reduce retries available in subsequent iterations. Now resets to 0 after each successful correction.
+
+- **Pipeline crash when validation fails and downstream steps run** - When `validation_correction` failed (e.g., schema compliance < 50%), appraisal was correctly skipped but `report_generation` and `podcast_generation` still attempted to run, crashing with `ValueError: Appraisal step result not found`. Added skip-propagation: both steps now check if appraisal results are available before running.
+
+- **Duplicate dead code in `run_single_step()`** - Removed duplicate `elif STEP_REPORT_GENERATION` block (unreachable dead code) in the dependency resolution chain.
+
+### Added
+
+- **Extraction retry on schema failure** - When initial extraction fails schema validation (compliance < 50%), the extraction step is now retried up to 2 times (3 total attempts), matching the existing appraisal retry behavior. Previously, a single bad LLM output would immediately fail the entire pipeline. Failed extractions are saved with `-failed` suffix for debugging.
+
 ### Added
 
 - **CLI `--quiet` and `--verbose` flags** - Control CLI output verbosity
