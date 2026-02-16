@@ -195,7 +195,7 @@ class TestExtractMetrics:
     def test_invalid_metric_type(self):
         """Test that invalid metric type raises ValueError."""
         with pytest.raises(ValueError, match="Unknown metric type"):
-            extract_metrics({}, "invalid")  # type: ignore
+            extract_metrics({"some_data": True}, "invalid")  # type: ignore
 
 
 class TestSafeScore:

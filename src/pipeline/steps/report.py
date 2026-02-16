@@ -33,7 +33,7 @@ from ..iterative import IterativeLoopConfig, IterativeLoopRunner
 from ..iterative import detect_quality_degradation as _detect_quality_degradation_new
 from ..iterative import select_best_iteration as _select_best_iteration_new
 from ..quality import MetricType, extract_report_metrics_as_dict
-from ..quality.thresholds import REPORT_THRESHOLDS
+from ..quality.thresholds import REPORT_THRESHOLDS, QualityThresholds
 from ..utils import _call_progress_callback, _get_provider_name, _strip_metadata_for_pipeline
 from ..version import get_pipeline_version
 
@@ -459,13 +459,23 @@ def run_report_with_correction(
                 "status": "blocked",
                 "message": "Extraction quality insufficient for report generation",
                 "extraction_quality": extraction_quality,
+                "minimum_required": 0.70,
             }
 
     appraisal_final_status = appraisal_result.get("final_status", appraisal_result.get("status"))
     risk_of_bias = appraisal_result.get("risk_of_bias")
 
+    appraisal_val = appraisal_result.get("best_validation", {})
+    appraisal_val_summary = appraisal_val.get("validation_summary", {}) if appraisal_val else {}
+    appraisal_validation_status = appraisal_val_summary.get("overall_status")
+
     blocking_statuses = {"failed", "failed_schema_validation", "failed_llm_error"}
-    if appraisal_final_status in blocking_statuses or risk_of_bias is None:
+    is_blocked = (
+        appraisal_final_status in blocking_statuses
+        or risk_of_bias is None
+        or appraisal_validation_status == "failed"
+    )
+    if is_blocked:
         return {
             "_pipeline_metadata": {
                 "step": STEP_REPORT_GENERATION,
@@ -474,6 +484,9 @@ def run_report_with_correction(
             },
             "status": "blocked",
             "message": "Appraisal data missing or incomplete",
+            "appraisal_final_status": appraisal_final_status,
+            "has_risk_of_bias": risk_of_bias is not None,
+            "appraisal_validation_status": appraisal_validation_status,
         }
 
     console.print("  [green]+ Dependency checks passed[/green]")
@@ -498,7 +511,11 @@ def run_report_with_correction(
     config = IterativeLoopConfig(
         metric_type=MetricType.REPORT,
         max_iterations=max_iterations,
-        quality_thresholds=REPORT_THRESHOLDS,
+        quality_thresholds=(
+            QualityThresholds(**quality_thresholds)
+            if isinstance(quality_thresholds, dict)
+            else (quality_thresholds or REPORT_THRESHOLDS)
+        ),
         degradation_window=2,
         step_name="REPORT VALIDATION & CORRECTION",
         step_number=5,

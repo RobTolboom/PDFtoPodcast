@@ -26,7 +26,7 @@ from ..iterative import IterativeLoopConfig, IterativeLoopRunner
 from ..iterative import detect_quality_degradation as _detect_quality_degradation_new
 from ..iterative import select_best_iteration as _select_best_iteration_new
 from ..quality import MetricType, extract_extraction_metrics_as_dict
-from ..quality.thresholds import EXTRACTION_THRESHOLDS
+from ..quality.thresholds import EXTRACTION_THRESHOLDS, QualityThresholds
 from ..utils import _call_progress_callback, _get_provider_name, _strip_metadata_for_pipeline
 from ..validation_runner import run_dual_validation
 from .extraction import run_extraction_step
@@ -634,7 +634,11 @@ def run_validation_with_correction(
     config = IterativeLoopConfig(
         metric_type=MetricType.EXTRACTION,
         max_iterations=max_iterations,
-        quality_thresholds=EXTRACTION_THRESHOLDS,
+        quality_thresholds=(
+            QualityThresholds(**quality_thresholds)
+            if isinstance(quality_thresholds, dict)
+            else (quality_thresholds or EXTRACTION_THRESHOLDS)
+        ),
         degradation_window=2,
         step_name="ITERATIVE VALIDATION & CORRECTION",
         step_number=3,

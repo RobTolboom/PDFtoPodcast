@@ -142,6 +142,7 @@ class IterativeLoopResult:
     best_iteration_num: int = 0
     selection_reason: str = ""
     error: str | None = None
+    warning: str | None = None
     failed_at_iteration: int | None = None
 
     def to_dict(self, result_key: str = "best_result") -> dict:
@@ -164,6 +165,10 @@ class IterativeLoopResult:
             result["error"] = self.error
         if self.failed_at_iteration is not None:
             result["failed_at_iteration"] = self.failed_at_iteration
+        if self.best_iteration_num is not None:
+            result["best_iteration"] = self.best_iteration_num
+        if self.warning:
+            result["warning"] = self.warning
 
         return result
 
@@ -562,6 +567,7 @@ class IterativeLoopRunner:
             improvement_trajectory=self.tracker.get_quality_scores(),
             best_iteration_num=best["iteration_num"],
             selection_reason=best.get("selection_reason", "early_stopped"),
+            warning=f"Early stopping: quality degradation detected after {self.tracker.iteration_count} iterations",
         )
 
     def _create_max_iterations_result(self) -> IterativeLoopResult:
@@ -587,6 +593,7 @@ class IterativeLoopRunner:
             improvement_trajectory=self.tracker.get_quality_scores(),
             best_iteration_num=best["iteration_num"],
             selection_reason=best.get("selection_reason", "max_iterations"),
+            warning=f"Max iterations ({self.config.max_iterations}) reached without meeting quality threshold",
         )
 
     def _create_schema_failure_result(

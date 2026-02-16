@@ -113,7 +113,7 @@ class TestExtractReportMetrics:
 
         assert metrics["completeness_score"] == 0
         assert metrics["accuracy_score"] == 0
-        assert metrics["overall_status"] == "unknown"
+        assert metrics["overall_status"] == "missing"
 
 
 class TestIsReportQualitySufficient:

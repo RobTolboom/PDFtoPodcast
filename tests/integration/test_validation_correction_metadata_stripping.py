@@ -118,8 +118,8 @@ class TestIterativeValidationCorrection:
         return {"publication_type": "interventional_trial"}
 
     @patch("src.pipeline.steps.validation.get_llm_provider")
-    @patch("src.pipeline.orchestrator._run_correction_step")
-    @patch("src.pipeline.orchestrator._run_validation_step")
+    @patch("src.pipeline.steps.validation.run_correction_step")
+    @patch("src.pipeline.steps.validation.run_validation_step")
     def test_correction_notes_stripped_from_final_result(
         self,
         mock_run_validation,
@@ -181,8 +181,8 @@ class TestIterativeValidationCorrection:
         assert result["final_status"] == "passed"
 
     @patch("src.pipeline.steps.validation.get_llm_provider")
-    @patch("src.pipeline.orchestrator._run_correction_step")
-    @patch("src.pipeline.orchestrator._run_validation_step")
+    @patch("src.pipeline.steps.validation.run_correction_step")
+    @patch("src.pipeline.steps.validation.run_validation_step")
     def test_correction_notes_stripped_from_all_iterations(
         self,
         mock_run_validation,
@@ -225,12 +225,12 @@ class TestIterativeValidationCorrection:
         # Check that NONE of the stored iterations contain correction_notes
         for i, iteration in enumerate(result["iterations"]):
             assert (
-                "correction_notes" not in iteration["extraction"]
-            ), f"Iteration {i} extraction should not contain correction_notes"
+                "correction_notes" not in iteration["result"]
+            ), f"Iteration {i} result should not contain correction_notes"
 
     @patch("src.pipeline.steps.validation.get_llm_provider")
-    @patch("src.pipeline.orchestrator._run_correction_step")
-    @patch("src.pipeline.orchestrator._run_validation_step")
+    @patch("src.pipeline.steps.validation.run_correction_step")
+    @patch("src.pipeline.steps.validation.run_validation_step")
     def test_metadata_fields_stripped_from_final_result(
         self,
         mock_run_validation,
