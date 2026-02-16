@@ -57,7 +57,7 @@ docs/plans/             feature and implementation planning notes
 run_pipeline.py         CLI entry point
 app.py                  Streamlit entry point
 Makefile                common tasks
-.tmp/                   pipeline outputs (gitignored)
+tmp/                    pipeline outputs (gitignored)
 ```
 Other documentation lives at the repo root (README, ARCHITECTURE, CONTRIBUTING, DEVELOPMENT, SECURITY, etc.).
 

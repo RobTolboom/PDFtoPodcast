@@ -30,7 +30,7 @@ This Commercial Software License Agreement ("Agreement") is between Tolboom Medi
 3.5 Legal compliance. Customer will comply with all applicable laws, including data protection and export regulations.
 
 ## 4. Third-Party Providers (Pass-Through)
-4.1 Providers. The Software may call third-party LLM providers (currently OpenAI). Customer must comply with all applicable provider terms, including content, safety, export, and use-case restrictions.
+4.1 Providers. The Software may call third-party LLM providers (currently OpenAI and Anthropic). Customer must comply with all applicable provider terms, including content, safety, export, and use-case restrictions.
 
 4.2 Changes. Licensor may switch or add providers. Customer will not use the Software in a way that causes Licensor or any provider to breach provider terms.
 

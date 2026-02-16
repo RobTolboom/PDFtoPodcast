@@ -9,9 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Consolidated `features/` into `docs/plans/`** - Moved all feature planning documents from the top-level `features/` directory into `docs/plans/` to unify planning and documentation under a single location. Updated all cross-references across CLAUDE.md, CONTRIBUTING.md, ROADMAP.md, AGENTS.md, DEVELOPMENT.md, README.md, API.md, ARCHITECTURE.md, and internal plan documents.
+- **Consolidated `features/` into `docs/plans/`** - Moved all feature planning documents from the top-level `features/` directory into `docs/plans/` to unify planning and documentation under a single location. Updated all cross-references across CLAUDE.md, CONTRIBUTING.md, ROADMAP.md, DEVELOPMENT.md, README.md, API.md, ARCHITECTURE.md, and internal plan documents.
 
 - **Translate remaining Dutch text to English** - Translated Dutch strings in README.md (appraisal section), Makefile (commit target messages), .envrc, .gitignore, and requirements.txt. Removed stale `todo.txt`.
+
+- **Removed AGENTS.md** - Redundant with CLAUDE.md project context; removed file and updated references.
+
+- **Root documentation cleanup** - Fixed outdated model names, step counts, function references, and links in README.md. Updated documentation table with API.md, SECURITY.md, COMMERCIAL_LICENSE.md. Fixed duplicate `### Added` headers in CHANGELOG.md. Updated test layout in CONTRIBUTING.md. Fixed `tmp/` path in DEVELOPMENT.md. Added Anthropic to COMMERCIAL_LICENSE.md provider list.
 
 ### Fixed
 
@@ -32,8 +36,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Extraction retry on schema failure** - When initial extraction fails schema validation (compliance < 50%), the extraction step is now retried up to 2 times (3 total attempts), matching the existing appraisal retry behavior. Previously, a single bad LLM output would immediately fail the entire pipeline. Failed extractions are saved with `-failed` suffix for debugging.
-
-### Added
 
 - **CLI `--quiet` and `--verbose` flags** - Control CLI output verbosity
   - `--quiet` / `-q`: Minimal output (errors and final summary only) for CI/scripting
