@@ -50,8 +50,13 @@ class ValidateFunc(Protocol):
 class CorrectFunc(Protocol):
     """Protocol for correction function."""
 
-    def __call__(self, result: dict, validation: dict) -> dict:
-        """Correct a result based on validation feedback."""
+    def __call__(self, result: dict, validation: dict) -> dict | tuple[dict, dict]:
+        """Correct a result based on validation feedback.
+
+        Returns either:
+        - dict: corrected result only (loop will re-validate)
+        - tuple[dict, dict]: (corrected result, validation) to skip re-validation
+        """
         ...
 
 
@@ -376,10 +381,14 @@ class IterativeLoopRunner:
                     f"\n[yellow]Running correction (iteration {iteration_num})...[/yellow]"
                 )
 
-                corrected_result = self.correct_fn(current_result, validation_result)
+                correction_output = self.correct_fn(current_result, validation_result)
 
-                # Validate corrected result immediately
-                corrected_validation = self.validate_fn(corrected_result)
+                # Support both return styles: dict or (dict, dict) tuple
+                if isinstance(correction_output, tuple):
+                    corrected_result, corrected_validation = correction_output
+                else:
+                    corrected_result = correction_output
+                    corrected_validation = self.validate_fn(corrected_result)
 
                 # Check schema quality of correction
                 if self.check_schema_quality:

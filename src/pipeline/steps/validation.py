@@ -150,6 +150,7 @@ def run_validation_step(
     file_manager: PipelineFileManager,
     progress_callback: Callable[[str, str, dict], None] | None,
     banner_label: str | None = None,
+    save_to_disk: bool = True,
 ) -> dict[str, Any]:
     """
     Run validation step of the pipeline.
@@ -208,8 +209,12 @@ def run_validation_step(
         "validation_passed": validation_result.get("is_valid", False),
     }
 
-    validation_file = file_manager.save_json(validation_result, "validation", iteration_number=0)
-    console.print(f"[green]+ Validation saved: {validation_file}[/green]")
+    validation_file = None
+    if save_to_disk:
+        validation_file = file_manager.save_json(
+            validation_result, "validation", iteration_number=0
+        )
+        console.print(f"[green]+ Validation saved: {validation_file}[/green]")
 
     # Validation completed
     elapsed = time.time() - start_time
@@ -220,7 +225,7 @@ def run_validation_step(
         {
             "result": validation_result,
             "elapsed_seconds": elapsed,
-            "file_path": str(validation_file),
+            "file_path": str(validation_file) if validation_file else None,
             "validation_status": validation_result.get("verification_summary", {}).get(
                 "overall_status"
             ),
@@ -562,12 +567,13 @@ def run_validation_with_correction(
                 file_manager=file_manager,
                 progress_callback=progress_callback,
                 banner_label="VALIDATION",
+                save_to_disk=False,
             )
         )
 
-    def correct_fn(extraction: dict, validation: dict) -> dict:
-        """Correct extraction with LLM retry, return only corrected extraction."""
-        corrected, _ = _with_llm_retry(
+    def correct_fn(extraction: dict, validation: dict) -> tuple[dict, dict]:
+        """Correct extraction with LLM retry, return corrected extraction + validation."""
+        corrected, post_validation = _with_llm_retry(
             lambda: run_correction_step(
                 extraction_result=extraction,
                 validation_result=validation,
@@ -580,7 +586,7 @@ def run_validation_with_correction(
                 banner_label="CORRECTION",
             )
         )
-        return _strip_metadata_for_pipeline(corrected)
+        return _strip_metadata_for_pipeline(corrected), post_validation
 
     def save_iteration_fn(
         iteration_num: int, result: dict, validation: dict

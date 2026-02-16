@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Validation file overwrite in iterative loop** - `run_validation_step()` hardcoded `iteration_number=0` in its `save_json` call, overwriting `validation0.json` every time the iterative loop re-validated. Added `save_to_disk` parameter (default `True`); the iterative loop passes `save_to_disk=False` so only `save_iteration_fn` writes numbered files. Standalone calls from the orchestrator are unaffected.
+
+- **Double validation after correction** - `correct_fn` discarded the post-correction validation from `run_correction_step()`, then `loop_runner.py` called `validate_fn()` again — wasting one full LLM validation call per correction cycle. `correct_fn` now returns `(corrected_extraction, validation)` tuple, and the loop runner reuses the returned validation instead of re-validating. Appraisal and report loops (which return plain `dict`) are unaffected via `isinstance(tuple)` check.
+
 ### Added
 
 - **CLI `--quiet` and `--verbose` flags** - Control CLI output verbosity
