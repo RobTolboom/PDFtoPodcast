@@ -11,7 +11,11 @@ tenacity>=8.2			# retry/backoff for API errors
 rich					# rich console output
 
 # --- Web Interface ---
-streamlit>=1.28.0		# web interface for pipeline
+streamlit>=1.54.0		# web interface for pipeline
 pandas>=2.0.0			# dataframes for iteration history tables
-weasyprint[lxml]>=61.0	# HTML/CSS to PDF fallback renderer (requires Cairo/Pango system deps)
+weasyprint>=68.0		# HTML/CSS to PDF fallback renderer (requires Cairo/Pango system deps)
 matplotlib>=3.8.0		# figure generation backend (Agg)
+
+# --- Security pins (transitive deps) ---
+pillow>=12.1.1			# CVE fix: out-of-bounds write loading PSD images
+protobuf>=6.33.5		# CVE fix: JSON recursion depth bypass

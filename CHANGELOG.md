@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Root documentation cleanup** - Fixed outdated model names, step counts, function references, and links in README.md. Updated documentation table with API.md, SECURITY.md, COMMERCIAL_LICENSE.md. Fixed duplicate `### Added` headers in CHANGELOG.md. Updated test layout in CONTRIBUTING.md. Fixed `tmp/` path in DEVELOPMENT.md. Added Anthropic to COMMERCIAL_LICENSE.md provider list.
 
+- **Security dependency upgrades** - Bumped weasyprint >=68.0 (SSRF bypass fix), added pillow >=12.1.1 (out-of-bounds write fix), protobuf >=6.33.5 (JSON recursion depth bypass fix). Bumped streamlit >=1.54.0 for pillow 12 compatibility. Dropped weasyprint `[lxml]` extra (removed in v68).
+
 ### Fixed
 
 - **Appraisal `quality_thresholds` parameter ignored** - `run_appraisal_with_correction()` accepted a `quality_thresholds` parameter but hardcoded `APPRAISAL_THRESHOLDS` in the loop config. Custom thresholds now correctly propagate with dict-to-QualityThresholds conversion.
