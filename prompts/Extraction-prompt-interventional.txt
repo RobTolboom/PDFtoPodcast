@@ -203,7 +203,7 @@ tables_parsed
 
 figures_summary
 - REQUIRED fields per figure used: { figure_id, caption }. Add `page` when known.
-- `key_values` is a flat object with numeric values only.
+- `key_values` is a flat object with string or numeric values (no nested objects or arrays).
 
 extraction_warnings
 - Array of objects (not strings):
@@ -231,7 +231,7 @@ PRE-FLIGHT CHECKLIST (hard fail if any item fails)
 8) sensitivity_analyses[*].effect contains BOTH type and point, else omit and log a warning.
 9) consort_reporting has NO root-level source; only items[*].source allowed.
 10) harms include integers for events and total; otherwise omit and warn.
-11) figures_summary entries include BOTH figure_id and caption; key_values numeric only.
+11) figures_summary entries include BOTH figure_id and caption; key_values are strings or numbers only.
 12) All emitted objects that include `source` have at least {page} and a concise anchor.
 13) NO disallowed keys anywhere: usage, choices, correction_notes, _metadata, _pipeline_metadata, or vendor metadata.
 14) Field names are EXACT: arm_id (NOT arm_id_id), outcome_id (NOT outcome_id_id), comparison_id (NOT comparison_id_id). Never duplicate suffixes.

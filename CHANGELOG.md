@@ -37,6 +37,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Format: `Iteration N: Quality X% | Schema Y% | Complete Z% | Status`
   - Improvement delta shown inline when applicable (↑+1.2% or ↓-0.5%)
 
+- **Post-correction schema repair step** - Deterministic structural repair between LLM correction and validation
+  - New `src/pipeline/schema_repair.py` module
+  - Restores array items that the LLM simplified from objects to strings (e.g., `"O2"` → full outcome object)
+  - Removes properties not allowed by schema (`additionalProperties: false`)
+  - Prevents wasted correction retries on predictable structural issues
+
+### Changed
+
+- **`FigureSummary.key_values` schema relaxed** - Now allows both string and number values
+  - Previously `additionalProperties: { "type": "number" }`, now `oneOf: [number, string]`
+  - Fixes schema violations for figure data with text descriptions (summaries, variable names, time windows)
+  - Updated all 5 extraction prompts and regenerated all 5 bundled schemas
+
+- **Correction prompt improved** - Added HARD RULE 8: PRESERVE ARRAY STRUCTURE
+  - Explicitly instructs LLM to never simplify arrays of objects to arrays of strings/IDs
+  - Addresses pattern where correction degrades outcomes/interventions from objects to ID strings
+
+- **Correction context reduced** - Filtered validation report sent to correction LLM
+  - Now sends only schema errors + semantic issues instead of full validation report
+  - Uses compact JSON (no indent) for original extraction
+  - Reduces prompt token count, preventing LLM from being overwhelmed and simplifying structures
+
 ### Fixed
 
 - **Off-by-One Bug in Retry Logic** - Fixed retry count being one less than configured

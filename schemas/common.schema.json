@@ -886,7 +886,7 @@
       "properties": {
         "figure_id": { "type": "string" },
         "caption": { "type": "string" },
-        "key_values": { "type": "object", "additionalProperties": { "type": "number" }, "default": {} },
+        "key_values": { "type": "object", "additionalProperties": { "oneOf": [{ "type": "number" }, { "type": "string" }] }, "default": {} },
         "page": { "type": "integer", "minimum": 1 },
         "source": { "$ref": "#/$defs/SourceRef" }
       }

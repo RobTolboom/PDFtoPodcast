@@ -298,11 +298,22 @@ def run_correction_step(
         correction_prompt = load_correction_prompt()
         extraction_schema = load_schema(publication_type)
 
-        # Prepare correction context with clean extraction and validation feedback
-        correction_context = f"""
-ORIGINAL_EXTRACTION: {json.dumps(extraction_clean, indent=2)}
+        # Prepare correction context with focused extraction and actionable issues only.
+        # Full validation report is too large and causes the LLM to simplify structures.
+        schema_errors = validation_clean.get("schema_validation", {}).get("validation_errors", [])
+        semantic_issues = validation_clean.get("issues", [])
+        verification_summary = validation_clean.get("verification_summary", {})
 
-VALIDATION_REPORT: {json.dumps(validation_clean, indent=2)}
+        correction_issues = {
+            "schema_errors": schema_errors,
+            "semantic_issues": semantic_issues,
+            "verification_summary": verification_summary,
+        }
+
+        correction_context = f"""
+ORIGINAL_EXTRACTION: {json.dumps(extraction_clean)}
+
+VALIDATION_REPORT: {json.dumps(correction_issues)}
 
 Systematically address all identified issues and produce corrected, complete,\
  schema-compliant JSON extraction.
@@ -319,6 +330,17 @@ Systematically address all identified issues and produce corrected, complete,\
             max_pages=max_pages,
             schema_name=f"{publication_type}_extraction_corrected",
             reasoning_effort=llm_settings.reasoning_effort_correction,
+        )
+
+        # Apply deterministic schema repairs before validation.
+        # Fixes common LLM issues: array items as strings instead of objects,
+        # disallowed properties where additionalProperties=false.
+        from ..schema_repair import repair_schema_violations
+
+        corrected_extraction = repair_schema_violations(
+            data=corrected_extraction,
+            schema=extraction_schema,
+            original=extraction_clean,
         )
 
         # Ensure correction metadata

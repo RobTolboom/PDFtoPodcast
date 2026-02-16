@@ -137,7 +137,18 @@ HARD RULES
      * arguments use "claim_id" and "text" fields (NOT "argument_id" and "claim")
    - Do NOT force fields from one schema type into another.
 
-8. PRIMARY OUTCOME / PRIMARY EXPOSURE FLAGS
+8. PRESERVE ARRAY STRUCTURE
+   - When correcting array items (outcomes, interventions, arms, groups, exposures, comparisons, harms, etc.),
+     each item MUST remain a full JSON object as defined in SCHEMA.
+   - NEVER replace an array of objects with an array of strings or IDs.
+   - Example WRONG: "outcomes": ["O1", "O2"]
+   - Example CORRECT: "outcomes": [{"outcome_id": "O1", "name": "...", ...}, {"outcome_id": "O2", "name": "...", ...}]
+   - If an array item from ORIGINAL_EXTRACTION has the correct object structure,
+     preserve that structure even while correcting individual fields within it.
+   - When in doubt about an array item's structure, consult the SCHEMA definition
+     for that array's items type.
+
+9. PRIMARY OUTCOME / PRIMARY EXPOSURE FLAGS
    - If SCHEMA supports flags such as `is_primary:true`:
      - Set them to true ONLY if PDF_CONTENT explicitly states “primary”, “primary outcome”, “primary endpoint”, “primary exposure”, etc., OR clearly implies primacy via sample size calculation / power calculation.
      - If the PDF never names any primary variable, leave all items without that flag.
