@@ -95,6 +95,7 @@
       <types>mypy with --check-untyped-defs</types>
       <python>3.10+</python>
       <docstrings>Google-style for public APIs</docstrings>
+      <commits>Conventional Commits: feat:, fix:, docs:, refactor:, test:, chore:</commits>
     </code_style>
 
     <environment>
