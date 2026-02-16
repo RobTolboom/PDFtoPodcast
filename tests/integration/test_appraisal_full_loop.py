@@ -372,7 +372,7 @@ class TestAppraisalFullLoop:
             mock_get_provider.return_value = mock_llm
 
             with patch(
-                "src.pipeline.orchestrator.load_appraisal_prompt"
+                "src.pipeline.steps.appraisal.load_appraisal_prompt"
             ) as mock_load_appraisal_prompt:
                 mock_load_appraisal_prompt.return_value = "Test prompt"
 
@@ -425,7 +425,7 @@ class TestAppraisalFullLoop:
             mock_get_provider.return_value = mock_llm
 
             with patch(
-                "src.pipeline.orchestrator.load_appraisal_prompt"
+                "src.pipeline.steps.appraisal.load_appraisal_prompt"
             ) as mock_load_appraisal_prompt:
                 mock_load_appraisal_prompt.return_value = "Test prompt"
 
@@ -604,9 +604,9 @@ class TestAppraisalEdgeCases:
                 max_iterations=3,
             )
 
-            # Verify it completed and selected best available
-            assert result["final_status"] == "max_iterations_reached"
-            assert result["improvement_trajectory"] == [0.0, 0.0, 0.0, 0.0]
+            # With initial retry logic, schema quality 0.00 triggers
+            # regeneration retries and returns failed_schema_validation
+            assert result["final_status"] == "failed_schema_validation"
 
     def test_quality_degradation_early_stop(
         self,
