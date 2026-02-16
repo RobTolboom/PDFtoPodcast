@@ -7,7 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Summary table showed 0% quality for Validation & Correction** - `run_pipeline.py` read `best_metrics.get("overall_quality")` but the actual key from `QualityMetrics.to_dict()` is `"quality_score"`, causing the summary to always display 0%.
+
+- **`study_id` schema rejected DOIs** - The `study_id` pattern `^[A-Za-z0-9._-]+$` in 5 extraction schemas did not allow `/` or `:` characters present in DOIs (e.g., `10.1016/j.sleep.2024.08.024`), causing schema validation failures on first extraction. Updated pattern to `^[A-Za-z0-9._/:;()\\[\\]-]+$`.
+
 ### Changed
+
+- **Improved CLI Summary table** - Restructured the final pipeline summary with grouped sections, compact quality scores, per-step timing, and total pipeline elapsed time. Removed redundant "Pipeline Summary" and "Next:" hints from orchestrator output.
+
+- **Iteration status shows threshold awareness** - Loop runner now displays "Thresholds met" / "Below threshold" instead of the raw validation status "Passed", which was confusing when quality thresholds hadn't been met yet.
+
+
 
 - **Consolidated `features/` into `docs/plans/`** - Moved all feature planning documents from the top-level `features/` directory into `docs/plans/` to unify planning and documentation under a single location. Updated all cross-references across CLAUDE.md, CONTRIBUTING.md, ROADMAP.md, DEVELOPMENT.md, README.md, API.md, ARCHITECTURE.md, and internal plan documents.
 

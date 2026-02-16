@@ -21,8 +21,8 @@
     },
     "study_id": {
       "type": "string",
-      "pattern": "^[A-Za-z0-9._-]+$",
-      "description": "Internal opaque ID for this study/article"
+      "pattern": "^[A-Za-z0-9._/:;()\\[\\]-]+$",
+      "description": "Internal opaque ID for this study/article (may be a DOI)"
     },
     "external_ids": {
       "type": "array",

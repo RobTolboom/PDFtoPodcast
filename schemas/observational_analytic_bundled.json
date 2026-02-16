@@ -21,8 +21,8 @@
     },
     "study_id": {
       "type": "string",
-      "pattern": "^[A-Za-z0-9._-]+$",
-      "description": "Internal opaque ID for this study/article"
+      "pattern": "^[A-Za-z0-9._/:;()\\[\\]-]+$",
+      "description": "Internal opaque ID for this study/article (may be a DOI)"
     },
     "external_ids": {
       "type": "array",
@@ -2021,76 +2021,53 @@
         }
       }
     },
-    "ISO8601Duration": {
-      "$anchor": "duration",
-      "type": "string",
-      "pattern": "^P(?:(?:\\d+Y)?(?:\\d+M)?(?:\\d+W)?(?:\\d+D)?)?(?:T(?:\\d+H)?(?:\\d+M)?(?:\\d+(?:\\.\\d+)?S)?)?$",
-      "description": "Strict ISO 8601 duration (e.g., 'P30D', 'PT24H', 'P2W', 'P1Y2M3DT4H5M6S').",
-      "examples": [
-        "P30D",
-        "PT24H",
-        "P2W",
-        "P6M",
-        "P1Y",
-        "PT2H30M",
-        "P1Y2M3DT4H5M6.789S"
-      ]
-    },
-    "Provenance": {
+    "ParsedTable": {
       "type": "object",
       "additionalProperties": false,
+      "required": [
+        "table_id",
+        "title"
+      ],
       "properties": {
-        "extractor": {
-          "type": "string",
-          "description": "Person or system that performed extraction"
+        "table_id": {
+          "type": "string"
         },
-        "method": {
+        "title": {
+          "type": "string"
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "type": {
           "type": "string",
           "enum": [
-            "human_double_entry",
-            "human_single",
-            "llm_assisted",
-            "rule_based",
-            "automated",
+            "baseline",
+            "outcomes",
+            "harms",
+            "methods",
             "other"
-          ],
-          "description": "Extraction method used"
+          ]
         },
-        "confidence": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Extractor's confidence in the extraction"
-        },
-        "timestamp": {
-          "type": "string",
-          "format": "date-time",
-          "description": "When extraction was performed"
-        },
-        "transformation_notes": {
-          "type": "string",
-          "description": "Notes about data processing or transformation"
-        },
-        "consensus_status": {
-          "type": "string",
-          "enum": [
-            "agreement",
-            "disagreement",
-            "resolved",
-            "single_reviewer",
-            "not_applicable"
-          ],
-          "description": "Status of reviewer consensus (for double extraction)"
-        },
-        "reviewers": {
+        "rows": {
           "type": "array",
           "items": {
-            "type": "string"
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "cells"
+            ],
+            "properties": {
+              "cells": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
           },
-          "description": "List of reviewers involved in extraction"
-        },
-        "adjudication": {
-          "$ref": "#/$defs/Adjudication"
+          "default": []
         },
         "source": {
           "$ref": "#/$defs/SourceRef"
@@ -2373,46 +2350,95 @@
         }
       ]
     },
-    "OntologyTerm": {
+    "EffectCI": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Confidence interval for effect estimates",
+      "required": [
+        "lower",
+        "upper"
+      ],
+      "properties": {
+        "level": {
+          "type": "number",
+          "minimum": 50,
+          "maximum": 99.99,
+          "default": 95,
+          "description": "Confidence level as percentage (e.g., 95, 97.5, 99)"
+        },
+        "lower": {
+          "type": "number",
+          "description": "Lower bound of confidence interval"
+        },
+        "upper": {
+          "type": "number",
+          "description": "Upper bound of confidence interval"
+        }
+      }
+    },
+    "ISO8601Duration": {
+      "$anchor": "duration",
+      "type": "string",
+      "pattern": "^P(?:(?:\\d+Y)?(?:\\d+M)?(?:\\d+W)?(?:\\d+D)?)?(?:T(?:\\d+H)?(?:\\d+M)?(?:\\d+(?:\\.\\d+)?S)?)?$",
+      "description": "Strict ISO 8601 duration (e.g., 'P30D', 'PT24H', 'P2W', 'P1Y2M3DT4H5M6S').",
+      "examples": [
+        "P30D",
+        "PT24H",
+        "P2W",
+        "P6M",
+        "P1Y",
+        "PT2H30M",
+        "P1Y2M3DT4H5M6.789S"
+      ]
+    },
+    "ExtractionWarning": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "system",
-        "code"
+        "code",
+        "message"
       ],
       "properties": {
-        "system": {
-          "type": "string",
-          "enum": [
-            "MeSH",
-            "SNOMED-CT",
-            "LOINC",
-            "MedDRA",
-            "ICD-10",
-            "ICD-11",
-            "UMLS",
-            "RxNorm",
-            "ATC",
-            "CPT",
-            "HCPCS",
-            "Other"
-          ],
-          "description": "Standard medical terminology system"
-        },
         "code": {
           "type": "string",
-          "description": "Code within the terminology system"
+          "enum": [
+            "TABLE_PARSE_FAIL",
+            "AMBIGUOUS_UNIT",
+            "CI_PARSE_FAIL",
+            "MISSING_ARM_ID",
+            "MISSING_GROUP_ID",
+            "OTHER"
+          ]
         },
-        "display": {
+        "message": {
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        }
+      }
+    },
+    "SourceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Reference to a specific location within a document",
+      "properties": {
+        "anchor": {
           "type": "string",
-          "description": "Human-readable description of the code"
+          "description": "Free-text pointer like 'Table 2', 'Fig 1', or sentence quote"
         },
-        "version": {
+        "page": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Page number within the document"
+        },
+        "figure_id": {
           "type": "string",
-          "description": "Version of the terminology system used"
+          "description": "Identifier of a specific figure"
         },
-        "fhir_coding": {
-          "$ref": "#/$defs/FHIRCoding"
+        "table_id": {
+          "type": "string",
+          "description": "Identifier of a specific table"
         }
       }
     },
@@ -2509,29 +2535,101 @@
         }
       ]
     },
-    "EffectCI": {
+    "FigureSummary": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Confidence interval for effect estimates",
       "required": [
-        "lower",
-        "upper"
+        "figure_id",
+        "caption"
       ],
       "properties": {
-        "level": {
-          "type": "number",
-          "minimum": 50,
-          "maximum": 99.99,
-          "default": 95,
-          "description": "Confidence level as percentage (e.g., 95, 97.5, 99)"
+        "figure_id": {
+          "type": "string"
         },
-        "lower": {
-          "type": "number",
-          "description": "Lower bound of confidence interval"
+        "caption": {
+          "type": "string"
         },
-        "upper": {
+        "key_values": {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "default": {}
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        }
+      }
+    },
+    "Provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "extractor": {
+          "type": "string",
+          "description": "Person or system that performed extraction"
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "human_double_entry",
+            "human_single",
+            "llm_assisted",
+            "rule_based",
+            "automated",
+            "other"
+          ],
+          "description": "Extraction method used"
+        },
+        "confidence": {
           "type": "number",
-          "description": "Upper bound of confidence interval"
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Extractor's confidence in the extraction"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When extraction was performed"
+        },
+        "transformation_notes": {
+          "type": "string",
+          "description": "Notes about data processing or transformation"
+        },
+        "consensus_status": {
+          "type": "string",
+          "enum": [
+            "agreement",
+            "disagreement",
+            "resolved",
+            "single_reviewer",
+            "not_applicable"
+          ],
+          "description": "Status of reviewer consensus (for double extraction)"
+        },
+        "reviewers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of reviewers involved in extraction"
+        },
+        "adjudication": {
+          "$ref": "#/$defs/Adjudication"
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
         }
       }
     },
@@ -2752,6 +2850,40 @@
         }
       ]
     },
+    "SupplementFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label"
+      ],
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "filename": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "doi": {
+          "type": "string",
+          "pattern": "^10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+$"
+        },
+        "content_type": {
+          "type": "string"
+        },
+        "file_size": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "File size in bytes"
+        },
+        "checksum": {
+          "$ref": "#/$defs/DataIntegrity"
+        }
+      }
+    },
     "BayesianInterval": {
       "type": "object",
       "additionalProperties": false,
@@ -2779,6 +2911,85 @@
         "hdi": {
           "type": "boolean",
           "description": "Whether this is a Highest Density Interval"
+        }
+      }
+    },
+    "TruncationInfo": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "type": "boolean",
+          "default": false
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "token_limit",
+            "page_limit",
+            "timeout",
+            "other"
+          ]
+        }
+      }
+    },
+    "LanguageCode": {
+      "type": "string",
+      "pattern": "^[a-z]{2,3}(-[A-Z]{2})?(-[a-z]{2,8})*$",
+      "description": "BCP 47 language tag supporting language, region, and variants (e.g., 'en-US', 'zh-Hans-CN', 'ar-EG')",
+      "examples": [
+        "en",
+        "en-US",
+        "en-GB",
+        "de-DE",
+        "fr-FR",
+        "es-ES",
+        "zh-Hans",
+        "zh-Hant",
+        "ar-EG",
+        "he-IL"
+      ]
+    },
+    "OntologyTerm": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "system",
+        "code"
+      ],
+      "properties": {
+        "system": {
+          "type": "string",
+          "enum": [
+            "MeSH",
+            "SNOMED-CT",
+            "LOINC",
+            "MedDRA",
+            "ICD-10",
+            "ICD-11",
+            "UMLS",
+            "RxNorm",
+            "ATC",
+            "CPT",
+            "HCPCS",
+            "Other"
+          ],
+          "description": "Standard medical terminology system"
+        },
+        "code": {
+          "type": "string",
+          "description": "Code within the terminology system"
+        },
+        "display": {
+          "type": "string",
+          "description": "Human-readable description of the code"
+        },
+        "version": {
+          "type": "string",
+          "description": "Version of the terminology system used"
+        },
+        "fhir_coding": {
+          "$ref": "#/$defs/FHIRCoding"
         }
       }
     },
@@ -2863,178 +3074,230 @@
         }
       }
     },
-    "ParsedTable": {
+    "DataIntegrity": {
       "type": "object",
       "additionalProperties": false,
+      "description": "Data integrity verification with multiple hash algorithms",
       "required": [
-        "table_id",
-        "title"
+        "algorithm",
+        "value"
       ],
       "properties": {
-        "table_id": {
-          "type": "string"
-        },
-        "title": {
-          "type": "string"
-        },
-        "page": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "type": {
+        "algorithm": {
           "type": "string",
           "enum": [
-            "baseline",
-            "outcomes",
-            "harms",
-            "methods",
-            "other"
-          ]
+            "SHA-256",
+            "SHA-512",
+            "SHA-3-256",
+            "SHA-3-512",
+            "BLAKE2b",
+            "SHA-1",
+            "MD5",
+            "CRC32"
+          ],
+          "description": "Cryptographic hash algorithm used"
         },
-        "rows": {
+        "value": {
+          "type": "string",
+          "description": "Hex-encoded hash value"
+        },
+        "salt": {
+          "type": "string",
+          "description": "Optional salt value for enhanced security"
+        },
+        "verification_timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the hash was computed or verified"
+        },
+        "verified_by": {
+          "type": "string",
+          "description": "System or person who verified the hash"
+        },
+        "multiple_hashes": {
           "type": "array",
           "items": {
             "type": "object",
-            "additionalProperties": false,
             "required": [
-              "cells"
+              "algorithm",
+              "value"
             ],
             "properties": {
-              "cells": {
-                "type": "array",
-                "minItems": 1,
-                "items": {
-                  "type": "string"
-                }
+              "algorithm": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
               }
             }
           },
-          "default": []
-        },
-        "source": {
-          "$ref": "#/$defs/SourceRef"
+          "description": "Additional hash values using different algorithms for enhanced verification"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "algorithm": {
+                "const": "SHA-256"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "pattern": "^[a-fA-F0-9]{64}$",
+                "description": "SHA-256 hash must be 64 hex characters"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "algorithm": {
+                "const": "SHA-512"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "pattern": "^[a-fA-F0-9]{128}$",
+                "description": "SHA-512 hash must be 128 hex characters"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "algorithm": {
+                "const": "SHA-3-256"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "pattern": "^[a-fA-F0-9]{64}$",
+                "description": "SHA-3-256 hash must be 64 hex characters"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "algorithm": {
+                "const": "SHA-3-512"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "pattern": "^[a-fA-F0-9]{128}$",
+                "description": "SHA-3-512 hash must be 128 hex characters"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "algorithm": {
+                "const": "BLAKE2b"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "pattern": "^[a-fA-F0-9]{128}$",
+                "description": "BLAKE2b hash must be 128 hex characters"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "algorithm": {
+                "const": "SHA-1"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "pattern": "^[a-fA-F0-9]{40}$",
+                "description": "SHA-1 hash must be 40 hex characters"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "algorithm": {
+                "const": "MD5"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "pattern": "^[a-fA-F0-9]{32}$",
+                "description": "MD5 hash must be 32 hex characters"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "algorithm": {
+                "const": "CRC32"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "value": {
+                "pattern": "^[a-fA-F0-9]{8}$",
+                "description": "CRC32 hash must be 8 hex characters"
+              }
+            }
+          }
+        }
+      ]
     },
-    "ExtractionWarning": {
+    "FHIRCoding": {
       "type": "object",
       "additionalProperties": false,
-      "required": [
-        "code",
-        "message"
-      ],
+      "description": "FHIR R5 Coding datatype for medical terminology",
       "properties": {
+        "system": {
+          "type": "string",
+          "format": "uri",
+          "description": "URI that identifies the code system"
+        },
+        "version": {
+          "type": "string",
+          "description": "Version of the code system"
+        },
         "code": {
           "type": "string",
-          "enum": [
-            "TABLE_PARSE_FAIL",
-            "AMBIGUOUS_UNIT",
-            "CI_PARSE_FAIL",
-            "MISSING_ARM_ID",
-            "MISSING_GROUP_ID",
-            "OTHER"
-          ]
+          "description": "Symbol in syntax defined by the system"
         },
-        "message": {
-          "type": "string"
-        },
-        "source": {
-          "$ref": "#/$defs/SourceRef"
-        }
-      }
-    },
-    "SourceRef": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Reference to a specific location within a document",
-      "properties": {
-        "anchor": {
+        "display": {
           "type": "string",
-          "description": "Free-text pointer like 'Table 2', 'Fig 1', or sentence quote"
+          "description": "Representation defined by the system"
         },
-        "page": {
-          "type": "integer",
-          "minimum": 1,
-          "description": "Page number within the document"
-        },
-        "figure_id": {
-          "type": "string",
-          "description": "Identifier of a specific figure"
-        },
-        "table_id": {
-          "type": "string",
-          "description": "Identifier of a specific table"
-        }
-      }
-    },
-    "SupplementFile": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "label"
-      ],
-      "properties": {
-        "label": {
-          "type": "string"
-        },
-        "filename": {
-          "type": "string"
-        },
-        "url": {
-          "type": "string",
-          "format": "uri"
-        },
-        "doi": {
-          "type": "string",
-          "pattern": "^10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+$"
-        },
-        "content_type": {
-          "type": "string"
-        },
-        "file_size": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "File size in bytes"
-        },
-        "checksum": {
-          "$ref": "#/$defs/DataIntegrity"
-        }
-      }
-    },
-    "FigureSummary": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "figure_id",
-        "caption"
-      ],
-      "properties": {
-        "figure_id": {
-          "type": "string"
-        },
-        "caption": {
-          "type": "string"
-        },
-        "key_values": {
-          "type": "object",
-          "additionalProperties": {
-            "oneOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "string"
-              }
-            ]
-          },
-          "default": {}
-        },
-        "page": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "source": {
-          "$ref": "#/$defs/SourceRef"
+        "userSelected": {
+          "type": "boolean",
+          "description": "If this coding was chosen directly by the user"
         }
       }
     },
@@ -3086,24 +3349,137 @@
         }
       }
     },
-    "TruncationInfo": {
+    "Registration": {
       "type": "object",
       "additionalProperties": false,
+      "description": "Clinical trial or study registration information",
       "properties": {
-        "value": {
-          "type": "boolean",
-          "default": false
-        },
-        "reason": {
+        "registry": {
           "type": "string",
           "enum": [
-            "token_limit",
-            "page_limit",
-            "timeout",
-            "other"
+            "ClinicalTrials.gov",
+            "ISRCTN",
+            "EudraCT",
+            "EU-CTR",
+            "CTIS",
+            "ChiCTR",
+            "ANZCTR",
+            "UMIN-CTR",
+            "JPRN",
+            "PACTR",
+            "IRCT",
+            "DRKS",
+            "TCTR",
+            "SLCTR",
+            "RPCEC",
+            "REBEC",
+            "Other"
+          ],
+          "description": "Clinical trial registry (includes major international and regional registries)"
+        },
+        "identifier": {
+          "type": "string",
+          "description": "Registration identifier within the registry",
+          "examples": [
+            "NCT04123456",
+            "ISRCTN12345678",
+            "2020-001234-56",
+            "UMIN000012345"
           ]
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Direct URL to the registration record"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "registry": {
+                "const": "ClinicalTrials.gov"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "identifier": {
+                "pattern": "^NCT\\d{8}$",
+                "description": "ClinicalTrials.gov identifier format: NCT followed by 8 digits"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "registry": {
+                "const": "ISRCTN"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "identifier": {
+                "pattern": "^ISRCTN\\d{8}$",
+                "description": "ISRCTN identifier format: ISRCTN followed by 8 digits"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "registry": {
+                "const": "EudraCT"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "identifier": {
+                "pattern": "^\\d{4}-\\d{6}-\\d{2}$",
+                "description": "EudraCT identifier format: YYYY-NNNNNN-NN"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "registry": {
+                "const": "UMIN-CTR"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "identifier": {
+                "pattern": "^UMIN\\d{9}$",
+                "description": "UMIN-CTR identifier format: UMIN followed by 9 digits"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "registry": {
+                "const": "ChiCTR"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "identifier": {
+                "pattern": "^ChiCTR\\d{10}$",
+                "description": "ChiCTR identifier format: ChiCTR followed by 10 digits"
+              }
+            }
+          }
+        }
+      ]
     },
     "AIProcessingMetadata": {
       "type": "object",
@@ -3392,382 +3768,6 @@
           }
         }
       }
-    },
-    "FHIRCoding": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "FHIR R5 Coding datatype for medical terminology",
-      "properties": {
-        "system": {
-          "type": "string",
-          "format": "uri",
-          "description": "URI that identifies the code system"
-        },
-        "version": {
-          "type": "string",
-          "description": "Version of the code system"
-        },
-        "code": {
-          "type": "string",
-          "description": "Symbol in syntax defined by the system"
-        },
-        "display": {
-          "type": "string",
-          "description": "Representation defined by the system"
-        },
-        "userSelected": {
-          "type": "boolean",
-          "description": "If this coding was chosen directly by the user"
-        }
-      }
-    },
-    "Registration": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Clinical trial or study registration information",
-      "properties": {
-        "registry": {
-          "type": "string",
-          "enum": [
-            "ClinicalTrials.gov",
-            "ISRCTN",
-            "EudraCT",
-            "EU-CTR",
-            "CTIS",
-            "ChiCTR",
-            "ANZCTR",
-            "UMIN-CTR",
-            "JPRN",
-            "PACTR",
-            "IRCT",
-            "DRKS",
-            "TCTR",
-            "SLCTR",
-            "RPCEC",
-            "REBEC",
-            "Other"
-          ],
-          "description": "Clinical trial registry (includes major international and regional registries)"
-        },
-        "identifier": {
-          "type": "string",
-          "description": "Registration identifier within the registry",
-          "examples": [
-            "NCT04123456",
-            "ISRCTN12345678",
-            "2020-001234-56",
-            "UMIN000012345"
-          ]
-        },
-        "url": {
-          "type": "string",
-          "format": "uri",
-          "description": "Direct URL to the registration record"
-        }
-      },
-      "allOf": [
-        {
-          "if": {
-            "properties": {
-              "registry": {
-                "const": "ClinicalTrials.gov"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "identifier": {
-                "pattern": "^NCT\\d{8}$",
-                "description": "ClinicalTrials.gov identifier format: NCT followed by 8 digits"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "registry": {
-                "const": "ISRCTN"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "identifier": {
-                "pattern": "^ISRCTN\\d{8}$",
-                "description": "ISRCTN identifier format: ISRCTN followed by 8 digits"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "registry": {
-                "const": "EudraCT"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "identifier": {
-                "pattern": "^\\d{4}-\\d{6}-\\d{2}$",
-                "description": "EudraCT identifier format: YYYY-NNNNNN-NN"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "registry": {
-                "const": "UMIN-CTR"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "identifier": {
-                "pattern": "^UMIN\\d{9}$",
-                "description": "UMIN-CTR identifier format: UMIN followed by 9 digits"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "registry": {
-                "const": "ChiCTR"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "identifier": {
-                "pattern": "^ChiCTR\\d{10}$",
-                "description": "ChiCTR identifier format: ChiCTR followed by 10 digits"
-              }
-            }
-          }
-        }
-      ]
-    },
-    "DataIntegrity": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Data integrity verification with multiple hash algorithms",
-      "required": [
-        "algorithm",
-        "value"
-      ],
-      "properties": {
-        "algorithm": {
-          "type": "string",
-          "enum": [
-            "SHA-256",
-            "SHA-512",
-            "SHA-3-256",
-            "SHA-3-512",
-            "BLAKE2b",
-            "SHA-1",
-            "MD5",
-            "CRC32"
-          ],
-          "description": "Cryptographic hash algorithm used"
-        },
-        "value": {
-          "type": "string",
-          "description": "Hex-encoded hash value"
-        },
-        "salt": {
-          "type": "string",
-          "description": "Optional salt value for enhanced security"
-        },
-        "verification_timestamp": {
-          "type": "string",
-          "format": "date-time",
-          "description": "When the hash was computed or verified"
-        },
-        "verified_by": {
-          "type": "string",
-          "description": "System or person who verified the hash"
-        },
-        "multiple_hashes": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": [
-              "algorithm",
-              "value"
-            ],
-            "properties": {
-              "algorithm": {
-                "type": "string"
-              },
-              "value": {
-                "type": "string"
-              }
-            }
-          },
-          "description": "Additional hash values using different algorithms for enhanced verification"
-        }
-      },
-      "allOf": [
-        {
-          "if": {
-            "properties": {
-              "algorithm": {
-                "const": "SHA-256"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "value": {
-                "pattern": "^[a-fA-F0-9]{64}$",
-                "description": "SHA-256 hash must be 64 hex characters"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "algorithm": {
-                "const": "SHA-512"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "value": {
-                "pattern": "^[a-fA-F0-9]{128}$",
-                "description": "SHA-512 hash must be 128 hex characters"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "algorithm": {
-                "const": "SHA-3-256"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "value": {
-                "pattern": "^[a-fA-F0-9]{64}$",
-                "description": "SHA-3-256 hash must be 64 hex characters"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "algorithm": {
-                "const": "SHA-3-512"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "value": {
-                "pattern": "^[a-fA-F0-9]{128}$",
-                "description": "SHA-3-512 hash must be 128 hex characters"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "algorithm": {
-                "const": "BLAKE2b"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "value": {
-                "pattern": "^[a-fA-F0-9]{128}$",
-                "description": "BLAKE2b hash must be 128 hex characters"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "algorithm": {
-                "const": "SHA-1"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "value": {
-                "pattern": "^[a-fA-F0-9]{40}$",
-                "description": "SHA-1 hash must be 40 hex characters"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "algorithm": {
-                "const": "MD5"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "value": {
-                "pattern": "^[a-fA-F0-9]{32}$",
-                "description": "MD5 hash must be 32 hex characters"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "algorithm": {
-                "const": "CRC32"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "value": {
-                "pattern": "^[a-fA-F0-9]{8}$",
-                "description": "CRC32 hash must be 8 hex characters"
-              }
-            }
-          }
-        }
-      ]
-    },
-    "LanguageCode": {
-      "type": "string",
-      "pattern": "^[a-z]{2,3}(-[A-Z]{2})?(-[a-z]{2,8})*$",
-      "description": "BCP 47 language tag supporting language, region, and variants (e.g., 'en-US', 'zh-Hans-CN', 'ar-EG')",
-      "examples": [
-        "en",
-        "en-US",
-        "en-GB",
-        "de-DE",
-        "fr-FR",
-        "es-ES",
-        "zh-Hans",
-        "zh-Hant",
-        "ar-EG",
-        "he-IL"
-      ]
     },
     "EmailAddress": {
       "type": "string",

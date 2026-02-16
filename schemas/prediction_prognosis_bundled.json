@@ -23,8 +23,8 @@
     },
     "study_id": {
       "type": "string",
-      "pattern": "^[A-Za-z0-9._-]+$",
-      "description": "Internal opaque ID for this article"
+      "pattern": "^[A-Za-z0-9._/:;()\\[\\]-]+$",
+      "description": "Internal opaque ID for this article (may be a DOI)"
     },
     "generator": {
       "type": "object",
@@ -1548,20 +1548,58 @@
         }
       }
     },
-    "ISO8601Duration": {
-      "$anchor": "duration",
-      "type": "string",
-      "pattern": "^P(?:(?:\\d+Y)?(?:\\d+M)?(?:\\d+W)?(?:\\d+D)?)?(?:T(?:\\d+H)?(?:\\d+M)?(?:\\d+(?:\\.\\d+)?S)?)?$",
-      "description": "Strict ISO 8601 duration (e.g., 'P30D', 'PT24H', 'P2W', 'P1Y2M3DT4H5M6S').",
-      "examples": [
-        "P30D",
-        "PT24H",
-        "P2W",
-        "P6M",
-        "P1Y",
-        "PT2H30M",
-        "P1Y2M3DT4H5M6.789S"
-      ]
+    "ParsedTable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "table_id",
+        "title"
+      ],
+      "properties": {
+        "table_id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "baseline",
+            "outcomes",
+            "harms",
+            "methods",
+            "other"
+          ]
+        },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "cells"
+            ],
+            "properties": {
+              "cells": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": []
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        }
+      }
     },
     "RiskOfBias": {
       "type": "object",
@@ -1839,6 +1877,24 @@
         }
       ]
     },
+    "CountryCode": {
+      "$ref": "#/$defs/CountryCodeAlpha2"
+    },
+    "ISO8601Duration": {
+      "$anchor": "duration",
+      "type": "string",
+      "pattern": "^P(?:(?:\\d+Y)?(?:\\d+M)?(?:\\d+W)?(?:\\d+D)?)?(?:T(?:\\d+H)?(?:\\d+M)?(?:\\d+(?:\\.\\d+)?S)?)?$",
+      "description": "Strict ISO 8601 duration (e.g., 'P30D', 'PT24H', 'P2W', 'P1Y2M3DT4H5M6S').",
+      "examples": [
+        "P30D",
+        "PT24H",
+        "P2W",
+        "P6M",
+        "P1Y",
+        "PT2H30M",
+        "P1Y2M3DT4H5M6.789S"
+      ]
+    },
     "EffectCI": {
       "type": "object",
       "additionalProperties": false,
@@ -1865,8 +1921,154 @@
         }
       }
     },
-    "CountryCode": {
-      "$ref": "#/$defs/CountryCodeAlpha2"
+    "ExtractionWarning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "TABLE_PARSE_FAIL",
+            "AMBIGUOUS_UNIT",
+            "CI_PARSE_FAIL",
+            "MISSING_ARM_ID",
+            "MISSING_GROUP_ID",
+            "OTHER"
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        }
+      }
+    },
+    "SourceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Reference to a specific location within a document",
+      "properties": {
+        "anchor": {
+          "type": "string",
+          "description": "Free-text pointer like 'Table 2', 'Fig 1', or sentence quote"
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Page number within the document"
+        },
+        "figure_id": {
+          "type": "string",
+          "description": "Identifier of a specific figure"
+        },
+        "table_id": {
+          "type": "string",
+          "description": "Identifier of a specific table"
+        }
+      }
+    },
+    "FigureSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "figure_id",
+        "caption"
+      ],
+      "properties": {
+        "figure_id": {
+          "type": "string"
+        },
+        "caption": {
+          "type": "string"
+        },
+        "key_values": {
+          "type": "object",
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "default": {}
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        }
+      }
+    },
+    "Provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "extractor": {
+          "type": "string",
+          "description": "Person or system that performed extraction"
+        },
+        "method": {
+          "type": "string",
+          "enum": [
+            "human_double_entry",
+            "human_single",
+            "llm_assisted",
+            "rule_based",
+            "automated",
+            "other"
+          ],
+          "description": "Extraction method used"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Extractor's confidence in the extraction"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When extraction was performed"
+        },
+        "transformation_notes": {
+          "type": "string",
+          "description": "Notes about data processing or transformation"
+        },
+        "consensus_status": {
+          "type": "string",
+          "enum": [
+            "agreement",
+            "disagreement",
+            "resolved",
+            "single_reviewer",
+            "not_applicable"
+          ],
+          "description": "Status of reviewer consensus (for double extraction)"
+        },
+        "reviewers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of reviewers involved in extraction"
+        },
+        "adjudication": {
+          "$ref": "#/$defs/Adjudication"
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        }
+      }
     },
     "Metadata": {
       "type": "object",
@@ -2085,6 +2287,40 @@
         }
       ]
     },
+    "SupplementFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label"
+      ],
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "filename": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "doi": {
+          "type": "string",
+          "pattern": "^10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+$"
+        },
+        "content_type": {
+          "type": "string"
+        },
+        "file_size": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "File size in bytes"
+        },
+        "checksum": {
+          "$ref": "#/$defs/DataIntegrity"
+        }
+      }
+    },
     "ParsingContext": {
       "type": "object",
       "additionalProperties": false,
@@ -2150,229 +2386,6 @@
         }
       }
     },
-    "ParsedTable": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "table_id",
-        "title"
-      ],
-      "properties": {
-        "table_id": {
-          "type": "string"
-        },
-        "title": {
-          "type": "string"
-        },
-        "page": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "type": {
-          "type": "string",
-          "enum": [
-            "baseline",
-            "outcomes",
-            "harms",
-            "methods",
-            "other"
-          ]
-        },
-        "rows": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "cells"
-            ],
-            "properties": {
-              "cells": {
-                "type": "array",
-                "minItems": 1,
-                "items": {
-                  "type": "string"
-                }
-              }
-            }
-          },
-          "default": []
-        },
-        "source": {
-          "$ref": "#/$defs/SourceRef"
-        }
-      }
-    },
-    "ExtractionWarning": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "code",
-        "message"
-      ],
-      "properties": {
-        "code": {
-          "type": "string",
-          "enum": [
-            "TABLE_PARSE_FAIL",
-            "AMBIGUOUS_UNIT",
-            "CI_PARSE_FAIL",
-            "MISSING_ARM_ID",
-            "MISSING_GROUP_ID",
-            "OTHER"
-          ]
-        },
-        "message": {
-          "type": "string"
-        },
-        "source": {
-          "$ref": "#/$defs/SourceRef"
-        }
-      }
-    },
-    "SourceRef": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Reference to a specific location within a document",
-      "properties": {
-        "anchor": {
-          "type": "string",
-          "description": "Free-text pointer like 'Table 2', 'Fig 1', or sentence quote"
-        },
-        "page": {
-          "type": "integer",
-          "minimum": 1,
-          "description": "Page number within the document"
-        },
-        "figure_id": {
-          "type": "string",
-          "description": "Identifier of a specific figure"
-        },
-        "table_id": {
-          "type": "string",
-          "description": "Identifier of a specific table"
-        }
-      }
-    },
-    "SupplementFile": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "label"
-      ],
-      "properties": {
-        "label": {
-          "type": "string"
-        },
-        "filename": {
-          "type": "string"
-        },
-        "url": {
-          "type": "string",
-          "format": "uri"
-        },
-        "doi": {
-          "type": "string",
-          "pattern": "^10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+$"
-        },
-        "content_type": {
-          "type": "string"
-        },
-        "file_size": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "File size in bytes"
-        },
-        "checksum": {
-          "$ref": "#/$defs/DataIntegrity"
-        }
-      }
-    },
-    "FigureSummary": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "figure_id",
-        "caption"
-      ],
-      "properties": {
-        "figure_id": {
-          "type": "string"
-        },
-        "caption": {
-          "type": "string"
-        },
-        "key_values": {
-          "type": "object",
-          "additionalProperties": {
-            "oneOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "string"
-              }
-            ]
-          },
-          "default": {}
-        },
-        "page": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "source": {
-          "$ref": "#/$defs/SourceRef"
-        }
-      }
-    },
-    "Author": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Author information for academic publications",
-      "required": [
-        "last_name"
-      ],
-      "properties": {
-        "last_name": {
-          "type": "string",
-          "description": "Author's family name"
-        },
-        "initials": {
-          "type": "string",
-          "description": "Author's first/middle name initials"
-        },
-        "given_names": {
-          "type": "string",
-          "description": "Author's full first and middle names"
-        },
-        "orcid": {
-          "type": "string",
-          "pattern": "^(https://orcid\\.org/)?0000-00(0[2-9]|[1-9]\\d)-\\d{4}-\\d{3}[\\dX]$",
-          "description": "ORCID identifier with checksum validation (optionally with URL prefix)",
-          "examples": [
-            "0000-0002-1825-0097",
-            "https://orcid.org/0000-0002-1825-0097"
-          ]
-        },
-        "affiliations": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [],
-          "description": "Author's institutional affiliations"
-        },
-        "corresponding": {
-          "type": "boolean",
-          "default": false,
-          "description": "Whether this author is the corresponding author"
-        },
-        "email": {
-          "$ref": "#/$defs/EmailAddress",
-          "description": "Contact email address (typically for corresponding authors)"
-        }
-      }
-    },
     "TruncationInfo": {
       "type": "object",
       "additionalProperties": false,
@@ -2391,6 +2404,23 @@
           ]
         }
       }
+    },
+    "LanguageCode": {
+      "type": "string",
+      "pattern": "^[a-z]{2,3}(-[A-Z]{2})?(-[a-z]{2,8})*$",
+      "description": "BCP 47 language tag supporting language, region, and variants (e.g., 'en-US', 'zh-Hans-CN', 'ar-EG')",
+      "examples": [
+        "en",
+        "en-US",
+        "en-GB",
+        "de-DE",
+        "fr-FR",
+        "es-ES",
+        "zh-Hans",
+        "zh-Hant",
+        "ar-EG",
+        "he-IL"
+      ]
     },
     "AIProcessingMetadata": {
       "type": "object",
@@ -2680,198 +2710,26 @@
         }
       }
     },
-    "Provenance": {
+    "CountryCodeAlpha2": {
+      "type": "string",
+      "pattern": "^[A-Z]{2}$",
+      "description": "ISO 3166-1 alpha-2 country code (e.g., 'NL', 'US')."
+    },
+    "Adjudication": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "extractor": {
-          "type": "string",
-          "description": "Person or system that performed extraction"
+        "needed": {
+          "type": "boolean",
+          "default": false
         },
-        "method": {
-          "type": "string",
-          "enum": [
-            "human_double_entry",
-            "human_single",
-            "llm_assisted",
-            "rule_based",
-            "automated",
-            "other"
-          ],
-          "description": "Extraction method used"
+        "adjudicator": {
+          "type": "string"
         },
-        "confidence": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Extractor's confidence in the extraction"
-        },
-        "timestamp": {
-          "type": "string",
-          "format": "date-time",
-          "description": "When extraction was performed"
-        },
-        "transformation_notes": {
-          "type": "string",
-          "description": "Notes about data processing or transformation"
-        },
-        "consensus_status": {
-          "type": "string",
-          "enum": [
-            "agreement",
-            "disagreement",
-            "resolved",
-            "single_reviewer",
-            "not_applicable"
-          ],
-          "description": "Status of reviewer consensus (for double extraction)"
-        },
-        "reviewers": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "List of reviewers involved in extraction"
-        },
-        "adjudication": {
-          "$ref": "#/$defs/Adjudication"
-        },
-        "source": {
-          "$ref": "#/$defs/SourceRef"
+        "notes": {
+          "type": "string"
         }
       }
-    },
-    "Registration": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Clinical trial or study registration information",
-      "properties": {
-        "registry": {
-          "type": "string",
-          "enum": [
-            "ClinicalTrials.gov",
-            "ISRCTN",
-            "EudraCT",
-            "EU-CTR",
-            "CTIS",
-            "ChiCTR",
-            "ANZCTR",
-            "UMIN-CTR",
-            "JPRN",
-            "PACTR",
-            "IRCT",
-            "DRKS",
-            "TCTR",
-            "SLCTR",
-            "RPCEC",
-            "REBEC",
-            "Other"
-          ],
-          "description": "Clinical trial registry (includes major international and regional registries)"
-        },
-        "identifier": {
-          "type": "string",
-          "description": "Registration identifier within the registry",
-          "examples": [
-            "NCT04123456",
-            "ISRCTN12345678",
-            "2020-001234-56",
-            "UMIN000012345"
-          ]
-        },
-        "url": {
-          "type": "string",
-          "format": "uri",
-          "description": "Direct URL to the registration record"
-        }
-      },
-      "allOf": [
-        {
-          "if": {
-            "properties": {
-              "registry": {
-                "const": "ClinicalTrials.gov"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "identifier": {
-                "pattern": "^NCT\\d{8}$",
-                "description": "ClinicalTrials.gov identifier format: NCT followed by 8 digits"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "registry": {
-                "const": "ISRCTN"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "identifier": {
-                "pattern": "^ISRCTN\\d{8}$",
-                "description": "ISRCTN identifier format: ISRCTN followed by 8 digits"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "registry": {
-                "const": "EudraCT"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "identifier": {
-                "pattern": "^\\d{4}-\\d{6}-\\d{2}$",
-                "description": "EudraCT identifier format: YYYY-NNNNNN-NN"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "registry": {
-                "const": "UMIN-CTR"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "identifier": {
-                "pattern": "^UMIN\\d{9}$",
-                "description": "UMIN-CTR identifier format: UMIN followed by 9 digits"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "registry": {
-                "const": "ChiCTR"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "identifier": {
-                "pattern": "^ChiCTR\\d{10}$",
-                "description": "ChiCTR identifier format: ChiCTR followed by 10 digits"
-              }
-            }
-          }
-        }
-      ]
     },
     "DataIntegrity": {
       "type": "object",
@@ -3072,28 +2930,6 @@
         }
       ]
     },
-    "LanguageCode": {
-      "type": "string",
-      "pattern": "^[a-z]{2,3}(-[A-Z]{2})?(-[a-z]{2,8})*$",
-      "description": "BCP 47 language tag supporting language, region, and variants (e.g., 'en-US', 'zh-Hans-CN', 'ar-EG')",
-      "examples": [
-        "en",
-        "en-US",
-        "en-GB",
-        "de-DE",
-        "fr-FR",
-        "es-ES",
-        "zh-Hans",
-        "zh-Hant",
-        "ar-EG",
-        "he-IL"
-      ]
-    },
-    "CountryCodeAlpha2": {
-      "type": "string",
-      "pattern": "^[A-Z]{2}$",
-      "description": "ISO 3166-1 alpha-2 country code (e.g., 'NL', 'US')."
-    },
     "ExternalId": {
       "type": "object",
       "additionalProperties": false,
@@ -3187,6 +3023,186 @@
         }
       ]
     },
+    "Author": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Author information for academic publications",
+      "required": [
+        "last_name"
+      ],
+      "properties": {
+        "last_name": {
+          "type": "string",
+          "description": "Author's family name"
+        },
+        "initials": {
+          "type": "string",
+          "description": "Author's first/middle name initials"
+        },
+        "given_names": {
+          "type": "string",
+          "description": "Author's full first and middle names"
+        },
+        "orcid": {
+          "type": "string",
+          "pattern": "^(https://orcid\\.org/)?0000-00(0[2-9]|[1-9]\\d)-\\d{4}-\\d{3}[\\dX]$",
+          "description": "ORCID identifier with checksum validation (optionally with URL prefix)",
+          "examples": [
+            "0000-0002-1825-0097",
+            "https://orcid.org/0000-0002-1825-0097"
+          ]
+        },
+        "affiliations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Author's institutional affiliations"
+        },
+        "corresponding": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this author is the corresponding author"
+        },
+        "email": {
+          "$ref": "#/$defs/EmailAddress",
+          "description": "Contact email address (typically for corresponding authors)"
+        }
+      }
+    },
+    "Registration": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Clinical trial or study registration information",
+      "properties": {
+        "registry": {
+          "type": "string",
+          "enum": [
+            "ClinicalTrials.gov",
+            "ISRCTN",
+            "EudraCT",
+            "EU-CTR",
+            "CTIS",
+            "ChiCTR",
+            "ANZCTR",
+            "UMIN-CTR",
+            "JPRN",
+            "PACTR",
+            "IRCT",
+            "DRKS",
+            "TCTR",
+            "SLCTR",
+            "RPCEC",
+            "REBEC",
+            "Other"
+          ],
+          "description": "Clinical trial registry (includes major international and regional registries)"
+        },
+        "identifier": {
+          "type": "string",
+          "description": "Registration identifier within the registry",
+          "examples": [
+            "NCT04123456",
+            "ISRCTN12345678",
+            "2020-001234-56",
+            "UMIN000012345"
+          ]
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Direct URL to the registration record"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "registry": {
+                "const": "ClinicalTrials.gov"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "identifier": {
+                "pattern": "^NCT\\d{8}$",
+                "description": "ClinicalTrials.gov identifier format: NCT followed by 8 digits"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "registry": {
+                "const": "ISRCTN"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "identifier": {
+                "pattern": "^ISRCTN\\d{8}$",
+                "description": "ISRCTN identifier format: ISRCTN followed by 8 digits"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "registry": {
+                "const": "EudraCT"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "identifier": {
+                "pattern": "^\\d{4}-\\d{6}-\\d{2}$",
+                "description": "EudraCT identifier format: YYYY-NNNNNN-NN"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "registry": {
+                "const": "UMIN-CTR"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "identifier": {
+                "pattern": "^UMIN\\d{9}$",
+                "description": "UMIN-CTR identifier format: UMIN followed by 9 digits"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "registry": {
+                "const": "ChiCTR"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "identifier": {
+                "pattern": "^ChiCTR\\d{10}$",
+                "description": "ChiCTR identifier format: ChiCTR followed by 10 digits"
+              }
+            }
+          }
+        }
+      ]
+    },
     "EmailAddress": {
       "type": "string",
       "format": "email",
@@ -3196,22 +3212,6 @@
         "researcher@university.edu",
         "corresponding.author@hospital.org"
       ]
-    },
-    "Adjudication": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "needed": {
-          "type": "boolean",
-          "default": false
-        },
-        "adjudicator": {
-          "type": "string"
-        },
-        "notes": {
-          "type": "string"
-        }
-      }
     }
   }
 }

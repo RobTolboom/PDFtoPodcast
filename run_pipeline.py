@@ -57,6 +57,7 @@ Configuration:
 """
 
 import argparse
+import time
 from pathlib import Path
 
 from rich import box
@@ -456,6 +457,7 @@ def main():
 
         # Run the six-step pipeline with selected LLM provider
         console.print("\n[bold cyan]Running six-step extraction pipeline...[/bold cyan]\n")
+        pipeline_start_time = time.time()
         results = run_full_pipeline(
             pdf_path=pdf_path,
             max_pages=args.max_pages,
@@ -470,34 +472,47 @@ def main():
             skip_podcast=(args.output == "report"),
         )
 
-    # Show detailed summary
-    console.print("\n[bold green]✅ Pipeline completed[/bold green]")
+    # Calculate total pipeline time if available (only set in full pipeline mode)
+    total_elapsed = None
+    try:
+        total_elapsed = time.time() - pipeline_start_time  # noqa: F821
+    except NameError:
+        pass  # single-step mode
 
-    summary = Table(title="Summary", box=box.SIMPLE)
-    summary.add_column("Component", style="cyan")
+    # Show detailed summary
+    console.print("\n[bold green]Pipeline completed[/bold green]")
+
+    summary = Table(title="Summary", box=box.ROUNDED, show_lines=True)
+    summary.add_column("", style="cyan", no_wrap=True)
     summary.add_column("Result")
 
-    # Classification summary
+    # --- Classification ---
     classification = results.get("classification", {})
     publication_type = classification.get("publication_type", "—")
     confidence = classification.get("classification_confidence", 0)
     doi = classification.get("metadata", {}).get("doi", "—")
+    cls_time = classification.get("_pipeline_metadata", {}).get("duration_seconds")
 
+    cls_detail = f"{publication_type} (confidence: {confidence:.0%})"
+    if cls_time:
+        cls_detail += f"  [{cls_time:.0f}s]"
+    summary.add_row("Classification", cls_detail)
     summary.add_row("DOI", doi)
-    summary.add_row("Publication type", publication_type)
-    summary.add_row("Classification confidence", f"{confidence:.2f}")
 
-    # Extraction summary
-    if "extraction" in results:
-        summary.add_row("Data extraction", "✅ Completed")
+    # --- Extraction ---
+    extraction = results.get("extraction", {})
+    if extraction:
+        ext_time = extraction.get("_pipeline_metadata", {}).get("duration_seconds")
+        ext_detail = "Completed"
+        if ext_time:
+            ext_detail += f"  [{ext_time:.0f}s]"
+        summary.add_row("Extraction", ext_detail)
 
-    # Validation & correction summary (iterative step)
+    # --- Validation & Correction ---
     validation_correction = results.get("validation_correction")
     if validation_correction:
         final_status = validation_correction.get("final_status", "—")
         iteration_count = validation_correction.get("iteration_count", 0)
-        summary.add_row("Val & Corr status", final_status)
-        summary.add_row("Val & Corr iterations", str(iteration_count))
 
         best_iteration = validation_correction.get("best_iteration")
         iterations = validation_correction.get("iterations", [])
@@ -505,66 +520,72 @@ def main():
         if iterations and best_iteration is not None and best_iteration < len(iterations):
             best_metrics = iterations[best_iteration].get("metrics", {})
 
+        quality_parts = []
         if best_metrics:
-            quality = best_metrics.get("overall_quality")
+            quality = best_metrics.get("quality_score")
             completeness = best_metrics.get("completeness_score")
             accuracy = best_metrics.get("accuracy_score")
             schema = best_metrics.get("schema_compliance_score")
-            summary.add_row("Val & Corr quality", f"{(quality or 0):.0%}")
-            summary.add_row("Completeness score", f"{(completeness or 0):.0%}")
-            summary.add_row("Accuracy score", f"{(accuracy or 0):.0%}")
-            summary.add_row("Schema score", f"{(schema or 0):.0%}")
+            quality_parts = [
+                f"quality: {(quality or 0):.0%}",
+                f"schema: {(schema or 0):.0%}",
+                f"complete: {(completeness or 0):.0%}",
+                f"accuracy: {(accuracy or 0):.0%}",
+            ]
+
+        vc_detail = f"{final_status} ({iteration_count} iterations)"
+        summary.add_row("Validation & Correction", vc_detail)
+        if quality_parts:
+            summary.add_row("  Scores", " | ".join(quality_parts))
     else:
         # Legacy single validation fallback
         validation = results.get("validation", {})
-        validation_status = validation.get("verification_summary", {}).get("overall_status", "—")
-        completeness = validation.get("verification_summary", {}).get("completeness_score", 0)
-        accuracy = validation.get("verification_summary", {}).get("accuracy_score", 0)
+        if validation:
+            validation_status = validation.get("verification_summary", {}).get(
+                "overall_status", "—"
+            )
+            summary.add_row("Validation", validation_status)
 
-        summary.add_row("Validation status", validation_status)
-        summary.add_row("Completeness score", f"{completeness:.2f}")
-        summary.add_row("Accuracy score", f"{accuracy:.2f}")
-
-    # Appraisal summary
+    # --- Appraisal ---
     appraisal = results.get("appraisal")
     if appraisal:
         appraisal_status = appraisal.get("final_status", "—")
         iteration_count = appraisal.get("iteration_count", 0)
-        summary.add_row("Appraisal status", appraisal_status)
-        summary.add_row("Appraisal iterations", str(iteration_count))
 
         best_appraisal = appraisal.get("best_appraisal", {})
         rob = best_appraisal.get("risk_of_bias", {})
         grade_outcomes = best_appraisal.get("grade_per_outcome", [])
 
+        appr_detail = f"{appraisal_status} ({iteration_count} iterations)"
+        summary.add_row("Appraisal", appr_detail)
+
         overall_rob = rob.get("overall")
         if overall_rob:
-            summary.add_row("Risk of Bias (overall)", overall_rob)
+            rob_detail = overall_rob
+            if grade_outcomes:
+                rob_detail += f" | {len(grade_outcomes)} GRADE outcomes"
+            summary.add_row("  Risk of Bias", rob_detail)
 
-        if grade_outcomes:
-            summary.add_row("GRADE outcomes", str(len(grade_outcomes)))
-
-    # Report generation summary
+    # --- Report Generation ---
     report = results.get("report_generation")
     if report:
         report_status = report.get("final_status", "—")
         report_iterations = report.get("iteration_count", 0)
-        summary.add_row("Report status", report_status)
-        summary.add_row("Report iterations", str(report_iterations))
 
-        # Quality score from best validation
         best_val = report.get("best_validation", {})
         quality_score = best_val.get("validation_summary", {}).get("quality_score")
-        if quality_score is not None:
-            summary.add_row("Report quality", f"{quality_score:.0%}")
 
-        # Rendered paths
+        report_detail = f"{report_status} ({report_iterations} iterations)"
+        if quality_score is not None:
+            report_detail += f" | quality: {quality_score:.0%}"
+        summary.add_row("Report", report_detail)
+
         render_paths = report.get("rendered_paths", {})
         if render_paths:
             for artifact_type, path in render_paths.items():
-                summary.add_row(f"  → {artifact_type}", str(path))
+                summary.add_row(f"  {artifact_type}", str(path))
 
-    # Podcast generation summary
+    # --- Podcast Generation ---
     podcast = results.get("podcast_generation")
     if podcast:
         podcast_data = podcast.get("podcast", {})
@@ -572,18 +593,21 @@ def main():
         word_count = podcast_data.get("metadata", {}).get("word_count", 0)
         duration = podcast_data.get("metadata", {}).get("estimated_duration_minutes", 0)
         status = validation.get("status", "unknown")
-        summary.add_row("Podcast words", str(word_count))
-        summary.add_row("Podcast duration", f"~{duration} min")
-        summary.add_row("Podcast validation", status)
+        podcast_detail = f"{status} | {word_count} words | ~{duration} min"
+        summary.add_row("Podcast", podcast_detail)
+
+    # --- Total time ---
+    if total_elapsed:
+        minutes = int(total_elapsed // 60)
+        seconds = int(total_elapsed % 60)
+        summary.add_row("Total time", f"{minutes}m {seconds}s")
 
     console.print(summary)
 
     if args.keep_tmp:
-        console.print("[blue]📁 Intermediate files kept in: tmp/[/blue]")
-        console.print("[dim]Use the DOI-based filenames for further processing[/dim]")
+        console.print("[dim]Intermediate files kept in: tmp/[/dim]")
     else:
-        console.print("[dim]💡 Use --keep-tmp to keep intermediate files[/dim]")
-        console.print("[dim]Intermediate files will be overwritten on next run[/dim]")
+        console.print("[dim]Use --keep-tmp to keep intermediate files[/dim]")
 
 
 if __name__ == "__main__":

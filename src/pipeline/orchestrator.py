@@ -398,7 +398,7 @@ def _finalize_pipeline_results(
     """
     Print final summary before returning pipeline results.
     """
-    _print_pipeline_summary(results, file_manager, steps_to_run)
+    # Summary is printed by run_pipeline.py — no duplicate here
     return results
 
 
@@ -1092,7 +1092,5 @@ def run_full_pipeline(
                     "no specialized extraction available[/yellow]"
                 )
                 return _finalize_pipeline_results(results, file_manager, steps_to_run)
-
-        _print_next_step_hint(step_name, steps_to_run)
 
     return _finalize_pipeline_results(results, file_manager, steps_to_run)

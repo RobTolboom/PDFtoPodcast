@@ -24,6 +24,7 @@ from ..quality.thresholds import (
     QualityThresholds,
     get_thresholds_for_type,
     is_quality_sufficient,
+    is_quality_sufficient_from_metrics,
 )
 from .iteration_tracker import IterationTracker
 
@@ -466,8 +467,12 @@ class IterativeLoopRunner:
 
     def _display_quality_scores(self, metrics: QualityMetrics, iteration_num: int) -> None:
         """Display compact quality summary for current iteration."""
-        # Build compact single-line summary
-        status_str = metrics.overall_status.title()
+        # Show threshold-aware status instead of raw validation status
+        meets_thresholds = is_quality_sufficient_from_metrics(metrics, self.thresholds)
+        if meets_thresholds:
+            status_str = "[green]Thresholds met[/green]"
+        else:
+            status_str = "[yellow]Below threshold[/yellow]"
 
         # Calculate improvement delta if not first iteration
         delta_str = ""
