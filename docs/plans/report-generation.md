@@ -5,7 +5,7 @@
 **Created**: 2025-11-13
 **Updated**: 2025-11-23 (v0.14 - Phase 9 complete: all tests pass, docs finalized)
 **Author**: Rob Tolboom (with Claude Code)
-**Next**: [`features/report-rendering-improvements.md`](report-rendering-improvements.md) — v1.1 rendering enhancements
+**Next**: [`docs/plans/report-rendering-improvements.md`](report-rendering-improvements.md) — v1.1 rendering enhancements
 
 **Summary**
 - Automatic generation of structured, professional reports from extraction and appraisal data via LLM-driven JSON output and rendering to PDF (LaTeX or WeasyPrint), plus markdown fallback.
@@ -2568,8 +2568,8 @@ if appraisal_result.get('final_status') == 'max_iterations_reached':
 - **Overleaf Templates**: https://www.overleaf.com/latex/templates (Inspiration)
 
 ### Related Features
-- `features/appraisal.md` - Critical appraisal feature (complete)
-- `features/iterative-validation-correction.md` - Validation pattern (template)
+- `docs/plans/appraisal.md` - Critical appraisal feature (complete)
+- `docs/plans/iterative-validation-correction.md` - Validation pattern (template)
 - `ARCHITECTURE.md` - Pipeline component documentation
 - `schemas/report.schema.json` - Report output schema (to be created)
 - `prompts/Report-*.txt` - Report generation prompts (to be created)

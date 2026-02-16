@@ -52,7 +52,7 @@ Welcome—this document outlines how to set up a development environment, follow
 
 ## Workflow overview
 - Default branch is `main` (protected). Create short-lived topic branches: `feature/...`, `fix/...`, `docs/...`, `refactor/...`, `test/...`.
-- For substantial work, add a planning note under `features/` describing scope, tasks, and risks (see `features/README.md`).
+- For substantial work, add a planning note under `docs/plans/` describing scope, tasks, and risks (see `docs/plans/README.md`).
 - Sync often: `git checkout main && git pull origin main` before branching or rebasing.
 - Commit early and often using Conventional Commit messages (`feat: ...`, `fix: ...`, etc.).
 - Run tests and quality checks locally before pushing (`make check`, `make test`).
@@ -148,7 +148,7 @@ docs(prompts): update validation prompt guidance
 ## Documentation expectations
 - **Code**: public functions require docstrings and type hints; complex flows warrant inline comments.
 - **User-facing**: keep `README.md`, `prompts/README.md`, `schemas/readme.md`, `ARCHITECTURE.md`, and `VALIDATION_STRATEGY.md` in sync with behaviour.
-- **Process**: log notable changes in `CHANGELOG.md`, update `ROADMAP.md` if roadmap items shift, and maintain feature plans in `features/`.
+- **Process**: log notable changes in `CHANGELOG.md`, update `ROADMAP.md` if roadmap items shift, and maintain feature plans in `docs/plans/`.
 
 ## FAQ
 **How do I test without incurring API cost?**

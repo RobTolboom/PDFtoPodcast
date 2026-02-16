@@ -1070,7 +1070,7 @@ Momenteel geen open vragen. Thresholds zijn vastgesteld, benodigde LLM-accounts 
 - **GRADE**: https://www.gradeworkinggroup.org/ (Guyatt et al., 2008)
 
 ### Related Features
-- `features/iterative-validation-correction.md` - Template for this feature
+- `docs/plans/iterative-validation-correction.md` - Template for this feature
 - `ARCHITECTURE.md` - Pipeline component documentation
 - `schemas/appraisal.schema.json` - Appraisal output schema
 - `prompts/Appraisal-*.txt` - Study type-specific appraisal prompts

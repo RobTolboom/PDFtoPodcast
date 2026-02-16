@@ -27,5 +27,5 @@
 
 ## Agent Automation Rules (CLAUDE.md)
 - Automation agents must honour the meta rules in `CLAUDE.md`: obtain y/n approval before filesystem, git, build, or CI actions; share planned commands first; never change agreed plans without user consent; and always display repository policies verbatim when required.
-- Follow the documented workflows (`make format → make lint → make test-fast` after code changes, `make ci` before pushes) and ensure feature work is tracked via markdown plans in `features/`.
+- Follow the documented workflows (`make format → make lint → make test-fast` after code changes, `make ci` before pushes) and ensure feature work is tracked via markdown plans in `docs/plans/`.
 - Every change must also consider the mandated doc/test updates described in the `change_management` section of `CLAUDE.md`.

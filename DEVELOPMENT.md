@@ -53,7 +53,7 @@ src/                    core modules (see src/README.md)
 prompts/                prompt templates + prompts/README.md
 schemas/                JSON schemas + schemas/readme.md + bundler
 tests/                  unit & integration tests + tests/README.md
-features/               feature planning notes
+docs/plans/             feature and implementation planning notes
 run_pipeline.py         CLI entry point
 app.py                  Streamlit entry point
 Makefile                common tasks

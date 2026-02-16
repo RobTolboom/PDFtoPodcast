@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Consolidated `features/` into `docs/plans/`** - Moved all feature planning documents from the top-level `features/` directory into `docs/plans/` to unify planning and documentation under a single location. Updated all cross-references across CLAUDE.md, CONTRIBUTING.md, ROADMAP.md, AGENTS.md, DEVELOPMENT.md, README.md, API.md, ARCHITECTURE.md, and internal plan documents.
+
 ### Fixed
 
 - **Appraisal `quality_thresholds` parameter ignored** - `run_appraisal_with_correction()` accepted a `quality_thresholds` parameter but hardcoded `APPRAISAL_THRESHOLDS` in the loop config. Custom thresholds now correctly propagate with dict-to-QualityThresholds conversion.
@@ -281,7 +285,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Clarified file outputs: added `podcast_validation.json`, documented naming pattern (no `-best` suffix for podcasts)
   - Simplified Phase 2: removed language parameter support (English only), added validation artefact deliverable
   - Updated acceptance criteria: validation runs once with status surfaced, no correction loop
-  - Location: features/podcast-generation.md
+  - Location: docs/plans/podcast-generation.md
 
 ### Added
 
@@ -475,7 +479,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Prompt architecture:** 3 prompts (generation, validation, correction) with study-type routing and quality thresholds
   - **Critical review improvements:** File naming patterns, appraisal dependency validation, logical_consistency_score naming, prompt token limits mitigation, best practices examples, CLI flag consistency
   - **8 implementation phases:** Schema/prompts → orchestrator → validation loop → LaTeX renderer → figures → UI/CLI → testing/docs
-  - **File:** `features/report-generation.md` (2100+ lines, ready for Phase 1 implementation)
+  - **File:** `docs/plans/report-generation.md` (2100+ lines, ready for Phase 1 implementation)
 
 - **Critical Appraisal Pipeline Step** (#appraisal-feature) - New 4th pipeline step for structured quality assessment
   - **Study-type routing:** Automatically routes to appropriate appraisal tool based on publication type:
@@ -496,7 +500,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Streamlit UI:** Configuration section with quality sliders, iteration settings, and result display with RoB summary, GRADE ratings, and iteration history
   - **Comprehensive testing:** 11 integration tests (test_appraisal_full_loop.py) and 42 unit tests (test_appraisal_quality.py, test_appraisal_functions.py)
   - **Files added:** 7 prompts (Appraisal-*.txt), 2 schemas (appraisal.schema.json, appraisal_validation.schema.json), orchestrator extensions (1253 lines), file manager methods, prompt loaders
-  - **Documentation:** Complete feature specification (features/appraisal.md), updated README architecture diagram, CLI help text with examples
+  - **Documentation:** Complete feature specification (docs/plans/appraisal.md), updated README architecture diagram, CLI help text with examples
   - **Backward compatibility:** Step is optional; existing 3-step pipelines continue to work unchanged
 
 - **Appraisal Validation Schema** - Introduced dedicated `appraisal_validation.schema.json` to enforce the new appraisal-validation contract (scores, issue taxonomy, metadata) and wired orchestrator to load it via `load_schema("appraisal_validation")`, ensuring structured outputs remain aligned with OpenAI structured-output requirements.
@@ -714,7 +718,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Made test case expected output more explicit with full field specifications
   - Improved risk mitigation strategy (extraction quality warning instead of hard block)
   - Fixed workflow diagram syntax (pipe → "OR" for clarity)
-  - Location: features/appraisal.md (v1.0 → v1.1, +15 improvements)
+  - Location: docs/plans/appraisal.md (v1.0 → v1.1, +15 improvements)
 
 - **CLI summary now surfaces validation-correction quality metrics and appraisal outcomes** - Full-pipeline runs expose Step 3/4 status directly (`run_pipeline.py`).
 

@@ -1935,7 +1935,7 @@ if name in defs:
 ## 📚 Referenties
 
 ### Interne Referenties
-- `features/code-documentation-improvement.md` - Documentatie standaard
+- `docs/plans/code-documentation-improvement.md` - Documentatie standaard
 - `src/pipeline/orchestrator.py` - Bestaande pipeline logica
 - `src/streamlit_app/screens/settings.py` - Settings screen implementatie
 - `CONTRIBUTING.md` - Development guidelines

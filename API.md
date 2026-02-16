@@ -2,7 +2,7 @@
 
 **Medical Literature Extraction Pipeline**
 
-This document provides a comprehensive reference for all public APIs in the medical literature extraction pipeline. For implementation details and architecture, see [`ARCHITECTURE.md`](ARCHITECTURE.md). For feature specifications, see [`features/`](features/).
+This document provides a comprehensive reference for all public APIs in the medical literature extraction pipeline. For implementation details and architecture, see [`ARCHITECTURE.md`](ARCHITECTURE.md). For feature specifications, see [`docs/plans/`](docs/plans/).
 
 ---
 
@@ -208,7 +208,7 @@ if result['final_status'] == 'passed':
     print(f"Quality achieved: {quality_score:.2f}")
 ```
 
-**See also:** [`features/iterative-validation-correction.md`](features/iterative-validation-correction.md)
+**See also:** [`docs/plans/iterative-validation-correction.md`](docs/plans/iterative-validation-correction.md)
 
 ---
 
@@ -277,7 +277,7 @@ if appraisal_result['final_status'] == 'passed':
         print(f"{outcome['outcome_name']}: {outcome['certainty']}")  # "High"
 ```
 
-**See also:** [`features/appraisal.md`](features/appraisal.md)
+**See also:** [`docs/plans/appraisal.md`](docs/plans/appraisal.md)
 
 ---
 
@@ -350,7 +350,7 @@ if report_result['final_status'] == 'passed':
     print(f"Quality: {report_result['best_validation']['validation_summary']['quality_score']:.2f}")
 ```
 
-**See also:** [`features/report-generation.md`](features/report-generation.md), [`docs/report.md`](docs/report.md)
+**See also:** [`docs/plans/report-generation.md`](docs/plans/report-generation.md), [`docs/report.md`](docs/report.md)
 
 ---
 
@@ -1806,10 +1806,10 @@ python run_pipeline.py paper.pdf --step report_generation --disable-figures
 ## Additional Resources
 
 - **Architecture**: [`ARCHITECTURE.md`](ARCHITECTURE.md)
-- **Feature Specifications**: [`features/`](features/)
-  - Appraisal: [`features/appraisal.md`](features/appraisal.md)
-  - Report Generation: [`features/report-generation.md`](features/report-generation.md)
-  - Validation/Correction: [`features/iterative-validation-correction.md`](features/iterative-validation-correction.md)
+- **Feature Specifications**: [`docs/plans/`](docs/plans/)
+  - Appraisal: [`docs/plans/appraisal.md`](docs/plans/appraisal.md)
+  - Report Generation: [`docs/plans/report-generation.md`](docs/plans/report-generation.md)
+  - Validation/Correction: [`docs/plans/iterative-validation-correction.md`](docs/plans/iterative-validation-correction.md)
 - **Usage Guide**: [`README.md`](README.md)
 - **Appraisal Guide**: [`docs/appraisal.md`](docs/appraisal.md)
 - **Report Guide**: [`docs/report.md`](docs/report.md)

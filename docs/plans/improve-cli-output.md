@@ -544,7 +544,7 @@ def display_validation_result(validation: dict, iteration: int):
 ## References
 
 ### Related Features
-- `features/podcast-generation.md` - Uses CLI output
+- `docs/plans/podcast-generation.md` - Uses CLI output
 - `ARCHITECTURE.md` - Pipeline architecture documentation
 
 ### Rich Library Documentation

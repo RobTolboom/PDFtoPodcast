@@ -209,7 +209,7 @@ This pipeline extracts structured data from medical research PDFs with a focus o
 
 **For detailed architecture and design decisions, see [ARCHITECTURE.md](ARCHITECTURE.md)**
 
-**For critical appraisal tools and methodology, see [features/appraisal.md](features/appraisal.md)**
+**For critical appraisal tools and methodology, see [docs/plans/appraisal.md](docs/plans/appraisal.md)**
 
 *Tip:* Moet je voor legacy-workflows slechts één appraisal-run zonder iteratieve correcties draaien? Gebruik dan
 `python run_pipeline.py paper.pdf --step appraisal --appraisal-single-pass` of schakel in de Streamlit settings de optie

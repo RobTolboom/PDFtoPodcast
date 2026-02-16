@@ -591,8 +591,8 @@ python run_pipeline.py paper.pdf --llm openai --include-podcast
 ## References
 
 ### Related Features
-- `features/report-generation.md` - Report generation (similar architecture)
-- `features/appraisal.md` - Appraisal step (input for podcast)
+- `docs/plans/report-generation.md` - Report generation (similar architecture)
+- `docs/plans/appraisal.md` - Appraisal step (input for podcast)
 - `ARCHITECTURE.md` - Pipeline component documentation
 
 ### Podcast Best Practices

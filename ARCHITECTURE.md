@@ -1,6 +1,6 @@
 # Architecture Overview
 
-PDFtoPodcast extracts structured medical research data by streaming PDF content through a six-stage pipeline with iterative validation/correction loops. This document describes the runtime architecture, major components, data flow, and extensibility points. For implementation-level detail, see `src/README.md`, `schemas/readme.md`, `VALIDATION_STRATEGY.md`, `features/appraisal.md`, and `features/report-generation.md`.
+PDFtoPodcast extracts structured medical research data by streaming PDF content through a six-stage pipeline with iterative validation/correction loops. This document describes the runtime architecture, major components, data flow, and extensibility points. For implementation-level detail, see `src/README.md`, `schemas/readme.md`, `VALIDATION_STRATEGY.md`, `docs/plans/appraisal.md`, and `docs/plans/report-generation.md`.
 
 ## System summary
 
@@ -100,7 +100,7 @@ Outputs persisted to tmp/ and returned to caller
 - **GRADE integration**: Per-outcome certainty ratings (High/Moderate/Low/Very Low) with downgrading factors (risk of bias, inconsistency, imprecision, indirectness, publication bias).
 - **Best selection**: `_select_best_appraisal_iteration()` ranks iterations by weighted quality score, filtering out critical issues.
 - **File outputs**: Saves `{id}-appraisal{N}.json`, `{id}-appraisal-validation{N}.json`, and best files (`{id}-appraisal-best.json`).
-- See `features/appraisal.md` for complete specification, tool descriptions, and acceptance criteria.
+- See `docs/plans/appraisal.md` for complete specification, tool descriptions, and acceptance criteria.
 
 ### Report Generation (`src/pipeline/orchestrator.py` - report functions, `src/rendering/`)
 - **Report orchestration**: `run_report_with_correction()` executes report generation → validation → correction loop until quality thresholds met or max iterations reached.
@@ -112,7 +112,7 @@ Outputs persisted to tmp/ and returned to caller
 - **LaTeX templates**: `templates/latex/vetrix/` contains professional LaTeX templates with booktabs tables, tcolorbox callouts, and siunitx number formatting.
 - **Fallback outputs**: Markdown always generated regardless of PDF compilation success.
 - **File outputs**: Saves `{id}-report{N}.json`, `{id}-report_validation{N}.json`, best files, and rendered outputs (`render/report.pdf`, `render/report.tex`, `render/report.md`).
-- See `features/report-generation.md` for complete specification and `docs/report.md` for usage guide.
+- See `docs/plans/report-generation.md` for complete specification and `docs/report.md` for usage guide.
 
 ### Podcast Generation (`src/pipeline/podcast_logic.py`, `src/rendering/podcast_renderer.py`)
 - **Podcast orchestration**: `run_podcast_generation()` executes single-pass podcast script generation from extraction + appraisal data.
@@ -121,7 +121,7 @@ Outputs persisted to tmp/ and returned to caller
 - **Light validation**: Single factcheck pass checking transcript length (>500 words), absence of abbreviations, and no markdown formatting. Validation status saved but no correction loop.
 - **Markdown rendering**: `src/rendering/podcast_renderer.py` converts podcast JSON to human-readable markdown with simple structure (title, metadata line, transcript, source footer).
 - **File outputs**: Saves `{id}-podcast.json`, `{id}-podcast_validation.json`, and `{id}-podcast.md` to `tmp/` directory.
-- See `features/podcast-generation.md` for complete specification including style rules, content flow, and acceptance criteria.
+- See `docs/plans/podcast-generation.md` for complete specification including style rules, content flow, and acceptance criteria.
 
 ### LLM providers (`src/llm/`)
 - `BaseLLMProvider` defines `generate_json_with_pdf`, `generate_json_with_schema`, and `generate_text`.
@@ -229,5 +229,5 @@ Both modes call `run_single_step` internally, ensuring consistent behaviour and 
 - `SECURITY.md` – security posture and PDF handling guidance.
 - `docs/appraisal.md` – appraisal usage guide.
 - `docs/report.md` – report generation usage guide.
-- `features/appraisal.md` – appraisal feature specification.
-- `features/report-generation.md` – report generation feature specification.
+- `docs/plans/appraisal.md` – appraisal feature specification.
+- `docs/plans/report-generation.md` – report generation feature specification.
