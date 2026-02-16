@@ -3,7 +3,7 @@
 
 .PHONY: help install install-dev test test-coverage lint format typecheck check clean run docs
 
-# Variabelen
+# Variables
 PYTHON := python
 PIP := pip
 VENV := .venv/bin
@@ -210,8 +210,8 @@ commit: lint-fix format
 	else \
 		echo "⚠️  pre-commit not installed, skipping hooks"; \
 	fi
-	@echo "✅ Code netjes gemaakt en pre-commit checks uitgevoerd."
-	@echo "👉 Nu kun je veilig committen met: git commit -m '...'"
+	@echo "✅ Code cleaned and pre-commit checks passed."
+	@echo "👉 Ready to commit with: git commit -m '...'"
 
 # CI/CD simulation
 ci: check test

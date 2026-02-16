@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Consolidated `features/` into `docs/plans/`** - Moved all feature planning documents from the top-level `features/` directory into `docs/plans/` to unify planning and documentation under a single location. Updated all cross-references across CLAUDE.md, CONTRIBUTING.md, ROADMAP.md, AGENTS.md, DEVELOPMENT.md, README.md, API.md, ARCHITECTURE.md, and internal plan documents.
 
+- **Translate remaining Dutch text to English** - Translated Dutch strings in README.md (appraisal section), Makefile (commit target messages), .envrc, .gitignore, and requirements.txt. Removed stale `todo.txt`.
+
 ### Fixed
 
 - **Appraisal `quality_thresholds` parameter ignored** - `run_appraisal_with_correction()` accepted a `quality_thresholds` parameter but hardcoded `APPRAISAL_THRESHOLDS` in the loop config. Custom thresholds now correctly propagate with dict-to-QualityThresholds conversion.
