@@ -228,7 +228,7 @@ def validate_extraction_quality(
     2. Completeness analysis (required vs optional field coverage)
 
     Quality score is calculated as:
-    - 50% schema compliance (pass/fail)
+    - 50% schema compliance (proportional: 1 - errors/total_fields)
     - 50% completeness (weighted: required=2x, optional=1x)
 
     Args:
@@ -284,9 +284,13 @@ def validate_extraction_quality(
     results["completeness"] = completeness
 
     # 3. Calculate overall quality score
-    # Schema compliance: 50% weight
+    # Schema compliance: 50% weight (proportional to error count)
     # Completeness: 50% weight
-    schema_score = 1.0 if is_valid else 0.0
+    total_fields = completeness["required_fields_total"] + completeness["optional_fields_total"]
+    if is_valid:
+        schema_score = 1.0
+    else:
+        schema_score = max(0.0, 1.0 - len(errors) / max(total_fields, 1))
     completeness_score = completeness["completeness_score"]
 
     quality_score = (schema_score * 0.5) + (completeness_score * 0.5)

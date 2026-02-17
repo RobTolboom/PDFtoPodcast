@@ -6,7 +6,12 @@ Tests validation logic for extracted data quality assurance.
 
 import pytest
 
-from src.validation import ValidationError, check_required_fields, validate_with_schema
+from src.validation import (
+    ValidationError,
+    check_required_fields,
+    validate_extraction_quality,
+    validate_with_schema,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -161,3 +166,72 @@ class TestValidationError:
             raise ValidationError("Validation failed")
 
         assert "Validation failed" in str(exc_info.value)
+
+
+class TestValidateExtractionQualityScoring:
+    """Test proportional schema scoring in validate_extraction_quality."""
+
+    def test_no_errors_gives_full_schema_score(self):
+        """With no schema errors, schema_score component should be 1.0."""
+        schema = {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "age": {"type": "number"},
+            },
+            "required": ["name"],
+        }
+        data = {"name": "Test", "age": 30}
+
+        result = validate_extraction_quality(data, schema)
+
+        assert result["schema_compliant"] is True
+        # quality_score = 1.0 * 0.5 + completeness * 0.5
+        assert result["quality_score"] >= 0.5  # At least schema component
+
+    def test_few_errors_gives_proportional_score(self):
+        """A few schema errors should give proportional score, not binary 0."""
+        schema = {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "age": {"type": "number"},
+                "email": {"type": "string"},
+                "city": {"type": "string"},
+                "country": {"type": "string"},
+            },
+            "required": ["name"],
+        }
+        # age is wrong type - 1 error out of 5 properties
+        data = {
+            "name": "Test",
+            "age": "not_a_number",
+            "email": "a@b.com",
+            "city": "X",
+            "country": "Y",
+        }
+
+        result = validate_extraction_quality(data, schema)
+
+        assert result["schema_compliant"] is False
+        # Should NOT be 0.0 + completeness*0.5 (old binary scoring)
+        # Should be proportional: schema_score ~= 1 - 1/5 = 0.8
+        # quality_score = 0.8 * 0.5 + completeness * 0.5
+        assert result["quality_score"] > 0.5  # Must be above binary floor
+
+    def test_all_errors_gives_low_score(self):
+        """Many errors relative to fields should give low score."""
+        schema = {
+            "type": "object",
+            "properties": {
+                "a": {"type": "number"},
+                "b": {"type": "number"},
+            },
+            "required": ["a", "b"],
+        }
+        data = {"a": "x", "b": "y"}  # 2 errors out of 2 fields
+
+        result = validate_extraction_quality(data, schema)
+
+        # 2 errors / 2 fields = 0.0 schema score
+        assert result["quality_score"] <= 0.5
