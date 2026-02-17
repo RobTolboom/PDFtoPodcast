@@ -229,18 +229,6 @@ def main():
         default="both",
         help="Output type: 'podcast' (skip report), 'report' (skip podcast), 'both' (default)",
     )
-    parser.add_argument(
-        "--quiet",
-        "-q",
-        action="store_true",
-        help="Minimal output (errors and final summary only)",
-    )
-    parser.add_argument(
-        "--verbose",
-        "-v",
-        action="store_true",
-        help="Detailed output for debugging",
-    )
     args = parser.parse_args()
 
     pdf_path = Path(args.pdf)
@@ -260,6 +248,7 @@ def main():
     console.print(f"[blue]🤖 LLM Provider: {args.llm_provider.upper()}[/blue]")
 
     # Check if running single step or full pipeline
+    pipeline_start_time = None
     if args.step:
         # Single step execution
         console.print(f"[yellow]🎯 Running single step:[/yellow] {args.step}")
@@ -474,10 +463,8 @@ def main():
 
     # Calculate total pipeline time if available (only set in full pipeline mode)
     total_elapsed = None
-    try:
-        total_elapsed = time.time() - pipeline_start_time  # noqa: F821
-    except NameError:
-        pass  # single-step mode
+    if pipeline_start_time is not None:
+        total_elapsed = time.time() - pipeline_start_time
 
     # Show detailed summary
     console.print("\n[bold green]Pipeline completed[/bold green]")

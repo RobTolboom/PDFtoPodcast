@@ -418,7 +418,7 @@ figure_path = generator.generate_figure(
 
 ## Related Documentation
 
-- **Feature Specification:** [`docs/plans/report-generation.md`](plans/report-generation.md)
+- **Feature Specification:** [`plans/report-generation.md`](plans/report-generation.md)
 - **Architecture:** [`ARCHITECTURE.md`](../ARCHITECTURE.md)
 - **API Reference:** [`API.md`](../API.md)
 - **LaTeX Templates:** [`templates/latex/vetrix/`](../templates/latex/vetrix/)

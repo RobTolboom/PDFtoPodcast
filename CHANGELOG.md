@@ -15,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`study_id` schema rejected DOIs** - The `study_id` pattern `^[A-Za-z0-9._-]+$` in 5 extraction schemas did not allow `/` or `:` characters present in DOIs (e.g., `10.1016/j.sleep.2024.08.024`), causing schema validation failures on first extraction. Updated pattern to `^[A-Za-z0-9._/:;()\\[\\]-]+$`.
 
+- **`pipeline_start_time` NameError pattern** - Replaced `try/except NameError` with clean `None` check for `pipeline_start_time` in CLI summary.
+
+- **Duplicate `### Fixed` heading in CHANGELOG** - Merged two separate `### Fixed` sections under `[Unreleased]` into one.
+
+- **`docs/report.md` link text mismatch** - Fixed link text `docs/plans/report-generation.md` to match href `plans/report-generation.md`.
+
 ### Changed
 
 - **Improved CLI Summary table** - Restructured the final pipeline summary with grouped sections, compact quality scores, per-step timing, and total pipeline elapsed time. Removed redundant "Pipeline Summary" and "Next:" hints from orchestrator output.
@@ -32,8 +38,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Root documentation cleanup** - Fixed outdated model names, step counts, function references, and links in README.md. Updated documentation table with API.md, SECURITY.md, COMMERCIAL_LICENSE.md. Fixed duplicate `### Added` headers in CHANGELOG.md. Updated test layout in CONTRIBUTING.md. Fixed `tmp/` path in DEVELOPMENT.md. Added Anthropic to COMMERCIAL_LICENSE.md provider list.
 
 - **Security dependency upgrades** - Bumped weasyprint >=68.0 (SSRF bypass fix), added pillow >=12.1.1 (out-of-bounds write fix), protobuf >=6.33.5 (JSON recursion depth bypass fix). Bumped streamlit >=1.54.0 for pillow 12 compatibility. Dropped weasyprint `[lxml]` extra (removed in v68).
-
-### Fixed
 
 - **Appraisal `quality_thresholds` parameter ignored** - `run_appraisal_with_correction()` accepted a `quality_thresholds` parameter but hardcoded `APPRAISAL_THRESHOLDS` in the loop config. Custom thresholds now correctly propagate with dict-to-QualityThresholds conversion.
 
@@ -53,16 +57,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Extraction retry on schema failure** - When initial extraction fails schema validation (compliance < 50%), the extraction step is now retried up to 2 times (3 total attempts), matching the existing appraisal retry behavior. Previously, a single bad LLM output would immediately fail the entire pipeline. Failed extractions are saved with `-failed` suffix for debugging.
 
-- **CLI `--quiet` and `--verbose` flags** - Control CLI output verbosity
-  - `--quiet` / `-q`: Minimal output (errors and final summary only) for CI/scripting
-  - `--verbose` / `-v`: Detailed output for debugging
-  - Default: Balanced progress info (existing behavior)
+### Removed
 
-- **PipelineOutputManager** - Centralized output management foundation
-  - New `src/pipeline/output_manager.py` module with `OutputLevel` enum (QUIET, NORMAL, VERBOSE)
-  - Singleton pattern with `get_instance()` for consistent output control
-  - Methods: `info()`, `success()`, `warning()`, `error()`, `detail()`, `step_header()`, `iteration_summary()`
-  - Foundation for future output improvements
+- **Non-functional `--quiet`/`--verbose` CLI flags** - Removed `--quiet`/`-q` and `--verbose`/`-v` argparse arguments that were added but never wired to control output verbosity.
+
+- **Unused `PipelineOutputManager`** - Deleted `src/pipeline/output_manager.py` (orphaned module, nothing imported it).
 
 ### Changed
 
