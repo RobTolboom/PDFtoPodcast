@@ -224,3 +224,68 @@ And here is the third paragraph concluding the podcast."""
     parts = content.split("---")
     extracted_transcript = parts[1].strip()
     assert extracted_transcript == multiline_transcript.strip()
+
+
+def test_render_podcast_with_show_summary(tmp_path):
+    """Test rendering podcast with show_summary as plain text."""
+    podcast = {
+        "metadata": {"title": "Summary Test", "word_count": 950, "estimated_duration_minutes": 6},
+        "transcript": "This is the transcript content for the test.",
+        "show_summary": {
+            "citation": "Lee D, Lee H. Impact of Suggestions on Dreaming. Anesth Analg. 2025.",
+            "synopsis": "This episode examines whether preoperative positive suggestions influence dreaming during IV sedation.",
+            "study_at_a_glance": [
+                {
+                    "label": "Design and setting",
+                    "content": "Single-centre, double-blinded RCT (n=188).",
+                },
+                {
+                    "label": "Primary outcome",
+                    "content": "Ketamine increased dream recall (OR 2.14, 95% CI 1.23-3.72; p=0.007).",
+                },
+                {
+                    "label": "Risk of bias and certainty",
+                    "content": "RoB 2 judgment: some concerns; GRADE: moderate.",
+                },
+            ],
+        },
+    }
+
+    output_path = tmp_path / "summary.md"
+    result_path = render_podcast_to_markdown(podcast, output_path)
+    content = result_path.read_text(encoding="utf-8")
+
+    # Verify show summary rendered as plain text
+    assert "Citation:" in content
+    assert "Lee D, Lee H. Impact of Suggestions" in content
+    assert "This episode examines" in content
+    assert "Study at a glance" in content
+    assert "- Design and setting: Single-centre" in content
+    assert "- Primary outcome: Ketamine increased" in content
+    assert "- Risk of bias and certainty: RoB 2" in content
+
+    # Verify 3 horizontal rules (header, post-transcript, post-summary)
+    assert content.count("---") == 3
+
+    # Verify no markdown formatting in summary section
+    summary_start = content.index("Citation:")
+    summary_section = content[summary_start:]
+    assert "**" not in summary_section.split("*Generated")[0]
+    assert "# " not in summary_section.split("*Generated")[0]
+
+
+def test_render_podcast_without_show_summary(tmp_path):
+    """Test that missing show_summary is handled gracefully (backward compat)."""
+    podcast = {
+        "metadata": {"title": "No Summary Test"},
+        "transcript": "Transcript without a show summary.",
+    }
+
+    output_path = tmp_path / "no-summary.md"
+    result_path = render_podcast_to_markdown(podcast, output_path)
+    content = result_path.read_text(encoding="utf-8")
+
+    # Should render normally without show summary section
+    assert "Transcript without a show summary." in content
+    assert "Citation:" not in content
+    assert "Study at a glance" not in content
