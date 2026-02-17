@@ -365,10 +365,14 @@ class TestIterativeLoop:
     @patch("src.pipeline.steps.validation.run_validation_step")
     @patch("src.pipeline.steps.validation.run_correction_step")
     @patch("src.pipeline.steps.validation.get_llm_provider")
-    def test_loop_early_stopping_degradation(
+    def test_loop_max_iterations_when_corrections_degrade(
         self, mock_get_llm, mock_correction, mock_validation, mock_dependencies
     ):
-        """Test loop stops early when quality degrades consecutively."""
+        """Test loop reaches max iterations when corrections degrade.
+
+        With best-so-far rollback, degraded corrections are reverted. The loop
+        keeps retrying from the best version until max_iterations is reached.
+        """
         # Mock LLM provider
         mock_llm = MagicMock()
         mock_get_llm.return_value = mock_llm
@@ -432,12 +436,10 @@ class TestIterativeLoop:
         # Run loop
         result = run_validation_with_correction(**mock_dependencies)
 
-        # Assertions
-        assert result["final_status"] == "early_stopped_degradation"
+        # Assertions — with best-so-far rollback, loop reaches max_iterations
+        assert result["final_status"] == "max_iterations_reached"
         assert "warning" in result
-        assert "Early stopping" in result["warning"]
-        # Should stop after 4 iterations (0,1,2,3) when degradation detected
-        assert len(result["iterations"]) == 4
+        assert "Max iterations" in result["warning"]
 
 
 class TestEdgeCases:

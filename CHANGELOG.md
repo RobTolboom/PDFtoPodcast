@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - CLI shows summary bullet count in pipeline summary table
   - Streamlit UI shows expandable summary with copy button
 
+### Changed
+
+- Iterative correction loop now uses best-so-far result when a correction degrades quality, instead of feeding the degraded result into the next correction attempt
+
 ## [0.1.0] - 2026-02-17
 
 Initial release of PDFtoPodcast: an LLM-powered pipeline that extracts structured data from medical research PDFs and generates critical appraisal reports and podcast-ready transcripts.

@@ -608,14 +608,18 @@ class TestAppraisalEdgeCases:
             # regeneration retries and returns failed_schema_validation
             assert result["final_status"] == "failed_schema_validation"
 
-    def test_quality_degradation_early_stop(
+    def test_quality_degradation_max_iterations(
         self,
         mock_extraction_interventional,
         mock_classification_interventional,
         file_manager,
         mock_appraisal_response,
     ):
-        """Test early stopping when quality degrades."""
+        """Test loop reaches max iterations when quality degrades.
+
+        With best-so-far rollback, degraded corrections are reverted and the
+        loop retries from the best version until max_iterations is reached.
+        """
         with patch("src.pipeline.steps.appraisal.get_llm_provider") as mock_get_provider:
             mock_llm = Mock()
 
@@ -677,10 +681,10 @@ class TestAppraisalEdgeCases:
                 classification_result=mock_classification_interventional,
                 llm_provider="openai",
                 file_manager=file_manager,
-                max_iterations=5,
+                max_iterations=2,
             )
 
-            # Should stop early due to degradation
-            assert result["final_status"] in ["early_stopped_degradation", "max_iterations_reached"]
+            # With best-so-far rollback, loop reaches max_iterations
+            assert result["final_status"] == "max_iterations_reached"
             # Best should be iteration 0 (highest quality)
             assert result["best_iteration"] == 0

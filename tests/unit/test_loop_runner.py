@@ -17,7 +17,6 @@ from src.pipeline.iterative import (
     IterativeLoopRunner,
 )
 from src.pipeline.iterative.loop_runner import (
-    FINAL_STATUS_EARLY_STOPPED,
     FINAL_STATUS_FAILED,
     FINAL_STATUS_FAILED_SCHEMA,
     FINAL_STATUS_MAX_ITERATIONS,
@@ -229,32 +228,45 @@ class TestIterativeLoopRunner:
         assert result.iteration_count == 3
         assert result.best_result is not None
 
-    def test_early_stop_on_degradation(self):
-        """Test early stopping when quality degrades."""
+    def test_max_iterations_when_all_corrections_degrade(self):
+        """Test that all-degrading corrections lead to max iterations, not early stop.
+
+        With best-so-far rollback, degraded corrections are reverted, so the
+        tracker only sees monotonically non-decreasing accepted quality. This
+        prevents degradation detection from triggering. The loop reaches
+        max_iterations instead.
+        """
         config = IterativeLoopConfig(
             metric_type=MetricType.EXTRACTION,
-            max_iterations=5,
+            max_iterations=3,
             degradation_window=2,
             show_banner=False,
         )
 
-        # Quality improves then degrades
-        validations = [
-            self._create_validation_result(
-                completeness=0.80, accuracy=0.85, schema_compliance=0.90
-            ),
-            self._create_validation_result(
-                completeness=0.88, accuracy=0.90, schema_compliance=0.92
-            ),  # Peak
-            self._create_validation_result(
-                completeness=0.85, accuracy=0.87, schema_compliance=0.91
-            ),  # Degrade
-            self._create_validation_result(
-                completeness=0.82, accuracy=0.84, schema_compliance=0.89
-            ),  # Degrade again
-        ]
+        # All corrections degrade quality relative to best-so-far, so all
+        # get reverted. The loop keeps retrying with best-so-far until
+        # max_iterations is reached.
+        validation_initial = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.90
+        )  # quality ~84%
+        validation_degraded_1 = self._create_validation_result(
+            completeness=0.75, accuracy=0.80, schema_compliance=0.88
+        )  # quality ~80%, worse
+        validation_degraded_2 = self._create_validation_result(
+            completeness=0.70, accuracy=0.78, schema_compliance=0.85
+        )  # quality ~76%, worse
+        validation_degraded_3 = self._create_validation_result(
+            completeness=0.68, accuracy=0.75, schema_compliance=0.83
+        )  # quality ~74%, worse
 
-        validate_fn = MagicMock(side_effect=validations)
+        validate_fn = MagicMock(
+            side_effect=[
+                validation_initial,
+                validation_degraded_1,
+                validation_degraded_2,
+                validation_degraded_3,
+            ]
+        )
         correct_fn = MagicMock(return_value={"data": "corrected"})
 
         runner = IterativeLoopRunner(
@@ -265,8 +277,11 @@ class TestIterativeLoopRunner:
         )
         result = runner.run()
 
-        assert result.final_status == FINAL_STATUS_EARLY_STOPPED
-        assert result.best_iteration_num == 1  # Peak was at iteration 1
+        # With best-so-far rollback, degraded corrections are reverted,
+        # so the loop reaches max iterations instead of early stopping.
+        assert result.final_status == FINAL_STATUS_MAX_ITERATIONS
+        # The best result is the initial (iteration 0), since all corrections degraded
+        assert result.best_iteration_num == 0
 
     def test_schema_validation_failure(self):
         """Test handling of schema validation failure."""
@@ -699,6 +714,111 @@ class TestIterativeLoopRunner:
         # With max_initial_retries=2, we should get exactly 2 regenerate calls
         # (original attempt + 2 retries = 3 attempts, but 2 regenerates)
         assert regenerate_initial_fn.call_count == 2
+
+    def test_correction_rollback_on_quality_degradation(self):
+        """Test that correction uses best-so-far when quality degrades.
+
+        Scenario:
+        - Iteration 0: quality ~85% (needs correction)
+        - Correction 0: quality drops to ~70% (degraded)
+        - Iteration 1: should roll back to iteration 0's result
+        - Correction 1: quality rises to ~96% (passes)
+
+        The key assertion: correct_fn's second call receives the
+        iteration-0 result (best-so-far), NOT the degraded result.
+        """
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=5,
+            show_banner=False,
+        )
+
+        initial_result = {"data": "initial"}
+        degraded_result = {"data": "degraded"}
+        final_result = {"data": "final"}
+
+        # Validation results
+        validation_iter0 = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.90
+        )  # quality ~85%, below threshold
+        validation_degraded = self._create_validation_result(
+            completeness=0.60, accuracy=0.70, schema_compliance=0.80
+        )  # quality ~68%, worse
+        validation_pass = self._create_validation_result(
+            completeness=0.95, accuracy=0.98, schema_compliance=0.97
+        )  # quality ~96%, passes
+
+        # Validate sequence:
+        # 1. iter 0: validate initial -> validation_iter0 (needs correction)
+        # 2. iter 0: correct -> validate corrected -> validation_degraded (worse)
+        # 3. iter 1: reuses best-so-far validation (validation_iter0)
+        # 4. iter 1: correct -> validate corrected -> validation_pass (passes)
+        validate_fn = MagicMock(
+            side_effect=[validation_iter0, validation_degraded, validation_pass]
+        )
+
+        # Correct returns degraded first, then final
+        correct_fn = MagicMock(side_effect=[degraded_result, final_result])
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result=initial_result,
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+        )
+        result = runner.run()
+
+        assert result.final_status == FINAL_STATUS_PASSED
+        assert result.best_result == final_result
+
+        # Key assertion: second correction got the INITIAL result (best-so-far),
+        # not the degraded result
+        assert correct_fn.call_count == 2
+        second_call_args = correct_fn.call_args_list[1]
+        assert second_call_args[0][0] == initial_result  # first positional arg = result
+        assert second_call_args[0][1] == validation_iter0  # second positional arg = validation
+
+    def test_degraded_iteration_still_tracked_in_trajectory(self):
+        """Test that degraded iterations are still recorded in improvement_trajectory.
+
+        Even when the loop reverts to best-so-far, the degraded iteration
+        should appear in the trajectory for diagnostics.
+        """
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=5,
+            show_banner=False,
+        )
+
+        validation_iter0 = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.90
+        )
+        validation_degraded = self._create_validation_result(
+            completeness=0.60, accuracy=0.70, schema_compliance=0.80
+        )
+        validation_pass = self._create_validation_result(
+            completeness=0.95, accuracy=0.98, schema_compliance=0.97
+        )
+
+        validate_fn = MagicMock(
+            side_effect=[validation_iter0, validation_degraded, validation_pass]
+        )
+        correct_fn = MagicMock(side_effect=[{"data": "degraded"}, {"data": "final"}])
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "initial"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+        )
+        result = runner.run()
+
+        # Trajectory: iter0, degraded (explicit add), reverted best-so-far, accepted final
+        # = 4 entries. The degraded entry is added explicitly in the else branch;
+        # the reverted entry is added when the next iteration reuses best-so-far validation.
+        assert len(result.improvement_trajectory) == 4
+        # There should be a dip in the trajectory (degraded < iter0)
+        assert min(result.improvement_trajectory) < result.improvement_trajectory[0]
 
 
 class TestIterativeLoopRunnerAppraisal:
