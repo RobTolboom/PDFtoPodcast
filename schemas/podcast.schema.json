@@ -54,6 +54,45 @@
             "description": "Complete podcast script as one continuous, SSML-ready text. No headings, bullets, or structural markup. Written for natural speech synthesis.",
             "minLength": 500
         },
+        "show_summary": {
+            "type": "object",
+            "description": "Plain-text episode summary with citation, synopsis, and structured study-at-a-glance bullets",
+            "required": ["citation", "synopsis", "study_at_a_glance"],
+            "additionalProperties": false,
+            "properties": {
+                "citation": {
+                    "type": "string",
+                    "description": "Full bibliographic reference in Vancouver/NLM style"
+                },
+                "synopsis": {
+                    "type": "string",
+                    "description": "2-3 sentence narrative summary for podcast app episode descriptions",
+                    "minLength": 50,
+                    "maxLength": 500
+                },
+                "study_at_a_glance": {
+                    "type": "array",
+                    "description": "Structured bullet points with label and content",
+                    "minItems": 3,
+                    "maxItems": 10,
+                    "items": {
+                        "type": "object",
+                        "required": ["label", "content"],
+                        "additionalProperties": false,
+                        "properties": {
+                            "label": {
+                                "type": "string",
+                                "description": "Category label, e.g. 'Design and setting', 'Primary outcome'"
+                            },
+                            "content": {
+                                "type": "string",
+                                "description": "Full text including numbers, CIs, p-values, GRADE certainty"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "tts_config": {
             "type": "object",
             "description": "Optional TTS configuration for future audio generation (v1.1+)",
