@@ -700,6 +700,69 @@ class TestIterativeLoopRunner:
         # (original attempt + 2 retries = 3 attempts, but 2 regenerates)
         assert regenerate_initial_fn.call_count == 2
 
+    def test_correction_rollback_on_quality_degradation(self):
+        """Test that correction uses best-so-far when quality degrades.
+
+        Scenario:
+        - Iteration 0: quality ~85% (needs correction)
+        - Correction 0: quality drops to ~70% (degraded)
+        - Iteration 1: should roll back to iteration 0's result
+        - Correction 1: quality rises to ~96% (passes)
+
+        The key assertion: correct_fn's second call receives the
+        iteration-0 result (best-so-far), NOT the degraded result.
+        """
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=5,
+            show_banner=False,
+        )
+
+        initial_result = {"data": "initial"}
+        degraded_result = {"data": "degraded"}
+        final_result = {"data": "final"}
+
+        # Validation results
+        validation_iter0 = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.90
+        )  # quality ~85%, below threshold
+        validation_degraded = self._create_validation_result(
+            completeness=0.60, accuracy=0.70, schema_compliance=0.80
+        )  # quality ~68%, worse
+        validation_pass = self._create_validation_result(
+            completeness=0.95, accuracy=0.98, schema_compliance=0.97
+        )  # quality ~96%, passes
+
+        # Validate sequence:
+        # 1. iter 0: validate initial -> validation_iter0 (needs correction)
+        # 2. iter 0: correct -> validate corrected -> validation_degraded (worse)
+        # 3. iter 1: reuses best-so-far validation (validation_iter0)
+        # 4. iter 1: correct -> validate corrected -> validation_pass (passes)
+        validate_fn = MagicMock(
+            side_effect=[validation_iter0, validation_degraded, validation_pass]
+        )
+
+        # Correct returns degraded first, then final
+        correct_fn = MagicMock(side_effect=[degraded_result, final_result])
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result=initial_result,
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+        )
+        result = runner.run()
+
+        assert result.final_status == FINAL_STATUS_PASSED
+        assert result.best_result == final_result
+
+        # Key assertion: second correction got the INITIAL result (best-so-far),
+        # not the degraded result
+        assert correct_fn.call_count == 2
+        second_call_args = correct_fn.call_args_list[1]
+        assert second_call_args[0][0] == initial_result  # first positional arg = result
+        assert second_call_args[0][1] == validation_iter0  # second positional arg = validation
+
 
 class TestIterativeLoopRunnerAppraisal:
     """Tests for IterativeLoopRunner with appraisal metrics."""
