@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pdftopodcast"
-version = "1.0.0"
+version = "0.1.0"
 description = "Medical literature extraction pipeline using LLM vision capabilities"
 readme = "README.md"
 requires-python = ">=3.10"
