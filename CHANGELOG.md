@@ -7,158 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-
-- **Black version mismatch between pre-commit hook (24.10.0) and CI/venv (26.1.0)** - Updated `.pre-commit-config.yaml` to use Black 26.1.0, aligning all three environments and fixing CI formatting failures.
-
-- **Summary table showed 0% quality for Validation & Correction** - `run_pipeline.py` read `best_metrics.get("overall_quality")` but the actual key from `QualityMetrics.to_dict()` is `"quality_score"`, causing the summary to always display 0%.
-
-- **`study_id` schema rejected DOIs** - The `study_id` pattern `^[A-Za-z0-9._-]+$` in 5 extraction schemas did not allow `/` or `:` characters present in DOIs (e.g., `10.1016/j.sleep.2024.08.024`), causing schema validation failures on first extraction. Updated pattern to `^[A-Za-z0-9._/:;()\\[\\]-]+$`.
-
-- **`pipeline_start_time` NameError pattern** - Replaced `try/except NameError` with clean `None` check for `pipeline_start_time` in CLI summary.
-
-- **Duplicate `### Fixed` heading in CHANGELOG** - Merged two separate `### Fixed` sections under `[Unreleased]` into one.
-
-- **`docs/report.md` link text mismatch** - Fixed link text `docs/plans/report-generation.md` to match href `plans/report-generation.md`.
-
-### Changed
-
-- **Improved CLI Summary table** - Restructured the final pipeline summary with grouped sections, compact quality scores, per-step timing, and total pipeline elapsed time. Removed redundant "Pipeline Summary" and "Next:" hints from orchestrator output.
-
-- **Iteration status shows threshold awareness** - Loop runner now displays "Thresholds met" / "Below threshold" instead of the raw validation status "Passed", which was confusing when quality thresholds hadn't been met yet.
-
-
-
-- **Consolidated `features/` into `docs/plans/`** - Moved all feature planning documents from the top-level `features/` directory into `docs/plans/` to unify planning and documentation under a single location. Updated all cross-references across CLAUDE.md, CONTRIBUTING.md, ROADMAP.md, DEVELOPMENT.md, README.md, API.md, ARCHITECTURE.md, and internal plan documents.
-
-- **Translate remaining Dutch text to English** - Translated Dutch strings in README.md (appraisal section), Makefile (commit target messages), .envrc, .gitignore, and requirements.txt. Removed stale `todo.txt`.
-
-- **Removed AGENTS.md** - Redundant with CLAUDE.md project context; removed file and updated references.
-
-- **Root documentation cleanup** - Fixed outdated model names, step counts, function references, and links in README.md. Updated documentation table with API.md, SECURITY.md, COMMERCIAL_LICENSE.md. Fixed duplicate `### Added` headers in CHANGELOG.md. Updated test layout in CONTRIBUTING.md. Fixed `tmp/` path in DEVELOPMENT.md. Added Anthropic to COMMERCIAL_LICENSE.md provider list.
-
-- **Security dependency upgrades** - Bumped weasyprint >=68.0 (SSRF bypass fix), added pillow >=12.1.1 (out-of-bounds write fix), protobuf >=6.33.5 (JSON recursion depth bypass fix). Bumped streamlit >=1.54.0 for pillow 12 compatibility. Dropped weasyprint `[lxml]` extra (removed in v68).
-
-- **Appraisal `quality_thresholds` parameter ignored** - `run_appraisal_with_correction()` accepted a `quality_thresholds` parameter but hardcoded `APPRAISAL_THRESHOLDS` in the loop config. Custom thresholds now correctly propagate with dict-to-QualityThresholds conversion.
-
-- **Test patch targets after iterative loop refactoring** - Fixed 35 failing tests caused by patch targets pointing to old `orchestrator` module instead of refactored `steps.*` modules. Also fixed test assertions for new initial retry behavior on schema validation failure.
-
-- **Validation file overwrite in iterative loop** - `run_validation_step()` hardcoded `iteration_number=0` in its `save_json` call, overwriting `validation0.json` every time the iterative loop re-validated. Added `save_to_disk` parameter (default `True`); the iterative loop passes `save_to_disk=False` so only `save_iteration_fn` writes numbered files. Standalone calls from the orchestrator are unaffected.
-
-- **Double validation after correction** - `correct_fn` discarded the post-correction validation from `run_correction_step()`, then `loop_runner.py` called `validate_fn()` again — wasting one full LLM validation call per correction cycle. `correct_fn` now returns `(corrected_extraction, validation)` tuple, and the loop runner reuses the returned validation instead of re-validating. Appraisal and report loops (which return plain `dict`) are unaffected via `isinstance(tuple)` check.
-
-- **Correction retry count carrying over between iterations** - `correction_retry_count` was not reset after a successful correction, causing the retry budget from a previous iteration's schema failures to reduce retries available in subsequent iterations. Now resets to 0 after each successful correction.
-
-- **Pipeline crash when validation fails and downstream steps run** - When `validation_correction` failed (e.g., schema compliance < 50%), appraisal was correctly skipped but `report_generation` and `podcast_generation` still attempted to run, crashing with `ValueError: Appraisal step result not found`. Added skip-propagation: both steps now check if appraisal results are available before running.
-
-- **Duplicate dead code in `run_single_step()`** - Removed duplicate `elif STEP_REPORT_GENERATION` block (unreachable dead code) in the dependency resolution chain.
-
 ### Added
 
 - **Extraction retry on schema failure** - When initial extraction fails schema validation (compliance < 50%), the extraction step is now retried up to 2 times (3 total attempts), matching the existing appraisal retry behavior. Previously, a single bad LLM output would immediately fail the entire pipeline. Failed extractions are saved with `-failed` suffix for debugging.
-
-### Removed
-
-- **Non-functional `--quiet`/`--verbose` CLI flags** - Removed `--quiet`/`-q` and `--verbose`/`-v` argparse arguments that were added but never wired to control output verbosity.
-
-- **Unused `PipelineOutputManager`** - Deleted `src/pipeline/output_manager.py` (orphaned module, nothing imported it).
-
-### Changed
-
-- **CLI Output Standardized to English** - All CLI output now in English
-  - Translated 42+ Dutch strings in `run_pipeline.py` to English
-  - Translated 2 Dutch strings in `orchestrator.py` to English
-  - Includes: CLI help text, progress messages, summary table headers and labels
-  - Examples: "Bezig met pipeline..." → "Running pipeline...", "Samenvatting" → "Summary"
-
-- **Fixed Spinner Overlap Issue** - Removed spinner that overlapped with status messages
-  - Replaced `console.status()` spinner with simple progress message
-  - Text no longer runs together during pipeline execution
-
-- **Consolidated Loop Runner Output** - Reduced verbose iteration output
-  - Changed from 6-7 lines per iteration to single compact line
-  - Format: `Iteration N: Quality X% | Schema Y% | Complete Z% | Status`
-  - Improvement delta shown inline when applicable (↑+1.2% or ↓-0.5%)
-
-- **Post-correction schema repair step** - Deterministic structural repair between LLM correction and validation
-  - New `src/pipeline/schema_repair.py` module
-  - Restores array items that the LLM simplified from objects to strings (e.g., `"O2"` → full outcome object)
-  - Removes properties not allowed by schema (`additionalProperties: false`)
-  - Prevents wasted correction retries on predictable structural issues
-
-### Changed
-
-- **`FigureSummary.key_values` schema relaxed** - Now allows both string and number values
-  - Previously `additionalProperties: { "type": "number" }`, now `oneOf: [number, string]`
-  - Fixes schema violations for figure data with text descriptions (summaries, variable names, time windows)
-  - Updated all 5 extraction prompts and regenerated all 5 bundled schemas
-
-- **Correction prompt improved** - Added HARD RULE 8: PRESERVE ARRAY STRUCTURE
-  - Explicitly instructs LLM to never simplify arrays of objects to arrays of strings/IDs
-  - Addresses pattern where correction degrades outcomes/interventions from objects to ID strings
-
-- **Correction context reduced** - Filtered validation report sent to correction LLM
-  - Now sends only schema errors + semantic issues instead of full validation report
-  - Uses compact JSON (no indent) for original extraction
-  - Reduces prompt token count, preventing LLM from being overwhelmed and simplifying structures
-
-### Fixed
-
-- **Off-by-One Bug in Retry Logic** - Fixed retry count being one less than configured
-  - Changed `>=` to `>` in retry limit checks for both initial and correction retries
-  - With `max_initial_retries=2`, now correctly allows 2 retries (3 total attempts)
-  - With `max_correction_retries=2`, now correctly allows 2 retries per correction step
-
-- **Correction Retry Counter Scope Bug** - Fixed retry count accumulating across iterations
-  - `correction_retry_count` was persisting across loop iterations, causing premature failures
-  - Now resets to 0 at the start of each correction step
-  - Each iteration gets its full retry budget independently
-
-- **Inconsistent save_failed_fn Behavior** - Fixed failed results not being saved consistently
-  - `save_failed_fn` was only called when `iteration_count == 0`
-  - Now always saves failed results before returning, regardless of iteration history
-  - Improves debugging by ensuring failed corrections are always captured
-
-- **Field Path Check in _get_schema_quality()** - Made key existence check explicit
-  - Changed `if validation_summary:` (True for empty dict) to `if "validation_summary" in validation_result:`
-  - Prevents incorrect fallback to extraction structure when appraisal structure is present but empty
-
-- **Iterative Loop Hang on Schema Failure** - Fixed bug where correction failures caused infinite loops
-  - Added `max_correction_retries` config option (default: 2) to `IterativeLoopConfig`
-  - When correction produces invalid schema, loop now retries from last good iteration
-  - After max retries reached, returns best result from tracker instead of hanging
-  - Schema quality check now runs after every correction, not just initial validation
-
-- **Initial Result Schema Retry** - Added retry support for initial result schema failures
-  - Added `max_initial_retries` config option (default: 2) to `IterativeLoopConfig`
-  - Added `regenerate_initial_fn` callback to `IterativeLoopRunner` for regenerating failed initial results
-  - Integrated regenerate callback in `appraisal.py` for retrying failed appraisals
-  - When initial appraisal fails schema validation, it's regenerated up to max retries
-
-- **Display NoneType Crash** - Fixed crash when schema validation fails and best_result is None
-  - Changed `result.get("best_appraisal", {})` to `result.get("best_appraisal") or {}` pattern
-  - Applied same fix to `best_validation` in `execution_results.py`
-  - Prevents `TypeError: argument of type 'NoneType' is not iterable` on schema failures
-
-- **Schema Quality Field Path Mismatch** - Fixed `_get_schema_quality()` looking at wrong field
-  - Was looking for non-existent `schema_validation.quality_score` (always returned 0.0)
-  - Now correctly reads `validation_summary.schema_compliance_score` for appraisal validation
-  - Also supports `verification_summary.schema_compliance_score` for extraction validation
-  - Root cause of false schema failures (e.g., 95% compliance reported as 0%)
-
-- **Validation Runner Schema Compliance Key Mismatch** - Fixed `validation_runner.py` setting wrong key
-  - Was setting `schema_compliance` but `loop_runner.py` reads `schema_compliance_score`
-  - Caused schema quality to always be 0.0 in retry logic, even when actual score was higher (e.g., 37.1%)
-  - Now correctly sets `schema_compliance_score` in both LLM and schema-only validation paths
-
-- **Evidence Synthesis Extraction Prompt Improvements** - Updated prompt to match schema requirements
-  - Fixed `sensitivity_analyses`: changed typo `analysis_change` to `analysis_type`, added REQUIRED labels and enum values
-  - Fixed `network_meta`: added missing required fields (`treatments`, `reference_treatment`, `model`, `pooled_effects`)
-  - Added guidance to use `narrative` type when `pooled_effects` data not available (prevents empty network_meta)
-  - Added validation checklist item 14 for network_meta pooled_effects requirement
-  - Improves LLM schema compliance for evidence synthesis extractions
-
-### Added
 
 - **CLI `--output` Flag** - Control which outputs to generate from the pipeline
   - `--output podcast` - Run all steps but skip report generation (faster for podcast-only workflows)
@@ -172,141 +23,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Failed appraisal and validation are saved with `-failed` suffix (e.g., `paper-appraisal-failed.json`)
   - Console message indicates when failed results are saved
   - Enables debugging of LLM output when schema validation fails
-
-### Changed
-
-- **Documentation** - Added docstrings for render CLI, pipeline entrypoint, and rendering helpers
-- **Utilities** - Moved `render_report_only.py` to `scripts/` and added repo-root import shim for standalone use
-- **Codebase Refactoring Phase 9: Streamlit Display Modularization** - Split large display module
-  - Created `execution_artifacts.py` (~120 lines) for report/podcast download buttons
-  - Created `execution_results.py` (~450 lines) for step result displays
-  - Reduced `execution_display.py` from 896 to 361 lines (core display logic only)
-  - Re-exports maintain backward compatibility for existing imports
-
-- **Codebase Refactoring Phase 9: IterativeLoopRunner Migration** - Replaced manual while-loops with generic runner
-  - Migrated `appraisal.py` to use `IterativeLoopRunner` (~100 lines removed)
-  - Migrated `report.py` to use `IterativeLoopRunner` (~100 lines removed)
-  - Migrated `validation.py` to use `IterativeLoopRunner` (~340 lines removed)
-  - Added `_with_llm_retry()` wrapper for exponential backoff retry (1s, 2s, 4s)
-  - Callbacks: `validate_fn`, `correct_fn`, `save_iteration_fn`, `save_best_fn`
-  - Preserves dependency gating, rendering, schema quality checks, and all quality metrics
-  - Total: ~540 lines of duplicate loop code removed across 3 files
-
-- **Codebase Refactoring Phase 9: Thresholds & Utils Consolidation** - Centralized duplicated code
-  - Created `src/pipeline/version.py` with cached `get_pipeline_version()` function
-  - Fixed `get_next_step()` in `utils.py` to include all 6 pipeline steps (was only 4)
-  - Consolidated quality thresholds: step modules now import from `quality/thresholds.py`
-  - Removed duplicates from `orchestrator.py`, `validation.py`, `appraisal.py`, `report.py`
-  - Updated PDF size documentation in `config.py` (default: 10 MB, provider max: 32 MB)
-  - Updated test imports to use new module locations
-
-- **Codebase Refactoring Phase 7: Step Modules** - Extracted pipeline step implementations into dedicated modules
-  - Created `src/pipeline/steps/` package with individual step modules:
-    - `classification.py` - Publication type identification (~170 lines)
-    - `extraction.py` - Schema-based data extraction (~200 lines)
-    - `validation.py` - Dual validation with iterative correction (~700 lines)
-    - `appraisal.py` - Critical appraisal (RoB, GRADE, applicability) (~600 lines)
-    - `report.py` - Report generation with iterative correction (~650 lines)
-    - `podcast.py` - Re-export from `podcast_logic.py`
-  - Added `__init__.py` with all public exports for easy importing
-  - All modules include backward compatibility aliases
-  - Total extraction: ~2,300 lines moved to step modules
-
-- **[BREAKING] English-Only System** - Removed bilingual (Dutch/English) support
-  - Translated `prompts/Classification.txt` from Dutch to English (full 171-line prompt rewrite)
-  - Removed Dutch terminology and examples from `prompts/Report-generation.txt`
-  - Translated schema descriptions in `schemas/prediction_prognosis.schema.json` and `schemas/common.schema.json`
-  - Changed language parameter defaults from "nl" to "en" in orchestrator and all call sites
-  - Updated test files: all `language="nl"` changed to `language="en"` (10+ test files)
-  - Updated Streamlit UI default language from "nl" to "en"
-  - Regenerated bundled schemas with English translations
-  - Impact: Users expecting Dutch output will now receive English only
-  - Migration: System now defaults to English; no action needed unless custom configurations exist
-
-- **Podcast validation constants extracted** - Refactored hardcoded validation thresholds (800, 1500, 150, 3) to named module-level constants (`PODCAST_MIN_WORDS`, `PODCAST_MAX_WORDS`, `WORDS_PER_MINUTE`, `MAX_NUMERICAL_STATEMENTS`) for improved maintainability
-
-### Fixed
-
-- **Report generation step dependency validation** - Added missing validation that report generation requires appraisal step. Previously, running `steps_to_run=["classification","extraction","report_generation"]` would cause KeyError when accessing appraisal results.
-
-- **Schema quality default to 0.0 (fail-safe)** - Changed `_get_schema_quality()` default from 1.0 to 0.0 in `IterativeLoopRunner`. Missing quality score now triggers correction rather than incorrectly passing validation.
-
-- **Tests for _remove_null_values()** - Added comprehensive test suite (15 tests) covering edge cases: nested structures, lists of dicts, preserving False/0/empty strings, deeply nested nulls.
-
-- **Null value handling documentation** - Added "Null value handling" section to ARCHITECTURE.md explaining why `_remove_null_values()` exists and its behavior.
-
-- **Streamlit: Fix iterative validation loop restart** - Added execution lock to prevent Streamlit page reruns from restarting pipeline steps mid-execution. Long-running LLM calls in the validation/correction loop would restart at "Iteration 0" when the page rerendered. Now shows "⏳ Step is currently executing. Please wait..." instead of restarting.
-
-- **Schema: Add source field to PairwiseMetaAnalysis** - Fixed validation error where LLM-generated `source` field in `pairwise_meta` was rejected. Added `source: SourceRef` property to `PairwiseMetaAnalysis` schema definition for consistency with `umbrella_summary`.
-
-- **Null value removal in pipeline preprocessing** - Added `_remove_null_values()` function to strip null values from LLM output before schema validation. LLMs sometimes emit `"field": null` for absent optional fields despite prompt instructions to omit them, causing schema validation failures.
-
-- **Add header to Podcast Generation step** - Added `═══ PODCAST GENERATION ═══` header to terminal output for consistency with other pipeline steps.
-
-- **CLI Summary Table: Add Podcast Results** - Display podcast word count, duration, and validation status in final CLI summary after full pipeline run
-
-- **CRITICAL: CLI Import Fix + Documentation Alignment** - External audit fixes
-  - **CLI import broken**: Fixed `ImportError` - changed `run_four_step_pipeline` to `run_full_pipeline` (CLI was non-functional)
-  - **Full-run table updated**: Added "6. Podcast generatie" to pipeline steps table (was missing)
-  - **Schema validation added**: Podcast output now validated against `podcast.schema.json` (Phase 2 spec compliance)
-  - **>1500 words = hard fail**: Transcript exceeding 1500 words now triggers critical failure (was incorrectly a warning)
-  - **Documentation sync**: All "five-step" references updated to "six-step" (`run_pipeline.py`, `ARCHITECTURE.md`, `src/pipeline/__init__.py`)
-  - **ARCHITECTURE.md flow**: Added `run_podcast_generation()` to pipeline flow diagram
-
-- **Podcast Generation - Spec Compliance & UI Enhancement** - External review fixes
-  - **Always save files per spec**: `podcast.json` and `podcast_validation.json` now saved even on validation failure (changed from raising `ValueError` to returning `status: "failed"`)
-  - **Duration cap aligned with schema**: Changed from 15 to 10 minutes maximum
-  - **Copy transcript button**: Added text area in Streamlit UI for easy copying to TTS tools
-  - **Updated tests**: Reflect new "return status" behavior instead of exception raising
-
-- **CLI: Add podcast_generation result display** - Show word count, duration, validation status, TTS readiness, and issues in CLI output (follows pattern of other steps)
-
-- **Podcast Generation - Validation Round 2: Failed Status, Metadata Calc, Max Numbers** - Additional validation fixes based on external review
-  - **Validation failure behavior**: Transcript < 800 words returns `status: "failed"` with files saved
-  - **Hard fail**: Transcript > 1500 words now triggers critical failure (aligns with schema maxLength)
-  - **Metadata recalculation**:
-    - `word_count` and `estimated_duration_minutes` now calculated from actual transcript
-    - Duration estimate: ~150 words per minute (spoken pace)
-  - **Max 3 numerical statements check**:
-    - Warns when transcript contains >3 significant numbers (style guideline)
-  - **Validation result structure**:
-    - Added `critical_issues` field to distinguish hard failures from warnings
-    - `ready_for_tts` now false when status is "failed"
-  - **Test Updates**:
-    - Updated all tests to use ≥800 word transcripts
-    - Added `test_validation_raises_on_short_transcript` (ValueError expected)
-    - Added `test_validation_warns_on_too_many_numbers`
-    - Added `test_metadata_recalculated_from_transcript`
-
-- **Podcast Generation - Complete Validation & Cosmetic Fixes** - Audit-driven fixes for Phase 2 and Phase 3 compliance
-  - **Phase 2 Validation Expansion** (72% → 100% spec compliance):
-    - Added key outcomes presence check (verifies primary outcome mentioned in transcript)
-    - Added numeric accuracy spot check (verifies sample size appears in transcript)
-    - Added GRADE certainty language alignment (warns on high-certainty words with low GRADE evidence)
-    - Added "insufficiently reported" detection (warns when missing data not acknowledged)
-  - **Phase 3 Cosmetic Fixes** (94% → 100% spec compliance):
-    - Language field now shows full name ("English") instead of code ("EN")
-    - Audience field now capitalizes first letter ("Practising clinicians")
-  - **Test Updates**:
-    - Added 3 new validation tests: `test_validation_detects_missing_primary_outcome`, `test_validation_detects_grade_language_mismatch`, `test_validation_warns_missing_insufficiently_reported`
-    - Updated renderer test assertions for new formatting
-    - Fixed `test_execution_screen.py` to expect 6 pipeline steps (including podcast_generation)
-  - **Documentation**: Added "podcast" to schemas_loader.py docstring
-
-### Changed
-
-- **Podcast Generation Feature Specification (v1.1)** - Refined feature document with validation behavior and GRADE mapping
-  - Added explicit GRADE-verb mapping: enforce calibrated language based on certainty level (High→shows/demonstrates, Moderate→likely/probably, Low→may/might, Very Low→very uncertain)
-  - Added Section 0: Validation Behaviour (light, single-pass) - single factcheck after generation, `podcast_validation.json` artefact with status/issues/ready_for_tts
-  - Clarified numerical statements: priority order, qualitative fallback for extra outcomes, documented future `allow_extra_numbers` flag
-  - Added transcript formatting rule: no headings in transcript, markdown wrapper may include metadata only
-  - Updated verification checklist: verbs must reflect APPRAISAL/GRADE mapping
-  - Clarified file outputs: added `podcast_validation.json`, documented naming pattern (no `-best` suffix for podcasts)
-  - Simplified Phase 2: removed language parameter support (English only), added validation artefact deliverable
-  - Updated acceptance criteria: validation runs once with status surfaced, no correction loop
-  - Location: docs/plans/podcast-generation.md
-
-### Added
 
 - **Podcast Generation Feature - Phase 6: Testing & Documentation** (#podcast-generation-phase6) - Final documentation and test coverage
   - Added `TestLoadPodcastGenerationPrompt` class (3 tests) to `tests/unit/test_prompts.py`
@@ -363,68 +79,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Shared utilities: `_draw_flow_box()` and `_draw_flow_arrow()` for flow diagrams
   - **LaTeX Integration:** Figure blocks now render with `\includegraphics`, `\caption`, and `\label`
   - **Unit Tests:** 16 tests for figure generation (skip when matplotlib not installed)
-
-### Fixed
-
-- **Appraisal Runs Despite Failed Schema Validation:** Fixed bug where appraisal step would run with unvalidated extraction data when schema validation failed (< 50% quality). The fallback logic in `run_single_step` now checks for `failed_*` status before proceeding, and raises `ValueError` to prevent appraisal with invalid data. Additionally, the skip-check in `run_four_step_pipeline` now catches all `failed_*` statuses instead of only `failed_schema_validation`.
-
-- **CLI Syntax Error in run_pipeline.py:** Fixed critical syntax errors (indentation issues and orphaned code after `if __name__ == "__main__"`) that caused `make lint` to fail with 12 invalid-syntax errors
-
-- **Appraisal File Loading Bug:** Report generation now correctly loads `appraisal-best.json` instead of looking for non-existent `appraisal.json`
-
-- **Report Generation Feature - Phase 4: LaTeX Renderer Improvements** (#report-generation-phase4) - Enhanced LaTeX renderer with expanded test coverage and new features
-  - **Test Coverage Expansion:** Added 24 new unit tests (from 3 to 27 total) covering:
-    - All text block styles (paragraph, bullets, numbered)
-    - All 4 callout variants (warning, note, implication, clinical_pearl)
-    - Table alignments (l, c, r, S) and render_hints
-    - Figure block error handling (Phase 5 scope)
-    - Subsection rendering and nesting
-    - LaTeX special character escaping
-  - **Metadata Injection:** Report title, authors, and publication date now injected from `report.metadata` into LaTeX output
-  - **Label Generation:** Tables now generate `\label{tbl_xxx}` commands for cross-referencing (when label field present)
-  - **Template Updates:**
-    - Added metadata placeholders (`{{TITLE}}`, `{{AUTHORS}}`, `{{DATE}}`) to `main.tex`
-    - Created `figures.tex` placeholder for Phase 5 figure macros
-  - **Quality Assurance:** All 27 LaTeX renderer tests pass
-
-### Changed
-
-- **LLM Timeout Increased**: Extended default timeout from 10 to 30 minutes (600s → 1800s)
-  - Accommodates longer report generation and complex extraction tasks
-  - Configurable via `LLM_TIMEOUT` environment variable
-  - With 3 automatic retries: max total time 90 minutes (was 30 minutes)
-
-### Fixed
-
-- **Report Generation Feature - Phase 3: Critical Integration & Test Coverage Fixes** (#report-generation-phase3-fixes) - Fixed 3 critical issues that made Phase 3 implementation non-functional
-  - **Issue #1 - Dead Code (Pipeline Dispatch)**: Modified pipeline dispatch (orchestrator.py:4455) to conditionally call `run_report_with_correction()` when `enable_iterative_correction=True`, making Phase 3 loop actually execute. Previously, dispatch always called Phase 2 single-pass `run_report_generation()`, making all Phase 3 code dead code.
-  - **Issue #2 - Missing Dependency Gating**: Added ~70 lines of upstream quality validation to `run_report_with_correction()` start:
-    - Block if extraction quality < 0.70
-    - Warn if extraction quality < 0.90
-    - Block if appraisal missing Risk of Bias data
-    - Warn if appraisal quality < 0.70
-    - Matches feature spec requirements (lines 1625-1636)
-  - **Issue #3 - Zero Test Coverage**: Created comprehensive test suite for Phase 3:
-    - `tests/unit/test_report_quality.py`: 17 tests (~270 lines) for `_extract_report_metrics()`, `is_report_quality_sufficient()`, and `_select_best_report_iteration()`
-    - `tests/integration/test_report_full_loop.py`: 8 integration tests (~700 lines) covering full iterative loop, early stopping, max iterations, degradation detection, dependency gating, and file persistence
-    - All 25 new tests pass, bringing total test count to 152 passed
-  - **Quality Assurance:** Code formatted with black, linted with ruff, all existing + new tests pass
-  - **Status:** Phase 3 now fully functional with proper pipeline integration, safety checks, and automated test coverage
-
-- **Report Generation Feature - Phase 2: Critical Bugfixes** (#report-generation-phase2-bugfix) - Fixed 4 blocking issues that prevented Phase 2 from running
-  - **Issue #1 - LLM Method Call**: Changed `llm.generate_structured_output()` (non-existent) to `llm.generate_json_with_schema()` (correct method)
-  - **Issue #2 - Schema Validation**: Replaced `validate_schema_compatibility()` (wrong signature) with `validate_with_schema()` from validation module
-  - **Issue #3 - Missing Prompt Inputs**: Added required LANGUAGE, GENERATION_TIMESTAMP, and PIPELINE_VERSION to prompt context (prompt contract compliance)
-  - **Issue #4 - Missing Test Coverage**: Added 3 integration tests with mocked LLM to verify run_report_generation() actually works
-  - All tests pass (130 passed), code formatted and linted
-
-- **Report Generation Feature - Phase 2: Prompt Context & Language Routing** (#report-generation-phase2) - Ensured report orchestration supplies complete inputs and configurable language
-  - Added dynamic pipeline version detection (using package metadata or `pyproject.toml`)
-  - Included serialized `report.schema.json` in LLM prompt context to match template requirements
-  - Propagated `report_language` option through CLI, Streamlit settings, and orchestrator so users can select Dutch or English output
-  - Updated UI/CLI defaults, file-management utilities, and unit tests to cover the new behaviour
-
-### Added
 
 - **Report Generation Feature - Phase 3: Validation & Correction Loop** (#report-generation-phase3) - Iterative quality improvement for report generation
   - **Quality Metrics & Thresholds:**
@@ -722,6 +376,121 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Improved CLI Summary table** - Restructured the final pipeline summary with grouped sections, compact quality scores, per-step timing, and total pipeline elapsed time. Removed redundant "Pipeline Summary" and "Next:" hints from orchestrator output.
+
+- **Iteration status shows threshold awareness** - Loop runner now displays "Thresholds met" / "Below threshold" instead of the raw validation status "Passed", which was confusing when quality thresholds hadn't been met yet.
+
+- **Consolidated `features/` into `docs/plans/`** - Moved all feature planning documents from the top-level `features/` directory into `docs/plans/` to unify planning and documentation under a single location. Updated all cross-references across CLAUDE.md, CONTRIBUTING.md, ROADMAP.md, DEVELOPMENT.md, README.md, API.md, ARCHITECTURE.md, and internal plan documents.
+
+- **Translate remaining Dutch text to English** - Translated Dutch strings in README.md (appraisal section), Makefile (commit target messages), .envrc, .gitignore, and requirements.txt. Removed stale `todo.txt`.
+
+- **Removed AGENTS.md** - Redundant with CLAUDE.md project context; removed file and updated references.
+
+- **Root documentation cleanup** - Fixed outdated model names, step counts, function references, and links in README.md. Updated documentation table with API.md, SECURITY.md, COMMERCIAL_LICENSE.md. Fixed duplicate `### Added` headers in CHANGELOG.md. Updated test layout in CONTRIBUTING.md. Fixed `tmp/` path in DEVELOPMENT.md. Added Anthropic to COMMERCIAL_LICENSE.md provider list.
+
+- **Security dependency upgrades** - Bumped weasyprint >=68.0 (SSRF bypass fix), added pillow >=12.1.1 (out-of-bounds write fix), protobuf >=6.33.5 (JSON recursion depth bypass fix). Bumped streamlit >=1.54.0 for pillow 12 compatibility. Dropped weasyprint `[lxml]` extra (removed in v68).
+
+- **CLI Output Standardized to English** - All CLI output now in English
+  - Translated 42+ Dutch strings in `run_pipeline.py` to English
+  - Translated 2 Dutch strings in `orchestrator.py` to English
+  - Includes: CLI help text, progress messages, summary table headers and labels
+  - Examples: "Bezig met pipeline..." → "Running pipeline...", "Samenvatting" → "Summary"
+
+- **Fixed Spinner Overlap Issue** - Removed spinner that overlapped with status messages
+  - Replaced `console.status()` spinner with simple progress message
+  - Text no longer runs together during pipeline execution
+
+- **Consolidated Loop Runner Output** - Reduced verbose iteration output
+  - Changed from 6-7 lines per iteration to single compact line
+  - Format: `Iteration N: Quality X% | Schema Y% | Complete Z% | Status`
+  - Improvement delta shown inline when applicable (↑+1.2% or ↓-0.5%)
+
+- **Post-correction schema repair step** - Deterministic structural repair between LLM correction and validation
+  - New `src/pipeline/schema_repair.py` module
+  - Restores array items that the LLM simplified from objects to strings (e.g., `"O2"` → full outcome object)
+  - Removes properties not allowed by schema (`additionalProperties: false`)
+  - Prevents wasted correction retries on predictable structural issues
+
+- **`FigureSummary.key_values` schema relaxed** - Now allows both string and number values
+  - Previously `additionalProperties: { "type": "number" }`, now `oneOf: [number, string]`
+  - Fixes schema violations for figure data with text descriptions (summaries, variable names, time windows)
+  - Updated all 5 extraction prompts and regenerated all 5 bundled schemas
+
+- **Correction prompt improved** - Added HARD RULE 8: PRESERVE ARRAY STRUCTURE
+  - Explicitly instructs LLM to never simplify arrays of objects to arrays of strings/IDs
+  - Addresses pattern where correction degrades outcomes/interventions from objects to ID strings
+
+- **Correction context reduced** - Filtered validation report sent to correction LLM
+  - Now sends only schema errors + semantic issues instead of full validation report
+  - Uses compact JSON (no indent) for original extraction
+  - Reduces prompt token count, preventing LLM from being overwhelmed and simplifying structures
+
+- **Documentation** - Added docstrings for render CLI, pipeline entrypoint, and rendering helpers
+- **Utilities** - Moved `render_report_only.py` to `scripts/` and added repo-root import shim for standalone use
+- **Codebase Refactoring Phase 9: Streamlit Display Modularization** - Split large display module
+  - Created `execution_artifacts.py` (~120 lines) for report/podcast download buttons
+  - Created `execution_results.py` (~450 lines) for step result displays
+  - Reduced `execution_display.py` from 896 to 361 lines (core display logic only)
+  - Re-exports maintain backward compatibility for existing imports
+
+- **Codebase Refactoring Phase 9: IterativeLoopRunner Migration** - Replaced manual while-loops with generic runner
+  - Migrated `appraisal.py` to use `IterativeLoopRunner` (~100 lines removed)
+  - Migrated `report.py` to use `IterativeLoopRunner` (~100 lines removed)
+  - Migrated `validation.py` to use `IterativeLoopRunner` (~340 lines removed)
+  - Added `_with_llm_retry()` wrapper for exponential backoff retry (1s, 2s, 4s)
+  - Callbacks: `validate_fn`, `correct_fn`, `save_iteration_fn`, `save_best_fn`
+  - Preserves dependency gating, rendering, schema quality checks, and all quality metrics
+  - Total: ~540 lines of duplicate loop code removed across 3 files
+
+- **Codebase Refactoring Phase 9: Thresholds & Utils Consolidation** - Centralized duplicated code
+  - Created `src/pipeline/version.py` with cached `get_pipeline_version()` function
+  - Fixed `get_next_step()` in `utils.py` to include all 6 pipeline steps (was only 4)
+  - Consolidated quality thresholds: step modules now import from `quality/thresholds.py`
+  - Removed duplicates from `orchestrator.py`, `validation.py`, `appraisal.py`, `report.py`
+  - Updated PDF size documentation in `config.py` (default: 10 MB, provider max: 32 MB)
+  - Updated test imports to use new module locations
+
+- **Codebase Refactoring Phase 7: Step Modules** - Extracted pipeline step implementations into dedicated modules
+  - Created `src/pipeline/steps/` package with individual step modules:
+    - `classification.py` - Publication type identification (~170 lines)
+    - `extraction.py` - Schema-based data extraction (~200 lines)
+    - `validation.py` - Dual validation with iterative correction (~700 lines)
+    - `appraisal.py` - Critical appraisal (RoB, GRADE, applicability) (~600 lines)
+    - `report.py` - Report generation with iterative correction (~650 lines)
+    - `podcast.py` - Re-export from `podcast_logic.py`
+  - Added `__init__.py` with all public exports for easy importing
+  - All modules include backward compatibility aliases
+  - Total extraction: ~2,300 lines moved to step modules
+
+- **[BREAKING] English-Only System** - Removed bilingual (Dutch/English) support
+  - Translated `prompts/Classification.txt` from Dutch to English (full 171-line prompt rewrite)
+  - Removed Dutch terminology and examples from `prompts/Report-generation.txt`
+  - Translated schema descriptions in `schemas/prediction_prognosis.schema.json` and `schemas/common.schema.json`
+  - Changed language parameter defaults from "nl" to "en" in orchestrator and all call sites
+  - Updated test files: all `language="nl"` changed to `language="en"` (10+ test files)
+  - Updated Streamlit UI default language from "nl" to "en"
+  - Regenerated bundled schemas with English translations
+  - Impact: Users expecting Dutch output will now receive English only
+  - Migration: System now defaults to English; no action needed unless custom configurations exist
+
+- **Podcast validation constants extracted** - Refactored hardcoded validation thresholds (800, 1500, 150, 3) to named module-level constants (`PODCAST_MIN_WORDS`, `PODCAST_MAX_WORDS`, `WORDS_PER_MINUTE`, `MAX_NUMERICAL_STATEMENTS`) for improved maintainability
+
+- **Podcast Generation Feature Specification (v1.1)** - Refined feature document with validation behavior and GRADE mapping
+  - Added explicit GRADE-verb mapping: enforce calibrated language based on certainty level (High→shows/demonstrates, Moderate→likely/probably, Low→may/might, Very Low→very uncertain)
+  - Added Section 0: Validation Behaviour (light, single-pass) - single factcheck after generation, `podcast_validation.json` artefact with status/issues/ready_for_tts
+  - Clarified numerical statements: priority order, qualitative fallback for extra outcomes, documented future `allow_extra_numbers` flag
+  - Added transcript formatting rule: no headings in transcript, markdown wrapper may include metadata only
+  - Updated verification checklist: verbs must reflect APPRAISAL/GRADE mapping
+  - Clarified file outputs: added `podcast_validation.json`, documented naming pattern (no `-best` suffix for podcasts)
+  - Simplified Phase 2: removed language parameter support (English only), added validation artefact deliverable
+  - Updated acceptance criteria: validation runs once with status surfaced, no correction loop
+  - Location: docs/plans/podcast-generation.md
+
+- **LLM Timeout Increased**: Extended default timeout from 10 to 30 minutes (600s → 1800s)
+  - Accommodates longer report generation and complex extraction tasks
+  - Configurable via `LLM_TIMEOUT` environment variable
+  - With 3 automatic retries: max total time 90 minutes (was 30 minutes)
+
 - **Appraisal Feature Specification (v1.1)** - Refined feature document with technical corrections and clarifications
   - Fixed critical study type terminology alignment (interventional_trial vs interventional mismatch between classification and appraisal schemas)
   - Added explicit routing function `_get_appraisal_prompt_name()` with error handling for unsupported publication types
@@ -842,7 +611,214 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated references in DEVELOPMENT.md and Makefile
   - `make validate-schemas` target updated to use new location
 
+### Removed
+
+- **Non-functional `--quiet`/`--verbose` CLI flags** - Removed `--quiet`/`-q` and `--verbose`/`-v` argparse arguments that were added but never wired to control output verbosity.
+
+- **Unused `PipelineOutputManager`** - Deleted `src/pipeline/output_manager.py` (orphaned module, nothing imported it).
+
+- **Duplicate test files** - Removed stray duplicate unit test files (`tests/unit/* 2.py`) so pytest does not execute the same suite twice.
+- **test.py** - Removed temporary exploratory test file from project root
+- **SETUP_COMPLETE.md** - Removed redundant setup announcement file
+  - Content already covered in DEVELOPMENT.md, CONTRIBUTING.md, and README.md
+  - Was a one-time setup summary, not ongoing documentation
+
 ### Fixed
+
+- **Black version mismatch between pre-commit hook (24.10.0) and CI/venv (26.1.0)** - Updated `.pre-commit-config.yaml` to use Black 26.1.0, aligning all three environments and fixing CI formatting failures.
+
+- **Summary table showed 0% quality for Validation & Correction** - `run_pipeline.py` read `best_metrics.get("overall_quality")` but the actual key from `QualityMetrics.to_dict()` is `"quality_score"`, causing the summary to always display 0%.
+
+- **`study_id` schema rejected DOIs** - The `study_id` pattern `^[A-Za-z0-9._-]+$` in 5 extraction schemas did not allow `/` or `:` characters present in DOIs (e.g., `10.1016/j.sleep.2024.08.024`), causing schema validation failures on first extraction. Updated pattern to `^[A-Za-z0-9._/:;()\\[\\]-]+$`.
+
+- **`pipeline_start_time` NameError pattern** - Replaced `try/except NameError` with clean `None` check for `pipeline_start_time` in CLI summary.
+
+- **Duplicate `### Fixed` heading in CHANGELOG** - Merged two separate `### Fixed` sections under `[Unreleased]` into one.
+
+- **`docs/report.md` link text mismatch** - Fixed link text `docs/plans/report-generation.md` to match href `plans/report-generation.md`.
+
+- **Appraisal `quality_thresholds` parameter ignored** - `run_appraisal_with_correction()` accepted a `quality_thresholds` parameter but hardcoded `APPRAISAL_THRESHOLDS` in the loop config. Custom thresholds now correctly propagate with dict-to-QualityThresholds conversion.
+
+- **Test patch targets after iterative loop refactoring** - Fixed 35 failing tests caused by patch targets pointing to old `orchestrator` module instead of refactored `steps.*` modules. Also fixed test assertions for new initial retry behavior on schema validation failure.
+
+- **Validation file overwrite in iterative loop** - `run_validation_step()` hardcoded `iteration_number=0` in its `save_json` call, overwriting `validation0.json` every time the iterative loop re-validated. Added `save_to_disk` parameter (default `True`); the iterative loop passes `save_to_disk=False` so only `save_iteration_fn` writes numbered files. Standalone calls from the orchestrator are unaffected.
+
+- **Double validation after correction** - `correct_fn` discarded the post-correction validation from `run_correction_step()`, then `loop_runner.py` called `validate_fn()` again — wasting one full LLM validation call per correction cycle. `correct_fn` now returns `(corrected_extraction, validation)` tuple, and the loop runner reuses the returned validation instead of re-validating. Appraisal and report loops (which return plain `dict`) are unaffected via `isinstance(tuple)` check.
+
+- **Correction retry count carrying over between iterations** - `correction_retry_count` was not reset after a successful correction, causing the retry budget from a previous iteration's schema failures to reduce retries available in subsequent iterations. Now resets to 0 after each successful correction.
+
+- **Pipeline crash when validation fails and downstream steps run** - When `validation_correction` failed (e.g., schema compliance < 50%), appraisal was correctly skipped but `report_generation` and `podcast_generation` still attempted to run, crashing with `ValueError: Appraisal step result not found`. Added skip-propagation: both steps now check if appraisal results are available before running.
+
+- **Duplicate dead code in `run_single_step()`** - Removed duplicate `elif STEP_REPORT_GENERATION` block (unreachable dead code) in the dependency resolution chain.
+
+- **Off-by-One Bug in Retry Logic** - Fixed retry count being one less than configured
+  - Changed `>=` to `>` in retry limit checks for both initial and correction retries
+  - With `max_initial_retries=2`, now correctly allows 2 retries (3 total attempts)
+  - With `max_correction_retries=2`, now correctly allows 2 retries per correction step
+
+- **Correction Retry Counter Scope Bug** - Fixed retry count accumulating across iterations
+  - `correction_retry_count` was persisting across loop iterations, causing premature failures
+  - Now resets to 0 at the start of each correction step
+  - Each iteration gets its full retry budget independently
+
+- **Inconsistent save_failed_fn Behavior** - Fixed failed results not being saved consistently
+  - `save_failed_fn` was only called when `iteration_count == 0`
+  - Now always saves failed results before returning, regardless of iteration history
+  - Improves debugging by ensuring failed corrections are always captured
+
+- **Field Path Check in _get_schema_quality()** - Made key existence check explicit
+  - Changed `if validation_summary:` (True for empty dict) to `if "validation_summary" in validation_result:`
+  - Prevents incorrect fallback to extraction structure when appraisal structure is present but empty
+
+- **Iterative Loop Hang on Schema Failure** - Fixed bug where correction failures caused infinite loops
+  - Added `max_correction_retries` config option (default: 2) to `IterativeLoopConfig`
+  - When correction produces invalid schema, loop now retries from last good iteration
+  - After max retries reached, returns best result from tracker instead of hanging
+  - Schema quality check now runs after every correction, not just initial validation
+
+- **Initial Result Schema Retry** - Added retry support for initial result schema failures
+  - Added `max_initial_retries` config option (default: 2) to `IterativeLoopConfig`
+  - Added `regenerate_initial_fn` callback to `IterativeLoopRunner` for regenerating failed initial results
+  - Integrated regenerate callback in `appraisal.py` for retrying failed appraisals
+  - When initial appraisal fails schema validation, it's regenerated up to max retries
+
+- **Display NoneType Crash** - Fixed crash when schema validation fails and best_result is None
+  - Changed `result.get("best_appraisal", {})` to `result.get("best_appraisal") or {}` pattern
+  - Applied same fix to `best_validation` in `execution_results.py`
+  - Prevents `TypeError: argument of type 'NoneType' is not iterable` on schema failures
+
+- **Schema Quality Field Path Mismatch** - Fixed `_get_schema_quality()` looking at wrong field
+  - Was looking for non-existent `schema_validation.quality_score` (always returned 0.0)
+  - Now correctly reads `validation_summary.schema_compliance_score` for appraisal validation
+  - Also supports `verification_summary.schema_compliance_score` for extraction validation
+  - Root cause of false schema failures (e.g., 95% compliance reported as 0%)
+
+- **Validation Runner Schema Compliance Key Mismatch** - Fixed `validation_runner.py` setting wrong key
+  - Was setting `schema_compliance` but `loop_runner.py` reads `schema_compliance_score`
+  - Caused schema quality to always be 0.0 in retry logic, even when actual score was higher (e.g., 37.1%)
+  - Now correctly sets `schema_compliance_score` in both LLM and schema-only validation paths
+
+- **Evidence Synthesis Extraction Prompt Improvements** - Updated prompt to match schema requirements
+  - Fixed `sensitivity_analyses`: changed typo `analysis_change` to `analysis_type`, added REQUIRED labels and enum values
+  - Fixed `network_meta`: added missing required fields (`treatments`, `reference_treatment`, `model`, `pooled_effects`)
+  - Added guidance to use `narrative` type when `pooled_effects` data not available (prevents empty network_meta)
+  - Added validation checklist item 14 for network_meta pooled_effects requirement
+  - Improves LLM schema compliance for evidence synthesis extractions
+
+- **Report generation step dependency validation** - Added missing validation that report generation requires appraisal step. Previously, running `steps_to_run=["classification","extraction","report_generation"]` would cause KeyError when accessing appraisal results.
+
+- **Schema quality default to 0.0 (fail-safe)** - Changed `_get_schema_quality()` default from 1.0 to 0.0 in `IterativeLoopRunner`. Missing quality score now triggers correction rather than incorrectly passing validation.
+
+- **Tests for _remove_null_values()** - Added comprehensive test suite (15 tests) covering edge cases: nested structures, lists of dicts, preserving False/0/empty strings, deeply nested nulls.
+
+- **Null value handling documentation** - Added "Null value handling" section to ARCHITECTURE.md explaining why `_remove_null_values()` exists and its behavior.
+
+- **Streamlit: Fix iterative validation loop restart** - Added execution lock to prevent Streamlit page reruns from restarting pipeline steps mid-execution. Long-running LLM calls in the validation/correction loop would restart at "Iteration 0" when the page rerendered. Now shows "⏳ Step is currently executing. Please wait..." instead of restarting.
+
+- **Schema: Add source field to PairwiseMetaAnalysis** - Fixed validation error where LLM-generated `source` field in `pairwise_meta` was rejected. Added `source: SourceRef` property to `PairwiseMetaAnalysis` schema definition for consistency with `umbrella_summary`.
+
+- **Null value removal in pipeline preprocessing** - Added `_remove_null_values()` function to strip null values from LLM output before schema validation. LLMs sometimes emit `"field": null` for absent optional fields despite prompt instructions to omit them, causing schema validation failures.
+
+- **Add header to Podcast Generation step** - Added `═══ PODCAST GENERATION ═══` header to terminal output for consistency with other pipeline steps.
+
+- **CLI Summary Table: Add Podcast Results** - Display podcast word count, duration, and validation status in final CLI summary after full pipeline run
+
+- **CRITICAL: CLI Import Fix + Documentation Alignment** - External audit fixes
+  - **CLI import broken**: Fixed `ImportError` - changed `run_four_step_pipeline` to `run_full_pipeline` (CLI was non-functional)
+  - **Full-run table updated**: Added "6. Podcast generatie" to pipeline steps table (was missing)
+  - **Schema validation added**: Podcast output now validated against `podcast.schema.json` (Phase 2 spec compliance)
+  - **>1500 words = hard fail**: Transcript exceeding 1500 words now triggers critical failure (was incorrectly a warning)
+  - **Documentation sync**: All "five-step" references updated to "six-step" (`run_pipeline.py`, `ARCHITECTURE.md`, `src/pipeline/__init__.py`)
+  - **ARCHITECTURE.md flow**: Added `run_podcast_generation()` to pipeline flow diagram
+
+- **Podcast Generation - Spec Compliance & UI Enhancement** - External review fixes
+  - **Always save files per spec**: `podcast.json` and `podcast_validation.json` now saved even on validation failure (changed from raising `ValueError` to returning `status: "failed"`)
+  - **Duration cap aligned with schema**: Changed from 15 to 10 minutes maximum
+  - **Copy transcript button**: Added text area in Streamlit UI for easy copying to TTS tools
+  - **Updated tests**: Reflect new "return status" behavior instead of exception raising
+
+- **CLI: Add podcast_generation result display** - Show word count, duration, validation status, TTS readiness, and issues in CLI output (follows pattern of other steps)
+
+- **Podcast Generation - Validation Round 2: Failed Status, Metadata Calc, Max Numbers** - Additional validation fixes based on external review
+  - **Validation failure behavior**: Transcript < 800 words returns `status: "failed"` with files saved
+  - **Hard fail**: Transcript > 1500 words now triggers critical failure (aligns with schema maxLength)
+  - **Metadata recalculation**:
+    - `word_count` and `estimated_duration_minutes` now calculated from actual transcript
+    - Duration estimate: ~150 words per minute (spoken pace)
+  - **Max 3 numerical statements check**:
+    - Warns when transcript contains >3 significant numbers (style guideline)
+  - **Validation result structure**:
+    - Added `critical_issues` field to distinguish hard failures from warnings
+    - `ready_for_tts` now false when status is "failed"
+  - **Test Updates**:
+    - Updated all tests to use ≥800 word transcripts
+    - Added `test_validation_raises_on_short_transcript` (ValueError expected)
+    - Added `test_validation_warns_on_too_many_numbers`
+    - Added `test_metadata_recalculated_from_transcript`
+
+- **Podcast Generation - Complete Validation & Cosmetic Fixes** - Audit-driven fixes for Phase 2 and Phase 3 compliance
+  - **Phase 2 Validation Expansion** (72% → 100% spec compliance):
+    - Added key outcomes presence check (verifies primary outcome mentioned in transcript)
+    - Added numeric accuracy spot check (verifies sample size appears in transcript)
+    - Added GRADE certainty language alignment (warns on high-certainty words with low GRADE evidence)
+    - Added "insufficiently reported" detection (warns when missing data not acknowledged)
+  - **Phase 3 Cosmetic Fixes** (94% → 100% spec compliance):
+    - Language field now shows full name ("English") instead of code ("EN")
+    - Audience field now capitalizes first letter ("Practising clinicians")
+  - **Test Updates**:
+    - Added 3 new validation tests: `test_validation_detects_missing_primary_outcome`, `test_validation_detects_grade_language_mismatch`, `test_validation_warns_missing_insufficiently_reported`
+    - Updated renderer test assertions for new formatting
+    - Fixed `test_execution_screen.py` to expect 6 pipeline steps (including podcast_generation)
+  - **Documentation**: Added "podcast" to schemas_loader.py docstring
+
+- **Appraisal Runs Despite Failed Schema Validation:** Fixed bug where appraisal step would run with unvalidated extraction data when schema validation failed (< 50% quality). The fallback logic in `run_single_step` now checks for `failed_*` status before proceeding, and raises `ValueError` to prevent appraisal with invalid data. Additionally, the skip-check in `run_four_step_pipeline` now catches all `failed_*` statuses instead of only `failed_schema_validation`.
+
+- **CLI Syntax Error in run_pipeline.py:** Fixed critical syntax errors (indentation issues and orphaned code after `if __name__ == "__main__"`) that caused `make lint` to fail with 12 invalid-syntax errors
+
+- **Appraisal File Loading Bug:** Report generation now correctly loads `appraisal-best.json` instead of looking for non-existent `appraisal.json`
+
+- **Report Generation Feature - Phase 4: LaTeX Renderer Improvements** (#report-generation-phase4) - Enhanced LaTeX renderer with expanded test coverage and new features
+  - **Test Coverage Expansion:** Added 24 new unit tests (from 3 to 27 total) covering:
+    - All text block styles (paragraph, bullets, numbered)
+    - All 4 callout variants (warning, note, implication, clinical_pearl)
+    - Table alignments (l, c, r, S) and render_hints
+    - Figure block error handling (Phase 5 scope)
+    - Subsection rendering and nesting
+    - LaTeX special character escaping
+  - **Metadata Injection:** Report title, authors, and publication date now injected from `report.metadata` into LaTeX output
+  - **Label Generation:** Tables now generate `\label{tbl_xxx}` commands for cross-referencing (when label field present)
+  - **Template Updates:**
+    - Added metadata placeholders (`{{TITLE}}`, `{{AUTHORS}}`, `{{DATE}}`) to `main.tex`
+    - Created `figures.tex` placeholder for Phase 5 figure macros
+  - **Quality Assurance:** All 27 LaTeX renderer tests pass
+
+- **Report Generation Feature - Phase 3: Critical Integration & Test Coverage Fixes** (#report-generation-phase3-fixes) - Fixed 3 critical issues that made Phase 3 implementation non-functional
+  - **Issue #1 - Dead Code (Pipeline Dispatch)**: Modified pipeline dispatch (orchestrator.py:4455) to conditionally call `run_report_with_correction()` when `enable_iterative_correction=True`, making Phase 3 loop actually execute. Previously, dispatch always called Phase 2 single-pass `run_report_generation()`, making all Phase 3 code dead code.
+  - **Issue #2 - Missing Dependency Gating**: Added ~70 lines of upstream quality validation to `run_report_with_correction()` start:
+    - Block if extraction quality < 0.70
+    - Warn if extraction quality < 0.90
+    - Block if appraisal missing Risk of Bias data
+    - Warn if appraisal quality < 0.70
+    - Matches feature spec requirements (lines 1625-1636)
+  - **Issue #3 - Zero Test Coverage**: Created comprehensive test suite for Phase 3:
+    - `tests/unit/test_report_quality.py`: 17 tests (~270 lines) for `_extract_report_metrics()`, `is_report_quality_sufficient()`, and `_select_best_report_iteration()`
+    - `tests/integration/test_report_full_loop.py`: 8 integration tests (~700 lines) covering full iterative loop, early stopping, max iterations, degradation detection, dependency gating, and file persistence
+    - All 25 new tests pass, bringing total test count to 152 passed
+  - **Quality Assurance:** Code formatted with black, linted with ruff, all existing + new tests pass
+  - **Status:** Phase 3 now fully functional with proper pipeline integration, safety checks, and automated test coverage
+
+- **Report Generation Feature - Phase 2: Critical Bugfixes** (#report-generation-phase2-bugfix) - Fixed 4 blocking issues that prevented Phase 2 from running
+  - **Issue #1 - LLM Method Call**: Changed `llm.generate_structured_output()` (non-existent) to `llm.generate_json_with_schema()` (correct method)
+  - **Issue #2 - Schema Validation**: Replaced `validate_schema_compatibility()` (wrong signature) with `validate_with_schema()` from validation module
+  - **Issue #3 - Missing Prompt Inputs**: Added required LANGUAGE, GENERATION_TIMESTAMP, and PIPELINE_VERSION to prompt context (prompt contract compliance)
+  - **Issue #4 - Missing Test Coverage**: Added 3 integration tests with mocked LLM to verify run_report_generation() actually works
+  - All tests pass (130 passed), code formatted and linted
+
+- **Report Generation Feature - Phase 2: Prompt Context & Language Routing** (#report-generation-phase2) - Ensured report orchestration supplies complete inputs and configurable language
+  - Added dynamic pipeline version detection (using package metadata or `pyproject.toml`)
+  - Included serialized `report.schema.json` in LLM prompt context to match template requirements
+  - Propagated `report_language` option through CLI, Streamlit settings, and orchestrator so users can select Dutch or English output
+  - Updated UI/CLI defaults, file-management utilities, and unit tests to cover the new behaviour
 
 - **Error Handling** - Replaced bare exception handlers in `orchestrator.py` with logged warnings when metadata saving fails
   - Extraction error handler (`orchestrator.py:870`) now logs failure to save error metadata
@@ -941,14 +917,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Solution: Implemented recursive definition collection using a worklist algorithm
   - Result: All 5 schemas now pass validation with 0 unresolved $refs
   - **Tests added**: 12 unit tests + 5 integration tests in `tests/unit/test_json_bundler.py` and `tests/integration/test_schema_bundling.py`
-
-### Removed
-
-- **Duplicate test files** - Removed stray duplicate unit test files (`tests/unit/* 2.py`) so pytest does not execute the same suite twice.
-- **test.py** - Removed temporary exploratory test file from project root
-- **SETUP_COMPLETE.md** - Removed redundant setup announcement file
-  - Content already covered in DEVELOPMENT.md, CONTRIBUTING.md, and README.md
-  - Was a one-time setup summary, not ongoing documentation
 
 ---
 
