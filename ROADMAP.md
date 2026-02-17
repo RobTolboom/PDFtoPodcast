@@ -2,11 +2,11 @@
 
 Strategic development plan for PDFtoPodcast. *Status: planning* (March 2025)
 
-## Current version (1.0.0)
-- Initial public release: classification -> extraction -> validation/correction pipeline
+## Current version (0.1.0)
+- Initial release: 6-step pipeline (Classification → Extraction → Validation/Correction → Appraisal → Report → Podcast)
 - Streamlit UI and CLI parity
-- Support for six publication types via schema-driven prompts
-- Dual validation with best-iteration selection and tmp/ output audit trail
+- Support for five publication types via schema-driven prompts
+- Iterative validation-correction loop with quality thresholds and best-iteration selection
 
 ## Current focus (Q2 2025)
 | Initiative | Goal | Notes |
@@ -42,16 +42,15 @@ Community feedback influences priority. See guidance below to propose new items.
 | Dependencies | Whether the item unlocks or blocks other roadmap goals. |
 
 ## Release cadence (target)
-- Patch releases (1.0.x): bug fixes and documentation updates as needed.
-- Minor releases (1.x.0): ship when a major focus item reaches MVP (e.g., appraisal report).
+- Patch releases (0.1.x): bug fixes and documentation updates as needed.
+- Minor releases (0.x.0): ship when a major focus item reaches MVP.
 - Major releases (x.0.0): reserved for substantial platform changes or breakpoints.
 
 Upcoming planned milestones (tentative):
-- v1.1 - appraisal summary enhancements
-- v1.2 - full written report exports
-- v1.3 - podcast script/TTS workflow
+- v0.2 - batch processing, result caching
+- v0.3 - additional LLM providers, API server
 
 ## Past milestones
-- January 2025 - v1.0.0: launch of core extraction pipeline, validation loop, Streamlit UI, and multi-provider support.
+- February 2026 - v0.1.0: initial release with 6-step pipeline, critical appraisal, report generation, podcast generation, Streamlit UI, and CLI.
 
 This roadmap is a living document and will be revised as feedback and priorities evolve. Submit ideas via GitHub Issues or Discussions.

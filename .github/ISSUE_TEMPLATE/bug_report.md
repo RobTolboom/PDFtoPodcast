@@ -37,7 +37,7 @@ Error message here
 
 - **OS:** <!-- e.g., macOS 13, Ubuntu 22.04, Windows 11 -->
 - **Python Version:** <!-- e.g., 3.10.5 -->
-- **PDFtoPodcast Version:** <!-- e.g., 1.0.0 -->
+- **PDFtoPodcast Version:** <!-- e.g., 0.1.0 -->
 - **LLM Provider:** <!-- OpenAI or Claude -->
 - **Model:** <!-- e.g., GPT-5, Claude Opus 4.1 -->
 

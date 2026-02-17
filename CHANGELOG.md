@@ -37,7 +37,9 @@ Initial release of PDFtoPodcast: an LLM-powered pipeline that extracts structure
 
 ### Fixed
 
-- Numerous fixes across iterative correction loop (retry logic, counter scoping, file overwrites, double validation, schema quality field paths), schema validation (bundler recursion, self-references, DOI patterns, null handling), CLI (import errors, syntax errors, summary display), and Streamlit UI (navigation state, execution locks, real-time feedback, auto-redirect)
+- Iterative correction loop: retry logic off-by-one, counter scoping across iterations, file overwrites during re-validation, double validation waste, schema quality field path mismatches, and loop hang on schema failure
+- Schema validation: bundler recursion and self-referencing definitions, DOI pattern rejection, null value handling, evidence synthesis field misalignment, and schema compliance key mismatch
+- CLI and Streamlit UI: import error (`run_four_step_pipeline` → `run_full_pipeline`), summary table showing 0% quality, navigation state persistence, execution lock for long-running LLM calls, real-time feedback visibility, and auto-redirect behavior
 
 ---
 
