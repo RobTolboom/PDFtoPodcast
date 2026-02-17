@@ -445,12 +445,6 @@ class IterativeLoopRunner:
                     last_good_validation = corrected_validation
                     correction_retry_count = 0
 
-                    # Save corrected iteration
-                    if self.save_iteration_fn:
-                        self.save_iteration_fn(
-                            iteration_num + 1, corrected_result, corrected_validation
-                        )
-
                     # Update for next iteration
                     current_result = corrected_result
                     current_validation = corrected_validation
@@ -464,15 +458,22 @@ class IterativeLoopRunner:
                     )
                     correction_retry_count = 0
 
-                    # Save the degraded iteration for history (still useful for trajectory)
-                    if self.save_iteration_fn:
-                        self.save_iteration_fn(
-                            iteration_num + 1, corrected_result, corrected_validation
-                        )
+                    # Track the degraded iteration in history (for trajectory diagnostics)
+                    self.tracker.add_iteration(
+                        result=corrected_result,
+                        validation=corrected_validation,
+                        metrics=corrected_metrics,
+                    )
 
                     # Revert to best-so-far for next correction attempt
                     current_result = last_good_result
                     current_validation = last_good_validation
+
+                # Save corrected iteration (whether accepted or degraded)
+                if self.save_iteration_fn:
+                    self.save_iteration_fn(
+                        iteration_num + 1, corrected_result, corrected_validation
+                    )
 
                 iteration_num += 1
 

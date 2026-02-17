@@ -228,35 +228,13 @@ class TestIterativeLoopRunner:
         assert result.iteration_count == 3
         assert result.best_result is not None
 
-    def test_early_stop_on_degradation(self):
-        """Test early stopping when quality degrades.
+    def test_max_iterations_when_all_corrections_degrade(self):
+        """Test that all-degrading corrections lead to max iterations, not early stop.
 
-        With best-so-far rollback, corrections that degrade quality are
-        reverted. Degradation detection now requires corrections that each
-        *exceed* the previous best but then decline. The sequence of
-        ACCEPTED corrections must show a declining trend.
-
-        Scenario (all corrections beat their best-so-far, so all are accepted):
-        - Iter 0: quality ~84% (initial, below threshold)
-        - Correction 0 -> iter 1: quality ~89.6% (improved, accepted = new peak)
-        - Correction 1 -> iter 2: quality ~91.4% (improved, accepted = new peak)
-        - Correction 2 -> iter 3: quality ~90.2% (below peak 91.4%, reverted)
-        - Iter 3 reuses iter 2 validation (90.2% < 91.4% -> reverted by rollback,
-          so we need corrections that are accepted to show degradation)
-
-        Actually, with rollback, degradations are reverted. To trigger early
-        stop, we need accepted corrections whose quality rises to a peak and
-        then accepted corrections that still beat the PREVIOUS best-so-far
-        but show a declining trend vs. the overall peak.
-
-        Wait -- with rollback, only corrections >= best-so-far are accepted.
-        So accepted quality is monotonically non-decreasing. Degradation
-        detection (all window scores < peak) can never trigger for accepted-only
-        iterations.
-
-        This means early stopping via degradation detection is now effectively
-        prevented by the best-so-far rollback mechanism. The loop will instead
-        reach max iterations. Update the test accordingly.
+        With best-so-far rollback, degraded corrections are reverted, so the
+        tracker only sees monotonically non-decreasing accepted quality. This
+        prevents degradation detection from triggering. The loop reaches
+        max_iterations instead.
         """
         config = IterativeLoopConfig(
             metric_type=MetricType.EXTRACTION,
@@ -799,6 +777,46 @@ class TestIterativeLoopRunner:
         second_call_args = correct_fn.call_args_list[1]
         assert second_call_args[0][0] == initial_result  # first positional arg = result
         assert second_call_args[0][1] == validation_iter0  # second positional arg = validation
+
+    def test_degraded_iteration_still_tracked_in_trajectory(self):
+        """Test that degraded iterations are still recorded in improvement_trajectory.
+
+        Even when the loop reverts to best-so-far, the degraded iteration
+        should appear in the trajectory for diagnostics.
+        """
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=5,
+            show_banner=False,
+        )
+
+        validation_iter0 = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.90
+        )
+        validation_degraded = self._create_validation_result(
+            completeness=0.60, accuracy=0.70, schema_compliance=0.80
+        )
+        validation_pass = self._create_validation_result(
+            completeness=0.95, accuracy=0.98, schema_compliance=0.97
+        )
+
+        validate_fn = MagicMock(
+            side_effect=[validation_iter0, validation_degraded, validation_pass]
+        )
+        correct_fn = MagicMock(side_effect=[{"data": "degraded"}, {"data": "final"}])
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "initial"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+        )
+        result = runner.run()
+
+        # Trajectory should show the dip: iter0, degraded, reverted best-so-far, final
+        assert len(result.improvement_trajectory) >= 3
+        # There should be a dip in the trajectory (degraded < iter0)
+        assert min(result.improvement_trajectory) < result.improvement_trajectory[0]
 
 
 class TestIterativeLoopRunnerAppraisal:
