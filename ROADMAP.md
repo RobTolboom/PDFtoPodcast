@@ -15,7 +15,7 @@ Strategic development plan for PDFtoPodcast. *Status: planning* (March 2025)
 | Full narrative report | Generate a structured written report combining metadata, extraction highlights, appraisal findings, and narrative summary. | Builds on new appraisal outputs; evaluate export formats (PDF/Markdown) and templating. |
 | Podcast episode | Produce an audio-friendly script (intro, study overview, key findings, implications) and optionally TTS. | Leverages narrative report; evaluate TTS integration options and UX (download vs. playback). |
 
-Milestones for these initiatives will be tracked in the repo (features/ directory) and CHANGELOG once delivered.
+Milestones for these initiatives will be tracked in the repo (docs/plans/ directory) and CHANGELOG once delivered.
 
 ## Backlog ideas (unordered)
 - Batch processing / queue support
@@ -31,7 +31,7 @@ Community feedback influences priority. See guidance below to propose new items.
 1. **GitHub Issues** - file feature requests with use cases and desired outcomes.
 2. **GitHub Discussions** - comment on roadmap threads, vote on priorities, share workflows.
 3. **Pull requests** - submit implementations or proof-of-concept prototypes; link to the relevant issue.
-4. **Feature planning notes** - for larger contributions, add a markdown plan under `features/` describing scope, tasks, and risks.
+4. **Feature planning notes** - for larger contributions, add a markdown plan under `docs/plans/` describing scope, tasks, and risks.
 
 ## Prioritisation criteria
 | Criterion | Description |

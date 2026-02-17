@@ -17,7 +17,7 @@ This pipeline extracts structured data from medical research PDFs with a focus o
 | **[Usage Guide](#usage)** | Web UI and CLI instructions |
 | **[Architecture](#architecture)** | Pipeline design and flow |
 | **[Contributing](CONTRIBUTING.md)** | Development guidelines |
-| **[API Reference](src/README.md)** | Module documentation |
+| **[API Reference](API.md)** | Public API reference |
 
 ---
 
@@ -209,22 +209,23 @@ This pipeline extracts structured data from medical research PDFs with a focus o
 
 **For detailed architecture and design decisions, see [ARCHITECTURE.md](ARCHITECTURE.md)**
 
-**For critical appraisal tools and methodology, see [features/appraisal.md](features/appraisal.md)**
+**For critical appraisal tools and methodology, see [docs/plans/appraisal.md](docs/plans/appraisal.md)**
 
-*Tip:* Moet je voor legacy-workflows slechts één appraisal-run zonder iteratieve correcties draaien? Gebruik dan
-`python run_pipeline.py paper.pdf --step appraisal --appraisal-single-pass` of schakel in de Streamlit settings de optie
-“Enable iterative appraisal correction” uit. Dit schrijft de klassieke `paper-appraisal.json` / `paper-appraisal_validation.json`
-bestanden weg naast de gebruikelijke `*-best.json` artefacten. Voor een complete handleiding zie [`docs/appraisal.md`](docs/appraisal.md).
+*Tip:* Need to run a single appraisal pass without iterative corrections for legacy workflows? Use
+`python run_pipeline.py paper.pdf --step appraisal --appraisal-single-pass` or disable
+"Enable iterative appraisal correction" in the Streamlit settings. This writes the classic
+`paper-appraisal.json` / `paper-appraisal_validation.json` files alongside the usual `*-best.json`
+artefacts. For a complete guide see [`docs/appraisal.md`](docs/appraisal.md).
 
 ### Running the appraisal step
 
 | Mode        | Command / Action                                                                                          |
 |-------------|-----------------------------------------------------------------------------------------------------------|
-| CLI (full)  | `python run_pipeline.py paper.pdf --llm openai` – voert alle stappen incl. appraisal uit                  |
+| CLI (full)  | `python run_pipeline.py paper.pdf --llm openai` – runs all steps including appraisal                       |
 | CLI (only)  | `python run_pipeline.py paper.pdf --step appraisal --appraisal-max-iter 5 --appraisal-logical-threshold 0.92` |
 | CLI legacy  | `python run_pipeline.py paper.pdf --step appraisal --appraisal-single-pass`                                |
-| Streamlit   | Settings → enable “Appraisal” step, configure thresholds/iterations, optioneel single-pass toggle          |
-| Retry only  | In de Execution UI op “Re-run appraisal” klikken – draait enkel de appraisal-stap opnieuw                  |
+| Streamlit   | Settings → enable "Appraisal" step, configure thresholds/iterations, optional single-pass toggle           |
+| Retry only  | Click "Re-run appraisal" in the Execution UI – reruns only the appraisal step                              |
 
 > The diagram shows provider hard limits (32 MB, 100 pages). By default the pipeline caps uploads at 10 MB
 > to match the Streamlit uploader and `MAX_PDF_SIZE_MB` setting—raise it in your `.env` only if your provider
@@ -256,8 +257,8 @@ source .venv/bin/activate  # Windows: .\.venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-Create a `.env` file in the project root (there is no committed template) and add your provider
-credentials using the sample below.
+Create a `.env` file in the project root (copy `.env.example` as a starting point) and add your
+provider credentials.
 
 Alternatively, run `make install` (or `make install-dev` for tooling) to reuse the Makefile targets.
 
@@ -271,8 +272,8 @@ OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-ant-...
 
 # Optional: Model selection
-OPENAI_MODEL=gpt-5           # Default: gpt-5 (vision support)
-ANTHROPIC_MODEL=claude-3-5-sonnet-20241022  # Default: Sonnet 4.5
+OPENAI_MODEL=gpt-5.1         # Default: gpt-5.1 (vision support)
+ANTHROPIC_MODEL=claude-sonnet-4-5-20250929  # Default: Sonnet 4.5
 
 # Optional: Token limits
 OPENAI_MAX_TOKENS=128000     # Default in config; lower if your account has tighter limits
@@ -337,7 +338,7 @@ streamlit run app.py
 For automation and batch processing, use the CLI:
 
 ```bash
-# Run full pipeline (all 3 steps)
+# Run full pipeline (all 6 steps)
 python run_pipeline.py path/to/paper.pdf
 
 # Run with Claude
@@ -381,15 +382,16 @@ python scripts/render_report_only.py tmp/<run>/report-best.json --output-dir tmp
 ```
 usage: run_pipeline.py [-h] [--max-pages MAX_PAGES] [--keep-tmp]
                        [--llm-provider {openai,claude}]
-                       [--step {classification,extraction,validation,correction,validation_correction,report_generation}]
+                       [--step {classification,extraction,validation,correction,validation_correction,appraisal,report_generation,podcast_generation}]
                        [--max-iterations MAX_ITERATIONS]
                        [--completeness-threshold FLOAT]
                        [--accuracy-threshold FLOAT]
                        [--schema-threshold FLOAT]
-                       [--report-language {nl,en}]
+                       [--report-language {en}]
                        [--report-renderer {latex,weasyprint}]
                        [--report-compile-pdf] [--no-report-compile-pdf]
                        [--enable-figures] [--disable-figures]
+                       [--quiet] [--verbose]
                        pdf
 
 positional arguments:
@@ -401,7 +403,7 @@ optional arguments:
   --keep-tmp            Keep intermediate files in tmp/
   --llm-provider {openai,claude}
                         Choose LLM provider (default: openai)
-  --step {classification,extraction,validation,correction,validation_correction,podcast_generation}
+  --step {classification,extraction,validation,correction,validation_correction,appraisal,report_generation,podcast_generation}
                         Run specific pipeline step (default: run all steps)
   --max-iterations MAX_ITERATIONS
                         Maximum correction attempts for validation_correction (default: 3)
@@ -411,8 +413,8 @@ optional arguments:
                         Minimum accuracy score 0.0-0.99 (default: 0.95)
   --schema-threshold FLOAT
                         Minimum schema compliance score 0.0-0.99 (default: 0.95)
-  --report-language {nl,en}
-                        Language for report generation (default: nl)
+  --report-language {en}
+                        Language for report generation (English only)
   --report-renderer {latex,weasyprint}
                         Renderer for report output (default: latex)
   --report-compile-pdf
@@ -421,16 +423,18 @@ optional arguments:
   --enable-figures
   --disable-figures
                         Toggle generation of report figures (traffic light, forest)
+  --quiet, -q           Minimal output (errors and final summary only)
+  --verbose, -v         Detailed output for debugging
 ```
 
 ### Programmatic Usage
 
 ```python
 from pathlib import Path
-from src.pipeline import run_four_step_pipeline
+from src.pipeline import run_full_pipeline
 
 # Run complete pipeline
-results = run_four_step_pipeline(
+results = run_full_pipeline(
     pdf_path=Path("paper.pdf"),
     max_pages=20,  # Optional: limit pages
     llm_provider="openai",  # or "claude"
@@ -457,7 +461,7 @@ The pipeline supports 6 publication type categories:
 | `evidence_synthesis` | Systematic reviews | Meta-analysis, Network meta-analysis, Systematic review |
 | `prediction_prognosis` | Prediction models | Risk prediction, Prognostic models, ML algorithms |
 | `editorials_opinion` | Opinion pieces | Editorial, Commentary, Letter to editor |
-| `overig` | Other | Case reports, Narrative reviews, Guidelines |
+| `other` | Other | Case reports, Narrative reviews, Guidelines |
 
 Each type has a specialized extraction schema optimized for its data structure.
 
@@ -543,12 +547,12 @@ Refer to [VALIDATION_STRATEGY.md](VALIDATION_STRATEGY.md) for scoring formulas, 
 
 | Provider | Input Cost | Output Cost | Total per Paper |
 |----------|------------|-------------|-----------------|
-| **OpenAI GPT-5** | $0.20 (40k tokens) | $0.60 (4k tokens) | **~$0.80** |
-| **Claude Opus 4.1** | $0.60 (40k tokens) | $2.40 (4k tokens) | **~$3.00** |
+| **OpenAI GPT-5.1** | $0.20 (40k tokens) | $0.60 (4k tokens) | **~$0.80** |
+| **Claude Sonnet 4.5** | $0.60 (40k tokens) | $2.40 (4k tokens) | **~$3.00** |
 
-**Full pipeline (4 steps):** ~$3-12 per paper depending on provider and corrections needed.
+**Full pipeline (6 steps):** ~$3-12 per paper depending on provider and corrections needed.
 
-> Pricing snapshot: October 2024 public rate cards. Recalculate with your provider’s latest pricing and negotiated discounts.
+> Pricing is illustrative. Recalculate with your provider's latest pricing and negotiated discounts.
 
 ---
 
@@ -615,13 +619,13 @@ git push
 ### OpenAI API Limits
 - **Provider limit:** 100 pages, 32 MB per PDF
 - **Pipeline default upload size:** 10 MB (adjust with `MAX_PDF_SIZE_MB`)
-- **Models:** gpt-5 (vision-capable model)
+- **Models:** gpt-5.1 (vision-capable model)
 - **Format:** Base64-encoded PDF
 
 ### Claude API Limits
 - **Provider limit:** 100 pages, 32 MB per PDF
 - **Pipeline default upload size:** 10 MB (adjust with `MAX_PDF_SIZE_MB`)
-- **Models:** Claude Opus 4.1, Sonnet 4.5, Haiku 3.5
+- **Models:** Claude Opus 4, Sonnet 4.5, Haiku 3.5
 - **Format:** Base64-encoded PDF with `application/pdf` media type
 
 ---
@@ -631,11 +635,13 @@ git push
 | Document | Purpose |
 |----------|---------|
 | **[README.md](README.md)** (this file) | Quick start and overview |
-| **[src/README.md](src/README.md)** | Module API reference |
+| **[API.md](API.md)** | Module API reference |
 | **[ARCHITECTURE.md](ARCHITECTURE.md)** | System design and decisions |
 | **[CONTRIBUTING.md](CONTRIBUTING.md)** | Development guidelines |
 | **[DEVELOPMENT.md](DEVELOPMENT.md)** | Development workflow |
 | **[VALIDATION_STRATEGY.md](VALIDATION_STRATEGY.md)** | Dual validation approach |
+| **[SECURITY.md](SECURITY.md)** | Security policy and reporting |
+| **[COMMERCIAL_LICENSE.md](COMMERCIAL_LICENSE.md)** | Commercial licensing terms |
 | **[prompts/README.md](prompts/README.md)** | Prompt engineering |
 | **[schemas/readme.md](schemas/readme.md)** | Schema design |
 | **[CHANGELOG.md](CHANGELOG.md)** | Version history |

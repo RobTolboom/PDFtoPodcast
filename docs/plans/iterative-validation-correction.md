@@ -3260,7 +3260,7 @@ Gemiddelde verwachting (80% scenario 1, 15% scenario 2, 5% scenario 3):
 - **Related Documents**:
   - `VALIDATION_STRATEGY.md` - Dual validation approach
   - `ARCHITECTURE.md` - System architecture
-  - `features/pipeline-execution-implementation.md` - Step-by-step execution feature
+  - `docs/plans/pipeline-execution-implementation.md` - Step-by-step execution feature
 
 - **Related PRs/Issues**:
   - PR #17: Step-by-step pipeline execution

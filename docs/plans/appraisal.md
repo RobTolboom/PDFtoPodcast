@@ -1042,15 +1042,15 @@ Alle manuele runs produceerden valide JSON, correcte tool routing en bemonsteren
 
 ---
 
-## Open Vragen & Afhankelijkheden
+## Open Questions & Dependencies
 
-Momenteel geen open vragen. Thresholds zijn vastgesteld, benodigde LLM-accounts zijn beschikbaar, UI-ontwerp volgt bestaande validatie/correctie-stijl en stakeholdercommunicatie valt binnen de bestaande change_management-afspraken.
+No open questions at this time. Thresholds have been established, required LLM accounts are available, UI design follows existing validation/correction style, and stakeholder communication falls within the existing change management agreements.
 
 ---
 
-## Volgende Stappen (na Feature Document Approval)
+## Next Steps (after Feature Document Approval)
 
-1. **Review Feature Document** met stakeholders
+1. **Review Feature Document** with stakeholders
 2. **Prioritize Phases** (suggested: 1 → 2 → 3 → 7, defer 4-6 for initial release)
 3. **Start Phase 1**: Implement core appraisal loop in orchestrator
 4. **Draft Prompts**: Write Appraisal-validation.txt and Appraisal-correction.txt
@@ -1070,7 +1070,7 @@ Momenteel geen open vragen. Thresholds zijn vastgesteld, benodigde LLM-accounts 
 - **GRADE**: https://www.gradeworkinggroup.org/ (Guyatt et al., 2008)
 
 ### Related Features
-- `features/iterative-validation-correction.md` - Template for this feature
+- `docs/plans/iterative-validation-correction.md` - Template for this feature
 - `ARCHITECTURE.md` - Pipeline component documentation
 - `schemas/appraisal.schema.json` - Appraisal output schema
 - `prompts/Appraisal-*.txt` - Study type-specific appraisal prompts

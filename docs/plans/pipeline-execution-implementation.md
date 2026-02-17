@@ -1932,12 +1932,12 @@ if name in defs:
 
 ---
 
-## 📚 Referenties
+## References
 
-### Interne Referenties
-- `features/code-documentation-improvement.md` - Documentatie standaard
-- `src/pipeline/orchestrator.py` - Bestaande pipeline logica
-- `src/streamlit_app/screens/settings.py` - Settings screen implementatie
+### Internal References
+- `docs/plans/code-documentation-improvement.md` - Documentation standard
+- `src/pipeline/orchestrator.py` - Existing pipeline logic
+- `src/streamlit_app/screens/settings.py` - Settings screen implementation
 - `CONTRIBUTING.md` - Development guidelines
 - `CLAUDE.md` - Development workflows
 
@@ -1947,6 +1947,6 @@ if name in defs:
 - [Progress & Status](https://docs.streamlit.io/library/api-reference/status)
 
 ### Design Patterns
-- Wrapper Pattern - Wrapping `run_four_step_pipeline()` met UI logic
-- Factory Pattern - `get_llm_provider()` voor provider instantiation
+- Wrapper Pattern - Wrapping `run_four_step_pipeline()` with UI logic
+- Factory Pattern - `get_llm_provider()` for provider instantiation
 - State Machine - Pipeline phases (Pending → Running → Success/Failed)

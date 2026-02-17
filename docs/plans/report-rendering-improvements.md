@@ -4,7 +4,7 @@
 **Branch**: `feature/report-rendering-v1.1` (not yet created)
 **Created**: 2025-11-23
 **Author**: Rob Tolboom (with Claude Code)
-**Depends on**: `features/report-generation.md` (v1.0 orchestration complete)
+**Depends on**: `docs/plans/report-generation.md` (v1.0 orchestration complete)
 
 ---
 
@@ -378,7 +378,7 @@ def get_section_title(section_id: str, language: str) -> str:
 
 ## Related Documentation
 
-- **v1.0 Feature**: [`features/report-generation.md`](report-generation.md)
+- **v1.0 Feature**: [`docs/plans/report-generation.md`](report-generation.md)
 - **Architecture**: [`ARCHITECTURE.md`](../ARCHITECTURE.md)
 - **API Reference**: [`API.md`](../API.md)
 - **Report Guide**: [`docs/report.md`](../docs/report.md)

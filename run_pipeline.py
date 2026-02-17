@@ -57,6 +57,7 @@ Configuration:
 """
 
 import argparse
+import time
 from pathlib import Path
 
 from rich import box
@@ -72,7 +73,7 @@ try:
     HAVE_LLM_SUPPORT = True
 except ImportError as e:
     console = Console()
-    console.print(f"[yellow]⚠️ LLM modules niet beschikbaar: {e}[/yellow]")
+    console.print(f"[yellow]⚠️ LLM modules not available: {e}[/yellow]")
     HAVE_LLM_SUPPORT = False
 
 console = Console()
@@ -102,18 +103,18 @@ def main():
         action="store_true",
         help="Skip iterative correction for appraisal (single-pass mode).",
     )
-    parser.add_argument("pdf", help="Pad naar de PDF")
+    parser.add_argument("pdf", help="Path to the PDF file")
     parser.add_argument(
-        "--max-pages", type=int, default=None, help="Beperk aantal pagina's (voor snelle tests)"
+        "--max-pages", type=int, default=None, help="Limit number of pages (for quick tests)"
     )
     parser.add_argument(
-        "--keep-tmp", action="store_true", help="Bewaar tussenbestanden in tmp/ directory"
+        "--keep-tmp", action="store_true", help="Keep intermediate files in tmp/ directory"
     )
     parser.add_argument(
         "--llm-provider",
         choices=["openai", "claude"],
         default="openai",
-        help="Kies LLM provider (standaard: openai)",
+        help="Choose LLM provider (default: openai)",
     )
     parser.add_argument(
         "--step",
@@ -232,7 +233,7 @@ def main():
 
     pdf_path = Path(args.pdf)
     if not pdf_path.exists():
-        console.print(f"[red]❌ PDF niet gevonden:[/red] {pdf_path}")
+        console.print(f"[red]❌ PDF not found:[/red] {pdf_path}")
         raise SystemExit(1)
 
     console.print(
@@ -242,11 +243,12 @@ def main():
         )
     )
 
-    console.print(f"[green]✅ PDF gevonden:[/green] {pdf_path}")
-    console.print("[blue]📁 Tussenbestanden worden opgeslagen in: tmp/ (DOI-gebaseerd)[/blue]")
+    console.print(f"[green]✅ PDF found:[/green] {pdf_path}")
+    console.print("[blue]📁 Intermediate files saved to: tmp/ (DOI-based naming)[/blue]")
     console.print(f"[blue]🤖 LLM Provider: {args.llm_provider.upper()}[/blue]")
 
     # Check if running single step or full pipeline
+    pipeline_start_time = None
     if args.step:
         # Single step execution
         console.print(f"[yellow]🎯 Running single step:[/yellow] {args.step}")
@@ -425,16 +427,16 @@ def main():
     else:
         # Full pipeline execution
         # Updated pipeline steps for 6-component system
-        table = Table(title="Pipeline stappen (6-step systeem)", box=box.SIMPLE_HEAVY)
-        table.add_column("Stap", style="cyan", no_wrap=True)
+        table = Table(title="Pipeline Steps (6-step system)", box=box.SIMPLE_HEAVY)
+        table.add_column("Step", style="cyan", no_wrap=True)
         table.add_column("Status", style="green")
         steps = [
-            ("1. Classificatie", "⏳"),
-            ("2. Data extractie", ""),
-            ("3. Validatie & Correctie", ""),
+            ("1. Classification", "⏳"),
+            ("2. Data Extraction", ""),
+            ("3. Validation & Correction", ""),
             ("4. Critical Appraisal", ""),
-            ("5. Rapportgeneratie", "⏭️" if args.output == "podcast" else ""),
-            ("6. Podcast generatie", "⏭️" if args.output == "report" else ""),
+            ("5. Report Generation", "⏭️" if args.output == "podcast" else ""),
+            ("6. Podcast Generation", "⏭️" if args.output == "report" else ""),
         ]
         for s, st in steps:
             table.add_row(s, st)
@@ -443,51 +445,61 @@ def main():
             console.print(f"[dim]Output mode: {args.output} (⏭️ = skipped)[/dim]")
 
         # Run the six-step pipeline with selected LLM provider
-        with console.status(
-            "[bold cyan]Bezig met zes-staps extractie pipeline...[/bold cyan]", spinner="dots"
-        ):
-            results = run_full_pipeline(
-                pdf_path=pdf_path,
-                max_pages=args.max_pages,
-                llm_provider=args.llm_provider,
-                breakpoint_after_step=BREAKPOINT_AFTER_STEP,
-                have_llm_support=HAVE_LLM_SUPPORT,
-                report_language=args.report_language,
-                report_renderer=args.report_renderer,
-                report_compile_pdf=args.report_compile_pdf,
-                report_enable_figures=args.report_enable_figures,
-                skip_report=(args.output == "podcast"),
-                skip_podcast=(args.output == "report"),
-            )
+        console.print("\n[bold cyan]Running six-step extraction pipeline...[/bold cyan]\n")
+        pipeline_start_time = time.time()
+        results = run_full_pipeline(
+            pdf_path=pdf_path,
+            max_pages=args.max_pages,
+            llm_provider=args.llm_provider,
+            breakpoint_after_step=BREAKPOINT_AFTER_STEP,
+            have_llm_support=HAVE_LLM_SUPPORT,
+            report_language=args.report_language,
+            report_renderer=args.report_renderer,
+            report_compile_pdf=args.report_compile_pdf,
+            report_enable_figures=args.report_enable_figures,
+            skip_report=(args.output == "podcast"),
+            skip_podcast=(args.output == "report"),
+        )
+
+    # Calculate total pipeline time if available (only set in full pipeline mode)
+    total_elapsed = None
+    if pipeline_start_time is not None:
+        total_elapsed = time.time() - pipeline_start_time
 
     # Show detailed summary
-    console.print("\n[bold green]✅ Pipeline voltooid[/bold green]")
+    console.print("\n[bold green]Pipeline completed[/bold green]")
 
-    summary = Table(title="Samenvatting", box=box.SIMPLE)
-    summary.add_column("Onderdeel", style="cyan")
-    summary.add_column("Resultaat")
+    summary = Table(title="Summary", box=box.ROUNDED, show_lines=True)
+    summary.add_column("", style="cyan", no_wrap=True)
+    summary.add_column("Result")
 
-    # Classification summary
+    # --- Classification ---
     classification = results.get("classification", {})
     publication_type = classification.get("publication_type", "—")
     confidence = classification.get("classification_confidence", 0)
     doi = classification.get("metadata", {}).get("doi", "—")
+    cls_time = classification.get("_pipeline_metadata", {}).get("duration_seconds")
 
+    cls_detail = f"{publication_type} (confidence: {confidence:.0%})"
+    if cls_time:
+        cls_detail += f"  [{cls_time:.0f}s]"
+    summary.add_row("Classification", cls_detail)
     summary.add_row("DOI", doi)
-    summary.add_row("Publicatietype", publication_type)
-    summary.add_row("Classificatie betrouwbaarheid", f"{confidence:.2f}")
 
-    # Extraction summary
-    if "extraction" in results:
-        summary.add_row("Data extractie", "✅ Voltooid")
+    # --- Extraction ---
+    extraction = results.get("extraction", {})
+    if extraction:
+        ext_time = extraction.get("_pipeline_metadata", {}).get("duration_seconds")
+        ext_detail = "Completed"
+        if ext_time:
+            ext_detail += f"  [{ext_time:.0f}s]"
+        summary.add_row("Extraction", ext_detail)
 
-    # Validation & correction summary (iterative step)
+    # --- Validation & Correction ---
     validation_correction = results.get("validation_correction")
     if validation_correction:
         final_status = validation_correction.get("final_status", "—")
         iteration_count = validation_correction.get("iteration_count", 0)
-        summary.add_row("Val & Corr status", final_status)
-        summary.add_row("Val & Corr iteraties", str(iteration_count))
 
         best_iteration = validation_correction.get("best_iteration")
         iterations = validation_correction.get("iterations", [])
@@ -495,66 +507,72 @@ def main():
         if iterations and best_iteration is not None and best_iteration < len(iterations):
             best_metrics = iterations[best_iteration].get("metrics", {})
 
+        quality_parts = []
         if best_metrics:
-            quality = best_metrics.get("overall_quality")
+            quality = best_metrics.get("quality_score")
             completeness = best_metrics.get("completeness_score")
             accuracy = best_metrics.get("accuracy_score")
             schema = best_metrics.get("schema_compliance_score")
-            summary.add_row("Val & Corr kwaliteit", f"{(quality or 0):.0%}")
-            summary.add_row("Compleetheid score", f"{(completeness or 0):.0%}")
-            summary.add_row("Nauwkeurigheid score", f"{(accuracy or 0):.0%}")
-            summary.add_row("Schema score", f"{(schema or 0):.0%}")
+            quality_parts = [
+                f"quality: {(quality or 0):.0%}",
+                f"schema: {(schema or 0):.0%}",
+                f"complete: {(completeness or 0):.0%}",
+                f"accuracy: {(accuracy or 0):.0%}",
+            ]
+
+        vc_detail = f"{final_status} ({iteration_count} iterations)"
+        summary.add_row("Validation & Correction", vc_detail)
+        if quality_parts:
+            summary.add_row("  Scores", " | ".join(quality_parts))
     else:
         # Legacy single validation fallback
         validation = results.get("validation", {})
-        validation_status = validation.get("verification_summary", {}).get("overall_status", "—")
-        completeness = validation.get("verification_summary", {}).get("completeness_score", 0)
-        accuracy = validation.get("verification_summary", {}).get("accuracy_score", 0)
+        if validation:
+            validation_status = validation.get("verification_summary", {}).get(
+                "overall_status", "—"
+            )
+            summary.add_row("Validation", validation_status)
 
-        summary.add_row("Validatie status", validation_status)
-        summary.add_row("Compleetheid score", f"{completeness:.2f}")
-        summary.add_row("Nauwkeurigheid score", f"{accuracy:.2f}")
-
-    # Appraisal summary
+    # --- Appraisal ---
     appraisal = results.get("appraisal")
     if appraisal:
         appraisal_status = appraisal.get("final_status", "—")
         iteration_count = appraisal.get("iteration_count", 0)
-        summary.add_row("Appraisal status", appraisal_status)
-        summary.add_row("Appraisal iteraties", str(iteration_count))
 
         best_appraisal = appraisal.get("best_appraisal", {})
         rob = best_appraisal.get("risk_of_bias", {})
         grade_outcomes = best_appraisal.get("grade_per_outcome", [])
 
+        appr_detail = f"{appraisal_status} ({iteration_count} iterations)"
+        summary.add_row("Appraisal", appr_detail)
+
         overall_rob = rob.get("overall")
         if overall_rob:
-            summary.add_row("Risk of Bias (overall)", overall_rob)
+            rob_detail = overall_rob
+            if grade_outcomes:
+                rob_detail += f" | {len(grade_outcomes)} GRADE outcomes"
+            summary.add_row("  Risk of Bias", rob_detail)
 
-        if grade_outcomes:
-            summary.add_row("GRADE outcomes", str(len(grade_outcomes)))
-
-    # Report generation summary
+    # --- Report Generation ---
     report = results.get("report_generation")
     if report:
         report_status = report.get("final_status", "—")
         report_iterations = report.get("iteration_count", 0)
-        summary.add_row("Report status", report_status)
-        summary.add_row("Report iteraties", str(report_iterations))
 
-        # Quality score from best validation
         best_val = report.get("best_validation", {})
         quality_score = best_val.get("validation_summary", {}).get("quality_score")
-        if quality_score is not None:
-            summary.add_row("Report kwaliteit", f"{quality_score:.0%}")
 
-        # Rendered paths
+        report_detail = f"{report_status} ({report_iterations} iterations)"
+        if quality_score is not None:
+            report_detail += f" | quality: {quality_score:.0%}"
+        summary.add_row("Report", report_detail)
+
         render_paths = report.get("rendered_paths", {})
         if render_paths:
             for artifact_type, path in render_paths.items():
-                summary.add_row(f"  → {artifact_type}", str(path))
+                summary.add_row(f"  {artifact_type}", str(path))
 
-    # Podcast generation summary
+    # --- Podcast Generation ---
     podcast = results.get("podcast_generation")
     if podcast:
         podcast_data = podcast.get("podcast", {})
@@ -562,18 +580,21 @@ def main():
         word_count = podcast_data.get("metadata", {}).get("word_count", 0)
         duration = podcast_data.get("metadata", {}).get("estimated_duration_minutes", 0)
         status = validation.get("status", "unknown")
-        summary.add_row("Podcast woorden", str(word_count))
-        summary.add_row("Podcast duur", f"~{duration} min")
-        summary.add_row("Podcast validatie", status)
+        podcast_detail = f"{status} | {word_count} words | ~{duration} min"
+        summary.add_row("Podcast", podcast_detail)
+
+    # --- Total time ---
+    if total_elapsed:
+        minutes = int(total_elapsed // 60)
+        seconds = int(total_elapsed % 60)
+        summary.add_row("Total time", f"{minutes}m {seconds}s")
 
     console.print(summary)
 
     if args.keep_tmp:
-        console.print("[blue]📁 Tussenbestanden behouden in: tmp/[/blue]")
-        console.print("[dim]Gebruik de DOI-gebaseerde bestandsnamen voor verdere verwerking[/dim]")
+        console.print("[dim]Intermediate files kept in: tmp/[/dim]")
     else:
-        console.print("[dim]💡 Gebruik --keep-tmp om tussenbestanden te behouden[/dim]")
-        console.print("[dim]Tussenbestanden worden automatisch overschreven bij volgende run[/dim]")
+        console.print("[dim]Use --keep-tmp to keep intermediate files[/dim]")
 
 
 if __name__ == "__main__":

@@ -98,5 +98,5 @@ brew install --cask mactex
 ## Related Documentation
 
 - [Report Generation Guide](../../docs/report.md)
-- [Feature Specification](../../features/report-generation.md)
+- [Feature Specification](../../docs/plans/report-generation.md)
 - [API Reference](../../API.md)

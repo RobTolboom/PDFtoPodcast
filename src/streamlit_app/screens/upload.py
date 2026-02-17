@@ -227,26 +227,22 @@ def show_upload_screen():
                         col1, col2 = st.columns(2)
 
                         with col1:
-                            st.info(
-                                f"""
+                            st.info(f"""
                                 **📄 File Information**
 
                                 - **Filename:** {uploaded_file.name}
                                 - **Size:** {file_size_mb:.2f} MB
                                 - **Saved to:** `{file_path.name}`
-                                """
-                            )
+                                """)
 
                         with col2:
-                            st.success(
-                                """
+                            st.success("""
                                 **✅ Upload Status**
 
                                 File has been saved and is ready for processing.
 
                                 Click "Continue to Settings" to configure extraction parameters.
-                                """
-                            )
+                                """)
 
                     except Exception as e:
                         st.error(f"❌ Error saving file: {e}")
@@ -254,8 +250,7 @@ def show_upload_screen():
 
         else:
             # Show helpful information when no file is uploaded
-            st.info(
-                """
+            st.info("""
                 **📋 Requirements:**
 
                 - File format: PDF only
@@ -267,8 +262,7 @@ def show_upload_screen():
                 - Ensure the PDF has clear text (not scanned images only)
                 - For large files, consider using only relevant pages (can configure in settings)
                 - High-quality PDFs produce better extraction results
-                """
-            )
+                """)
 
     # Tab 2: Select Previously Uploaded Files
     with tab2:

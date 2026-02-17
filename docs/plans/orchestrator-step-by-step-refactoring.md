@@ -769,7 +769,7 @@ If issues discovered:
 ## 📚 References
 
 ### Related Documents
-- `features/pipeline-execution-implementation.md` - Execution screen feature
+- `docs/plans/pipeline-execution-implementation.md` - Execution screen feature
 - `src/pipeline/orchestrator.py` - Current implementation
 - `src/streamlit_app/screens/execution.py` - Streamlit UI
 

@@ -269,7 +269,7 @@ tables_parsed
 
 figures_summary
 - REQUIRED: { figure_id, caption }. Include page if known.
-- key_values: flat object with numeric values only.
+- key_values: flat object with string or numeric values (no nested objects or arrays).
 - Common figures: ROC curves, calibration plots, decision curves, SHAP plots
 
 extraction_warnings

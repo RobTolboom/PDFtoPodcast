@@ -67,4 +67,4 @@ CLI output highlights:
 - **Integration tests**: `tests/integration/test_appraisal_full_loop.py` mocks all five study types and exercises the full appraisal → validation → correction loop with file persistence.
 - **Fixtures**: Sample appraisal/extraction payloads live inside the integration test module (see fixtures named `mock_extraction_*`, `mock_appraisal_response`, etc.) and can be reused for manual verification.
 
-For the full specification (prompt instructions, scoring weights, acceptance criteria), see `features/appraisal.md`.
+For the full specification (prompt instructions, scoring weights, acceptance criteria), see `docs/plans/appraisal.md`.

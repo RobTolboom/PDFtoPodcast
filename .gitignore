@@ -41,10 +41,10 @@ coverage.xml
 .ipynb_checkpoints/
 *.ipynb
 
-# ---- macOS rommel ----
+# ---- macOS ----
 .DS_Store
 
-# ---- persoonlijke dev aantekeningen ----
+# ---- personal dev notes ----
 aantekeningen.txt
 todo.txt
 test.py

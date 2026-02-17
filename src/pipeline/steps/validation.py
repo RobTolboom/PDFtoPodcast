@@ -26,9 +26,10 @@ from ..iterative import IterativeLoopConfig, IterativeLoopRunner
 from ..iterative import detect_quality_degradation as _detect_quality_degradation_new
 from ..iterative import select_best_iteration as _select_best_iteration_new
 from ..quality import MetricType, extract_extraction_metrics_as_dict
-from ..quality.thresholds import EXTRACTION_THRESHOLDS
+from ..quality.thresholds import EXTRACTION_THRESHOLDS, QualityThresholds
 from ..utils import _call_progress_callback, _get_provider_name, _strip_metadata_for_pipeline
 from ..validation_runner import run_dual_validation
+from .extraction import run_extraction_step
 
 console = Console()
 
@@ -150,6 +151,7 @@ def run_validation_step(
     file_manager: PipelineFileManager,
     progress_callback: Callable[[str, str, dict], None] | None,
     banner_label: str | None = None,
+    save_to_disk: bool = True,
 ) -> dict[str, Any]:
     """
     Run validation step of the pipeline.
@@ -208,8 +210,12 @@ def run_validation_step(
         "validation_passed": validation_result.get("is_valid", False),
     }
 
-    validation_file = file_manager.save_json(validation_result, "validation", iteration_number=0)
-    console.print(f"[green]+ Validation saved: {validation_file}[/green]")
+    validation_file = None
+    if save_to_disk:
+        validation_file = file_manager.save_json(
+            validation_result, "validation", iteration_number=0
+        )
+        console.print(f"[green]+ Validation saved: {validation_file}[/green]")
 
     # Validation completed
     elapsed = time.time() - start_time
@@ -220,7 +226,7 @@ def run_validation_step(
         {
             "result": validation_result,
             "elapsed_seconds": elapsed,
-            "file_path": str(validation_file),
+            "file_path": str(validation_file) if validation_file else None,
             "validation_status": validation_result.get("verification_summary", {}).get(
                 "overall_status"
             ),
@@ -298,11 +304,22 @@ def run_correction_step(
         correction_prompt = load_correction_prompt()
         extraction_schema = load_schema(publication_type)
 
-        # Prepare correction context with clean extraction and validation feedback
-        correction_context = f"""
-ORIGINAL_EXTRACTION: {json.dumps(extraction_clean, indent=2)}
+        # Prepare correction context with focused extraction and actionable issues only.
+        # Full validation report is too large and causes the LLM to simplify structures.
+        schema_errors = validation_clean.get("schema_validation", {}).get("validation_errors", [])
+        semantic_issues = validation_clean.get("issues", [])
+        verification_summary = validation_clean.get("verification_summary", {})
 
-VALIDATION_REPORT: {json.dumps(validation_clean, indent=2)}
+        correction_issues = {
+            "schema_errors": schema_errors,
+            "semantic_issues": semantic_issues,
+            "verification_summary": verification_summary,
+        }
+
+        correction_context = f"""
+ORIGINAL_EXTRACTION: {json.dumps(extraction_clean)}
+
+VALIDATION_REPORT: {json.dumps(correction_issues)}
 
 Systematically address all identified issues and produce corrected, complete,\
  schema-compliant JSON extraction.
@@ -319,6 +336,17 @@ Systematically address all identified issues and produce corrected, complete,\
             max_pages=max_pages,
             schema_name=f"{publication_type}_extraction_corrected",
             reasoning_effort=llm_settings.reasoning_effort_correction,
+        )
+
+        # Apply deterministic schema repairs before validation.
+        # Fixes common LLM issues: array items as strings instead of objects,
+        # disallowed properties where additionalProperties=false.
+        from ..schema_repair import repair_schema_violations
+
+        corrected_extraction = repair_schema_violations(
+            data=corrected_extraction,
+            schema=extraction_schema,
+            original=extraction_clean,
         )
 
         # Ensure correction metadata
@@ -540,12 +568,13 @@ def run_validation_with_correction(
                 file_manager=file_manager,
                 progress_callback=progress_callback,
                 banner_label="VALIDATION",
+                save_to_disk=False,
             )
         )
 
-    def correct_fn(extraction: dict, validation: dict) -> dict:
-        """Correct extraction with LLM retry, return only corrected extraction."""
-        corrected, _ = _with_llm_retry(
+    def correct_fn(extraction: dict, validation: dict) -> tuple[dict, dict]:
+        """Correct extraction with LLM retry, return corrected extraction + validation."""
+        corrected, post_validation = _with_llm_retry(
             lambda: run_correction_step(
                 extraction_result=extraction,
                 validation_result=validation,
@@ -558,7 +587,7 @@ def run_validation_with_correction(
                 banner_label="CORRECTION",
             )
         )
-        return _strip_metadata_for_pipeline(corrected)
+        return _strip_metadata_for_pipeline(corrected), post_validation
 
     def save_iteration_fn(
         iteration_num: int, result: dict, validation: dict
@@ -578,11 +607,38 @@ def run_validation_with_correction(
         validation_file = file_manager.save_json(validation, "validation", status="best")
         return extraction_file, validation_file
 
+    def regenerate_initial_fn() -> dict:
+        """Regenerate the initial extraction if it fails schema validation."""
+        return run_extraction_step(
+            pdf_path=pdf_path,
+            max_pages=None,
+            classification_result=classification_result,
+            llm=llm,
+            file_manager=file_manager,
+            progress_callback=progress_callback,
+        )
+
+    def save_failed_fn(
+        extraction_result_failed: dict, validation_result_failed: dict
+    ) -> tuple[Path | None, Path | None]:
+        """Save failed extraction and validation for debugging."""
+        extraction_path = file_manager.save_json(
+            extraction_result_failed, "extraction", status="failed"
+        )
+        validation_path = file_manager.save_json(
+            validation_result_failed, "validation", status="failed"
+        )
+        return extraction_path, validation_path
+
     # Configure and run iterative loop
     config = IterativeLoopConfig(
         metric_type=MetricType.EXTRACTION,
         max_iterations=max_iterations,
-        quality_thresholds=EXTRACTION_THRESHOLDS,
+        quality_thresholds=(
+            QualityThresholds(**quality_thresholds)
+            if isinstance(quality_thresholds, dict)
+            else (quality_thresholds or EXTRACTION_THRESHOLDS)
+        ),
         degradation_window=2,
         step_name="ITERATIVE VALIDATION & CORRECTION",
         step_number=3,
@@ -596,6 +652,8 @@ def run_validation_with_correction(
         correct_fn=correct_fn,
         save_iteration_fn=save_iteration_fn,
         save_best_fn=save_best_fn,
+        regenerate_initial_fn=regenerate_initial_fn,
+        save_failed_fn=save_failed_fn,
         progress_callback=progress_callback,
         console_instance=console,
         check_schema_quality=True,

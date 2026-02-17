@@ -185,7 +185,7 @@ tables_parsed
 
 figures_summary
 - REQUIRED: { figure_id, caption }. Include page if known.
-- key_values: flat object with numeric values only.
+- key_values: flat object with string or numeric values (no nested objects or arrays).
 
 extraction_warnings
 - Array of objects, NOT strings.
@@ -201,7 +201,7 @@ FINAL VALIDATION — PRE-FLIGHT CHECKLIST
 3) outcomes[].type may include "time_to_event" only with definition/censoring captured.
 4) comparisons[] exists; every results.contrasts[].comparison_id matches a declared comparison.
 5) results.contrasts[] use a valid model enum; unadjusted → adjusted:false + model:"na".
-6) figures_summary[] entries include BOTH figure_id and caption; key_values are numbers only.
+6) figures_summary[] entries include BOTH figure_id and caption; key_values are strings or numbers only.
 7) harms[] only if events and total are integers.
 8) Every numeric datum used in results/per_group has a SourceRef-compatible `source` object.
 9) If metadata.vancouver_citation is present, metadata.vancouver_source is present.

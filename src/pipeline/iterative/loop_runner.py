@@ -24,6 +24,7 @@ from ..quality.thresholds import (
     QualityThresholds,
     get_thresholds_for_type,
     is_quality_sufficient,
+    is_quality_sufficient_from_metrics,
 )
 from .iteration_tracker import IterationTracker
 
@@ -50,8 +51,13 @@ class ValidateFunc(Protocol):
 class CorrectFunc(Protocol):
     """Protocol for correction function."""
 
-    def __call__(self, result: dict, validation: dict) -> dict:
-        """Correct a result based on validation feedback."""
+    def __call__(self, result: dict, validation: dict) -> dict | tuple[dict, dict]:
+        """Correct a result based on validation feedback.
+
+        Returns either:
+        - dict: corrected result only (loop will re-validate)
+        - tuple[dict, dict]: (corrected result, validation) to skip re-validation
+        """
         ...
 
 
@@ -137,6 +143,7 @@ class IterativeLoopResult:
     best_iteration_num: int = 0
     selection_reason: str = ""
     error: str | None = None
+    warning: str | None = None
     failed_at_iteration: int | None = None
 
     def to_dict(self, result_key: str = "best_result") -> dict:
@@ -159,6 +166,10 @@ class IterativeLoopResult:
             result["error"] = self.error
         if self.failed_at_iteration is not None:
             result["failed_at_iteration"] = self.failed_at_iteration
+        if self.best_iteration_num is not None:
+            result["best_iteration"] = self.best_iteration_num
+        if self.warning:
+            result["warning"] = self.warning
 
         return result
 
@@ -376,10 +387,16 @@ class IterativeLoopRunner:
                     f"\n[yellow]Running correction (iteration {iteration_num})...[/yellow]"
                 )
 
-                corrected_result = self.correct_fn(current_result, validation_result)
+                correction_output = self.correct_fn(current_result, validation_result)
 
-                # Validate corrected result immediately
-                corrected_validation = self.validate_fn(corrected_result)
+                # Support both return styles: dict or (dict, dict) tuple
+                if isinstance(correction_output, tuple):
+                    corrected_result, corrected_validation = correction_output
+                    if corrected_validation is None:
+                        corrected_validation = self.validate_fn(corrected_result)
+                else:
+                    corrected_result = correction_output
+                    corrected_validation = self.validate_fn(corrected_result)
 
                 # Check schema quality of correction
                 if self.check_schema_quality:
@@ -421,6 +438,7 @@ class IterativeLoopRunner:
                 # Correction succeeded - update last good state
                 last_good_result = corrected_result
                 last_good_validation = corrected_validation
+                correction_retry_count = 0
 
                 # Save corrected iteration
                 if self.save_iteration_fn:
@@ -448,31 +466,34 @@ class IterativeLoopRunner:
         self.console.print(f"[blue]Max iterations: {self.config.max_iterations}[/blue]")
 
     def _display_quality_scores(self, metrics: QualityMetrics, iteration_num: int) -> None:
-        """Display quality scores for current iteration."""
-        self.console.print(f"\n[bold]Quality Scores (Iteration {iteration_num}):[/bold]")
-        self.console.print(f"  Completeness:      {metrics.completeness_score:.1%}")
-        self.console.print(f"  Accuracy:          {metrics.accuracy_score:.1%}")
-        self.console.print(f"  Schema Compliance: {metrics.schema_compliance_score:.1%}")
-        self.console.print(
-            f"  [bold]Quality Score:     {metrics.quality_score:.1%}[/bold] (weighted)"
-        )
-        self.console.print(f"  Status:            {metrics.overall_status.title()}")
+        """Display compact quality summary for current iteration."""
+        # Show threshold-aware status instead of raw validation status
+        meets_thresholds = is_quality_sufficient_from_metrics(metrics, self.thresholds)
+        if meets_thresholds:
+            status_str = "[green]Thresholds met[/green]"
+        else:
+            status_str = "[yellow]Below threshold[/yellow]"
 
-        # Show improvement tracking
+        # Calculate improvement delta if not first iteration
+        delta_str = ""
         if self.tracker.iteration_count > 1:
             prev_metrics = self.tracker.get_iteration(iteration_num - 1)
             if prev_metrics:
                 prev_score = prev_metrics.metrics.quality_score
                 delta = metrics.quality_score - prev_score
                 if delta > 0:
-                    symbol, color = "↑", "green"
+                    delta_str = f" [green]↑{delta:+.1%}[/green]"
                 elif delta < 0:
-                    symbol, color = "↓", "red"
-                else:
-                    symbol, color = "→", "yellow"
-                self.console.print(
-                    f"  [{color}]Improvement: {symbol} {delta:+.3f} (prev: {prev_score:.1%})[/{color}]"
-                )
+                    delta_str = f" [red]↓{delta:+.1%}[/red]"
+
+        # Single-line output
+        self.console.print(
+            f"[cyan]Iteration {iteration_num}:[/cyan] "
+            f"Quality {metrics.quality_score:.1%}{delta_str} | "
+            f"Schema {metrics.schema_compliance_score:.1%} | "
+            f"Complete {metrics.completeness_score:.1%} | "
+            f"{status_str}"
+        )
 
     def _get_schema_quality(self, validation_result: dict) -> float:
         """Get schema quality score from validation result.
@@ -551,6 +572,7 @@ class IterativeLoopRunner:
             improvement_trajectory=self.tracker.get_quality_scores(),
             best_iteration_num=best["iteration_num"],
             selection_reason=best.get("selection_reason", "early_stopped"),
+            warning=f"Early stopping: quality degradation detected after {self.tracker.iteration_count} iterations",
         )
 
     def _create_max_iterations_result(self) -> IterativeLoopResult:
@@ -576,6 +598,7 @@ class IterativeLoopRunner:
             improvement_trajectory=self.tracker.get_quality_scores(),
             best_iteration_num=best["iteration_num"],
             selection_reason=best.get("selection_reason", "max_iterations"),
+            warning=f"Max iterations ({self.config.max_iterations}) reached without meeting quality threshold",
         )
 
     def _create_schema_failure_result(

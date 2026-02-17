@@ -52,7 +52,7 @@ Welcome—this document outlines how to set up a development environment, follow
 
 ## Workflow overview
 - Default branch is `main` (protected). Create short-lived topic branches: `feature/...`, `fix/...`, `docs/...`, `refactor/...`, `test/...`.
-- For substantial work, add a planning note under `features/` describing scope, tasks, and risks (see `features/README.md`).
+- For substantial work, add a planning note under `docs/plans/` describing scope, tasks, and risks (see `docs/plans/README.md`).
 - Sync often: `git checkout main && git pull origin main` before branching or rebasing.
 - Commit early and often using Conventional Commit messages (`feat: ...`, `fix: ...`, etc.).
 - Run tests and quality checks locally before pushing (`make check`, `make test`).
@@ -76,20 +76,39 @@ make check       # format + lint + typecheck
 ### Layout
 ```
 tests/
-|-- unit/
-|   |-- test_orchestrator.py
+|-- unit/                          # 36 unit test files
+|   |-- test_appraisal_*.py        # appraisal functions, quality
+|   |-- test_backward_compatibility.py
+|   |-- test_execution_*.py        # artifacts, results, screen
+|   |-- test_figure_generator.py
+|   |-- test_file_manage*.py       # file_manager, file_management_iterations
+|   |-- test_iteration_tracker.py
 |   |-- test_iterative_validation_correction.py
-|   |-- test_llm_base.py
-|   |-- test_prompts.py
-|   |-- test_schemas_loader.py
 |   |-- test_json_bundler.py
+|   |-- test_latex_renderer.py
+|   |-- test_llm_base.py
+|   |-- test_loop_runner.py
+|   |-- test_markdown_renderer.py
+|   |-- test_null_value_removal.py
+|   |-- test_openai_provider_parsing.py
+|   |-- test_orchestrator.py
+|   |-- test_pipeline_*.py         # cli_flags, utils
+|   |-- test_podcast_*.py          # generation, renderer
+|   |-- test_prompt_template_validation.py
+|   |-- test_prompts.py
+|   |-- test_quality_module.py
+|   |-- test_rendering_fixes.py
+|   |-- test_report_*.py           # generation, prompts, quality, schema
+|   |-- test_schema_*.py           # openai_compatibility, repair
+|   |-- test_schemas_loader.py
 |   |-- test_validation.py
-|   |-- test_file_manager.py
-|   |-- test_file_management_iterations.py
-|   |-- test_pipeline_utils.py
-|   `-- test_execution_screen.py
-|-- integration/
-|   `-- test_schema_bundling.py
+|   `-- test_weasy_renderer.py
+|-- integration/                   # 5 integration test files
+|   |-- test_appraisal_full_loop.py
+|   |-- test_report_full_loop.py
+|   |-- test_report_render_tex.py
+|   |-- test_schema_bundling.py
+|   `-- test_validation_correction_metadata_stripping.py
 |-- fixtures/
 |   |-- sample_pdfs/
 |   `-- expected_outputs/
@@ -148,7 +167,7 @@ docs(prompts): update validation prompt guidance
 ## Documentation expectations
 - **Code**: public functions require docstrings and type hints; complex flows warrant inline comments.
 - **User-facing**: keep `README.md`, `prompts/README.md`, `schemas/readme.md`, `ARCHITECTURE.md`, and `VALIDATION_STRATEGY.md` in sync with behaviour.
-- **Process**: log notable changes in `CHANGELOG.md`, update `ROADMAP.md` if roadmap items shift, and maintain feature plans in `features/`.
+- **Process**: log notable changes in `CHANGELOG.md`, update `ROADMAP.md` if roadmap items shift, and maintain feature plans in `docs/plans/`.
 
 ## FAQ
 **How do I test without incurring API cost?**
