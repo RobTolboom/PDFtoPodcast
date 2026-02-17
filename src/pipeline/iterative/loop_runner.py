@@ -369,6 +369,9 @@ class IterativeLoopRunner:
                     )
 
                 # STEP 3: Check for quality degradation (early stopping)
+                # NOTE: With best-so-far rollback active, accepted iterations have
+                # monotonically non-decreasing quality, so degradation detection
+                # rarely fires. Kept as a safety net for edge cases.
                 if self.tracker.detect_degradation():
                     return self._create_early_stop_result()
 
@@ -456,6 +459,8 @@ class IterativeLoopRunner:
                         f"{best_so_far_metrics.quality_score:.1%}), "
                         f"reverting to best iteration for next attempt[/yellow]"
                     )
+                    # Reset retry count: next correction starts fresh from best-so-far,
+                    # so previous schema-failure retries are no longer relevant.
                     correction_retry_count = 0
 
                     # Track the degraded iteration in history (for trajectory diagnostics)

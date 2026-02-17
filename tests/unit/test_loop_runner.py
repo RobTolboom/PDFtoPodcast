@@ -813,8 +813,10 @@ class TestIterativeLoopRunner:
         )
         result = runner.run()
 
-        # Trajectory should show the dip: iter0, degraded, reverted best-so-far, final
-        assert len(result.improvement_trajectory) >= 3
+        # Trajectory: iter0, degraded (explicit add), reverted best-so-far, accepted final
+        # = 4 entries. The degraded entry is added explicitly in the else branch;
+        # the reverted entry is added when the next iteration reuses best-so-far validation.
+        assert len(result.improvement_trajectory) == 4
         # There should be a dip in the trajectory (degraded < iter0)
         assert min(result.improvement_trajectory) < result.improvement_trajectory[0]
 
