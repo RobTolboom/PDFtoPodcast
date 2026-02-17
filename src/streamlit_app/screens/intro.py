@@ -149,7 +149,7 @@ def show_intro_screen():
     st.markdown(
         """
         <div style="text-align: center; padding: 2rem 0; color: #666; font-size: 0.9rem;">
-            <p>Developed by Tolboom Medical | © 2025 | Version 1.0.0</p>
+            <p>Developed by Tolboom Medical | © 2025 | Version 0.1.0</p>
         </div>
         """,
         unsafe_allow_html=True,

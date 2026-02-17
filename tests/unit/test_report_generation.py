@@ -39,7 +39,7 @@ class TestFileManagerReportMethods:
             "metadata": {
                 "title": "Test Study",
                 "generation_timestamp": "2025-01-17T10:00:00Z",
-                "pipeline_version": "1.0.0",
+                "pipeline_version": "0.1.0",
             },
             "layout": {"language": "en"},
             "sections": [],
@@ -189,7 +189,7 @@ class TestRunReportGeneration:
             "metadata": {
                 "title": "Test Study",
                 "generation_timestamp": "2025-01-17T10:00:00Z",
-                "pipeline_version": "1.0.0",
+                "pipeline_version": "0.1.0",
             },
             "layout": {"language": "en"},
             "sections": [],
