@@ -435,20 +435,45 @@ class IterativeLoopRunner:
                         iteration_num += 1
                         continue  # Retry the loop
 
-                # Correction succeeded - update last good state
-                last_good_result = corrected_result
-                last_good_validation = corrected_validation
-                correction_retry_count = 0
+                # Compare corrected quality against best-so-far
+                corrected_metrics = extract_metrics(corrected_validation, self.config.metric_type)
+                best_so_far_metrics = extract_metrics(last_good_validation, self.config.metric_type)
 
-                # Save corrected iteration
-                if self.save_iteration_fn:
-                    self.save_iteration_fn(
-                        iteration_num + 1, corrected_result, corrected_validation
+                if corrected_metrics.quality_score >= best_so_far_metrics.quality_score:
+                    # Correction improved or maintained quality — accept it
+                    last_good_result = corrected_result
+                    last_good_validation = corrected_validation
+                    correction_retry_count = 0
+
+                    # Save corrected iteration
+                    if self.save_iteration_fn:
+                        self.save_iteration_fn(
+                            iteration_num + 1, corrected_result, corrected_validation
+                        )
+
+                    # Update for next iteration
+                    current_result = corrected_result
+                    current_validation = corrected_validation
+                else:
+                    # Correction degraded quality — revert to best-so-far
+                    self.console.print(
+                        f"[yellow]⚠ Correction degraded quality "
+                        f"({corrected_metrics.quality_score:.1%} < "
+                        f"{best_so_far_metrics.quality_score:.1%}), "
+                        f"reverting to best iteration for next attempt[/yellow]"
                     )
+                    correction_retry_count = 0
 
-                # Update for next iteration
-                current_result = corrected_result
-                current_validation = corrected_validation
+                    # Save the degraded iteration for history (still useful for trajectory)
+                    if self.save_iteration_fn:
+                        self.save_iteration_fn(
+                            iteration_num + 1, corrected_result, corrected_validation
+                        )
+
+                    # Revert to best-so-far for next correction attempt
+                    current_result = last_good_result
+                    current_validation = last_good_validation
+
                 iteration_num += 1
 
             except Exception as e:
