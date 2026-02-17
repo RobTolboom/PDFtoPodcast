@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Podcast Show Summary** - Plain-text episode companion generated alongside the podcast transcript
+  - Citation in Vancouver/NLM style, 2-3 sentence narrative synopsis, structured "Study at a glance" bullets
+  - Adapts bullet structure to study type (RCT, observational, systematic review, prediction, editorial)
+  - Includes exact numbers (ORs, CIs, p-values) and inline GRADE certainty ratings
+  - Second LLM call within existing podcast generation step (no new pipeline step)
+  - Light validation: synopsis length, bullet count, GRADE language alignment
+  - Rendered as plain text in podcast markdown, copy-pasteable into podcast apps
+  - CLI shows summary bullet count in pipeline summary table
+  - Streamlit UI shows expandable summary with copy button
+
 ## [0.1.0] - 2026-02-17
 
 Initial release of PDFtoPodcast: an LLM-powered pipeline that extracts structured data from medical research PDFs and generates critical appraisal reports and podcast-ready transcripts.

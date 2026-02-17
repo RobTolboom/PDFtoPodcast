@@ -1,7 +1,7 @@
 # Podcast Show Summary — Design Document
 
 **Date:** 2026-02-17
-**Status:** Approved
+**Status:** Implemented
 **Branch:** feature/podcast-show-summary
 
 ## Goal
