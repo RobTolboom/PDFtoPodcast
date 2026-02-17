@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Black version mismatch between pre-commit hook (24.10.0) and CI/venv (26.1.0)** - Updated `.pre-commit-config.yaml` to use Black 26.1.0, aligning all three environments and fixing CI formatting failures.
+
 - **Summary table showed 0% quality for Validation & Correction** - `run_pipeline.py` read `best_metrics.get("overall_quality")` but the actual key from `QualityMetrics.to_dict()` is `"quality_score"`, causing the summary to always display 0%.
 
 - **`study_id` schema rejected DOIs** - The `study_id` pattern `^[A-Za-z0-9._-]+$` in 5 extraction schemas did not allow `/` or `:` characters present in DOIs (e.g., `10.1016/j.sleep.2024.08.024`), causing schema validation failures on first extraction. Updated pattern to `^[A-Za-z0-9._/:;()\\[\\]-]+$`.

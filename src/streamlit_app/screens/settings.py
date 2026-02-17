@@ -290,14 +290,12 @@ def show_settings_screen():
                 st.session_state.settings["llm_provider"] = "openai"
 
         with col2:
-            st.info(
-                """
+            st.info("""
                 **OpenAI (GPT-5.1)**
                 - Fast processing
                 - Cost-effective
                 - Reliable for most documents
-                """
-            )
+                """)
 
         st.markdown("")
 

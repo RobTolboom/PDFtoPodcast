@@ -62,8 +62,7 @@ def show_intro_screen():
     col1, col2 = st.columns([2, 1])
 
     with col1:
-        st.markdown(
-            """
+        st.markdown("""
             ### What does this application do?
 
             PDFtoPodcast is an intelligent extraction tool for medical literature that:
@@ -87,22 +86,18 @@ def show_intro_screen():
             - **Study Design** - Study type, population, interventions
             - **Results** - Primary/secondary outcomes, statistical analyses
             - **Tables & Figures** - Structured data from tables and charts
-            """
-        )
+            """)
 
     with col2:
-        st.info(
-            """
+        st.info("""
             **For optimal results:**
             - Use PDFs with clear structure
             - Start with max 10-20 pages for quick tests
             - Choose Claude for complex extractions
             - Use OpenAI for cost savings
-            """
-        )
+            """)
 
-        st.success(
-            """
+        st.success("""
             **Supported Publication Types:**
 
             ✅ Interventional Trials (RCT)\n
@@ -110,8 +105,7 @@ def show_intro_screen():
             ✅ Evidence Synthesis (Meta-analyses)\n
             ✅ Prediction/Prognosis Models\n
             ✅ Editorials & Opinion Pieces
-            """
-        )
+            """)
 
     # License information
     st.markdown("---")
@@ -120,8 +114,7 @@ def show_intro_screen():
     license_col1, license_col2 = st.columns(2)
 
     with license_col1:
-        st.markdown(
-            """
+        st.markdown("""
             **Prosperity Public License 3.0.0**
 
             This software is available under the Prosperity Public License:
@@ -130,12 +123,10 @@ def show_intro_screen():
             - See `LICENSE` and `COMMERCIAL_LICENSE.md` for details
 
             For commercial licenses, contact Tolboom Medical.
-            """
-        )
+            """)
 
     with license_col2:
-        st.warning(
-            """
+        st.warning("""
             **⚠️ Important**
 
             This tool is intended as a supporting tool for medical research.
@@ -143,8 +134,7 @@ def show_intro_screen():
             - Always verify extracted data with the original article
             - Do not use extracted data without validation for clinical decisions
             - Accuracy depends on PDF quality and AI model capabilities
-            """
-        )
+            """)
 
     # Get started button
     st.markdown("---")
