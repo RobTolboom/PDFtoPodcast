@@ -411,6 +411,14 @@ def main():
                 console.print(f"[yellow]Issues:[/yellow] {len(issues)}")
                 for issue in issues[:3]:  # Show first 3
                     console.print(f"[dim]  → {issue}[/dim]")
+            # Show summary info
+            show_summary = podcast.get("show_summary")
+            if show_summary:
+                bullets = show_summary.get("study_at_a_glance", [])
+                console.print(f"[cyan]Show summary:[/cyan] {len(bullets)} bullets")
+            summary_val = validation.get("summary_validation", {})
+            if summary_val.get("status"):
+                console.print(f"[cyan]Summary validation:[/cyan] {summary_val['status']}")
         elif args.step in ["validation"]:
             validation_status = result.get("verification_summary", {}).get("overall_status", "—")
             completeness = result.get("verification_summary", {}).get("completeness_score", 0)
@@ -580,7 +588,12 @@ def main():
         word_count = podcast_data.get("metadata", {}).get("word_count", 0)
         duration = podcast_data.get("metadata", {}).get("estimated_duration_minutes", 0)
         status = validation.get("status", "unknown")
-        podcast_detail = f"{status} | {word_count} words | ~{duration} min"
+        show_summary = podcast_data.get("show_summary")
+        summary_info = ""
+        if show_summary:
+            bullet_count = len(show_summary.get("study_at_a_glance", []))
+            summary_info = f" | Summary: {bullet_count} bullets"
+        podcast_detail = f"{status} | {word_count} words | ~{duration} min{summary_info}"
         summary.add_row("Podcast", podcast_detail)
 
     # --- Total time ---
