@@ -930,3 +930,121 @@ class TestIterativeLoopRunnerReport:
 
         assert result.final_status == FINAL_STATUS_PASSED
         assert result.iteration_count == 1
+
+
+class TestCorrectionHintsInjection:
+    """Test that previous correction failures are communicated to next attempt."""
+
+    def _create_validation_result(
+        self,
+        completeness: float = 0.95,
+        accuracy: float = 0.98,
+        schema_compliance: float = 0.97,
+        critical_issues: int = 0,
+        schema_quality: float = 1.0,
+        schema_errors: list | None = None,
+    ) -> dict:
+        """Create a mock validation result with optional schema errors."""
+        return {
+            "verification_summary": {
+                "completeness_score": completeness,
+                "accuracy_score": accuracy,
+                "schema_compliance_score": schema_compliance,
+                "critical_issues": critical_issues,
+                "overall_status": "passed" if critical_issues == 0 else "failed",
+            },
+            "schema_validation": {
+                "quality_score": schema_quality,
+                "validation_errors": schema_errors or [],
+            },
+        }
+
+    def test_correction_hints_injected_after_rollback(self):
+        """After rollback, _correction_hints should be injected into validation."""
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            show_banner=False,
+        )
+
+        # Initial validation: below threshold but acceptable
+        validation_initial = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.86
+        )
+        # First correction degrades quality
+        validation_degraded = self._create_validation_result(
+            completeness=0.75,
+            accuracy=0.80,
+            schema_compliance=0.50,
+            schema_errors=["orcid: '' violates pattern", "issn: '' violates pattern"],
+        )
+        # Second correction (after rollback with hints) - also degrades (for simplicity)
+        validation_degraded_2 = self._create_validation_result(
+            completeness=0.76,
+            accuracy=0.81,
+            schema_compliance=0.51,
+            schema_errors=["some other error"],
+        )
+
+        validate_fn = MagicMock(
+            side_effect=[validation_initial, validation_degraded, validation_degraded_2]
+        )
+
+        # Track what correct_fn receives
+        correct_calls = []
+
+        def mock_correct(extraction, validation):
+            correct_calls.append({"extraction": extraction, "validation": validation})
+            return {"data": "corrected"}
+
+        correct_fn = MagicMock(side_effect=mock_correct)
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+        )
+        runner.run()
+
+        # After rollback, the second correct_fn call should have _correction_hints
+        assert len(correct_calls) >= 2
+        second_validation = correct_calls[1]["validation"]
+        assert "_correction_hints" in second_validation
+        assert "orcid" in second_validation["_correction_hints"]
+
+    def test_no_hints_on_first_correction(self):
+        """First correction attempt should NOT have _correction_hints."""
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            show_banner=False,
+        )
+
+        validation_initial = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.86
+        )
+        validation_pass = self._create_validation_result(
+            completeness=0.95, accuracy=0.98, schema_compliance=0.97
+        )
+
+        validate_fn = MagicMock(side_effect=[validation_initial, validation_pass])
+
+        correct_calls = []
+
+        def mock_correct(extraction, validation):
+            correct_calls.append({"extraction": extraction, "validation": validation})
+            return {"data": "corrected"}
+
+        correct_fn = MagicMock(side_effect=mock_correct)
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+        )
+        runner.run()
+
+        assert len(correct_calls) == 1
+        assert "_correction_hints" not in correct_calls[0]["validation"]
