@@ -8,7 +8,7 @@ from jsonschema import validate as jsonschema_validate
 from rich.console import Console
 
 from ..llm import get_llm_provider
-from ..prompts import load_podcast_generation_prompt
+from ..prompts import load_podcast_generation_prompt, load_podcast_summary_prompt
 from ..rendering.podcast_renderer import render_podcast_to_markdown
 from ..schemas_loader import load_schema
 from .file_manager import PipelineFileManager
@@ -256,6 +256,108 @@ PODCAST_SCHEMA:
                 f"(max {MAX_NUMERICAL_STATEMENTS} recommended): {', '.join(significant_numbers[:5])}..."
             )
 
+        # --- Show Summary Generation (second LLM call) ---
+        summary_validation_issues = []
+        summary_critical_issues = []
+
+        try:
+            console.print("[bold cyan]📝 Generating show summary...[/bold cyan]")
+            _call_progress_callback(
+                progress_callback, STEP_PODCAST_GENERATION, "generating_summary", {}
+            )
+
+            summary_prompt_template = load_podcast_summary_prompt()
+
+            # Build summary prompt context with all inputs including transcript
+            summary_schema = schema.get("properties", {}).get("show_summary", {})
+            summary_prompt_context = f"""EXTRACTION_JSON:
+{json.dumps(extraction_clean, indent=2)}
+
+APPRAISAL_JSON:
+{json.dumps(appraisal_clean, indent=2)}
+
+CLASSIFICATION_JSON:
+{json.dumps(classification_result, indent=2)}
+
+TRANSCRIPT:
+{transcript}
+
+SHOW_SUMMARY_SCHEMA:
+{json.dumps(summary_schema, indent=2)}
+"""
+
+            summary_json = llm.generate_json_with_schema(
+                schema=summary_schema,
+                system_prompt=summary_prompt_template,
+                prompt=summary_prompt_context,
+                schema_name="podcast_show_summary",
+                reasoning_effort=llm_settings.reasoning_effort_podcast,
+            )
+
+            # Validate show summary
+            # Critical: synopsis length
+            synopsis = summary_json.get("synopsis", "")
+            if len(synopsis) < 50:
+                summary_critical_issues.append(
+                    f"Synopsis too short ({len(synopsis)} chars). Minimum: 50."
+                )
+            elif len(synopsis) > 500:
+                summary_critical_issues.append(
+                    f"Synopsis too long ({len(synopsis)} chars). Maximum: 500."
+                )
+
+            # Critical: at least 3 bullets
+            bullets = summary_json.get("study_at_a_glance", [])
+            if len(bullets) < 3:
+                summary_critical_issues.append(
+                    f"Too few study-at-a-glance bullets ({len(bullets)}). Minimum: 3."
+                )
+
+            # Warning: GRADE language alignment in synopsis
+            synopsis_lower = synopsis.lower()
+            if grade_certainty in ["low", "very low"]:
+                for word in high_certainty_words:
+                    if word in synopsis_lower:
+                        summary_validation_issues.append(
+                            f"High-certainty word '{word}' in synopsis with "
+                            f"{grade_certainty} GRADE evidence"
+                        )
+                        break
+
+            # Warning: citation contains author and year
+            citation = summary_json.get("citation", "")
+            if not re.search(r"\b\d{4}\b", citation):
+                summary_validation_issues.append("Citation may be missing publication year")
+
+            # Merge into podcast JSON
+            if not summary_critical_issues:
+                podcast_json["show_summary"] = summary_json
+                console.print(f"[green]✅ Show summary generated: {len(bullets)} bullets[/green]")
+            else:
+                console.print(
+                    f"[yellow]⚠️  Show summary validation failed: "
+                    f"{'; '.join(summary_critical_issues)}[/yellow]"
+                )
+
+        except Exception as e:
+            console.print(f"[yellow]⚠️  Show summary generation failed: {e}[/yellow]")
+            summary_validation_issues.append(f"Generation failed: {e}")
+            # Continue — summary is optional, don't fail the podcast step
+
+        # Build summary validation result
+        if summary_critical_issues:
+            summary_validation_status = "failed"
+        elif summary_validation_issues:
+            summary_validation_status = "warnings"
+        else:
+            summary_validation_status = "passed"
+
+        summary_validation_result = {
+            "status": summary_validation_status,
+            "issues": summary_validation_issues + summary_critical_issues,
+            "critical_issues": summary_critical_issues,
+        }
+
         # Determine validation status
         # Critical issues → failed (hard fail, no file save)
         # Non-critical issues → warnings (step succeeds with warnings)
@@ -272,6 +374,7 @@ PODCAST_SCHEMA:
             "issues": validation_issues + critical_issues,
             "critical_issues": critical_issues,
             "ready_for_tts": validation_status != "failed",
+            "summary_validation": summary_validation_result,
         }
 
         # Always save files per spec (even on failure)

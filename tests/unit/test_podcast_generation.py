@@ -24,11 +24,12 @@ def mock_llm():
     return llm
 
 
+@patch("src.pipeline.podcast_logic.load_podcast_summary_prompt", side_effect=Exception("skip"))
 @patch("src.pipeline.podcast_logic.load_schema")
 @patch("src.pipeline.podcast_logic.load_podcast_generation_prompt")
 @patch("src.pipeline.podcast_logic.get_llm_provider")
 def test_run_podcast_generation_success(
-    mock_get_llm, mock_load_prompt, mock_load_schema, mock_file_manager, mock_llm
+    mock_get_llm, mock_load_prompt, mock_load_schema, _mock_summary, mock_file_manager, mock_llm
 ):
     # Setup mocks
     mock_get_llm.return_value = mock_llm
@@ -73,11 +74,12 @@ def test_run_podcast_generation_success(
     mock_file_manager.save_json.assert_any_call(result["validation"], "podcast_validation")
 
 
+@patch("src.pipeline.podcast_logic.load_podcast_summary_prompt", side_effect=Exception("skip"))
 @patch("src.pipeline.podcast_logic.load_schema")
 @patch("src.pipeline.podcast_logic.load_podcast_generation_prompt")
 @patch("src.pipeline.podcast_logic.get_llm_provider")
 def test_run_podcast_generation_fails_on_short_transcript(
-    mock_get_llm, mock_load_prompt, mock_load_schema, mock_file_manager, mock_llm
+    mock_get_llm, mock_load_prompt, mock_load_schema, _mock_summary, mock_file_manager, mock_llm
 ):
     """Test that short transcript (<800 words) returns status 'failed' but saves files."""
     # Setup mocks
@@ -111,11 +113,12 @@ def test_run_podcast_generation_fails_on_short_transcript(
     assert mock_file_manager.save_json.call_count == 2  # podcast + validation
 
 
+@patch("src.pipeline.podcast_logic.load_podcast_summary_prompt", side_effect=Exception("skip"))
 @patch("src.pipeline.podcast_logic.load_schema")
 @patch("src.pipeline.podcast_logic.load_podcast_generation_prompt")
 @patch("src.pipeline.podcast_logic.get_llm_provider")
 def test_run_podcast_generation_validation_warning_abbreviations(
-    mock_get_llm, mock_load_prompt, mock_load_schema, mock_file_manager, mock_llm
+    mock_get_llm, mock_load_prompt, mock_load_schema, _mock_summary, mock_file_manager, mock_llm
 ):
     """Test that abbreviations trigger warning (not failure) with valid length."""
     # Setup mocks
@@ -145,12 +148,19 @@ def test_run_podcast_generation_validation_warning_abbreviations(
     assert any("abbreviations" in issue for issue in result["validation"]["issues"])
 
 
+@patch("src.pipeline.podcast_logic.load_podcast_summary_prompt", side_effect=Exception("skip"))
 @patch("src.pipeline.podcast_logic.render_podcast_to_markdown")
 @patch("src.pipeline.podcast_logic.load_schema")
 @patch("src.pipeline.podcast_logic.load_podcast_generation_prompt")
 @patch("src.pipeline.podcast_logic.get_llm_provider")
 def test_run_podcast_generation_creates_markdown(
-    mock_get_llm, mock_load_prompt, mock_load_schema, mock_render, mock_file_manager, mock_llm
+    mock_get_llm,
+    mock_load_prompt,
+    mock_load_schema,
+    mock_render,
+    _mock_summary,
+    mock_file_manager,
+    mock_llm,
 ):
     """Verify podcast generation creates markdown file."""
     # Setup mocks
@@ -189,11 +199,12 @@ def test_run_podcast_generation_creates_markdown(
     assert "test-paper-podcast.md" in str(call_args[0][1])  # Second arg is path
 
 
+@patch("src.pipeline.podcast_logic.load_podcast_summary_prompt", side_effect=Exception("skip"))
 @patch("src.pipeline.podcast_logic.load_schema")
 @patch("src.pipeline.podcast_logic.load_podcast_generation_prompt")
 @patch("src.pipeline.podcast_logic.get_llm_provider")
 def test_validation_detects_missing_primary_outcome(
-    mock_get_llm, mock_load_prompt, mock_load_schema, mock_file_manager, mock_llm
+    mock_get_llm, mock_load_prompt, mock_load_schema, _mock_summary, mock_file_manager, mock_llm
 ):
     """Test that validation detects when primary outcome is not mentioned."""
     mock_get_llm.return_value = mock_llm
@@ -227,11 +238,12 @@ def test_validation_detects_missing_primary_outcome(
     )
 
 
+@patch("src.pipeline.podcast_logic.load_podcast_summary_prompt", side_effect=Exception("skip"))
 @patch("src.pipeline.podcast_logic.load_schema")
 @patch("src.pipeline.podcast_logic.load_podcast_generation_prompt")
 @patch("src.pipeline.podcast_logic.get_llm_provider")
 def test_validation_detects_grade_language_mismatch(
-    mock_get_llm, mock_load_prompt, mock_load_schema, mock_file_manager, mock_llm
+    mock_get_llm, mock_load_prompt, mock_load_schema, _mock_summary, mock_file_manager, mock_llm
 ):
     """Test that validation detects high-certainty language with low GRADE evidence."""
     mock_get_llm.return_value = mock_llm
@@ -263,11 +275,12 @@ def test_validation_detects_grade_language_mismatch(
     )
 
 
+@patch("src.pipeline.podcast_logic.load_podcast_summary_prompt", side_effect=Exception("skip"))
 @patch("src.pipeline.podcast_logic.load_schema")
 @patch("src.pipeline.podcast_logic.load_podcast_generation_prompt")
 @patch("src.pipeline.podcast_logic.get_llm_provider")
 def test_validation_warns_missing_insufficiently_reported(
-    mock_get_llm, mock_load_prompt, mock_load_schema, mock_file_manager, mock_llm
+    mock_get_llm, mock_load_prompt, mock_load_schema, _mock_summary, mock_file_manager, mock_llm
 ):
     """Test that validation warns when missing data isn't acknowledged."""
     mock_get_llm.return_value = mock_llm
@@ -296,11 +309,12 @@ def test_validation_warns_missing_insufficiently_reported(
     assert any("insufficiently reported" in issue for issue in result["validation"]["issues"])
 
 
+@patch("src.pipeline.podcast_logic.load_podcast_summary_prompt", side_effect=Exception("skip"))
 @patch("src.pipeline.podcast_logic.load_schema")
 @patch("src.pipeline.podcast_logic.load_podcast_generation_prompt")
 @patch("src.pipeline.podcast_logic.get_llm_provider")
 def test_validation_warns_on_too_many_numbers(
-    mock_get_llm, mock_load_prompt, mock_load_schema, mock_file_manager, mock_llm
+    mock_get_llm, mock_load_prompt, mock_load_schema, _mock_summary, mock_file_manager, mock_llm
 ):
     """Test that validation warns when transcript contains >3 numerical values."""
     mock_get_llm.return_value = mock_llm
@@ -331,11 +345,12 @@ def test_validation_warns_on_too_many_numbers(
     assert any("numerical values" in issue for issue in result["validation"]["issues"])
 
 
+@patch("src.pipeline.podcast_logic.load_podcast_summary_prompt", side_effect=Exception("skip"))
 @patch("src.pipeline.podcast_logic.load_schema")
 @patch("src.pipeline.podcast_logic.load_podcast_generation_prompt")
 @patch("src.pipeline.podcast_logic.get_llm_provider")
 def test_metadata_recalculated_from_transcript(
-    mock_get_llm, mock_load_prompt, mock_load_schema, mock_file_manager, mock_llm
+    mock_get_llm, mock_load_prompt, mock_load_schema, _mock_summary, mock_file_manager, mock_llm
 ):
     """Test that word_count and estimated_duration are recalculated from actual transcript."""
     mock_get_llm.return_value = mock_llm
@@ -368,3 +383,212 @@ def test_metadata_recalculated_from_transcript(
     # Verify metadata was recalculated
     assert result["podcast"]["metadata"]["word_count"] == 900  # 9 words × 100
     assert result["podcast"]["metadata"]["estimated_duration_minutes"] == 6  # 900 / 150 = 6
+
+
+# ── Show Summary Generation Tests ──────────────────────────────────────────────
+
+
+@patch("src.pipeline.podcast_logic.load_podcast_summary_prompt")
+@patch("src.pipeline.podcast_logic.load_schema")
+@patch("src.pipeline.podcast_logic.load_podcast_generation_prompt")
+@patch("src.pipeline.podcast_logic.get_llm_provider")
+def test_show_summary_generation_success(
+    mock_get_llm,
+    mock_load_prompt,
+    mock_load_schema,
+    mock_load_summary_prompt,
+    mock_file_manager,
+    mock_llm,
+):
+    """Test that a valid show summary is generated and merged into podcast JSON."""
+    mock_get_llm.return_value = mock_llm
+    mock_load_schema.return_value = {
+        "type": "object",
+        "properties": {
+            "show_summary": {
+                "type": "object",
+                "properties": {
+                    "synopsis": {"type": "string"},
+                    "study_at_a_glance": {"type": "array"},
+                    "citation": {"type": "string"},
+                },
+            }
+        },
+    }
+    mock_load_prompt.return_value = "Generate podcast"
+    mock_load_summary_prompt.return_value = "Generate show summary"
+
+    # First call returns transcript, second call returns valid summary
+    valid_transcript = {
+        "podcast_version": "v1.0",
+        "metadata": {"title": "Test Podcast", "word_count": 1000, "estimated_duration_minutes": 6},
+        "transcript": "This study examined mortality outcomes and found significant results. " * 90,
+    }
+    valid_summary = {
+        "synopsis": (
+            "This study examined a novel treatment approach for patients with chronic disease "
+            "and found statistically significant improvements in mortality outcomes."
+        ),
+        "study_at_a_glance": [
+            "Randomized controlled trial with 500 participants",
+            "Treatment group showed 30% improvement",
+            "Follow-up period of 12 months",
+        ],
+        "citation": "Smith et al. (2025). Journal of Medicine.",
+    }
+    mock_llm.generate_json_with_schema.side_effect = [valid_transcript, valid_summary]
+
+    extraction = {
+        "interventions": [{"name": "Drug X"}],
+        "outcomes": {"primary": {"description": "mortality"}},
+    }
+    appraisal = {"grade": {"certainty_overall": "high"}}
+    classification = {"type": "trial"}
+
+    result = run_podcast_generation(
+        extraction_result=extraction,
+        appraisal_result=appraisal,
+        classification_result=classification,
+        llm_provider="openai",
+        file_manager=mock_file_manager,
+    )
+
+    # Verify podcast succeeded
+    assert result["status"] == "success"
+
+    # Verify show_summary was merged into podcast JSON
+    assert "show_summary" in result["podcast"]
+    assert result["podcast"]["show_summary"]["synopsis"] == valid_summary["synopsis"]
+    assert len(result["podcast"]["show_summary"]["study_at_a_glance"]) == 3
+
+    # Verify summary validation passed
+    assert result["validation"]["summary_validation"]["status"] == "passed"
+
+    # Verify LLM was called twice (transcript + summary)
+    assert mock_llm.generate_json_with_schema.call_count == 2
+
+
+@patch("src.pipeline.podcast_logic.load_podcast_summary_prompt", side_effect=Exception("not found"))
+@patch("src.pipeline.podcast_logic.load_schema")
+@patch("src.pipeline.podcast_logic.load_podcast_generation_prompt")
+@patch("src.pipeline.podcast_logic.get_llm_provider")
+def test_show_summary_generation_failure_nonfatal(
+    mock_get_llm,
+    mock_load_prompt,
+    mock_load_schema,
+    _mock_summary_prompt,
+    mock_file_manager,
+    mock_llm,
+):
+    """Test that summary generation failure does not fail the podcast step."""
+    mock_get_llm.return_value = mock_llm
+    mock_load_schema.return_value = {"type": "object"}
+    mock_load_prompt.return_value = "Generate podcast"
+
+    # Transcript only — summary prompt will raise
+    mock_llm.generate_json_with_schema.return_value = {
+        "podcast_version": "v1.0",
+        "metadata": {"title": "Test Podcast", "word_count": 1000, "estimated_duration_minutes": 6},
+        "transcript": "This study examined mortality outcomes and found significant results. " * 90,
+    }
+
+    extraction = {
+        "interventions": [{"name": "Drug X"}],
+        "outcomes": {"primary": {"description": "mortality"}},
+    }
+    appraisal = {"grade": {"certainty_overall": "high"}}
+
+    result = run_podcast_generation(
+        extraction_result=extraction,
+        appraisal_result=appraisal,
+        classification_result={},
+        llm_provider="openai",
+        file_manager=mock_file_manager,
+    )
+
+    # Podcast should still succeed
+    assert result["status"] == "success"
+
+    # show_summary should NOT be in the podcast JSON
+    assert "show_summary" not in result["podcast"]
+
+    # Summary validation should record the failure
+    summary_val = result["validation"]["summary_validation"]
+    assert summary_val["status"] == "warnings"
+    assert any("Generation failed" in issue for issue in summary_val["issues"])
+
+    # LLM should have been called only once (transcript only)
+    mock_llm.generate_json_with_schema.assert_called_once()
+
+
+@patch("src.pipeline.podcast_logic.load_podcast_summary_prompt")
+@patch("src.pipeline.podcast_logic.load_schema")
+@patch("src.pipeline.podcast_logic.load_podcast_generation_prompt")
+@patch("src.pipeline.podcast_logic.get_llm_provider")
+def test_show_summary_validation_synopsis_too_short(
+    mock_get_llm,
+    mock_load_prompt,
+    mock_load_schema,
+    mock_load_summary_prompt,
+    mock_file_manager,
+    mock_llm,
+):
+    """Test that synopsis < 50 chars fails summary validation and is NOT merged."""
+    mock_get_llm.return_value = mock_llm
+    mock_load_schema.return_value = {
+        "type": "object",
+        "properties": {
+            "show_summary": {
+                "type": "object",
+                "properties": {
+                    "synopsis": {"type": "string"},
+                    "study_at_a_glance": {"type": "array"},
+                    "citation": {"type": "string"},
+                },
+            }
+        },
+    }
+    mock_load_prompt.return_value = "Generate podcast"
+    mock_load_summary_prompt.return_value = "Generate show summary"
+
+    # First call returns transcript, second call returns summary with short synopsis
+    valid_transcript = {
+        "podcast_version": "v1.0",
+        "metadata": {"title": "Test Podcast", "word_count": 1000, "estimated_duration_minutes": 6},
+        "transcript": "This study examined mortality outcomes and found significant results. " * 90,
+    }
+    short_synopsis_summary = {
+        "synopsis": "Too short.",  # Only 10 chars, below 50-char minimum
+        "study_at_a_glance": [
+            "Bullet one",
+            "Bullet two",
+            "Bullet three",
+        ],
+        "citation": "Smith et al. (2025). Journal of Medicine.",
+    }
+    mock_llm.generate_json_with_schema.side_effect = [valid_transcript, short_synopsis_summary]
+
+    extraction = {
+        "interventions": [{"name": "Drug X"}],
+        "outcomes": {"primary": {"description": "mortality"}},
+    }
+    appraisal = {"grade": {"certainty_overall": "high"}}
+
+    result = run_podcast_generation(
+        extraction_result=extraction,
+        appraisal_result=appraisal,
+        classification_result={},
+        llm_provider="openai",
+        file_manager=mock_file_manager,
+    )
+
+    # Podcast should still succeed (summary failure is non-fatal)
+    assert result["status"] == "success"
+
+    # show_summary should NOT be merged (validation failed)
+    assert "show_summary" not in result["podcast"]
+
+    # Summary validation should be "failed"
+    summary_val = result["validation"]["summary_validation"]
+    assert summary_val["status"] == "failed"
+    assert any("Synopsis too short" in issue for issue in summary_val["critical_issues"])
