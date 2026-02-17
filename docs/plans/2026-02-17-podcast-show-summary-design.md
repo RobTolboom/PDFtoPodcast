@@ -2,7 +2,7 @@
 
 **Date:** 2026-02-17
 **Status:** Approved
-**Branch:** TBD
+**Branch:** feature/podcast-show-summary
 
 ## Goal
 
