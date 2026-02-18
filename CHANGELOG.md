@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Iterative correction loop now uses best-so-far result when a correction degrades quality, instead of feeding the degraded result into the next correction attempt
+- Correction loop improvements: deterministic repair for pattern/minimum/enum constraint violations in `schema_repair.py`, proportional schema scoring (replaces binary pass/fail cliff), explicit empty-string omission rule in correction prompt, previous-failure context injected into correction retries, and early exit after 2 consecutive quality degradations
 
 ## [0.1.0] - 2026-02-17
 
