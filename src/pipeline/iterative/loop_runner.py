@@ -271,6 +271,8 @@ class IterativeLoopRunner:
         last_good_validation: dict | None = None
         correction_retry_count = 0
         previous_failure_hints: str | None = None
+        consecutive_rollbacks = 0
+        max_consecutive_rollbacks = 2
 
         # Display header
         if self.config.show_banner:
@@ -457,6 +459,7 @@ class IterativeLoopRunner:
                     last_good_validation = corrected_validation
                     correction_retry_count = 0
                     previous_failure_hints = None  # Reset hints on success
+                    consecutive_rollbacks = 0  # Reset on successful correction
 
                     # Update for next iteration
                     current_result = corrected_result
@@ -491,6 +494,14 @@ class IterativeLoopRunner:
                             f"{error_summary}. Do NOT repeat these mistakes. "
                             f"Omit optional fields if you don't have valid values."
                         )
+
+                    consecutive_rollbacks += 1
+                    if consecutive_rollbacks >= max_consecutive_rollbacks:
+                        self.console.print(
+                            f"\n[yellow]⚠️ {consecutive_rollbacks} consecutive corrections "
+                            f"degraded quality. Stopping early.[/yellow]"
+                        )
+                        return self._create_early_stop_result()
 
                     # Revert to best-so-far for next correction attempt
                     current_result = last_good_result

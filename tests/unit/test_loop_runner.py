@@ -17,6 +17,7 @@ from src.pipeline.iterative import (
     IterativeLoopRunner,
 )
 from src.pipeline.iterative.loop_runner import (
+    FINAL_STATUS_EARLY_STOPPED,
     FINAL_STATUS_FAILED,
     FINAL_STATUS_FAILED_SCHEMA,
     FINAL_STATUS_MAX_ITERATIONS,
@@ -229,12 +230,10 @@ class TestIterativeLoopRunner:
         assert result.best_result is not None
 
     def test_max_iterations_when_all_corrections_degrade(self):
-        """Test that all-degrading corrections lead to max iterations, not early stop.
+        """Test that all-degrading corrections trigger early stop after consecutive rollbacks.
 
-        With best-so-far rollback, degraded corrections are reverted, so the
-        tracker only sees monotonically non-decreasing accepted quality. This
-        prevents degradation detection from triggering. The loop reaches
-        max_iterations instead.
+        With stuck loop detection, 2 consecutive rollbacks trigger early exit
+        instead of burning through all iterations.
         """
         config = IterativeLoopConfig(
             metric_type=MetricType.EXTRACTION,
@@ -244,8 +243,7 @@ class TestIterativeLoopRunner:
         )
 
         # All corrections degrade quality relative to best-so-far, so all
-        # get reverted. The loop keeps retrying with best-so-far until
-        # max_iterations is reached.
+        # get reverted. After 2 consecutive rollbacks, loop exits early.
         validation_initial = self._create_validation_result(
             completeness=0.80, accuracy=0.85, schema_compliance=0.90
         )  # quality ~84%
@@ -255,16 +253,12 @@ class TestIterativeLoopRunner:
         validation_degraded_2 = self._create_validation_result(
             completeness=0.70, accuracy=0.78, schema_compliance=0.85
         )  # quality ~76%, worse
-        validation_degraded_3 = self._create_validation_result(
-            completeness=0.68, accuracy=0.75, schema_compliance=0.83
-        )  # quality ~74%, worse
 
         validate_fn = MagicMock(
             side_effect=[
                 validation_initial,
                 validation_degraded_1,
                 validation_degraded_2,
-                validation_degraded_3,
             ]
         )
         correct_fn = MagicMock(return_value={"data": "corrected"})
@@ -277,9 +271,8 @@ class TestIterativeLoopRunner:
         )
         result = runner.run()
 
-        # With best-so-far rollback, degraded corrections are reverted,
-        # so the loop reaches max iterations instead of early stopping.
-        assert result.final_status == FINAL_STATUS_MAX_ITERATIONS
+        # With stuck loop detection, 2 consecutive rollbacks trigger early exit
+        assert result.final_status == FINAL_STATUS_EARLY_STOPPED
         # The best result is the initial (iteration 0), since all corrections degraded
         assert result.best_iteration_num == 0
 
@@ -1048,3 +1041,103 @@ class TestCorrectionHintsInjection:
 
         assert len(correct_calls) == 1
         assert "_correction_hints" not in correct_calls[0]["validation"]
+
+
+class TestStuckLoopEarlyExit:
+    """Test early exit when consecutive corrections all degrade quality."""
+
+    def _create_validation_result(
+        self,
+        completeness: float = 0.95,
+        accuracy: float = 0.98,
+        schema_compliance: float = 0.97,
+        critical_issues: int = 0,
+        schema_quality: float = 1.0,
+    ) -> dict:
+        return {
+            "verification_summary": {
+                "completeness_score": completeness,
+                "accuracy_score": accuracy,
+                "schema_compliance_score": schema_compliance,
+                "critical_issues": critical_issues,
+                "overall_status": "passed" if critical_issues == 0 else "failed",
+            },
+            "schema_validation": {
+                "quality_score": schema_quality,
+            },
+        }
+
+    def test_early_exit_after_consecutive_rollbacks(self):
+        """Loop exits early after 2 consecutive rollbacks instead of burning iterations."""
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=5,  # High limit to prove early exit works
+            show_banner=False,
+        )
+
+        validation_initial = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.86
+        )
+        # All corrections degrade
+        validation_degraded = self._create_validation_result(
+            completeness=0.70, accuracy=0.78, schema_compliance=0.50
+        )
+
+        validate_fn = MagicMock(
+            side_effect=[validation_initial, validation_degraded, validation_degraded]
+        )
+        correct_fn = MagicMock(return_value={"data": "corrected"})
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+        )
+        result = runner.run()
+
+        assert result.final_status == FINAL_STATUS_EARLY_STOPPED
+        # Should exit after 2 rollbacks, not run all 5 iterations
+        assert correct_fn.call_count == 2
+
+    def test_no_early_exit_when_corrections_improve(self):
+        """Loop continues normally when corrections improve quality."""
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            show_banner=False,
+        )
+
+        validation_initial = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.86
+        )
+        validation_better = self._create_validation_result(
+            completeness=0.85, accuracy=0.90, schema_compliance=0.92
+        )
+        validation_degraded = self._create_validation_result(
+            completeness=0.70, accuracy=0.78, schema_compliance=0.50
+        )
+        validation_even_better = self._create_validation_result(
+            completeness=0.92, accuracy=0.96, schema_compliance=0.97
+        )
+
+        validate_fn = MagicMock(
+            side_effect=[
+                validation_initial,
+                validation_better,
+                validation_degraded,
+                validation_even_better,
+            ]
+        )
+        correct_fn = MagicMock(return_value={"data": "corrected"})
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+        )
+        result = runner.run()
+
+        # Should NOT early exit — improvement at iter 1 resets counter
+        assert result.final_status == FINAL_STATUS_PASSED
