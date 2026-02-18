@@ -39,6 +39,9 @@ FINAL_STATUS_EARLY_STOPPED = "early_stopped_degradation"
 FINAL_STATUS_FAILED = "failed"
 FINAL_STATUS_FAILED_SCHEMA = "failed_schema_validation"
 
+# Maximum consecutive rollbacks before early exit (stuck loop detection)
+MAX_CONSECUTIVE_ROLLBACKS = 2
+
 
 class ValidateFunc(Protocol):
     """Protocol for validation function."""
@@ -272,7 +275,6 @@ class IterativeLoopRunner:
         correction_retry_count = 0
         previous_failure_hints: str | None = None
         consecutive_rollbacks = 0
-        max_consecutive_rollbacks = 2
 
         # Display header
         if self.config.show_banner:
@@ -496,7 +498,7 @@ class IterativeLoopRunner:
                         )
 
                     consecutive_rollbacks += 1
-                    if consecutive_rollbacks >= max_consecutive_rollbacks:
+                    if consecutive_rollbacks >= MAX_CONSECUTIVE_ROLLBACKS:
                         self.console.print(
                             f"\n[yellow]⚠️ {consecutive_rollbacks} consecutive corrections "
                             f"degraded quality. Stopping early.[/yellow]"

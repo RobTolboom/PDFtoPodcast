@@ -401,8 +401,8 @@ class TestRepairPatternViolations:
         assert "timepoint_iso8601" not in result["outcomes"][0]
         assert result["outcomes"][1]["timepoint_iso8601"] == "P6M"
 
-    def test_required_pattern_field_not_removed(self):
-        """Required field with pattern violation should NOT be removed."""
+    def test_required_field_kept_even_when_empty(self):
+        """Required field should NOT be removed even if empty string."""
         data = {
             "title": "Test",
             "metadata": {
