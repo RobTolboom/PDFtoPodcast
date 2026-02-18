@@ -39,6 +39,10 @@ HARD RULES
    - You MUST include all required fields and required subfields exactly as defined in SCHEMA.
    - You MUST use the exact enum values from SCHEMA where the schema defines an enum.
    - If SCHEMA forbids null for a field, you must not emit that field with null. Omit the field instead.
+   - If you do not have a value for an optional field that has a regex pattern constraint
+     (e.g., orcid, issn, eissn, pmid, pmcid, ISO 8601 durations, content_hash_sha256, study_id),
+     you MUST omit the field entirely. NEVER emit an empty string "" for pattern-constrained fields.
+     An empty string "" violates the pattern and causes schema errors.
    - If SCHEMA requires a field and the PDF does not provide it, you MUST reconstruct that field from the PDF if possible; otherwise:
      - If the schema allows you to drop the entire parent object/array element, drop it.
      - If the schema does not allow that drop (i.e. truly required), populate with the closest exact value from PDF_CONTENT only. Do not guess.

@@ -325,6 +325,11 @@ Systematically address all identified issues and produce corrected, complete,\
  schema-compliant JSON extraction.
 """
 
+        # Inject previous failure hints if available
+        correction_hints = validation_clean.get("_correction_hints", "")
+        if correction_hints:
+            correction_context += f"\n\nPREVIOUS_CORRECTION_FAILURES: {correction_hints}\n"
+
         # Run correction with PDF upload for direct reference
         console.print("[dim]Running correction with PDF upload...[/dim]")
         from ...config import llm_settings

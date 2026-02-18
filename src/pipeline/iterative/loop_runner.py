@@ -39,6 +39,9 @@ FINAL_STATUS_EARLY_STOPPED = "early_stopped_degradation"
 FINAL_STATUS_FAILED = "failed"
 FINAL_STATUS_FAILED_SCHEMA = "failed_schema_validation"
 
+# Maximum consecutive rollbacks before early exit (stuck loop detection)
+MAX_CONSECUTIVE_ROLLBACKS = 2
+
 
 class ValidateFunc(Protocol):
     """Protocol for validation function."""
@@ -270,6 +273,8 @@ class IterativeLoopRunner:
         last_good_result = self.initial_result
         last_good_validation: dict | None = None
         correction_retry_count = 0
+        previous_failure_hints: str | None = None
+        consecutive_rollbacks = 0
 
         # Display header
         if self.config.show_banner:
@@ -390,7 +395,15 @@ class IterativeLoopRunner:
                     f"\n[yellow]Running correction (iteration {iteration_num})...[/yellow]"
                 )
 
-                correction_output = self.correct_fn(current_result, validation_result)
+                # Inject correction hints if available from previous failure
+                correction_validation = validation_result
+                if previous_failure_hints:
+                    correction_validation = {
+                        **validation_result,
+                        "_correction_hints": previous_failure_hints,
+                    }
+
+                correction_output = self.correct_fn(current_result, correction_validation)
 
                 # Support both return styles: dict or (dict, dict) tuple
                 if isinstance(correction_output, tuple):
@@ -447,6 +460,8 @@ class IterativeLoopRunner:
                     last_good_result = corrected_result
                     last_good_validation = corrected_validation
                     correction_retry_count = 0
+                    previous_failure_hints = None  # Reset hints on success
+                    consecutive_rollbacks = 0  # Reset on successful correction
 
                     # Update for next iteration
                     current_result = corrected_result
@@ -469,6 +484,26 @@ class IterativeLoopRunner:
                         validation=corrected_validation,
                         metrics=corrected_metrics,
                     )
+
+                    # Build failure hints from the degraded correction's schema errors
+                    degraded_errors = corrected_validation.get("schema_validation", {}).get(
+                        "validation_errors", []
+                    )
+                    if degraded_errors:
+                        error_summary = "; ".join(degraded_errors[:5])
+                        previous_failure_hints = (
+                            f"PREVIOUS CORRECTION FAILED. It introduced these schema errors: "
+                            f"{error_summary}. Do NOT repeat these mistakes. "
+                            f"Omit optional fields if you don't have valid values."
+                        )
+
+                    consecutive_rollbacks += 1
+                    if consecutive_rollbacks >= MAX_CONSECUTIVE_ROLLBACKS:
+                        self.console.print(
+                            f"\n[yellow]⚠️ {consecutive_rollbacks} consecutive corrections "
+                            f"degraded quality. Stopping early.[/yellow]"
+                        )
+                        return self._create_early_stop_result()
 
                     # Revert to best-so-far for next correction attempt
                     current_result = last_good_result

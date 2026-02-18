@@ -684,7 +684,7 @@ class TestAppraisalEdgeCases:
                 max_iterations=2,
             )
 
-            # With best-so-far rollback, loop reaches max_iterations
-            assert result["final_status"] == "max_iterations_reached"
+            # With best-so-far rollback, loop early-stops after consecutive degradations
+            assert result["final_status"] == "early_stopped_degradation"
             # Best should be iteration 0 (highest quality)
             assert result["best_iteration"] == 0

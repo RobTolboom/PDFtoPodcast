@@ -10,11 +10,13 @@ predictable structural issues that the LLM introduces during correction:
 
 1. Array items that are strings/IDs instead of objects (restore from original)
 2. Properties not allowed by the schema (strip when additionalProperties=false)
+3. Optional fields violating pattern/minimum/enum constraints (remove field)
 
 This avoids wasting a correction retry on issues that can be fixed deterministically.
 """
 
 import logging
+import re
 from copy import deepcopy
 from typing import Any
 
@@ -103,6 +105,59 @@ def _get_id_field_for_array(item_schema: dict[str, Any]) -> str | None:
     return id_candidates[0] if id_candidates else None
 
 
+def _violates_constraints(
+    value: Any,
+    prop_schema: dict[str, Any],
+    required_fields: list[str],
+    field_name: str,
+) -> bool:
+    """Check if a value violates schema constraints that can be fixed by removal.
+
+    Only returns True for OPTIONAL fields where the value is clearly invalid
+    (empty string violating pattern, value below minimum, value not in enum).
+    Required fields are never flagged for removal.
+    """
+    # Never remove required fields
+    if field_name in required_fields:
+        return False
+
+    # Check string pattern violations
+    if isinstance(value, str) and "pattern" in prop_schema:
+        try:
+            if not re.match(prop_schema["pattern"], value):
+                logger.info(
+                    "Removing optional field '%s': value '%s' violates pattern",
+                    field_name,
+                    value[:50],
+                )
+                return True
+        except re.error:
+            pass  # Invalid regex in schema, skip
+
+    # Check minimum violations (integers/numbers)
+    if isinstance(value, int | float) and "minimum" in prop_schema:
+        if value < prop_schema["minimum"]:
+            logger.info(
+                "Removing optional field '%s': value %s below minimum %s",
+                field_name,
+                value,
+                prop_schema["minimum"],
+            )
+            return True
+
+    # Check enum violations
+    if "enum" in prop_schema and value not in prop_schema["enum"]:
+        logger.info(
+            "Removing optional field '%s': value '%s' not in enum %s",
+            field_name,
+            value,
+            prop_schema["enum"],
+        )
+        return True
+
+    return False
+
+
 def _repair_object(
     obj: dict[str, Any],
     schema_props: dict[str, Any],
@@ -111,6 +166,10 @@ def _repair_object(
     original: dict[str, Any] | None,
 ) -> dict[str, Any]:
     """Recursively repair an object according to its schema properties."""
+    required_fields = root_schema.get("required", [])
+
+    keys_to_remove = []
+
     for key, prop_schema in schema_props.items():
         if key not in obj:
             continue
@@ -133,7 +192,7 @@ def _repair_object(
                 nested_props = resolved.get("properties", {})
                 original_nested = original.get(key) if original else None
                 obj[key] = _repair_object(
-                    obj[key], nested_props, schema_defs, root_schema, original_nested
+                    obj[key], nested_props, schema_defs, resolved, original_nested
                 )
                 # Remove disallowed nested properties
                 if resolved.get("additionalProperties") is False and nested_props:
@@ -142,6 +201,14 @@ def _repair_object(
                     for dk in disallowed:
                         logger.info("Removing disallowed property: %s.%s", key, dk)
                         del obj[key][dk]
+        else:
+            # Leaf field: check for constraint violations
+            if _violates_constraints(obj[key], resolved, required_fields, key):
+                keys_to_remove.append(key)
+
+    # Remove violating optional fields (outside iteration loop)
+    for key in keys_to_remove:
+        del obj[key]
 
     return obj
 
@@ -167,12 +234,10 @@ def _repair_array(
         return arr
 
     id_field = _get_id_field_for_array(item_schema)
-    if not id_field:
-        return arr
 
-    # Build lookup from original extraction
+    # Build lookup from original extraction (only useful when id_field exists)
     original_lookup: dict[str, dict] = {}
-    if original_arr and isinstance(original_arr, list):
+    if id_field and original_arr and isinstance(original_arr, list):
         for item in original_arr:
             if isinstance(item, dict) and id_field in item:
                 original_lookup[str(item[id_field])] = item
@@ -182,7 +247,7 @@ def _repair_array(
         if isinstance(item, dict):
             # Item is already an object - recurse into it for nested repairs
             nested_props = item_schema.get("properties", {})
-            item = _repair_object(item, nested_props, schema_defs, {}, None)
+            item = _repair_object(item, nested_props, schema_defs, item_schema, None)
             # Remove disallowed properties within array items
             if item_schema.get("additionalProperties") is False and nested_props:
                 allowed = set(nested_props.keys())
@@ -191,7 +256,7 @@ def _repair_array(
                     logger.info("Removing disallowed property in array item: %s", dk)
                     del item[dk]
             repaired.append(item)
-        elif isinstance(item, str):
+        elif isinstance(item, str) and id_field:
             # Item is a string but should be an object - try to restore
             if item in original_lookup:
                 logger.info("Restored array item from original: %s=%s", id_field, item)
