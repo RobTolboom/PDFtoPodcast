@@ -430,9 +430,9 @@ def test_show_summary_generation_success(
             "and found statistically significant improvements in mortality outcomes."
         ),
         "study_at_a_glance": [
-            "Randomized controlled trial with 500 participants",
-            "Treatment group showed 30% improvement",
-            "Follow-up period of 12 months",
+            {"label": "Design", "content": "Randomized controlled trial with 500 participants"},
+            {"label": "Result", "content": "Treatment group showed 30% improvement"},
+            {"label": "Follow-up", "content": "Follow-up period of 12 months"},
         ],
         "citation": "Smith et al. (2025). Journal of Medicine.",
     }

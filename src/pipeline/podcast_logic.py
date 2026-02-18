@@ -121,6 +121,14 @@ PODCAST_SCHEMA:
         validation_issues = []  # Non-critical issues (warnings)
         critical_issues = []  # Critical issues (hard fail)
 
+        # Extract GRADE certainty upfront (used by both transcript and summary validation)
+        grade = appraisal_result.get("grade", {})
+        if isinstance(grade, dict):
+            grade_certainty = grade.get("certainty_overall", "").lower()
+        else:
+            grade_certainty = ""
+        high_certainty_words = ["shows", "demonstrates", "reduces", "increases"]
+
         # Check 0: Schema validation (hard requirement)
         try:
             jsonschema_validate(podcast_clean, schema)
@@ -208,12 +216,6 @@ PODCAST_SCHEMA:
 
         # Check 6: GRADE certainty alignment
         # High-certainty words should not be used with low/very low GRADE evidence
-        grade = appraisal_result.get("grade", {})
-        if isinstance(grade, dict):
-            grade_certainty = grade.get("certainty_overall", "").lower()
-        else:
-            grade_certainty = ""
-        high_certainty_words = ["shows", "demonstrates", "reduces", "increases"]
         transcript_lower = transcript.lower()
         if grade_certainty in ["low", "very low"]:
             for word in high_certainty_words:
@@ -308,7 +310,12 @@ SHOW_SUMMARY_SCHEMA:
 
             # Critical: at least 3 bullets
             bullets = summary_json.get("study_at_a_glance", [])
-            if len(bullets) < 3:
+            if not all(isinstance(b, dict) for b in bullets):
+                summary_critical_issues.append(
+                    "study_at_a_glance bullets must be objects with 'label' and 'content' keys, "
+                    "not plain strings."
+                )
+            elif len(bullets) < 3:
                 summary_critical_issues.append(
                     f"Too few study-at-a-glance bullets ({len(bullets)}). Minimum: 3."
                 )

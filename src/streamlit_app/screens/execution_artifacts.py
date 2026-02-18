@@ -19,6 +19,7 @@ from pathlib import Path
 import streamlit as st
 
 from src.pipeline.file_manager import PipelineFileManager
+from src.rendering.podcast_renderer import render_show_summary_plain_text
 
 
 def display_report_artifacts():
@@ -133,26 +134,7 @@ def display_podcast_artifacts():
         # Show summary display (plain text for copy-paste to podcast apps)
         show_summary = podcast_data.get("show_summary")
         if show_summary:
-            citation = show_summary.get("citation", "")
-            synopsis = show_summary.get("synopsis", "")
-            bullets = show_summary.get("study_at_a_glance", [])
-
-            # Build plain text representation
-            summary_lines = []
-            if citation:
-                summary_lines.append(f"Citation:\n{citation}")
-                summary_lines.append("")
-            if synopsis:
-                summary_lines.append(synopsis)
-                summary_lines.append("")
-            if bullets:
-                summary_lines.append("Study at a glance")
-                for bullet in bullets:
-                    label = bullet.get("label", "")
-                    content_text = bullet.get("content", "")
-                    summary_lines.append(f"- {label}: {content_text}")
-
-            summary_text = "\n".join(summary_lines)
+            summary_text = render_show_summary_plain_text(show_summary)
 
             with st.expander("Show Summary"):
                 st.text_area(

@@ -28,7 +28,7 @@ LANGUAGE_NAMES: dict[str, str] = {
 }
 
 
-def _render_show_summary_plain_text(show_summary: dict[str, Any]) -> str:
+def render_show_summary_plain_text(show_summary: dict[str, Any]) -> str:
     """Render show_summary as plain text for podcast apps and web.
 
     Produces unformatted text suitable for podcast app description fields,
@@ -59,9 +59,12 @@ def _render_show_summary_plain_text(show_summary: dict[str, Any]) -> str:
     if bullets:
         lines.append("Study at a glance")
         for bullet in bullets:
-            label = bullet.get("label", "")
-            content_text = bullet.get("content", "")
-            lines.append(f"- {label}: {content_text}")
+            if isinstance(bullet, dict):
+                label = bullet.get("label", "")
+                content_text = bullet.get("content", "")
+                lines.append(f"- {label}: {content_text}")
+            else:
+                lines.append(f"- {bullet}")
 
     return "\n".join(lines)
 
@@ -156,7 +159,7 @@ def render_podcast_to_markdown(podcast: dict[str, Any], output_path: Path) -> Pa
     show_summary = podcast.get("show_summary")
     if show_summary and isinstance(show_summary, dict):
         lines.append("")
-        lines.append(_render_show_summary_plain_text(show_summary))
+        lines.append(render_show_summary_plain_text(show_summary))
         lines.append("")
         lines.append("---")
 
