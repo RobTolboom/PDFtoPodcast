@@ -368,10 +368,10 @@ class TestIterativeLoop:
     def test_loop_max_iterations_when_corrections_degrade(
         self, mock_get_llm, mock_correction, mock_validation, mock_dependencies
     ):
-        """Test loop reaches max iterations when corrections degrade.
+        """Test loop exits early when consecutive corrections degrade.
 
-        With best-so-far rollback, degraded corrections are reverted. The loop
-        keeps retrying from the best version until max_iterations is reached.
+        With stuck loop detection, 2 consecutive rollbacks trigger early exit
+        instead of burning through all iterations.
         """
         # Mock LLM provider
         mock_llm = MagicMock()
@@ -436,10 +436,8 @@ class TestIterativeLoop:
         # Run loop
         result = run_validation_with_correction(**mock_dependencies)
 
-        # Assertions — with best-so-far rollback, loop reaches max_iterations
-        assert result["final_status"] == "max_iterations_reached"
-        assert "warning" in result
-        assert "Max iterations" in result["warning"]
+        # Assertions — with stuck loop detection, consecutive rollbacks trigger early exit
+        assert result["final_status"] == "early_stopped_degradation"
 
 
 class TestEdgeCases:
