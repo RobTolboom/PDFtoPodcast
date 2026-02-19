@@ -560,9 +560,9 @@ def test_show_summary_validation_synopsis_too_short(
     short_synopsis_summary = {
         "synopsis": "Too short.",  # Only 10 chars, below 50-char minimum
         "study_at_a_glance": [
-            "Bullet one",
-            "Bullet two",
-            "Bullet three",
+            {"label": "Design", "content": "Randomized controlled trial"},
+            {"label": "Result", "content": "Treatment showed improvement"},
+            {"label": "Follow-up", "content": "12-month follow-up period"},
         ],
         "citation": "Smith et al. (2025). Journal of Medicine.",
     }
@@ -592,3 +592,76 @@ def test_show_summary_validation_synopsis_too_short(
     summary_val = result["validation"]["summary_validation"]
     assert summary_val["status"] == "failed"
     assert any("Synopsis too short" in issue for issue in summary_val["critical_issues"])
+
+
+@patch("src.pipeline.podcast_logic.load_podcast_summary_prompt")
+@patch("src.pipeline.podcast_logic.load_schema")
+@patch("src.pipeline.podcast_logic.load_podcast_generation_prompt")
+@patch("src.pipeline.podcast_logic.get_llm_provider")
+def test_show_summary_validation_synopsis_too_long(
+    mock_get_llm,
+    mock_load_prompt,
+    mock_load_schema,
+    mock_load_summary_prompt,
+    mock_file_manager,
+    mock_llm,
+):
+    """Test that synopsis > 500 chars fails summary validation and is NOT merged."""
+    mock_get_llm.return_value = mock_llm
+    mock_load_schema.return_value = {
+        "type": "object",
+        "properties": {
+            "show_summary": {
+                "type": "object",
+                "properties": {
+                    "synopsis": {"type": "string"},
+                    "study_at_a_glance": {"type": "array"},
+                    "citation": {"type": "string"},
+                },
+            }
+        },
+    }
+    mock_load_prompt.return_value = "Generate podcast"
+    mock_load_summary_prompt.return_value = "Generate show summary"
+
+    # First call returns transcript, second call returns summary with long synopsis
+    valid_transcript = {
+        "podcast_version": "v1.0",
+        "metadata": {"title": "Test Podcast", "word_count": 1000, "estimated_duration_minutes": 6},
+        "transcript": "This study examined mortality outcomes and found significant results. " * 90,
+    }
+    long_synopsis_summary = {
+        "synopsis": "A" * 501,  # 501 chars, above 500-char maximum
+        "study_at_a_glance": [
+            {"label": "Design", "content": "Randomized controlled trial"},
+            {"label": "Result", "content": "Treatment showed improvement"},
+            {"label": "Follow-up", "content": "12-month follow-up period"},
+        ],
+        "citation": "Smith et al. (2025). Journal of Medicine.",
+    }
+    mock_llm.generate_json_with_schema.side_effect = [valid_transcript, long_synopsis_summary]
+
+    extraction = {
+        "interventions": [{"name": "Drug X"}],
+        "outcomes": {"primary": {"description": "mortality"}},
+    }
+    appraisal = {"grade": {"certainty_overall": "high"}}
+
+    result = run_podcast_generation(
+        extraction_result=extraction,
+        appraisal_result=appraisal,
+        classification_result={},
+        llm_provider="openai",
+        file_manager=mock_file_manager,
+    )
+
+    # Podcast should still succeed (summary failure is non-fatal)
+    assert result["status"] == "success"
+
+    # show_summary should NOT be merged (validation failed)
+    assert "show_summary" not in result["podcast"]
+
+    # Summary validation should be "failed"
+    summary_val = result["validation"]["summary_validation"]
+    assert summary_val["status"] == "failed"
+    assert any("Synopsis too long" in issue for issue in summary_val["critical_issues"])

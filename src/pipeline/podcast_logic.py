@@ -297,6 +297,12 @@ SHOW_SUMMARY_SCHEMA:
             )
 
             # Validate show summary
+            # Critical: schema compliance
+            try:
+                jsonschema_validate(summary_json, summary_schema)
+            except JsonSchemaValidationError as e:
+                summary_critical_issues.append(f"Summary schema validation failed: {e.message}")
+
             # Critical: synopsis length
             synopsis = summary_json.get("synopsis", "")
             if len(synopsis) < 50:
