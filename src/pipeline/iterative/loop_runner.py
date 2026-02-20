@@ -126,6 +126,7 @@ class IterativeLoopConfig:
     step_number: int = 3  # For display purposes
     max_correction_retries: int = 2  # Max retries per correction when schema fails
     max_initial_retries: int = 2  # Max retries for initial result schema failure
+    verbose: bool = False  # Show detailed validation/correction output (debugging)
 
 
 @dataclass

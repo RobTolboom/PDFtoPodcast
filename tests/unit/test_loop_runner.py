@@ -39,6 +39,16 @@ class TestIterativeLoopConfig:
         assert config.degradation_window == 2
         assert config.step_name == "ITERATIVE LOOP"
 
+    def test_verbose_defaults_to_false(self):
+        """Test that verbose flag defaults to False."""
+        config = IterativeLoopConfig(metric_type=MetricType.EXTRACTION)
+        assert config.verbose is False
+
+    def test_verbose_can_be_set_true(self):
+        """Test that verbose flag can be set to True."""
+        config = IterativeLoopConfig(metric_type=MetricType.EXTRACTION, verbose=True)
+        assert config.verbose is True
+
     def test_custom_values(self):
         """Test custom configuration values."""
         thresholds = QualityThresholds(completeness_score=0.80)
