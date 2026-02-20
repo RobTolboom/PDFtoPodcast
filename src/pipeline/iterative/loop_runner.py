@@ -283,7 +283,15 @@ class IterativeLoopRunner:
 
         while iteration_num <= self.config.max_iterations:
             # Display iteration header
-            self.console.print(f"\n[bold cyan]─── Iteration {iteration_num} ───[/bold cyan]")
+            if self.config.verbose:
+                self.console.print(f"\n[bold cyan]─── Iteration {iteration_num} ───[/bold cyan]")
+            elif iteration_num == 0:
+                self.console.print("\n[bold cyan]─── Initial Validation ───[/bold cyan]")
+            else:
+                self.console.print(
+                    f"\n[bold cyan]─── Correction {iteration_num} of "
+                    f"{self.config.max_iterations} ───[/bold cyan]"
+                )
 
             try:
                 # Call progress callback
@@ -347,13 +355,15 @@ class IterativeLoopRunner:
                         result_path, validation_path = self.save_iteration_fn(
                             iteration_num, current_result, validation_result
                         )
-                        if validation_path:
+                        if validation_path and self.config.verbose:
                             self.console.print(f"[dim]Saved validation: {validation_path}[/dim]")
                 else:
                     validation_result = current_validation
-                    self.console.print(
-                        f"[dim]Reusing post-correction validation for iteration {iteration_num}[/dim]"
-                    )
+                    if self.config.verbose:
+                        self.console.print(
+                            f"[dim]Reusing post-correction validation for iteration "
+                            f"{iteration_num}[/dim]"
+                        )
 
                 # Extract and store metrics
                 metrics = extract_metrics(validation_result, self.config.metric_type)
@@ -392,9 +402,10 @@ class IterativeLoopRunner:
                 if not is_retry:
                     correction_retry_count = 0
                 self._call_progress("starting", iteration_num, "correction")
-                self.console.print(
-                    f"\n[yellow]Running correction (iteration {iteration_num})...[/yellow]"
-                )
+                if self.config.verbose:
+                    self.console.print(
+                        f"\n[yellow]Running correction (iteration {iteration_num})...[/yellow]"
+                    )
 
                 # Inject correction hints if available from previous failure
                 correction_validation = validation_result
@@ -553,9 +564,17 @@ class IterativeLoopRunner:
                 elif delta < 0:
                     delta_str = f" [red]↓{delta:+.1%}[/red]"
 
+        # Build prefix based on verbose mode
+        if self.config.verbose:
+            prefix = f"[cyan]Iteration {iteration_num}:[/cyan]"
+        elif iteration_num == 0:
+            prefix = "[cyan]Initial:[/cyan]"
+        else:
+            prefix = f"[cyan]Correction {iteration_num}:[/cyan]"
+
         # Single-line output
         self.console.print(
-            f"[cyan]Iteration {iteration_num}:[/cyan] "
+            f"{prefix} "
             f"Quality {metrics.quality_score:.1%}{delta_str} | "
             f"Schema {metrics.schema_compliance_score:.1%} | "
             f"Complete {metrics.completeness_score:.1%} | "

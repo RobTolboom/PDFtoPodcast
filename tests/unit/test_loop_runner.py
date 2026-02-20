@@ -8,8 +8,11 @@ Tests cover:
 - Success, early stop, max iterations, and error cases
 """
 
+from io import StringIO
 from pathlib import Path
 from unittest.mock import MagicMock
+
+from rich.console import Console
 
 from src.pipeline.iterative import (
     IterativeLoopConfig,
@@ -1151,3 +1154,184 @@ class TestStuckLoopEarlyExit:
 
         # Should NOT early exit — improvement at iter 1 resets counter
         assert result.final_status == FINAL_STATUS_PASSED
+
+
+class TestReadableOutput:
+    """Test human-readable console output format."""
+
+    def _create_validation_result(
+        self,
+        completeness: float = 0.95,
+        accuracy: float = 0.98,
+        schema_compliance: float = 0.97,
+    ) -> dict:
+        return {
+            "verification_summary": {
+                "completeness_score": completeness,
+                "accuracy_score": accuracy,
+                "schema_compliance_score": schema_compliance,
+                "critical_issues": 0,
+                "overall_status": "passed",
+            },
+            "schema_validation": {"quality_score": 1.0},
+        }
+
+    def _make_console(self) -> tuple[Console, StringIO]:
+        """Create a Rich console that writes to a StringIO buffer (plain text, no ANSI)."""
+        buf = StringIO()
+        return Console(file=buf, width=120, no_color=True), buf
+
+    def test_initial_validation_no_iteration_number(self):
+        """Initial validation should not show 'Iteration 0'."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            show_banner=False,
+        )
+
+        validate_fn = MagicMock(
+            return_value=self._create_validation_result(
+                completeness=0.95, accuracy=0.98, schema_compliance=0.97
+            )
+        )
+        correct_fn = MagicMock()
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+        runner.run()
+
+        output = buf.getvalue()
+        assert "Iteration 0" not in output
+
+    def test_correction_shows_n_of_max(self):
+        """Correction should show 'Correction 1 of 3' not 'Iteration 1'."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            show_banner=False,
+        )
+
+        validation_fail = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.90
+        )
+        validation_pass = self._create_validation_result(
+            completeness=0.95, accuracy=0.98, schema_compliance=0.97
+        )
+
+        validate_fn = MagicMock(side_effect=[validation_fail, validation_pass])
+        correct_fn = MagicMock(return_value={"data": "corrected"})
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+        runner.run()
+
+        output = buf.getvalue()
+        assert "Correction 1 of 3" in output
+        assert "Iteration 1" not in output
+
+    def test_reuse_validation_message_hidden(self):
+        """'Reusing post-correction validation' should not appear when verbose=False."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            show_banner=False,
+        )
+
+        validation_fail = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.90
+        )
+        validation_pass = self._create_validation_result(
+            completeness=0.95, accuracy=0.98, schema_compliance=0.97
+        )
+
+        validate_fn = MagicMock(side_effect=[validation_fail, validation_pass])
+        correct_fn = MagicMock(return_value={"data": "corrected"})
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+        runner.run()
+
+        output = buf.getvalue()
+        assert "Reusing" not in output
+
+    def test_running_correction_message_hidden(self):
+        """'Running correction' should not appear when verbose=False."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            show_banner=False,
+        )
+
+        validation_fail = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.90
+        )
+        validation_pass = self._create_validation_result(
+            completeness=0.95, accuracy=0.98, schema_compliance=0.97
+        )
+
+        validate_fn = MagicMock(side_effect=[validation_fail, validation_pass])
+        correct_fn = MagicMock(return_value={"data": "corrected"})
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+        runner.run()
+
+        output = buf.getvalue()
+        assert "Running correction" not in output
+
+    def test_verbose_true_shows_iteration_headers(self):
+        """When verbose=True, original 'Iteration N' headers should appear."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            show_banner=False,
+            verbose=True,
+        )
+
+        validation_fail = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.90
+        )
+        validation_pass = self._create_validation_result(
+            completeness=0.95, accuracy=0.98, schema_compliance=0.97
+        )
+
+        validate_fn = MagicMock(side_effect=[validation_fail, validation_pass])
+        correct_fn = MagicMock(return_value={"data": "corrected"})
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+        runner.run()
+
+        output = buf.getvalue()
+        assert "Iteration 0" in output
+        assert "Iteration 1" in output
