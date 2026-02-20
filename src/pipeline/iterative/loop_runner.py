@@ -469,6 +469,8 @@ class IterativeLoopRunner:
 
                 if corrected_metrics.quality_score >= best_so_far_metrics.quality_score:
                     # Correction improved or maintained quality — accept it
+                    if not self.config.verbose:
+                        self._display_before_after_quality(best_so_far_metrics, corrected_metrics)
                     last_good_result = corrected_result
                     last_good_validation = corrected_validation
                     correction_retry_count = 0
@@ -480,12 +482,23 @@ class IterativeLoopRunner:
                     current_validation = corrected_validation
                 else:
                     # Correction degraded quality — revert to best-so-far
-                    self.console.print(
-                        f"[yellow]⚠ Correction degraded quality "
-                        f"({corrected_metrics.quality_score:.1%} < "
-                        f"{best_so_far_metrics.quality_score:.1%}), "
-                        f"reverting to best iteration for next attempt[/yellow]"
-                    )
+                    if self.config.verbose:
+                        self.console.print(
+                            f"[yellow]⚠ Correction degraded quality "
+                            f"({corrected_metrics.quality_score:.1%} < "
+                            f"{best_so_far_metrics.quality_score:.1%}), "
+                            f"reverting to best iteration for next attempt[/yellow]"
+                        )
+                    else:
+                        q_delta = (
+                            corrected_metrics.quality_score - best_so_far_metrics.quality_score
+                        )
+                        self.console.print(
+                            f"  Quality: {best_so_far_metrics.quality_score:.1%} → "
+                            f"{corrected_metrics.quality_score:.1%} "
+                            f"[red]({q_delta:+.1%})[/red]"
+                            f" — reverting to best"
+                        )
                     # Reset retry count: next correction starts fresh from best-so-far,
                     # so previous schema-failure retries are no longer relevant.
                     correction_retry_count = 0
@@ -579,6 +592,43 @@ class IterativeLoopRunner:
             f"Schema {metrics.schema_compliance_score:.1%} | "
             f"Complete {metrics.completeness_score:.1%} | "
             f"{status_str}"
+        )
+
+    def _display_before_after_quality(
+        self,
+        before_metrics: QualityMetrics,
+        after_metrics: QualityMetrics,
+    ) -> None:
+        """Display compact before→after quality comparison after correction."""
+        metrics_to_show = [
+            (
+                "Schema",
+                before_metrics.schema_compliance_score,
+                after_metrics.schema_compliance_score,
+            ),
+            ("Completeness", before_metrics.completeness_score, after_metrics.completeness_score),
+            ("Accuracy", before_metrics.accuracy_score, after_metrics.accuracy_score),
+        ]
+
+        for name, before, after in metrics_to_show:
+            if before is None or after is None:
+                continue
+            delta = after - before
+            if abs(delta) < 0.001:
+                continue  # Skip unchanged metrics
+            color = "green" if delta > 0 else "red"
+            self.console.print(
+                f"  {name}: {before:.1%} → {after:.1%} [{color}]({delta:+.1%})[/{color}]"
+            )
+
+        # Overall quality line with pass/fail indicator
+        q_delta = after_metrics.quality_score - before_metrics.quality_score
+        color = "green" if q_delta >= 0 else "red"
+        meets = is_quality_sufficient_from_metrics(after_metrics, self.thresholds)
+        suffix = " ✅" if meets else ""
+        self.console.print(
+            f"  Quality: {before_metrics.quality_score:.1%} → "
+            f"{after_metrics.quality_score:.1%} [{color}]({q_delta:+.1%})[/{color}]{suffix}"
         )
 
     def _get_schema_quality(self, validation_result: dict) -> float:

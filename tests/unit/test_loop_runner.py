@@ -1335,3 +1335,77 @@ class TestReadableOutput:
         output = buf.getvalue()
         assert "Iteration 0" in output
         assert "Iteration 1" in output
+
+    def test_before_after_quality_displayed(self):
+        """After correction, should show before→after per metric."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            show_banner=False,
+        )
+
+        validation_before = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.90
+        )
+        validation_after = self._create_validation_result(
+            completeness=0.95, accuracy=0.98, schema_compliance=0.97
+        )
+
+        validate_fn = MagicMock(side_effect=[validation_before, validation_after])
+        correct_fn = MagicMock(return_value={"data": "corrected"})
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+        runner.run()
+
+        output = buf.getvalue()
+        # Should show per-metric before→after with deltas
+        assert "Schema:" in output
+        assert "90.0%" in output
+        assert "97.0%" in output
+        assert "Quality:" in output
+
+    def test_degraded_correction_shows_revert_message(self):
+        """When correction degrades quality, should show revert message."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            show_banner=False,
+        )
+
+        validation_initial = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.90
+        )
+        validation_degraded = self._create_validation_result(
+            completeness=0.60, accuracy=0.70, schema_compliance=0.80
+        )
+        # Second correction passes
+        validation_pass = self._create_validation_result(
+            completeness=0.95, accuracy=0.98, schema_compliance=0.97
+        )
+
+        validate_fn = MagicMock(
+            side_effect=[validation_initial, validation_degraded, validation_pass]
+        )
+        correct_fn = MagicMock(side_effect=[{"data": "degraded"}, {"data": "final"}])
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+        runner.run()
+
+        output = buf.getvalue()
+        # Should show compact quality line with arrow and revert message
+        assert "→" in output
+        assert "reverting to best" in output
