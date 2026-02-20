@@ -272,6 +272,8 @@ PODCAST_SCHEMA:
 
             # Build summary prompt context with all inputs including transcript
             summary_schema = schema.get("properties", {}).get("show_summary", {})
+            if not summary_schema:
+                raise ValueError("show_summary schema not found in podcast schema")
             summary_prompt_context = f"""EXTRACTION_JSON:
 {json.dumps(extraction_clean, indent=2)}
 
@@ -314,14 +316,14 @@ SHOW_SUMMARY_SCHEMA:
                     f"Synopsis too long ({len(synopsis)} chars). Maximum: 500."
                 )
 
-            # Critical: at least 3 bullets
+            # Critical: at least 3 bullets with correct type
             bullets = summary_json.get("study_at_a_glance", [])
             if not all(isinstance(b, dict) for b in bullets):
                 summary_critical_issues.append(
                     "study_at_a_glance bullets must be objects with 'label' and 'content' keys, "
                     "not plain strings."
                 )
-            elif len(bullets) < 3:
+            if len(bullets) < 3:
                 summary_critical_issues.append(
                     f"Too few study-at-a-glance bullets ({len(bullets)}). Minimum: 3."
                 )

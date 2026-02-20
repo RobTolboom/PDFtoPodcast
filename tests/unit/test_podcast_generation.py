@@ -665,3 +665,157 @@ def test_show_summary_validation_synopsis_too_long(
     summary_val = result["validation"]["summary_validation"]
     assert summary_val["status"] == "failed"
     assert any("Synopsis too long" in issue for issue in summary_val["critical_issues"])
+
+
+@patch("src.pipeline.podcast_logic.load_podcast_summary_prompt")
+@patch("src.pipeline.podcast_logic.load_schema")
+@patch("src.pipeline.podcast_logic.load_podcast_generation_prompt")
+@patch("src.pipeline.podcast_logic.get_llm_provider")
+def test_show_summary_warns_grade_language_mismatch(
+    mock_get_llm,
+    mock_load_prompt,
+    mock_load_schema,
+    mock_load_summary_prompt,
+    mock_file_manager,
+    mock_llm,
+):
+    """Test that high-certainty words in synopsis with low GRADE evidence trigger warning."""
+    mock_get_llm.return_value = mock_llm
+    mock_load_schema.return_value = {
+        "type": "object",
+        "properties": {
+            "show_summary": {
+                "type": "object",
+                "properties": {
+                    "synopsis": {"type": "string"},
+                    "study_at_a_glance": {"type": "array"},
+                    "citation": {"type": "string"},
+                },
+            }
+        },
+    }
+    mock_load_prompt.return_value = "Generate podcast"
+    mock_load_summary_prompt.return_value = "Generate show summary"
+
+    valid_transcript = {
+        "podcast_version": "v1.0",
+        "metadata": {"title": "Test Podcast", "word_count": 1000, "estimated_duration_minutes": 6},
+        "transcript": "This study examined mortality outcomes and found significant results. " * 90,
+    }
+    # Synopsis uses high-certainty word "demonstrates" with low GRADE evidence
+    grade_mismatch_summary = {
+        "synopsis": (
+            "This study demonstrates a clear and significant benefit of the novel treatment "
+            "approach over standard care in patients with chronic disease."
+        ),
+        "study_at_a_glance": [
+            {"label": "Design", "content": "Randomized controlled trial"},
+            {"label": "Result", "content": "Treatment showed improvement"},
+            {"label": "Follow-up", "content": "12-month follow-up period"},
+        ],
+        "citation": "Smith et al. (2025). Journal of Medicine.",
+    }
+    mock_llm.generate_json_with_schema.side_effect = [valid_transcript, grade_mismatch_summary]
+
+    extraction = {
+        "interventions": [{"name": "Drug X"}],
+        "outcomes": {"primary": {"description": "mortality"}},
+    }
+    appraisal = {"grade": {"certainty_overall": "low"}}
+
+    result = run_podcast_generation(
+        extraction_result=extraction,
+        appraisal_result=appraisal,
+        classification_result={},
+        llm_provider="openai",
+        file_manager=mock_file_manager,
+    )
+
+    # Podcast should succeed (GRADE mismatch is a warning, not critical)
+    assert result["status"] == "success"
+
+    # Summary should be merged (no critical issues)
+    assert "show_summary" in result["podcast"]
+
+    # Summary validation should have warnings
+    summary_val = result["validation"]["summary_validation"]
+    assert summary_val["status"] == "warnings"
+    assert any(
+        "High-certainty word" in issue and "low GRADE" in issue for issue in summary_val["issues"]
+    )
+
+
+@patch("src.pipeline.podcast_logic.load_podcast_summary_prompt")
+@patch("src.pipeline.podcast_logic.load_schema")
+@patch("src.pipeline.podcast_logic.load_podcast_generation_prompt")
+@patch("src.pipeline.podcast_logic.get_llm_provider")
+def test_show_summary_warns_citation_missing_year(
+    mock_get_llm,
+    mock_load_prompt,
+    mock_load_schema,
+    mock_load_summary_prompt,
+    mock_file_manager,
+    mock_llm,
+):
+    """Test that citation missing a 4-digit year triggers a warning."""
+    mock_get_llm.return_value = mock_llm
+    mock_load_schema.return_value = {
+        "type": "object",
+        "properties": {
+            "show_summary": {
+                "type": "object",
+                "properties": {
+                    "synopsis": {"type": "string"},
+                    "study_at_a_glance": {"type": "array"},
+                    "citation": {"type": "string"},
+                },
+            }
+        },
+    }
+    mock_load_prompt.return_value = "Generate podcast"
+    mock_load_summary_prompt.return_value = "Generate show summary"
+
+    valid_transcript = {
+        "podcast_version": "v1.0",
+        "metadata": {"title": "Test Podcast", "word_count": 1000, "estimated_duration_minutes": 6},
+        "transcript": "This study examined mortality outcomes and found significant results. " * 90,
+    }
+    # Citation deliberately missing a year
+    no_year_summary = {
+        "synopsis": (
+            "This study examined a novel treatment approach for patients with chronic disease "
+            "and found statistically significant improvements in mortality outcomes."
+        ),
+        "study_at_a_glance": [
+            {"label": "Design", "content": "Randomized controlled trial"},
+            {"label": "Result", "content": "Treatment showed improvement"},
+            {"label": "Follow-up", "content": "12-month follow-up period"},
+        ],
+        "citation": "Smith et al. Journal of Medicine. In press.",
+    }
+    mock_llm.generate_json_with_schema.side_effect = [valid_transcript, no_year_summary]
+
+    extraction = {
+        "interventions": [{"name": "Drug X"}],
+        "outcomes": {"primary": {"description": "mortality"}},
+    }
+    appraisal = {"grade": {"certainty_overall": "high"}}
+
+    result = run_podcast_generation(
+        extraction_result=extraction,
+        appraisal_result=appraisal,
+        classification_result={},
+        llm_provider="openai",
+        file_manager=mock_file_manager,
+    )
+
+    # Podcast should succeed
+    assert result["status"] == "success"
+
+    # Summary should be merged (missing year is a warning, not critical)
+    assert "show_summary" in result["podcast"]
+
+    # Summary validation should have warnings
+    summary_val = result["validation"]["summary_validation"]
+    assert summary_val["status"] == "warnings"
+    assert any("missing publication year" in issue for issue in summary_val["issues"])
