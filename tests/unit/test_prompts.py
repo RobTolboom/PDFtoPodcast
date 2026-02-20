@@ -16,6 +16,7 @@ from src.prompts import (
     load_correction_prompt,
     load_extraction_prompt,
     load_podcast_generation_prompt,
+    load_podcast_summary_prompt,
     load_validation_prompt,
 )
 
@@ -209,6 +210,30 @@ class TestLoadPodcastGenerationPrompt:
                 load_podcast_generation_prompt()
 
             assert "Podcast generation prompt not found" in str(exc_info.value)
+
+
+class TestLoadPodcastSummaryPrompt:
+    """Tests for podcast summary prompt loading."""
+
+    def test_load_podcast_summary_prompt_success(self):
+        """Test that podcast summary prompt loads successfully."""
+        prompt = load_podcast_summary_prompt()
+        assert prompt is not None
+        assert len(prompt) > 0
+
+    def test_load_podcast_summary_prompt_contains_required_sections(self):
+        """Test that podcast summary prompt contains key instruction sections."""
+        prompt = load_podcast_summary_prompt()
+        assert "citation" in prompt.lower()
+        assert "synopsis" in prompt.lower()
+        assert "study_at_a_glance" in prompt.lower() or "study at a glance" in prompt.lower()
+
+    def test_load_podcast_summary_prompt_file_not_found_raises_error(self):
+        """Test that missing podcast summary prompt raises PromptLoadError."""
+        with patch("src.prompts.PROMPTS_DIR", Path("/nonexistent")):
+            with pytest.raises(PromptLoadError) as exc_info:
+                load_podcast_summary_prompt()
+            assert "Podcast summary prompt not found" in str(exc_info.value)
 
 
 class TestPromptsModuleConstants:

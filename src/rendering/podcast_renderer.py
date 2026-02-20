@@ -15,7 +15,8 @@ The renderer produces a simple structure:
 1. Title header (H1)
 2. Metadata line (duration, word count, language, audience)
 3. Continuous transcript (plain text, TTS-ready)
-4. Source attribution footer
+4. Show summary as plain text (optional, for podcast app descriptions)
+5. Source attribution footer
 """
 
 from pathlib import Path
@@ -25,6 +26,47 @@ from typing import Any
 LANGUAGE_NAMES: dict[str, str] = {
     "en": "English",
 }
+
+
+def render_show_summary_plain_text(show_summary: dict[str, Any]) -> str:
+    """Render show_summary as plain text for podcast apps and web.
+
+    Produces unformatted text suitable for podcast app description fields,
+    RSS feed descriptions, and web display. No markdown formatting is used.
+
+    Args:
+        show_summary: Dictionary with optional keys:
+            - citation (str): Full citation string
+            - synopsis (str): Episode synopsis paragraph
+            - study_at_a_glance (list[dict]): Bullet items with label/content
+
+    Returns:
+        Plain text string with citation, synopsis, and study-at-a-glance bullets.
+    """
+    lines: list[str] = []
+
+    citation = show_summary.get("citation", "")
+    if citation:
+        lines.append(f"Citation:\n{citation}")
+        lines.append("")
+
+    synopsis = show_summary.get("synopsis", "")
+    if synopsis:
+        lines.append(synopsis)
+        lines.append("")
+
+    bullets = show_summary.get("study_at_a_glance", [])
+    if bullets:
+        lines.append("Study at a glance")
+        for bullet in bullets:
+            if isinstance(bullet, dict):
+                label = bullet.get("label", "")
+                content_text = bullet.get("content", "")
+                lines.append(f"- {label}: {content_text}")
+            else:
+                lines.append(f"- {bullet}")
+
+    return "\n".join(lines)
 
 
 def render_podcast_to_markdown(podcast: dict[str, Any], output_path: Path) -> Path:
@@ -42,7 +84,12 @@ def render_podcast_to_markdown(podcast: dict[str, Any], output_path: Path) -> Pa
                     "target_audience": str (default "practising clinicians"),
                     "study_id": str (optional)
                 },
-                "transcript": str (continuous text, TTS-ready)
+                "transcript": str (continuous text, TTS-ready),
+                "show_summary": {  # optional
+                    "citation": str,
+                    "synopsis": str,
+                    "study_at_a_glance": [{"label": str, "content": str}, ...]
+                }
             }
         output_path: Full path where to save the .md file
 
@@ -93,6 +140,8 @@ def render_podcast_to_markdown(podcast: dict[str, Any], output_path: Path) -> Pa
     # - Horizontal rule
     # - Transcript (plain text, no escaping needed)
     # - Horizontal rule
+    # - Show summary as plain text (if present)
+    # - Horizontal rule (if show summary present)
     # - Footer: Source attribution
     lines = [
         f"# {title} - Podcast Script",
@@ -104,9 +153,20 @@ def render_podcast_to_markdown(podcast: dict[str, Any], output_path: Path) -> Pa
         transcript,  # Plain text, no escaping needed (TTS-ready)
         "",
         "---",
-        "",
-        f"*Generated from: {study_id} | Sources: extraction-best.json, appraisal-best.json*",
     ]
+
+    # Append show summary as plain text (if present)
+    show_summary = podcast.get("show_summary")
+    if show_summary and isinstance(show_summary, dict):
+        lines.append("")
+        lines.append(render_show_summary_plain_text(show_summary))
+        lines.append("")
+        lines.append("---")
+
+    lines.append("")
+    lines.append(
+        f"*Generated from: {study_id} | Sources: extraction-best.json, appraisal-best.json*"
+    )
 
     md_content = "\n".join(lines)
 
