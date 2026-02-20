@@ -35,6 +35,7 @@
       <rule>Create a planning markdown in the "docs/plans" directory with goal, scope, task list, risks, and acceptance criteria.</rule>
     </planning_phase>
     <development>
+      <rule>Never commit directly to main. Always create a feature/bugfix/release branch first.</rule>
       <rule>Work in the correct branch; create one if needed and record the branch name in the feature document.</rule>
       <rule>Commit regularly with clear descriptions; run format/lint/tests before each commit.</rule>
       <rule>Push and PR only after explicit user approval.</rule>

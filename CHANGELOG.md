@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Podcast Show Summary** - Plain-text episode companion generated alongside the podcast transcript
+  - Citation in Vancouver/NLM style, 2-3 sentence narrative synopsis, structured "Study at a glance" bullets
+  - Adapts bullet structure to study type (RCT, observational, systematic review, prediction, editorial)
+  - Includes exact numbers (ORs, CIs, p-values) and inline GRADE certainty ratings
+  - Second LLM call within existing podcast generation step (no new pipeline step)
+  - Light validation: synopsis length, bullet count, GRADE language alignment
+  - Rendered as plain text in podcast markdown, copy-pasteable into podcast apps
+  - CLI shows summary bullet count in pipeline summary table
+  - Streamlit UI shows expandable summary with copy button
+
 ### Changed
 
 - Iterative correction loop now uses best-so-far result when a correction degrades quality, instead of feeding the degraded result into the next correction attempt

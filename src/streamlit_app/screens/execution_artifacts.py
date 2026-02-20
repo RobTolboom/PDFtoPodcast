@@ -19,6 +19,7 @@ from pathlib import Path
 import streamlit as st
 
 from src.pipeline.file_manager import PipelineFileManager
+from src.rendering.podcast_renderer import render_show_summary_plain_text
 
 
 def display_report_artifacts():
@@ -129,6 +130,19 @@ def display_podcast_artifacts():
                 height=150,
                 key="podcast_transcript_copy",
             )
+
+        # Show summary display (plain text for copy-paste to podcast apps)
+        show_summary = podcast_data.get("show_summary")
+        if show_summary:
+            summary_text = render_show_summary_plain_text(show_summary)
+
+            with st.expander("Show Summary"):
+                st.text_area(
+                    "Copy Show Summary (for podcast apps)",
+                    summary_text,
+                    height=250,
+                    key="podcast_summary_copy",
+                )
 
     if not has_any:
         st.info("No podcast artifacts available yet. Run podcast generation to produce script.")
