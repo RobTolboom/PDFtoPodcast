@@ -37,7 +37,7 @@ from ..quality.thresholds import REPORT_THRESHOLDS, QualityThresholds
 from ..utils import _call_progress_callback, _get_provider_name, _strip_metadata_for_pipeline
 from ..version import get_pipeline_version
 
-console = Console()
+_console = Console()
 
 # Step name constant
 STEP_REPORT_GENERATION = "report_generation"
@@ -111,7 +111,7 @@ def run_report_generation(
     language: str = "en",
 ) -> dict[str, Any]:
     """Generate a structured report from extraction and appraisal data (single-pass)."""
-    console.print("\n[bold cyan]=== REPORT GENERATION (Phase 2 - Single Pass) ===[/bold cyan]\n")
+    _console.print("\n[bold cyan]=== REPORT GENERATION (Phase 2 - Single Pass) ===[/bold cyan]\n")
 
     classification_clean = _strip_metadata_for_pipeline(classification_result)
     publication_type = classification_clean.get("publication_type")
@@ -125,18 +125,18 @@ def run_report_generation(
             {"publication_type": publication_type, "iteration": 0},
         )
 
-    console.print("[yellow]Loading report generation prompt...[/yellow]")
+    _console.print("[yellow]Loading report generation prompt...[/yellow]")
     try:
         report_prompt = load_report_generation_prompt()
     except PromptLoadError as e:
-        console.print(f"[red]X Failed to load report generation prompt: {e}[/red]")
+        _console.print(f"[red]X Failed to load report generation prompt: {e}[/red]")
         raise
 
-    console.print("[yellow]Loading report schema...[/yellow]")
+    _console.print("[yellow]Loading report schema...[/yellow]")
     try:
         report_schema = load_schema("report")
     except SchemaLoadError as e:
-        console.print(f"[red]X Failed to load report schema: {e}[/red]")
+        _console.print(f"[red]X Failed to load report schema: {e}[/red]")
         raise
 
     extraction_clean = _strip_metadata_for_pipeline(extraction_result)
@@ -165,8 +165,8 @@ REPORT_SCHEMA:
 
     llm = get_llm_provider(llm_provider)
 
-    console.print(f"[yellow]Generating report via {llm_provider}...[/yellow]")
-    console.print(f"[dim]Publication type: {publication_type}, Language: {language}[/dim]")
+    _console.print(f"[yellow]Generating report via {llm_provider}...[/yellow]")
+    _console.print(f"[dim]Publication type: {publication_type}, Language: {language}[/dim]")
 
     try:
         from ...config import llm_settings
@@ -179,32 +179,32 @@ REPORT_SCHEMA:
             reasoning_effort=llm_settings.reasoning_effort_report,
         )
     except LLMError as e:
-        console.print(f"[red]X LLM call failed: {e}[/red]")
+        _console.print(f"[red]X LLM call failed: {e}[/red]")
         if progress_callback:
             progress_callback(STEP_REPORT_GENERATION, "failed", {"error": str(e)})
         raise
 
-    console.print("[yellow]Validating report against schema...[/yellow]")
+    _console.print("[yellow]Validating report against schema...[/yellow]")
     from ...validation import validate_with_schema
 
     report_clean = _strip_metadata_for_pipeline(report_json)
     is_valid, validation_errors = validate_with_schema(report_clean, report_schema, strict=True)
     if not is_valid:
         error_msg = "\n".join(validation_errors)
-        console.print(f"[red]X Report schema validation failed:\n{error_msg}[/red]")
+        _console.print(f"[red]X Report schema validation failed:\n{error_msg}[/red]")
         if progress_callback:
             progress_callback(
                 STEP_REPORT_GENERATION, "failed", {"error": f"Schema validation: {error_msg}"}
             )
         raise ValidationError(f"Report schema validation failed:\n{error_msg}")
 
-    console.print("[green]+ Report schema validation passed[/green]")
+    _console.print("[green]+ Report schema validation passed[/green]")
 
-    console.print("[yellow]Saving report iteration 0...[/yellow]")
+    _console.print("[yellow]Saving report iteration 0...[/yellow]")
     report_path, _ = file_manager.save_report_iteration(
         iteration=0, report_result=report_json, validation_result=None
     )
-    console.print(f"[green]+ Report saved: {report_path.name}[/green]")
+    _console.print(f"[green]+ Report saved: {report_path.name}[/green]")
 
     timestamp = datetime.now(timezone.utc).isoformat()
     result = {
@@ -227,7 +227,7 @@ REPORT_SCHEMA:
             {"iteration": 0, "file": report_path.name},
         )
 
-    console.print("\n[bold green]+ Report generation completed successfully[/bold green]\n")
+    _console.print("\n[bold green]+ Report generation completed successfully[/bold green]\n")
 
     return result
 
@@ -239,8 +239,11 @@ def run_report_validation_step(
     llm: Any,
     file_manager: PipelineFileManager,
     progress_callback: Callable[[str, str, dict], None] | None,
+    console: Console | None = None,
 ) -> dict[str, Any]:
     """Run report validation step of the pipeline."""
+    if console is None:
+        console = _console
     console.print("[bold cyan]Report Validation[/bold cyan]")
 
     start_time = time.time()
@@ -325,8 +328,11 @@ def run_report_correction_step(
     llm: Any,
     file_manager: PipelineFileManager,
     progress_callback: Callable[[str, str, dict], None] | None,
+    console: Console | None = None,
 ) -> dict[str, Any]:
     """Run report correction step of the pipeline."""
+    if console is None:
+        console = _console
     console.print("[bold cyan]Report Correction[/bold cyan]")
 
     start_time = time.time()
@@ -421,14 +427,16 @@ def run_report_with_correction(
     enable_figures: bool = True,
     renderer: str = "latex",
     progress_callback: Callable[[str, str, dict], None] | None = None,
+    verbose: bool = False,
 ) -> dict[str, Any]:
     """Run report generation with automatic iterative correction until quality is sufficient."""
-    console.print(
-        "\n[bold magenta]=== REPORT GENERATION WITH ITERATIVE CORRECTION ===[/bold magenta]\n"
-    )
-
-    console.print(f"[blue]Report language: {language}[/blue]")
-    console.print(f"[blue]Max iterations: {max_iterations}[/blue]\n")
+    # Display header (verbose only — compact mode uses loop_runner headers)
+    if verbose:
+        _console.print(
+            "\n[bold magenta]=== REPORT GENERATION WITH ITERATIVE CORRECTION ===[/bold magenta]\n"
+        )
+        _console.print(f"[blue]Report language: {language}[/blue]")
+        _console.print(f"[blue]Max iterations: {max_iterations}[/blue]\n")
 
     if quality_thresholds is None:
         quality_thresholds = REPORT_QUALITY_THRESHOLDS
@@ -436,11 +444,12 @@ def run_report_with_correction(
     try:
         llm = get_llm_provider(llm_provider)
     except Exception as e:
-        console.print(f"[red]X LLM provider error: {e}[/red]")
+        _console.print(f"[red]X LLM provider error: {e}[/red]")
         raise
 
     # Dependency gating
-    console.print("\n[bold]Checking upstream dependencies...[/bold]")
+    if verbose:
+        _console.print("\n[bold]Checking upstream dependencies...[/bold]")
 
     extraction_quality = extraction_result.get("quality_score")
     if extraction_quality is None:
@@ -448,7 +457,8 @@ def run_report_with_correction(
         extraction_quality = validation_summary.get("quality_score")
 
     if extraction_quality is not None:
-        console.print(f"  Extraction quality: {extraction_quality:.2f}")
+        if verbose:
+            _console.print(f"  Extraction quality: {extraction_quality:.2f}")
         if extraction_quality < 0.70:
             return {
                 "_pipeline_metadata": {
@@ -489,7 +499,8 @@ def run_report_with_correction(
             "appraisal_validation_status": appraisal_validation_status,
         }
 
-    console.print("  [green]+ Dependency checks passed[/green]")
+    if verbose:
+        _console.print("  [green]+ Dependency checks passed[/green]")
 
     # Step 1: Run initial report generation (before iterative loop)
     try:
@@ -504,7 +515,7 @@ def run_report_with_correction(
         )
         initial_report = result["report"]
     except (PromptLoadError, SchemaLoadError, ValidationError, LLMError) as e:
-        console.print(f"[red]X Initial report generation failed: {e}[/red]")
+        _console.print(f"[red]X Initial report generation failed: {e}[/red]")
         raise
 
     # Step 2: Configure and run iterative validation/correction loop
@@ -520,7 +531,11 @@ def run_report_with_correction(
         step_name="REPORT VALIDATION & CORRECTION",
         step_number=5,
         show_banner=False,  # We already printed our own banner
+        verbose=verbose,
     )
+
+    # Create quiet console to suppress step-level output in compact mode
+    quiet_console = None if verbose else Console(quiet=True)
 
     # Define callbacks that capture the required context
     def validate_fn(report_result: dict) -> dict:
@@ -531,6 +546,7 @@ def run_report_with_correction(
             llm=llm,
             file_manager=file_manager,
             progress_callback=progress_callback,
+            console=quiet_console,
         )
 
     def correct_fn(report_result: dict, validation_result: dict) -> dict:
@@ -542,6 +558,7 @@ def run_report_with_correction(
             llm=llm,
             file_manager=file_manager,
             progress_callback=progress_callback,
+            console=quiet_console,
         )
         return _strip_metadata_for_pipeline(corrected)
 
@@ -565,7 +582,7 @@ def run_report_with_correction(
         save_iteration_fn=save_iteration_fn,
         save_best_fn=save_best_fn,
         progress_callback=progress_callback,
-        console_instance=console,
+        console_instance=_console,
     )
 
     loop_result = runner.run()
@@ -589,17 +606,17 @@ def run_report_with_correction(
                     enable_figures=enable_figures,
                 )
         except (LatexRenderError, WeasyRendererError) as e:
-            console.print(f"[yellow]! Failed to render report: {e}[/yellow]")
+            _console.print(f"[yellow]! Failed to render report: {e}[/yellow]")
             render_dirs = {"error": str(e), "renderer": renderer}
         except Exception as e:
-            console.print(f"[yellow]! Failed to render report: {e}[/yellow]")
+            _console.print(f"[yellow]! Failed to render report: {e}[/yellow]")
             render_dirs = {}
 
         try:
             md_path = render_report_to_markdown(loop_result.best_result, render_root)
             render_dirs["markdown"] = md_path
         except Exception as e:
-            console.print(f"[yellow]! Failed to write markdown: {e}[/yellow]")
+            _console.print(f"[yellow]! Failed to write markdown: {e}[/yellow]")
 
         result_dict["rendered_paths"] = render_dirs
 

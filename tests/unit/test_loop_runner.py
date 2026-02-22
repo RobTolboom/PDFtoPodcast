@@ -8,8 +8,11 @@ Tests cover:
 - Success, early stop, max iterations, and error cases
 """
 
+from io import StringIO
 from pathlib import Path
 from unittest.mock import MagicMock
+
+from rich.console import Console
 
 from src.pipeline.iterative import (
     IterativeLoopConfig,
@@ -38,6 +41,16 @@ class TestIterativeLoopConfig:
         assert config.quality_thresholds is None
         assert config.degradation_window == 2
         assert config.step_name == "ITERATIVE LOOP"
+
+    def test_verbose_defaults_to_false(self):
+        """Test that verbose flag defaults to False."""
+        config = IterativeLoopConfig(metric_type=MetricType.EXTRACTION)
+        assert config.verbose is False
+
+    def test_verbose_can_be_set_true(self):
+        """Test that verbose flag can be set to True."""
+        config = IterativeLoopConfig(metric_type=MetricType.EXTRACTION, verbose=True)
+        assert config.verbose is True
 
     def test_custom_values(self):
         """Test custom configuration values."""
@@ -1141,3 +1154,650 @@ class TestStuckLoopEarlyExit:
 
         # Should NOT early exit — improvement at iter 1 resets counter
         assert result.final_status == FINAL_STATUS_PASSED
+
+
+class TestReadableOutput:
+    """Test human-readable console output format."""
+
+    def _create_validation_result(
+        self,
+        completeness: float = 0.95,
+        accuracy: float = 0.98,
+        schema_compliance: float = 0.97,
+    ) -> dict:
+        return {
+            "verification_summary": {
+                "completeness_score": completeness,
+                "accuracy_score": accuracy,
+                "schema_compliance_score": schema_compliance,
+                "critical_issues": 0,
+                "overall_status": "passed",
+            },
+            "schema_validation": {"quality_score": 1.0},
+        }
+
+    def _make_console(self) -> tuple[Console, StringIO]:
+        """Create a Rich console that writes to a StringIO buffer (plain text, no ANSI)."""
+        buf = StringIO()
+        return Console(file=buf, width=120, no_color=True), buf
+
+    def test_initial_validation_no_iteration_number(self):
+        """Initial validation should not show 'Iteration 0'."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            show_banner=False,
+        )
+
+        validate_fn = MagicMock(
+            return_value=self._create_validation_result(
+                completeness=0.95, accuracy=0.98, schema_compliance=0.97
+            )
+        )
+        correct_fn = MagicMock()
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+        runner.run()
+
+        output = buf.getvalue()
+        assert "Iteration 0" not in output
+
+    def test_correction_shows_n_of_max(self):
+        """Correction should show 'Correction 1 of 3' not 'Iteration 1'."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            show_banner=False,
+        )
+
+        validation_fail = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.90
+        )
+        validation_pass = self._create_validation_result(
+            completeness=0.95, accuracy=0.98, schema_compliance=0.97
+        )
+
+        validate_fn = MagicMock(side_effect=[validation_fail, validation_pass])
+        correct_fn = MagicMock(return_value={"data": "corrected"})
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+        runner.run()
+
+        output = buf.getvalue()
+        assert "Correction 1 of 3" in output
+        assert "Iteration 1" not in output
+
+    def test_reuse_validation_message_hidden(self):
+        """'Reusing post-correction validation' should not appear when verbose=False."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            show_banner=False,
+        )
+
+        validation_fail = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.90
+        )
+        validation_pass = self._create_validation_result(
+            completeness=0.95, accuracy=0.98, schema_compliance=0.97
+        )
+
+        validate_fn = MagicMock(side_effect=[validation_fail, validation_pass])
+        correct_fn = MagicMock(return_value={"data": "corrected"})
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+        runner.run()
+
+        output = buf.getvalue()
+        assert "Reusing" not in output
+
+    def test_running_correction_message_hidden(self):
+        """'Running correction' should not appear when verbose=False."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            show_banner=False,
+        )
+
+        validation_fail = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.90
+        )
+        validation_pass = self._create_validation_result(
+            completeness=0.95, accuracy=0.98, schema_compliance=0.97
+        )
+
+        validate_fn = MagicMock(side_effect=[validation_fail, validation_pass])
+        correct_fn = MagicMock(return_value={"data": "corrected"})
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+        runner.run()
+
+        output = buf.getvalue()
+        assert "Running correction" not in output
+
+    def test_verbose_true_shows_iteration_headers(self):
+        """When verbose=True, original 'Iteration N' headers should appear."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            show_banner=False,
+            verbose=True,
+        )
+
+        validation_fail = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.90
+        )
+        validation_pass = self._create_validation_result(
+            completeness=0.95, accuracy=0.98, schema_compliance=0.97
+        )
+
+        validate_fn = MagicMock(side_effect=[validation_fail, validation_pass])
+        correct_fn = MagicMock(return_value={"data": "corrected"})
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+        runner.run()
+
+        output = buf.getvalue()
+        assert "Iteration 0" in output
+        assert "Iteration 1" in output
+        # Verbose mode should show detailed quality line with "Iteration N:" prefix
+        assert "Iteration 0:" in output
+        assert "Iteration 1:" in output
+
+    def test_verbose_shows_detailed_quality_prefix(self):
+        """In verbose mode, quality lines should use 'Iteration N:' prefix."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            show_banner=False,
+            verbose=True,
+        )
+
+        validation_fail = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.90
+        )
+        validation_pass = self._create_validation_result(
+            completeness=0.95, accuracy=0.98, schema_compliance=0.97
+        )
+
+        validate_fn = MagicMock(side_effect=[validation_fail, validation_pass])
+        correct_fn = MagicMock(return_value={"data": "corrected"})
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+        runner.run()
+
+        output = buf.getvalue()
+        # Verbose quality lines use "Iteration N:" prefix
+        assert "Iteration 0:" in output
+        # Should NOT show compact before→after (that's compact-only)
+        assert "Correction 1:" not in output
+        # _display_before_after_quality output should be absent in verbose mode
+        # (it shows per-metric "Schema: X% → Y%" lines)
+        lines = output.split("\n")
+        before_after_lines = [line for line in lines if "→" in line and "Schema:" in line]
+        assert (
+            len(before_after_lines) == 0
+        ), "before→after display should not appear in verbose mode"
+
+    def test_compact_no_redundant_quality_after_correction(self):
+        """In compact mode, quality numbers should not repeat after correction acceptance."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            show_banner=False,
+        )
+
+        validation_fail = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.90
+        )
+        validation_pass = self._create_validation_result(
+            completeness=0.95, accuracy=0.98, schema_compliance=0.97
+        )
+
+        validate_fn = MagicMock(side_effect=[validation_fail, validation_pass])
+        correct_fn = MagicMock(return_value={"data": "corrected"})
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+        runner.run()
+
+        output = buf.getvalue()
+        # "Quality" should appear in: initial quality line, before→after line, and pass message
+        # but NOT a redundant _display_quality_scores repetition on the reused iteration
+        quality_lines = [line for line in output.split("\n") if "Quality" in line and "%" in line]
+        # Should be exactly 2: initial quality + before→after overall quality
+        assert (
+            len(quality_lines) == 2
+        ), f"Expected 2 quality lines, got {len(quality_lines)}: {quality_lines}"
+
+    def test_compact_shows_inline_progress(self):
+        """In compact mode, should show 'Validating...' and 'Correcting...' progress."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            show_banner=False,
+        )
+
+        validation_fail = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.90
+        )
+        validation_pass = self._create_validation_result(
+            completeness=0.95, accuracy=0.98, schema_compliance=0.97
+        )
+
+        validate_fn = MagicMock(side_effect=[validation_fail, validation_pass])
+        correct_fn = MagicMock(return_value={"data": "corrected"})
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+        runner.run()
+
+        output = buf.getvalue()
+        assert "Validating..." in output
+        assert "Correcting..." in output
+
+    def test_before_after_quality_displayed(self):
+        """After correction, should show before→after per metric."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            show_banner=False,
+        )
+
+        validation_before = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.90
+        )
+        validation_after = self._create_validation_result(
+            completeness=0.95, accuracy=0.98, schema_compliance=0.97
+        )
+
+        validate_fn = MagicMock(side_effect=[validation_before, validation_after])
+        correct_fn = MagicMock(return_value={"data": "corrected"})
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+        runner.run()
+
+        output = buf.getvalue()
+        # Should show per-metric before→after with deltas
+        assert "Schema:" in output
+        assert "90.0%" in output
+        assert "97.0%" in output
+        assert "Quality:" in output
+
+    def test_degraded_correction_shows_revert_message(self):
+        """When correction degrades quality, should show revert message."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            show_banner=False,
+        )
+
+        validation_initial = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.90
+        )
+        validation_degraded = self._create_validation_result(
+            completeness=0.60, accuracy=0.70, schema_compliance=0.80
+        )
+        # Second correction passes
+        validation_pass = self._create_validation_result(
+            completeness=0.95, accuracy=0.98, schema_compliance=0.97
+        )
+
+        validate_fn = MagicMock(
+            side_effect=[validation_initial, validation_degraded, validation_pass]
+        )
+        correct_fn = MagicMock(side_effect=[{"data": "degraded"}, {"data": "final"}])
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+        runner.run()
+
+        output = buf.getvalue()
+        # Should show compact quality line with arrow and revert message
+        assert "→" in output
+        assert "reverting to best" in output
+
+    def test_schema_failure_shows_plain_language(self):
+        """Schema failure should say 'Produced invalid output' not technical details."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            show_banner=False,
+        )
+
+        # Initial passes, correction fails schema
+        validation_needs_correction = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.90
+        )
+        validation_schema_fail = {
+            "verification_summary": {
+                "completeness_score": 0.3,
+                "accuracy_score": 0.3,
+                "schema_compliance_score": 0.3,
+                "critical_issues": 5,
+                "overall_status": "failed",
+            },
+            "schema_validation": {"quality_score": 0.3},
+        }
+
+        validate_fn = MagicMock(
+            side_effect=[validation_needs_correction] + [validation_schema_fail] * 10
+        )
+        correct_fn = MagicMock(return_value={"data": "bad"})
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+            check_schema_quality=True,
+            schema_quality_threshold=0.5,
+        )
+        runner.run()
+
+        output = buf.getvalue()
+        assert "Produced invalid output" in output
+        # Technical message should NOT appear when verbose=False
+        assert "Correction failed schema validation" not in output
+
+    def test_success_shows_passed_after_n_corrections(self):
+        """Success should say 'Passed after N corrections'."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            show_banner=False,
+        )
+
+        validation_fail = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.90
+        )
+        validation_pass = self._create_validation_result(
+            completeness=0.95, accuracy=0.98, schema_compliance=0.97
+        )
+
+        validate_fn = MagicMock(side_effect=[validation_fail, validation_pass])
+        correct_fn = MagicMock(return_value={"data": "corrected"})
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+        runner.run()
+
+        output = buf.getvalue()
+        assert "Passed after 1 correction" in output
+        # Technical message should NOT appear
+        assert "Quality sufficient at iteration" not in output
+
+    def test_success_initial_shows_passed_on_initial(self):
+        """When quality passes immediately, should say 'Passed on initial validation'."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            show_banner=False,
+        )
+
+        validate_fn = MagicMock(
+            return_value=self._create_validation_result(
+                completeness=0.95, accuracy=0.98, schema_compliance=0.97
+            )
+        )
+        correct_fn = MagicMock()
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+        runner.run()
+
+        output = buf.getvalue()
+        assert "Passed on initial validation" in output
+
+    def test_max_iterations_shows_readable_message(self):
+        """Max iterations should show readable message."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=2,
+            show_banner=False,
+        )
+
+        validation_fail = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.90
+        )
+        validate_fn = MagicMock(return_value=validation_fail)
+        correct_fn = MagicMock(return_value={"data": "corrected"})
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+        runner.run()
+
+        output = buf.getvalue()
+        assert "Reached max corrections" in output
+        assert "using best result" in output
+
+    def test_consecutive_rollbacks_shows_stopping_early(self):
+        """Consecutive rollbacks should say 'stopping early'."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=5,
+            show_banner=False,
+        )
+
+        validation_initial = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.90
+        )
+        validation_degraded = self._create_validation_result(
+            completeness=0.60, accuracy=0.70, schema_compliance=0.80
+        )
+
+        validate_fn = MagicMock(
+            side_effect=[validation_initial, validation_degraded, validation_degraded]
+        )
+        correct_fn = MagicMock(return_value={"data": "corrected"})
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+        runner.run()
+
+        output = buf.getvalue()
+        assert "stopping early" in output
+        assert "2 consecutive corrections degraded quality" in output
+
+    def test_initial_quality_compact_display(self):
+        """Initial validation should show compact metrics line with threshold warning."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            show_banner=False,
+        )
+
+        validation_fail = self._create_validation_result(
+            completeness=0.83, accuracy=0.99, schema_compliance=0.849
+        )
+        validation_pass = self._create_validation_result(
+            completeness=0.95, accuracy=0.98, schema_compliance=0.97
+        )
+
+        validate_fn = MagicMock(side_effect=[validation_fail, validation_pass])
+        correct_fn = MagicMock(return_value={"data": "corrected"})
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+        runner.run()
+
+        output = buf.getvalue()
+        # Should show compact initial quality with pipe-separated metrics
+        assert "Schema: 84.9%" in output
+        assert "Completeness: 83.0%" in output
+        assert "Accuracy: 99.0%" in output
+        assert "Quality:" in output
+        # Should show threshold warning
+        assert "Below threshold" in output
+        assert "running correction" in output
+
+    def test_initial_quality_skips_none_metrics(self):
+        """_display_initial_quality should skip metrics that are None."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=1,
+            show_banner=False,
+        )
+
+        validate_fn = MagicMock(
+            return_value=self._create_validation_result(
+                completeness=0.95, accuracy=0.98, schema_compliance=0.97
+            )
+        )
+        correct_fn = MagicMock()
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+
+        # Directly test _display_initial_quality with None accuracy
+        from src.pipeline.quality.metrics import QualityMetrics
+
+        metrics = QualityMetrics(
+            schema_compliance_score=0.90,
+            completeness_score=0.85,
+            accuracy_score=None,
+            quality_score=0.87,
+        )
+        runner._display_initial_quality(metrics)
+
+        output = buf.getvalue()
+        assert "Schema: 90.0%" in output
+        assert "Completeness: 85.0%" in output
+        assert "Accuracy" not in output
+        assert "Quality: 87.0%" in output
+
+    def test_initial_quality_no_warning_when_passing(self):
+        """Initial validation that passes should NOT show threshold warning."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            show_banner=False,
+        )
+
+        validate_fn = MagicMock(
+            return_value=self._create_validation_result(
+                completeness=0.95, accuracy=0.98, schema_compliance=0.97
+            )
+        )
+        correct_fn = MagicMock()
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+        runner.run()
+
+        output = buf.getvalue()
+        # Should show compact quality line but NO warning
+        assert "Quality:" in output
+        assert "Below threshold" not in output
+        assert "running correction" not in output
