@@ -589,7 +589,6 @@ def run_validation_with_correction(
                 save_to_disk=False,
                 console=quiet_console,
             ),
-            console_instance=quiet_console,
         )
 
     def correct_fn(extraction: dict, validation: dict) -> tuple[dict, dict]:
@@ -607,7 +606,6 @@ def run_validation_with_correction(
                 banner_label="CORRECTION",
                 console=quiet_console,
             ),
-            console_instance=quiet_console,
         )
         return _strip_metadata_for_pipeline(corrected), post_validation
 

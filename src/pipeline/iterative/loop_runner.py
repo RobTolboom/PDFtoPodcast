@@ -612,15 +612,14 @@ class IterativeLoopRunner:
 
         # Build prefix based on verbose mode
         if self.config.verbose:
-            prefix = f"[cyan]Iteration {iteration_num}:[/cyan]"
-        elif iteration_num == 0:
-            prefix = "[cyan]Initial:[/cyan]"
+            prefix = f"[cyan]Iteration {iteration_num}:[/cyan] "
         else:
-            prefix = f"[cyan]Correction {iteration_num}:[/cyan]"
+            # Compact mode: header already shows "Correction N of M", no prefix needed
+            prefix = "  "
 
         # Single-line output
         self.console.print(
-            f"{prefix} "
+            f"{prefix}"
             f"Quality {metrics.quality_score:.1%}{delta_str} | "
             f"Schema {metrics.schema_compliance_score:.1%} | "
             f"Complete {metrics.completeness_score:.1%} | "

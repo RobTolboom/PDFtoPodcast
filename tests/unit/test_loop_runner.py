@@ -1335,6 +1335,44 @@ class TestReadableOutput:
         output = buf.getvalue()
         assert "Iteration 0" in output
         assert "Iteration 1" in output
+        # Verbose mode should show detailed quality line with "Iteration N:" prefix
+        assert "Iteration 0:" in output
+        assert "Iteration 1:" in output
+
+    def test_verbose_shows_detailed_quality_prefix(self):
+        """In verbose mode, quality lines should use 'Iteration N:' prefix."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            show_banner=False,
+            verbose=True,
+        )
+
+        validation_fail = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.90
+        )
+        validation_pass = self._create_validation_result(
+            completeness=0.95, accuracy=0.98, schema_compliance=0.97
+        )
+
+        validate_fn = MagicMock(side_effect=[validation_fail, validation_pass])
+        correct_fn = MagicMock(return_value={"data": "corrected"})
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+        runner.run()
+
+        output = buf.getvalue()
+        # Verbose quality lines use "Iteration N:" prefix
+        assert "Iteration 0:" in output
+        # Should NOT show compact before→after (that's compact-only)
+        assert "Correction 1:" not in output
 
     def test_before_after_quality_displayed(self):
         """After correction, should show before→after per metric."""
@@ -1615,6 +1653,47 @@ class TestReadableOutput:
         # Should show threshold warning
         assert "Below threshold" in output
         assert "running correction" in output
+
+    def test_initial_quality_skips_none_metrics(self):
+        """_display_initial_quality should skip metrics that are None."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=1,
+            show_banner=False,
+        )
+
+        validate_fn = MagicMock(
+            return_value=self._create_validation_result(
+                completeness=0.95, accuracy=0.98, schema_compliance=0.97
+            )
+        )
+        correct_fn = MagicMock()
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+
+        # Directly test _display_initial_quality with None accuracy
+        from src.pipeline.quality.metrics import QualityMetrics
+
+        metrics = QualityMetrics(
+            schema_compliance_score=0.90,
+            completeness_score=0.85,
+            accuracy_score=None,
+            quality_score=0.87,
+        )
+        runner._display_initial_quality(metrics)
+
+        output = buf.getvalue()
+        assert "Schema: 90.0%" in output
+        assert "Completeness: 85.0%" in output
+        assert "Accuracy" not in output
+        assert "Quality: 87.0%" in output
 
     def test_initial_quality_no_warning_when_passing(self):
         """Initial validation that passes should NOT show threshold warning."""
