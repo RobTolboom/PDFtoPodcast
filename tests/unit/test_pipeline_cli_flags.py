@@ -32,6 +32,7 @@ def test_run_full_pipeline_passes_report_flags(monkeypatch, tmp_path):
         report_compile_pdf=True,
         report_enable_figures=True,
         report_renderer="latex",
+        verbose=False,
     ):
         calls.append(
             {

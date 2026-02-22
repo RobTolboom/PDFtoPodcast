@@ -484,6 +484,7 @@ def run_appraisal_with_correction(
     max_iterations: int = 3,
     quality_thresholds: dict | None = None,
     progress_callback: Callable[[str, str, dict], None] | None = None,
+    verbose: bool = False,
 ) -> dict[str, Any]:
     """
     Run critical appraisal with automatic iterative correction until quality is sufficient.
@@ -536,10 +537,11 @@ def run_appraisal_with_correction(
         step_name="APPRAISAL VALIDATION & CORRECTION",
         step_number=4,
         show_banner=False,  # We already printed our own banner
+        verbose=verbose,
     )
 
     # Create quiet console to suppress step-level output in compact mode
-    quiet_console = Console(quiet=True)
+    quiet_console = None if verbose else Console(quiet=True)
 
     # Define callbacks that capture the required context
     def validate_fn(appraisal_result: dict) -> dict:

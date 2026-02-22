@@ -524,6 +524,7 @@ def run_validation_with_correction(
     max_iterations: int = 3,
     quality_thresholds: dict | None = None,
     progress_callback: Callable | None = None,
+    verbose: bool = False,
 ) -> dict:
     """
     Run validation with automatic iterative correction until quality is sufficient.
@@ -570,7 +571,7 @@ def run_validation_with_correction(
     llm = get_llm_provider(llm_provider)
 
     # Create quiet console to suppress step-level output in compact mode
-    quiet_console = Console(quiet=True)
+    quiet_console = None if verbose else Console(quiet=True)
 
     # Define callback functions for IterativeLoopRunner
     def validate_fn(extraction: dict) -> dict:
@@ -664,6 +665,7 @@ def run_validation_with_correction(
         step_name="ITERATIVE VALIDATION & CORRECTION",
         step_number=3,
         show_banner=False,  # We already printed banner above
+        verbose=verbose,
     )
 
     runner = IterativeLoopRunner(

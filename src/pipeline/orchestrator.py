@@ -421,6 +421,7 @@ def run_single_step(
     report_compile_pdf: bool = True,
     report_enable_figures: bool = True,
     report_renderer: str = "latex",
+    verbose: bool = False,
 ) -> dict[str, Any]:
     """
     Execute a single pipeline step with dependency validation.
@@ -749,6 +750,7 @@ def run_single_step(
             max_iterations=max_correction_iterations or 3,
             quality_thresholds=quality_thresholds,  # Falls back inside helper
             progress_callback=progress_callback,
+            verbose=verbose,
         )
 
     elif step_name == STEP_APPRAISAL:
@@ -783,6 +785,7 @@ def run_single_step(
                 max_iterations=max_correction_iterations or 3,
                 quality_thresholds=quality_thresholds,
                 progress_callback=progress_callback,
+                verbose=verbose,
             )
 
         return run_appraisal_single_pass(
@@ -814,6 +817,7 @@ def run_single_step(
                 enable_figures=report_enable_figures,
                 renderer=report_renderer,
                 progress_callback=progress_callback,
+                verbose=verbose,
             )
         else:
             # Phase 2: Single-pass generation (fallback)
@@ -867,6 +871,7 @@ def run_full_pipeline(
     progress_callback: Callable[[str, str, dict], None] | None = None,
     skip_report: bool = False,
     skip_podcast: bool = False,
+    verbose: bool = False,
 ) -> dict[str, Any]:
     """
     Full extraction-and-appraisal pipeline with optional step filtering.
@@ -1063,6 +1068,7 @@ def run_full_pipeline(
                 report_renderer=report_renderer,
                 report_compile_pdf=report_compile_pdf,
                 report_enable_figures=report_enable_figures,
+                verbose=verbose,
             )
 
             # Store result

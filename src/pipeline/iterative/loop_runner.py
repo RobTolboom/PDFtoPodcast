@@ -386,7 +386,10 @@ class IterativeLoopRunner:
                 )
 
                 # Display quality scores
-                self._display_quality_scores(metrics, iteration_num)
+                if not self.config.verbose and iteration_num == 0:
+                    self._display_initial_quality(metrics)
+                else:
+                    self._display_quality_scores(metrics, iteration_num)
 
                 # STEP 2: Check if quality is sufficient
                 if is_quality_sufficient(
@@ -623,6 +626,23 @@ class IterativeLoopRunner:
             f"Complete {metrics.completeness_score:.1%} | "
             f"{status_str}"
         )
+
+    def _display_initial_quality(self, metrics: QualityMetrics) -> None:
+        """Display compact initial validation quality with threshold warning."""
+        parts = []
+        if metrics.schema_compliance_score is not None:
+            parts.append(f"Schema: {metrics.schema_compliance_score:.1%}")
+        if metrics.completeness_score is not None:
+            parts.append(f"Completeness: {metrics.completeness_score:.1%}")
+        if metrics.accuracy_score is not None:
+            parts.append(f"Accuracy: {metrics.accuracy_score:.1%}")
+
+        metrics_line = " | ".join(parts)
+        self.console.print(f"  {metrics_line} → Quality: {metrics.quality_score:.1%}")
+
+        meets = is_quality_sufficient_from_metrics(metrics, self.thresholds)
+        if not meets:
+            self.console.print("  [yellow]⚠ Below threshold — running correction[/yellow]")
 
     def _display_before_after_quality(
         self,

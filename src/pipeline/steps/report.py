@@ -428,6 +428,7 @@ def run_report_with_correction(
     enable_figures: bool = True,
     renderer: str = "latex",
     progress_callback: Callable[[str, str, dict], None] | None = None,
+    verbose: bool = False,
 ) -> dict[str, Any]:
     """Run report generation with automatic iterative correction until quality is sufficient."""
     console.print(
@@ -527,10 +528,11 @@ def run_report_with_correction(
         step_name="REPORT VALIDATION & CORRECTION",
         step_number=5,
         show_banner=False,  # We already printed our own banner
+        verbose=verbose,
     )
 
     # Create quiet console to suppress step-level output in compact mode
-    quiet_console = Console(quiet=True)
+    quiet_console = None if verbose else Console(quiet=True)
 
     # Define callbacks that capture the required context
     def validate_fn(report_result: dict) -> dict:

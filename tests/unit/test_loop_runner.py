@@ -1577,3 +1577,72 @@ class TestReadableOutput:
         output = buf.getvalue()
         assert "stopping early" in output
         assert "2 consecutive corrections degraded quality" in output
+
+    def test_initial_quality_compact_display(self):
+        """Initial validation should show compact metrics line with threshold warning."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            show_banner=False,
+        )
+
+        validation_fail = self._create_validation_result(
+            completeness=0.83, accuracy=0.99, schema_compliance=0.849
+        )
+        validation_pass = self._create_validation_result(
+            completeness=0.95, accuracy=0.98, schema_compliance=0.97
+        )
+
+        validate_fn = MagicMock(side_effect=[validation_fail, validation_pass])
+        correct_fn = MagicMock(return_value={"data": "corrected"})
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+        runner.run()
+
+        output = buf.getvalue()
+        # Should show compact initial quality with pipe-separated metrics
+        assert "Schema: 84.9%" in output
+        assert "Completeness: 83.0%" in output
+        assert "Accuracy: 99.0%" in output
+        assert "Quality:" in output
+        # Should show threshold warning
+        assert "Below threshold" in output
+        assert "running correction" in output
+
+    def test_initial_quality_no_warning_when_passing(self):
+        """Initial validation that passes should NOT show threshold warning."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            show_banner=False,
+        )
+
+        validate_fn = MagicMock(
+            return_value=self._create_validation_result(
+                completeness=0.95, accuracy=0.98, schema_compliance=0.97
+            )
+        )
+        correct_fn = MagicMock()
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+        runner.run()
+
+        output = buf.getvalue()
+        # Should show compact quality line but NO warning
+        assert "Quality:" in output
+        assert "Below threshold" not in output
+        assert "running correction" not in output
