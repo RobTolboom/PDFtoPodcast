@@ -1373,6 +1373,82 @@ class TestReadableOutput:
         assert "Iteration 0:" in output
         # Should NOT show compact before→after (that's compact-only)
         assert "Correction 1:" not in output
+        # _display_before_after_quality output should be absent in verbose mode
+        # (it shows per-metric "Schema: X% → Y%" lines)
+        lines = output.split("\n")
+        before_after_lines = [line for line in lines if "→" in line and "Schema:" in line]
+        assert (
+            len(before_after_lines) == 0
+        ), "before→after display should not appear in verbose mode"
+
+    def test_compact_no_redundant_quality_after_correction(self):
+        """In compact mode, quality numbers should not repeat after correction acceptance."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            show_banner=False,
+        )
+
+        validation_fail = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.90
+        )
+        validation_pass = self._create_validation_result(
+            completeness=0.95, accuracy=0.98, schema_compliance=0.97
+        )
+
+        validate_fn = MagicMock(side_effect=[validation_fail, validation_pass])
+        correct_fn = MagicMock(return_value={"data": "corrected"})
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+        runner.run()
+
+        output = buf.getvalue()
+        # "Quality" should appear in: initial quality line, before→after line, and pass message
+        # but NOT a redundant _display_quality_scores repetition on the reused iteration
+        quality_lines = [line for line in output.split("\n") if "Quality" in line and "%" in line]
+        # Should be exactly 2: initial quality + before→after overall quality
+        assert (
+            len(quality_lines) == 2
+        ), f"Expected 2 quality lines, got {len(quality_lines)}: {quality_lines}"
+
+    def test_compact_shows_inline_progress(self):
+        """In compact mode, should show 'Validating...' and 'Correcting...' progress."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=3,
+            show_banner=False,
+        )
+
+        validation_fail = self._create_validation_result(
+            completeness=0.80, accuracy=0.85, schema_compliance=0.90
+        )
+        validation_pass = self._create_validation_result(
+            completeness=0.95, accuracy=0.98, schema_compliance=0.97
+        )
+
+        validate_fn = MagicMock(side_effect=[validation_fail, validation_pass])
+        correct_fn = MagicMock(return_value={"data": "corrected"})
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+        runner.run()
+
+        output = buf.getvalue()
+        assert "Validating..." in output
+        assert "Correcting..." in output
 
     def test_before_after_quality_displayed(self):
         """After correction, should show before→after per metric."""

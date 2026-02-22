@@ -31,8 +31,7 @@ from ..utils import _call_progress_callback, _get_provider_name, _strip_metadata
 from ..validation_runner import run_dual_validation
 from .extraction import run_extraction_step
 
-console = Console()
-_module_console = console  # Alias for use when parameter shadows module-level name
+_console = Console()
 
 # Step name constants
 STEP_VALIDATION = "validation"
@@ -99,16 +98,16 @@ def _print_iteration_summary(
     file_manager: PipelineFileManager, iterations: list[dict], best_iteration: int
 ) -> None:
     """Print summary of all saved iterations with best selection."""
-    console.print("\n[bold]Saved Extraction Iterations:[/bold]")
+    _console.print("\n[bold]Saved Extraction Iterations:[/bold]")
     for it_data in iterations:
         it_num = it_data["iteration_num"]
         extraction_file = file_manager.get_filename("extraction", iteration_number=it_num)
         status_symbol = "+" if extraction_file.exists() else "!"
-        console.print(f"  {status_symbol} Iteration {it_num}: {extraction_file.name}")
+        _console.print(f"  {status_symbol} Iteration {it_num}: {extraction_file.name}")
 
     best_file = file_manager.get_filename("extraction", status="best")
     if best_file.exists():
-        console.print(f"  * Best: {best_file.name} (iteration {best_iteration})")
+        _console.print(f"  * Best: {best_file.name} (iteration {best_iteration})")
 
 
 def _with_llm_retry(
@@ -128,7 +127,7 @@ def _with_llm_retry(
     Raises:
         LLMError: If all retries are exhausted
     """
-    _console = console_instance or console
+    retry_console = console_instance or _console
     for retry in range(max_retries + 1):
         try:
             return fn()
@@ -136,7 +135,7 @@ def _with_llm_retry(
             if retry == max_retries:
                 raise
             wait_time = 2**retry  # 1s, 2s, 4s
-            _console.print(
+            retry_console.print(
                 f"[yellow]! LLM call failed, retrying in {wait_time}s... "
                 f"(attempt {retry + 1}/{max_retries})[/yellow]"
             )
@@ -178,7 +177,7 @@ def run_validation_step(
         LLMError: If LLM API call fails during semantic validation
     """
     if console is None:
-        console = _module_console
+        console = _console
 
     start_time = time.time()
     _call_progress_callback(progress_callback, STEP_VALIDATION, "starting", {})
@@ -279,7 +278,7 @@ def run_correction_step(
         LLMError: If LLM API call fails
     """
     if console is None:
-        console = _module_console
+        console = _console
 
     title = banner_label or "CORRECTION"
     console.print(f"\n[bold magenta]=== {title} ===[/bold magenta]\n")
@@ -561,11 +560,12 @@ def run_validation_with_correction(
     # Extract publication_type for correction step
     publication_type = classification_result.get("publication_type", "unknown")
 
-    # Display header
-    console.print(
-        "\n[bold magenta]=== STEP 3: ITERATIVE VALIDATION & CORRECTION ===[/bold magenta]\n"
-    )
-    console.print(f"[blue]Publication type: {publication_type}[/blue]")
+    # Display header (verbose only — compact mode uses loop_runner headers)
+    if verbose:
+        _console.print(
+            "\n[bold magenta]=== STEP 3: ITERATIVE VALIDATION & CORRECTION ===[/bold magenta]\n"
+        )
+        _console.print(f"[blue]Publication type: {publication_type}[/blue]")
 
     # Get LLM instance
     llm = get_llm_provider(llm_provider)
@@ -676,7 +676,7 @@ def run_validation_with_correction(
         regenerate_initial_fn=regenerate_initial_fn,
         save_failed_fn=save_failed_fn,
         progress_callback=progress_callback,
-        console_instance=console,
+        console_instance=_console,
         check_schema_quality=True,
         schema_quality_threshold=0.5,
     )

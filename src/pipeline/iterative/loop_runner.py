@@ -299,6 +299,8 @@ class IterativeLoopRunner:
 
                 # STEP 1: Validate current result
                 if current_validation is None:
+                    if not self.config.verbose:
+                        self.console.print("  [dim]Validating...[/dim]")
                     # Initial validation with retry support for schema failures
                     initial_retry_count = 0
                     while True:
@@ -378,6 +380,7 @@ class IterativeLoopRunner:
                         )
 
                 # Extract and store metrics
+                reused_validation = current_validation is not None
                 metrics = extract_metrics(validation_result, self.config.metric_type)
                 self.tracker.add_iteration(
                     result=current_result,
@@ -386,9 +389,11 @@ class IterativeLoopRunner:
                 )
 
                 # Display quality scores
+                # In compact mode, skip when reusing post-correction validation
+                # because _display_before_after_quality already showed these numbers.
                 if not self.config.verbose and iteration_num == 0:
                     self._display_initial_quality(metrics)
-                else:
+                elif self.config.verbose or not reused_validation:
                     self._display_quality_scores(metrics, iteration_num)
 
                 # STEP 2: Check if quality is sufficient
@@ -421,6 +426,8 @@ class IterativeLoopRunner:
                     self.console.print(
                         f"\n[yellow]Running correction (iteration {iteration_num})...[/yellow]"
                     )
+                else:
+                    self.console.print("  [dim]Correcting...[/dim]")
 
                 # Inject correction hints if available from previous failure
                 correction_validation = validation_result
