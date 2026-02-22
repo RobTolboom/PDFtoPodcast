@@ -38,6 +38,7 @@ from ..utils import _call_progress_callback, _get_provider_name, _strip_metadata
 from ..version import get_pipeline_version
 
 console = Console()
+_module_console = console  # Alias for use when parameter shadows module-level name
 
 # Step name constant
 STEP_REPORT_GENERATION = "report_generation"
@@ -239,8 +240,11 @@ def run_report_validation_step(
     llm: Any,
     file_manager: PipelineFileManager,
     progress_callback: Callable[[str, str, dict], None] | None,
+    console: Console | None = None,
 ) -> dict[str, Any]:
     """Run report validation step of the pipeline."""
+    if console is None:
+        console = _module_console
     console.print("[bold cyan]Report Validation[/bold cyan]")
 
     start_time = time.time()
@@ -325,8 +329,11 @@ def run_report_correction_step(
     llm: Any,
     file_manager: PipelineFileManager,
     progress_callback: Callable[[str, str, dict], None] | None,
+    console: Console | None = None,
 ) -> dict[str, Any]:
     """Run report correction step of the pipeline."""
+    if console is None:
+        console = _module_console
     console.print("[bold cyan]Report Correction[/bold cyan]")
 
     start_time = time.time()
@@ -522,6 +529,9 @@ def run_report_with_correction(
         show_banner=False,  # We already printed our own banner
     )
 
+    # Create quiet console to suppress step-level output in compact mode
+    quiet_console = Console(quiet=True)
+
     # Define callbacks that capture the required context
     def validate_fn(report_result: dict) -> dict:
         return run_report_validation_step(
@@ -531,6 +541,7 @@ def run_report_with_correction(
             llm=llm,
             file_manager=file_manager,
             progress_callback=progress_callback,
+            console=quiet_console,
         )
 
     def correct_fn(report_result: dict, validation_result: dict) -> dict:
@@ -542,6 +553,7 @@ def run_report_with_correction(
             llm=llm,
             file_manager=file_manager,
             progress_callback=progress_callback,
+            console=quiet_console,
         )
         return _strip_metadata_for_pipeline(corrected)
 

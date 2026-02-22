@@ -32,6 +32,7 @@ from ..validation_runner import run_dual_validation
 from .extraction import run_extraction_step
 
 console = Console()
+_module_console = console  # Alias for use when parameter shadows module-level name
 
 # Step name constants
 STEP_VALIDATION = "validation"
@@ -152,6 +153,7 @@ def run_validation_step(
     progress_callback: Callable[[str, str, dict], None] | None,
     banner_label: str | None = None,
     save_to_disk: bool = True,
+    console: Console | None = None,
 ) -> dict[str, Any]:
     """
     Run validation step of the pipeline.
@@ -175,6 +177,9 @@ def run_validation_step(
     Raises:
         LLMError: If LLM API call fails during semantic validation
     """
+    if console is None:
+        console = _module_console
+
     start_time = time.time()
     _call_progress_callback(progress_callback, STEP_VALIDATION, "starting", {})
 
@@ -246,6 +251,7 @@ def run_correction_step(
     file_manager: PipelineFileManager,
     progress_callback: Callable[[str, str, dict], None] | None,
     banner_label: str | None = None,
+    console: Console | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """
     Run correction step of the pipeline.
@@ -272,6 +278,9 @@ def run_correction_step(
         SchemaLoadError: If extraction schema cannot be loaded
         LLMError: If LLM API call fails
     """
+    if console is None:
+        console = _module_console
+
     title = banner_label or "CORRECTION"
     console.print(f"\n[bold magenta]=== {title} ===[/bold magenta]\n")
 
@@ -560,6 +569,9 @@ def run_validation_with_correction(
     # Get LLM instance
     llm = get_llm_provider(llm_provider)
 
+    # Create quiet console to suppress step-level output in compact mode
+    quiet_console = Console(quiet=True)
+
     # Define callback functions for IterativeLoopRunner
     def validate_fn(extraction: dict) -> dict:
         """Validate extraction with LLM retry."""
@@ -574,7 +586,9 @@ def run_validation_with_correction(
                 progress_callback=progress_callback,
                 banner_label="VALIDATION",
                 save_to_disk=False,
-            )
+                console=quiet_console,
+            ),
+            console_instance=quiet_console,
         )
 
     def correct_fn(extraction: dict, validation: dict) -> tuple[dict, dict]:
@@ -590,7 +604,9 @@ def run_validation_with_correction(
                 file_manager=file_manager,
                 progress_callback=progress_callback,
                 banner_label="CORRECTION",
-            )
+                console=quiet_console,
+            ),
+            console_instance=quiet_console,
         )
         return _strip_metadata_for_pipeline(corrected), post_validation
 

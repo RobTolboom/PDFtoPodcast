@@ -309,10 +309,15 @@ class IterativeLoopRunner:
                             schema_quality = self._get_schema_quality(validation_result)
                             if schema_quality < self.schema_quality_threshold:
                                 initial_retry_count += 1
-                                self.console.print(
-                                    f"[red]Initial result failed schema validation "
-                                    f"(quality: {schema_quality:.2f})[/red]"
-                                )
+                                if self.config.verbose:
+                                    self.console.print(
+                                        f"[red]Initial result failed schema validation "
+                                        f"(quality: {schema_quality:.2f})[/red]"
+                                    )
+                                else:
+                                    self.console.print(
+                                        "  [red]✗ Initial result invalid — retrying[/red]"
+                                    )
 
                                 # Can we retry?
                                 if (
@@ -320,26 +325,33 @@ class IterativeLoopRunner:
                                     or self.regenerate_initial_fn is None
                                 ):
                                     if initial_retry_count >= self.config.max_initial_retries:
-                                        self.console.print(
-                                            f"[red]Max initial retries "
-                                            f"({self.config.max_initial_retries}) reached[/red]"
-                                        )
+                                        if self.config.verbose:
+                                            self.console.print(
+                                                f"[red]Max initial retries "
+                                                f"({self.config.max_initial_retries}) reached[/red]"
+                                            )
+                                        else:
+                                            self.console.print(
+                                                "  [red]✗ Could not produce valid initial result[/red]"
+                                            )
                                     # Save failed result for debugging
                                     if self.save_failed_fn:
                                         self.save_failed_fn(current_result, validation_result)
-                                        self.console.print(
-                                            "[dim]Saved failed result for debugging[/dim]"
-                                        )
+                                        if self.config.verbose:
+                                            self.console.print(
+                                                "[dim]Saved failed result for debugging[/dim]"
+                                            )
                                     return self._create_schema_failure_result(
                                         validation_result, iteration_num, schema_quality
                                     )
 
                                 # Retry: regenerate initial result
-                                self.console.print(
-                                    f"[yellow]Retrying initial generation "
-                                    f"(retry {initial_retry_count}/"
-                                    f"{self.config.max_initial_retries})...[/yellow]"
-                                )
+                                if self.config.verbose:
+                                    self.console.print(
+                                        f"[yellow]Retrying initial generation "
+                                        f"(retry {initial_retry_count}/"
+                                        f"{self.config.max_initial_retries})...[/yellow]"
+                                    )
                                 current_result = self.regenerate_initial_fn()
                                 continue  # Retry validation
 
@@ -431,20 +443,31 @@ class IterativeLoopRunner:
                     schema_quality = self._get_schema_quality(corrected_validation)
                     if schema_quality < self.schema_quality_threshold:
                         correction_retry_count += 1
-                        self.console.print(
-                            f"[red]Correction failed schema validation "
-                            f"(quality: {schema_quality:.2f})[/red]"
-                        )
+                        if self.config.verbose:
+                            self.console.print(
+                                f"[red]Correction failed schema validation "
+                                f"(quality: {schema_quality:.2f})[/red]"
+                            )
+                        else:
+                            self.console.print("  [red]✗ Produced invalid output — retrying[/red]")
 
                         if correction_retry_count > self.config.max_correction_retries:
-                            self.console.print(
-                                f"[red]Max correction retries "
-                                f"({self.config.max_correction_retries}) reached[/red]"
-                            )
+                            if self.config.verbose:
+                                self.console.print(
+                                    f"[red]Max correction retries "
+                                    f"({self.config.max_correction_retries}) reached[/red]"
+                                )
+                            else:
+                                self.console.print(
+                                    "  [red]✗ Could not produce valid correction[/red]"
+                                )
                             # Always save failed result for debugging
                             if self.save_failed_fn:
                                 self.save_failed_fn(corrected_result, corrected_validation)
-                                self.console.print("[dim]Saved failed result for debugging[/dim]")
+                                if self.config.verbose:
+                                    self.console.print(
+                                        "[dim]Saved failed result for debugging[/dim]"
+                                    )
                             # Return best result we have so far, or fail
                             if self.tracker.iteration_count > 0:
                                 return self._create_max_iterations_result()
@@ -453,11 +476,12 @@ class IterativeLoopRunner:
                             )
 
                         # Retry: reset to last good and try again
-                        self.console.print(
-                            f"[yellow]Retrying correction from last good iteration "
-                            f"(retry {correction_retry_count}/"
-                            f"{self.config.max_correction_retries})...[/yellow]"
-                        )
+                        if self.config.verbose:
+                            self.console.print(
+                                f"[yellow]Retrying correction from last good iteration "
+                                f"(retry {correction_retry_count}/"
+                                f"{self.config.max_correction_retries})...[/yellow]"
+                            )
                         current_result = last_good_result
                         current_validation = last_good_validation
                         iteration_num += 1
@@ -524,10 +548,16 @@ class IterativeLoopRunner:
 
                     consecutive_rollbacks += 1
                     if consecutive_rollbacks >= MAX_CONSECUTIVE_ROLLBACKS:
-                        self.console.print(
-                            f"\n[yellow]⚠️ {consecutive_rollbacks} consecutive corrections "
-                            f"degraded quality. Stopping early.[/yellow]"
-                        )
+                        if self.config.verbose:
+                            self.console.print(
+                                f"\n[yellow]⚠️ {consecutive_rollbacks} consecutive corrections "
+                                f"degraded quality. Stopping early.[/yellow]"
+                            )
+                        else:
+                            self.console.print(
+                                f"  [yellow]⚠ {consecutive_rollbacks} consecutive corrections "
+                                f"degraded quality — stopping early[/yellow]"
+                            )
                         return self._create_early_stop_result()
 
                     # Revert to best-so-far for next correction attempt
@@ -664,15 +694,28 @@ class IterativeLoopRunner:
         self, result: dict, validation: dict, iteration_num: int
     ) -> IterativeLoopResult:
         """Create result for successful quality pass."""
-        self.console.print(f"\n[green]✅ Quality sufficient at iteration {iteration_num}[/green]")
+        if self.config.verbose:
+            self.console.print(
+                f"\n[green]✅ Quality sufficient at iteration {iteration_num}[/green]"
+            )
+        else:
+            corrections = iteration_num
+            if corrections == 0:
+                self.console.print("\n[green]✅ Passed on initial validation[/green]")
+            else:
+                s = "s" if corrections > 1 else ""
+                self.console.print(f"\n[green]✅ Passed after {corrections} correction{s}[/green]")
 
         # Save best files
         if self.save_best_fn:
             result_path, validation_path = self.save_best_fn(result, validation)
-            if result_path:
-                self.console.print(f"[green]✅ Best result saved: {result_path}[/green]")
-            if validation_path:
-                self.console.print(f"[green]✅ Best validation saved: {validation_path}[/green]")
+            if self.config.verbose:
+                if result_path:
+                    self.console.print(f"[green]✅ Best result saved: {result_path}[/green]")
+                if validation_path:
+                    self.console.print(
+                        f"[green]✅ Best validation saved: {validation_path}[/green]"
+                    )
 
         return IterativeLoopResult(
             best_result=result,
@@ -687,13 +730,19 @@ class IterativeLoopRunner:
 
     def _create_early_stop_result(self) -> IterativeLoopResult:
         """Create result for early stopping due to quality degradation."""
-        self.console.print(
-            f"\n[yellow]⚠️ Quality degradation detected after {self.tracker.iteration_count} iterations[/yellow]"
-        )
-        self.console.print("[yellow]Selecting best iteration from history...[/yellow]")
-
         # Select best iteration
         best = select_best_iteration(self.tracker.to_legacy_list(), self.config.metric_type)
+        best_quality = best.get("metrics", {}).get("quality_score", 0)
+
+        if self.config.verbose:
+            self.console.print(
+                f"\n[yellow]⚠️ Quality degradation detected after "
+                f"{self.tracker.iteration_count} iterations[/yellow]"
+            )
+            self.console.print("[yellow]Selecting best iteration from history...[/yellow]")
+        else:
+            label = f"iteration {best['iteration_num']}" if best["iteration_num"] > 0 else "initial"
+            self.console.print(f"\n[yellow]✅ Best result: {label} ({best_quality:.1%})[/yellow]")
 
         # Save best files
         if self.save_best_fn:
@@ -713,13 +762,19 @@ class IterativeLoopRunner:
 
     def _create_max_iterations_result(self) -> IterativeLoopResult:
         """Create result for max iterations reached."""
-        self.console.print(
-            f"\n[yellow]⚠️ Max iterations ({self.config.max_iterations}) reached[/yellow]"
-        )
-        self.console.print("[yellow]Selecting best iteration from history...[/yellow]")
-
         # Select best iteration
         best = select_best_iteration(self.tracker.to_legacy_list(), self.config.metric_type)
+
+        if self.config.verbose:
+            self.console.print(
+                f"\n[yellow]⚠️ Max iterations ({self.config.max_iterations}) reached[/yellow]"
+            )
+            self.console.print("[yellow]Selecting best iteration from history...[/yellow]")
+        else:
+            self.console.print(
+                f"\n[yellow]⚠ Reached max corrections ({self.config.max_iterations}) "
+                f"— using best result[/yellow]"
+            )
 
         # Save best files
         if self.save_best_fn:
@@ -741,9 +796,12 @@ class IterativeLoopRunner:
         self, validation: dict, iteration_num: int, schema_quality: float
     ) -> IterativeLoopResult:
         """Create result for schema validation failure."""
-        self.console.print(
-            f"\n[red]❌ Schema validation failed (quality: {schema_quality:.2f})[/red]"
-        )
+        if self.config.verbose:
+            self.console.print(
+                f"\n[red]❌ Schema validation failed (quality: {schema_quality:.2f})[/red]"
+            )
+        else:
+            self.console.print("\n[red]❌ Failed — could not produce valid output[/red]")
 
         return IterativeLoopResult(
             best_result=None,
