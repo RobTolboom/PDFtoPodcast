@@ -127,6 +127,7 @@ def run_appraisal_step(
     llm: Any,
     file_manager: PipelineFileManager,
     progress_callback: Callable[[str, str, dict], None] | None,
+    console: Console | None = None,
 ) -> dict[str, Any]:
     """
     Run critical appraisal step of the pipeline.
@@ -134,7 +135,8 @@ def run_appraisal_step(
     Performs tool-specific critical appraisal (RoB 2, ROBINS-I, PROBAST, etc.)
     on validated extraction data.
     """
-    _console.print("[bold cyan]Critical Appraisal[/bold cyan]")
+    output = console or _console
+    output.print("[bold cyan]Critical Appraisal[/bold cyan]")
 
     start_time = time.time()
     extraction_clean = _strip_metadata_for_pipeline(extraction_result)
@@ -142,7 +144,7 @@ def run_appraisal_step(
     try:
         prompt_name = _get_appraisal_prompt_name(publication_type)
     except UnsupportedPublicationType as e:
-        _console.print(f"[red]X {e}[/red]")
+        output.print(f"[red]X {e}[/red]")
         raise
 
     _call_progress_callback(
@@ -156,8 +158,8 @@ def run_appraisal_step(
         appraisal_prompt = load_appraisal_prompt(publication_type)
         appraisal_schema = load_schema("appraisal")
 
-        _console.print(f"[dim]Running {prompt_name} critical appraisal...")
-        _console.print(f"[dim]Tool routing: {publication_type} -> {prompt_name}[/dim]")
+        output.print(f"[dim]Running {prompt_name} critical appraisal...")
+        output.print(f"[dim]Tool routing: {publication_type} -> {prompt_name}[/dim]")
 
         from ...config import llm_settings
 
@@ -169,7 +171,7 @@ def run_appraisal_step(
             reasoning_effort=llm_settings.reasoning_effort_appraisal,
         )
 
-        _console.print("[green]+ Critical appraisal completed[/green]")
+        output.print("[green]+ Critical appraisal completed[/green]")
 
         elapsed = time.time() - start_time
         appraisal_result["_pipeline_metadata"] = {
@@ -199,7 +201,7 @@ def run_appraisal_step(
 
     except (PromptLoadError, SchemaLoadError, LLMError) as e:
         elapsed = time.time() - start_time
-        _console.print(f"[red]X Appraisal error: {e}[/red]")
+        output.print(f"[red]X Appraisal error: {e}[/red]")
 
         error_data = {
             "_pipeline_metadata": {
@@ -488,12 +490,6 @@ def run_appraisal_with_correction(
     """
     Run critical appraisal with automatic iterative correction until quality is sufficient.
     """
-    # Display header (verbose only — compact mode uses loop_runner headers)
-    if verbose:
-        _console.print(
-            "\n[bold magenta]=== CRITICAL APPRAISAL WITH ITERATIVE CORRECTION ===[/bold magenta]\n"
-        )
-
     classification_clean = _strip_metadata_for_pipeline(classification_result)
     publication_type = classification_clean.get("publication_type")
 
@@ -513,6 +509,9 @@ def run_appraisal_with_correction(
         _console.print(f"[red]X LLM provider error: {e}[/red]")
         raise
 
+    # Create quiet console to suppress step-level output in compact mode
+    quiet_console = None if verbose else Console(quiet=True)
+
     # Step 1: Run initial appraisal (before iterative loop)
     try:
         initial_appraisal = run_appraisal_step(
@@ -521,6 +520,7 @@ def run_appraisal_with_correction(
             llm=llm,
             file_manager=file_manager,
             progress_callback=progress_callback,
+            console=quiet_console,
         )
     except (UnsupportedPublicationType, PromptLoadError, SchemaLoadError, LLMError) as e:
         _console.print(f"[red]X Initial appraisal failed: {e}[/red]")
@@ -538,12 +538,9 @@ def run_appraisal_with_correction(
         degradation_window=2,
         step_name="APPRAISAL VALIDATION & CORRECTION",
         step_number=4,
-        show_banner=False,  # We already printed our own banner
+        show_banner=True,
         verbose=verbose,
     )
-
-    # Create quiet console to suppress step-level output in compact mode
-    quiet_console = None if verbose else Console(quiet=True)
 
     # Define callbacks that capture the required context
     def validate_fn(appraisal_result: dict) -> dict:
@@ -588,6 +585,7 @@ def run_appraisal_with_correction(
             llm=llm,
             file_manager=file_manager,
             progress_callback=progress_callback,
+            console=quiet_console,
         )
 
     def save_failed_fn(appraisal_result: dict, validation_result: dict) -> tuple:
