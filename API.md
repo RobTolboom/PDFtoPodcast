@@ -186,7 +186,8 @@ def run_validation_with_correction(
     file_manager: PipelineFileManager,
     max_iterations: int = 3,
     quality_thresholds: dict | None = None,
-    progress_callback: Callable | None = None
+    progress_callback: Callable | None = None,
+    verbose: bool = False,
 ) -> dict
 ```
 
@@ -199,6 +200,7 @@ def run_validation_with_correction(
 - `max_iterations`: Max correction attempts (default: 3)
 - `quality_thresholds`: Custom thresholds (default: `completeness_score` ≥0.90, `accuracy_score` ≥0.95, `schema_compliance_score` ≥0.95)
 - `progress_callback`: Optional callback for UI updates
+- `verbose`: Show detailed iteration output instead of compact format (default: False)
 
 **Returns:**
 Dictionary with keys:
@@ -245,7 +247,8 @@ def run_appraisal_with_correction(
     file_manager: PipelineFileManager,
     max_iterations: int = 3,
     quality_thresholds: dict | None = None,
-    progress_callback: Callable[[str, str, dict], None] | None = None
+    progress_callback: Callable[[str, str, dict], None] | None = None,
+    verbose: bool = False,
 ) -> dict[str, Any]
 ```
 
@@ -257,6 +260,7 @@ def run_appraisal_with_correction(
 - `max_iterations`: Max correction attempts (default: 3)
 - `quality_thresholds`: Custom thresholds (default: `logical_consistency_score` ≥0.90, `completeness_score` ≥0.85, `evidence_support_score` ≥0.90, `schema_compliance_score` ≥0.95)
 - `progress_callback`: Optional callback for UI updates
+- `verbose`: Show detailed iteration output instead of compact format (default: False)
 
 **Returns:**
 Dictionary with keys:
@@ -311,12 +315,16 @@ def run_report_with_correction(
     extraction_result: dict[str, Any],
     appraisal_result: dict[str, Any],
     classification_result: dict[str, Any],
-    llm: BaseLLMProvider,
+    llm_provider: str,
     file_manager: PipelineFileManager,
     language: str = "en",
     max_iterations: int = 3,
     quality_thresholds: dict | None = None,
+    compile_pdf: bool = True,
+    enable_figures: bool = True,
+    renderer: str = "latex",
     progress_callback: Callable[[str, str, dict], None] | None = None,
+    verbose: bool = False,
 ) -> dict[str, Any]
 ```
 
@@ -324,12 +332,16 @@ def run_report_with_correction(
 - `extraction_result`: Validated extraction JSON
 - `appraisal_result`: Validated appraisal JSON
 - `classification_result`: Classification result (for publication_type + metadata)
-- `llm`: Instantiated LLM provider
+- `llm_provider`: LLM provider name (`"openai"` or `"claude"`)
 - `file_manager`: File manager for saving report iterations
 - `language`: Report language (`"en"`)
 - `max_iterations`: Max correction attempts (default: 3)
 - `quality_thresholds`: Custom thresholds (default: `accuracy_score` ≥0.95, `completeness_score` ≥0.85, `cross_reference_consistency_score` ≥0.90, `data_consistency_score` ≥0.90, `schema_compliance_score` ≥0.95)
+- `compile_pdf`: Compile report to PDF (default: True)
+- `enable_figures`: Generate figures in report (default: True)
+- `renderer`: Rendering engine (`"latex"` or `"weasyprint"`, default: `"latex"`)
 - `progress_callback`: Optional callback for UI updates
+- `verbose`: Show detailed iteration output instead of compact format (default: False)
 
 **Returns:**
 Dictionary with keys:
@@ -349,14 +361,12 @@ Blocks if upstream quality insufficient:
 **Example:**
 ```python
 from src.pipeline.orchestrator import run_report_with_correction
-from src.llm import get_llm_provider
 
-llm = get_llm_provider("openai")
 report_result = run_report_with_correction(
     extraction_result=extraction,
     appraisal_result=appraisal,
     classification_result=classification,
-    llm=llm,
+    llm_provider="openai",
     file_manager=file_mgr,
     language="en",
     max_iterations=3

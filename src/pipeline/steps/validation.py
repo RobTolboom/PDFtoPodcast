@@ -573,7 +573,10 @@ def run_validation_with_correction(
     # Create quiet console to suppress step-level output in compact mode
     quiet_console = None if verbose else Console(quiet=True)
 
-    # Define callback functions for IterativeLoopRunner
+    # Define callback functions for IterativeLoopRunner.
+    # Note: _with_llm_retry is intentionally called without console_instance so that
+    # LLM retry/failure messages always print to _console, even in compact mode.
+    # This ensures users see transient error feedback regardless of verbosity setting.
     def validate_fn(extraction: dict) -> dict:
         """Validate extraction with LLM retry."""
         return _with_llm_retry(
