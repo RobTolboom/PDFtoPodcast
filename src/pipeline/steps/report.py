@@ -111,7 +111,7 @@ def run_report_generation(
     language: str = "en",
 ) -> dict[str, Any]:
     """Generate a structured report from extraction and appraisal data (single-pass)."""
-    _console.print("\n[bold cyan]=== REPORT GENERATION (Phase 2 - Single Pass) ===[/bold cyan]\n")
+    _console.print("\n[bold magenta]═══ STEP 5: REPORT GENERATION ═══[/bold magenta]\n")
 
     classification_clean = _strip_metadata_for_pipeline(classification_result)
     publication_type = classification_clean.get("publication_type")

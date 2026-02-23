@@ -416,7 +416,7 @@ def run_appraisal_single_pass(
     progress_callback: Callable[[str, str, dict], None] | None = None,
 ) -> dict[str, Any]:
     """Run a single appraisal + validation cycle without iterative correction."""
-    _console.print("\n[bold magenta]=== CRITICAL APPRAISAL (Single Pass) ===[/bold magenta]\n")
+    _console.print("\n[bold magenta]═══ STEP 4: CRITICAL APPRAISAL ═══[/bold magenta]\n")
 
     classification_clean = _strip_metadata_for_pipeline(classification_result)
     publication_type = classification_clean.get("publication_type")
