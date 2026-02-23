@@ -27,6 +27,7 @@ from src.pipeline.iterative.loop_runner import (
     FINAL_STATUS_PASSED,
 )
 from src.pipeline.quality import MetricType, QualityThresholds
+from src.pipeline.quality.metrics import QualityMetrics
 
 
 class TestIterativeLoopConfig:
@@ -1801,3 +1802,84 @@ class TestReadableOutput:
         assert "Quality:" in output
         assert "Below threshold" not in output
         assert "running correction" not in output
+
+    def test_initial_quality_shows_na_for_zero_metrics(self):
+        """_display_initial_quality should show N/A for metrics that are 0.0."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=1,
+            show_banner=False,
+        )
+
+        validate_fn = MagicMock(
+            return_value=self._create_validation_result(
+                completeness=0.95, accuracy=0.98, schema_compliance=0.97
+            )
+        )
+        correct_fn = MagicMock()
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+
+        metrics = QualityMetrics(
+            schema_compliance_score=0.95,
+            completeness_score=0.90,
+            accuracy_score=0.0,
+            quality_score=0.948,
+        )
+        runner._display_initial_quality(metrics)
+
+        output = buf.getvalue()
+        assert "Schema: 95.0%" in output
+        assert "Completeness: 90.0%" in output
+        assert "Accuracy: N/A" in output
+        assert "Accuracy: 0.0%" not in output
+
+    def test_before_after_quality_skips_zero_zero_metrics(self):
+        """_display_before_after_quality should skip metrics where both before and after are 0.0."""
+        console, buf = self._make_console()
+        config = IterativeLoopConfig(
+            metric_type=MetricType.EXTRACTION,
+            max_iterations=1,
+            show_banner=False,
+        )
+
+        validate_fn = MagicMock(
+            return_value=self._create_validation_result(
+                completeness=0.95, accuracy=0.98, schema_compliance=0.97
+            )
+        )
+        correct_fn = MagicMock()
+
+        runner = IterativeLoopRunner(
+            config=config,
+            initial_result={"data": "test"},
+            validate_fn=validate_fn,
+            correct_fn=correct_fn,
+            console_instance=console,
+        )
+
+        before_metrics = QualityMetrics(
+            schema_compliance_score=0.86,
+            completeness_score=0.90,
+            accuracy_score=0.0,
+            quality_score=0.925,
+        )
+        after_metrics = QualityMetrics(
+            schema_compliance_score=1.0,
+            completeness_score=0.90,
+            accuracy_score=0.0,
+            quality_score=0.948,
+        )
+        runner._display_before_after_quality(before_metrics, after_metrics)
+
+        output = buf.getvalue()
+        assert "Schema:" in output
+        assert "Accuracy" not in output
+        assert "Quality:" in output

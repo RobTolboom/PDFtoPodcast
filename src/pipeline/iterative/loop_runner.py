@@ -641,7 +641,10 @@ class IterativeLoopRunner:
         if metrics.completeness_score is not None:
             parts.append(f"Completeness: {metrics.completeness_score:.1%}")
         if metrics.accuracy_score is not None:
-            parts.append(f"Accuracy: {metrics.accuracy_score:.1%}")
+            if metrics.accuracy_score == 0.0:
+                parts.append("Accuracy: N/A")
+            else:
+                parts.append(f"Accuracy: {metrics.accuracy_score:.1%}")
 
         metrics_line = " | ".join(parts)
         self.console.print(f"  {metrics_line} → Quality: {metrics.quality_score:.1%}")
@@ -669,6 +672,8 @@ class IterativeLoopRunner:
         for name, before, after in metrics_to_show:
             if before is None or after is None:
                 continue
+            if before == 0.0 and after == 0.0:
+                continue  # Skip N/A metrics in before→after display
             delta = after - before
             if abs(delta) < 0.001:
                 continue  # Skip unchanged metrics
