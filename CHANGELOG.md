@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Consistent `═══ STEP N: NAME ═══` headers across all 6 pipeline steps (classification through podcast)
+- Appraisal debug messages (Tool routing, Running...) hidden in compact mode, visible with `--verbose`
+- Zero-value metrics display as "N/A" instead of "0.0%" in quality summaries
 - Iterative correction loop console output redesigned for readability: "Correction N of M" format with compact before→after quality deltas, plain-language failure messages, and `--verbose` / `-v` CLI flag for detailed debugging output
 - Iterative correction loop now uses best-so-far result when a correction degrades quality, instead of feeding the degraded result into the next correction attempt
 - Correction loop improvements: deterministic repair for pattern/minimum/enum constraint violations in `schema_repair.py`, proportional schema scoring (replaces binary pass/fail cliff), explicit empty-string omission rule in correction prompt, previous-failure context injected into correction retries, and early exit after 2 consecutive quality degradations
