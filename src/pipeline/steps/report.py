@@ -241,7 +241,11 @@ def run_report_validation_step(
     progress_callback: Callable[[str, str, dict], None] | None,
     console: Console | None = None,
 ) -> dict[str, Any]:
-    """Run report validation step of the pipeline."""
+    """Run report validation step of the pipeline.
+
+    Args:
+        console: Optional Rich Console. Pass Console(quiet=True) to suppress output.
+    """
     if console is None:
         console = _console
     console.print("[bold cyan]Report Validation[/bold cyan]")
@@ -330,7 +334,11 @@ def run_report_correction_step(
     progress_callback: Callable[[str, str, dict], None] | None,
     console: Console | None = None,
 ) -> dict[str, Any]:
-    """Run report correction step of the pipeline."""
+    """Run report correction step of the pipeline.
+
+    Args:
+        console: Optional Rich Console. Pass Console(quiet=True) to suppress output.
+    """
     if console is None:
         console = _console
     console.print("[bold cyan]Report Correction[/bold cyan]")

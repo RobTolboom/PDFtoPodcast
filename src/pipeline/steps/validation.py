@@ -169,6 +169,9 @@ def run_validation_step(
         file_manager: PipelineFileManager for saving results
         progress_callback: Optional callback for progress updates
         banner_label: Optional custom label for console banner
+        save_to_disk: Whether to save validation results to disk (default True)
+        console: Optional Rich Console for output. If None, uses module-level console.
+            Pass Console(quiet=True) to suppress output in compact mode.
 
     Returns:
         Dictionary containing validation results with verification_summary
@@ -268,6 +271,8 @@ def run_correction_step(
         file_manager: PipelineFileManager for saving results
         progress_callback: Optional callback for progress updates
         banner_label: Optional custom label for console banner
+        console: Optional Rich Console for output. If None, uses module-level console.
+            Pass Console(quiet=True) to suppress output in compact mode.
 
     Returns:
         Tuple of (corrected_extraction, final_validation)

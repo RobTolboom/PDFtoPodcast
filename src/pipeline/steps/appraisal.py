@@ -134,6 +134,15 @@ def run_appraisal_step(
 
     Performs tool-specific critical appraisal (RoB 2, ROBINS-I, PROBAST, etc.)
     on validated extraction data.
+
+    Args:
+        extraction_result: Validated extraction data to appraise.
+        publication_type: Publication type from classification.
+        llm: LLM provider instance.
+        file_manager: PipelineFileManager for saving results.
+        progress_callback: Optional callback for progress updates.
+        console: Optional Rich Console for output. If None, uses module-level console.
+            Pass Console(quiet=True) to suppress output in compact mode.
     """
     output = console or _console
     output.print("[bold cyan]Critical Appraisal[/bold cyan]")
@@ -237,7 +246,11 @@ def run_appraisal_validation_step(
     progress_callback: Callable[[str, str, dict], None] | None,
     console: Console | None = None,
 ) -> dict[str, Any]:
-    """Run appraisal validation step of the pipeline."""
+    """Run appraisal validation step of the pipeline.
+
+    Args:
+        console: Optional Rich Console. Pass Console(quiet=True) to suppress output.
+    """
     if console is None:
         console = _console
     console.print("[bold cyan]Appraisal Validation[/bold cyan]")
@@ -327,7 +340,11 @@ def run_appraisal_correction_step(
     progress_callback: Callable[[str, str, dict], None] | None,
     console: Console | None = None,
 ) -> dict[str, Any]:
-    """Run appraisal correction step of the pipeline."""
+    """Run appraisal correction step of the pipeline.
+
+    Args:
+        console: Optional Rich Console. Pass Console(quiet=True) to suppress output.
+    """
     if console is None:
         console = _console
     console.print("[bold cyan]Appraisal Correction[/bold cyan]")

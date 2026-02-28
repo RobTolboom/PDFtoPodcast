@@ -1719,7 +1719,7 @@ CLI entry point for pipeline execution.
 
 #### Full Pipeline
 ```bash
-# Run complete 5-step pipeline with defaults
+# Run complete 6-step pipeline with defaults
 python run_pipeline.py paper.pdf
 
 # Use Claude with custom page limit
