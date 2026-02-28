@@ -224,6 +224,12 @@ def main():
         help="Minimum schema compliance score for appraisal (default: 0.95)",
     )
     parser.add_argument(
+        "--verbose",
+        "-v",
+        action="store_true",
+        help="Show detailed validation/correction output (default: compact)",
+    )
+    parser.add_argument(
         "--output",
         choices=["podcast", "report", "both"],
         default="both",
@@ -317,6 +323,7 @@ def main():
                 report_renderer=args.report_renderer,
                 report_compile_pdf=args.report_compile_pdf,
                 report_enable_figures=args.report_enable_figures,
+                verbose=args.verbose,
             )
 
         # Print result summary
@@ -467,6 +474,7 @@ def main():
             report_enable_figures=args.report_enable_figures,
             skip_report=(args.output == "podcast"),
             skip_podcast=(args.output == "report"),
+            verbose=args.verbose,
         )
 
     # Calculate total pipeline time if available (only set in full pipeline mode)

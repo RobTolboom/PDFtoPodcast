@@ -31,7 +31,7 @@ from ..utils import _call_progress_callback, _get_provider_name, _strip_metadata
 from ..validation_runner import run_dual_validation
 from .extraction import run_extraction_step
 
-console = Console()
+_console = Console()
 
 # Step name constants
 STEP_VALIDATION = "validation"
@@ -98,16 +98,16 @@ def _print_iteration_summary(
     file_manager: PipelineFileManager, iterations: list[dict], best_iteration: int
 ) -> None:
     """Print summary of all saved iterations with best selection."""
-    console.print("\n[bold]Saved Extraction Iterations:[/bold]")
+    _console.print("\n[bold]Saved Extraction Iterations:[/bold]")
     for it_data in iterations:
         it_num = it_data["iteration_num"]
         extraction_file = file_manager.get_filename("extraction", iteration_number=it_num)
         status_symbol = "+" if extraction_file.exists() else "!"
-        console.print(f"  {status_symbol} Iteration {it_num}: {extraction_file.name}")
+        _console.print(f"  {status_symbol} Iteration {it_num}: {extraction_file.name}")
 
     best_file = file_manager.get_filename("extraction", status="best")
     if best_file.exists():
-        console.print(f"  * Best: {best_file.name} (iteration {best_iteration})")
+        _console.print(f"  * Best: {best_file.name} (iteration {best_iteration})")
 
 
 def _with_llm_retry(
@@ -127,7 +127,7 @@ def _with_llm_retry(
     Raises:
         LLMError: If all retries are exhausted
     """
-    _console = console_instance or console
+    retry_console = console_instance or _console
     for retry in range(max_retries + 1):
         try:
             return fn()
@@ -135,7 +135,7 @@ def _with_llm_retry(
             if retry == max_retries:
                 raise
             wait_time = 2**retry  # 1s, 2s, 4s
-            _console.print(
+            retry_console.print(
                 f"[yellow]! LLM call failed, retrying in {wait_time}s... "
                 f"(attempt {retry + 1}/{max_retries})[/yellow]"
             )
@@ -152,6 +152,7 @@ def run_validation_step(
     progress_callback: Callable[[str, str, dict], None] | None,
     banner_label: str | None = None,
     save_to_disk: bool = True,
+    console: Console | None = None,
 ) -> dict[str, Any]:
     """
     Run validation step of the pipeline.
@@ -168,6 +169,9 @@ def run_validation_step(
         file_manager: PipelineFileManager for saving results
         progress_callback: Optional callback for progress updates
         banner_label: Optional custom label for console banner
+        save_to_disk: Whether to save validation results to disk (default True)
+        console: Optional Rich Console for output. If None, uses module-level console.
+            Pass Console(quiet=True) to suppress output in compact mode.
 
     Returns:
         Dictionary containing validation results with verification_summary
@@ -175,6 +179,9 @@ def run_validation_step(
     Raises:
         LLMError: If LLM API call fails during semantic validation
     """
+    if console is None:
+        console = _console
+
     start_time = time.time()
     _call_progress_callback(progress_callback, STEP_VALIDATION, "starting", {})
 
@@ -246,6 +253,7 @@ def run_correction_step(
     file_manager: PipelineFileManager,
     progress_callback: Callable[[str, str, dict], None] | None,
     banner_label: str | None = None,
+    console: Console | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """
     Run correction step of the pipeline.
@@ -263,6 +271,8 @@ def run_correction_step(
         file_manager: PipelineFileManager for saving results
         progress_callback: Optional callback for progress updates
         banner_label: Optional custom label for console banner
+        console: Optional Rich Console for output. If None, uses module-level console.
+            Pass Console(quiet=True) to suppress output in compact mode.
 
     Returns:
         Tuple of (corrected_extraction, final_validation)
@@ -272,6 +282,9 @@ def run_correction_step(
         SchemaLoadError: If extraction schema cannot be loaded
         LLMError: If LLM API call fails
     """
+    if console is None:
+        console = _console
+
     title = banner_label or "CORRECTION"
     console.print(f"\n[bold magenta]=== {title} ===[/bold magenta]\n")
 
@@ -515,6 +528,7 @@ def run_validation_with_correction(
     max_iterations: int = 3,
     quality_thresholds: dict | None = None,
     progress_callback: Callable | None = None,
+    verbose: bool = False,
 ) -> dict:
     """
     Run validation with automatic iterative correction until quality is sufficient.
@@ -551,16 +565,23 @@ def run_validation_with_correction(
     # Extract publication_type for correction step
     publication_type = classification_result.get("publication_type", "unknown")
 
-    # Display header
-    console.print(
-        "\n[bold magenta]=== STEP 3: ITERATIVE VALIDATION & CORRECTION ===[/bold magenta]\n"
-    )
-    console.print(f"[blue]Publication type: {publication_type}[/blue]")
+    # Display header (verbose only — compact mode uses loop_runner headers)
+    if verbose:
+        _console.print(
+            "\n[bold magenta]=== STEP 3: ITERATIVE VALIDATION & CORRECTION ===[/bold magenta]\n"
+        )
+        _console.print(f"[blue]Publication type: {publication_type}[/blue]")
 
     # Get LLM instance
     llm = get_llm_provider(llm_provider)
 
-    # Define callback functions for IterativeLoopRunner
+    # Create quiet console to suppress step-level output in compact mode
+    quiet_console = None if verbose else Console(quiet=True)
+
+    # Define callback functions for IterativeLoopRunner.
+    # Note: _with_llm_retry is intentionally called without console_instance so that
+    # LLM retry/failure messages always print to _console, even in compact mode.
+    # This ensures users see transient error feedback regardless of verbosity setting.
     def validate_fn(extraction: dict) -> dict:
         """Validate extraction with LLM retry."""
         return _with_llm_retry(
@@ -574,7 +595,8 @@ def run_validation_with_correction(
                 progress_callback=progress_callback,
                 banner_label="VALIDATION",
                 save_to_disk=False,
-            )
+                console=quiet_console,
+            ),
         )
 
     def correct_fn(extraction: dict, validation: dict) -> tuple[dict, dict]:
@@ -590,7 +612,8 @@ def run_validation_with_correction(
                 file_manager=file_manager,
                 progress_callback=progress_callback,
                 banner_label="CORRECTION",
-            )
+                console=quiet_console,
+            ),
         )
         return _strip_metadata_for_pipeline(corrected), post_validation
 
@@ -648,6 +671,7 @@ def run_validation_with_correction(
         step_name="ITERATIVE VALIDATION & CORRECTION",
         step_number=3,
         show_banner=False,  # We already printed banner above
+        verbose=verbose,
     )
 
     runner = IterativeLoopRunner(
@@ -660,7 +684,7 @@ def run_validation_with_correction(
         regenerate_initial_fn=regenerate_initial_fn,
         save_failed_fn=save_failed_fn,
         progress_callback=progress_callback,
-        console_instance=console,
+        console_instance=_console,
         check_schema_quality=True,
         schema_quality_threshold=0.5,
     )

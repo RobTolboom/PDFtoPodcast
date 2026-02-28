@@ -25,20 +25,27 @@ This document provides a comprehensive reference for all public APIs in the medi
 
 ### Main Pipeline Functions
 
-#### `run_four_step_pipeline()`
+#### `run_full_pipeline()`
 
-Execute complete 4-step pipeline (classification, extraction, validation/correction, appraisal).
+Execute complete 6-step pipeline (classification, extraction, validation/correction, appraisal, report, podcast).
 
 **Signature:**
 ```python
-def run_four_step_pipeline(
+def run_full_pipeline(
     pdf_path: Path,
     max_pages: int | None = None,
     llm_provider: str = "openai",
     breakpoint_after_step: str | None = None,
     have_llm_support: bool = True,
     steps_to_run: list[str] | None = None,
-    progress_callback: Callable[[str, str, dict], None] | None = None
+    report_language: str = "en",
+    report_renderer: str = "latex",
+    report_compile_pdf: bool = True,
+    report_enable_figures: bool = True,
+    progress_callback: Callable[[str, str, dict], None] | None = None,
+    skip_report: bool = False,
+    skip_podcast: bool = False,
+    verbose: bool = False
 ) -> dict[str, Any]
 ```
 
@@ -49,7 +56,14 @@ def run_four_step_pipeline(
 - `breakpoint_after_step`: Optional step name to stop after (for testing)
 - `have_llm_support`: Whether LLM is available (for testing with mocks)
 - `steps_to_run`: Optional list to filter which steps execute
+- `report_language`: Language for report generation (default: `"en"`)
+- `report_renderer`: Report renderer (`"latex"` or `"weasyprint"`, default: `"latex"`)
+- `report_compile_pdf`: Compile report to PDF (default: True)
+- `report_enable_figures`: Generate figures in report (default: True)
 - `progress_callback`: Optional callback for UI updates (`callback(step_name, status, data)`)
+- `skip_report`: Skip report generation step (default: False)
+- `skip_podcast`: Skip podcast generation step (default: False)
+- `verbose`: Show detailed iteration output instead of compact format (default: False)
 
 **Returns:**
 Dictionary with keys for each completed step:
@@ -57,6 +71,8 @@ Dictionary with keys for each completed step:
 - `extraction_result`: Structured data extraction
 - `validation_correction_result`: Best extraction after validation/correction
 - `appraisal_result`: Critical appraisal (risk of bias, GRADE ratings)
+- `report_result`: Rendered report paths (if not skipped)
+- `podcast_result`: Podcast transcript (if not skipped)
 
 **Raises:**
 - `FileNotFoundError`: If PDF file not found
@@ -66,9 +82,9 @@ Dictionary with keys for each completed step:
 **Example:**
 ```python
 from pathlib import Path
-from src.pipeline.orchestrator import run_four_step_pipeline
+from src.pipeline.orchestrator import run_full_pipeline
 
-results = run_four_step_pipeline(
+results = run_full_pipeline(
     pdf_path=Path("paper.pdf"),
     llm_provider="openai",
     max_pages=None  # Process all pages
@@ -96,7 +112,8 @@ def run_single_step(
     previous_results: dict[str, Any] | None = None,
     max_correction_iterations: int | None = None,
     quality_thresholds: dict[str, Any] | None = None,
-    enable_iterative_correction: bool = True
+    enable_iterative_correction: bool = True,
+    verbose: bool = False
 ) -> dict[str, Any]
 ```
 
@@ -111,6 +128,7 @@ def run_single_step(
 - `max_correction_iterations`: Max iterations for validation_correction or appraisal (default: 3)
 - `quality_thresholds`: Custom quality thresholds (dict with threshold names as keys)
 - `enable_iterative_correction`: Enable iterative correction loops (default: True)
+- `verbose`: Show detailed iteration output instead of compact format (default: False)
 
 **Returns:**
 Step-specific result dictionary
@@ -168,7 +186,8 @@ def run_validation_with_correction(
     file_manager: PipelineFileManager,
     max_iterations: int = 3,
     quality_thresholds: dict | None = None,
-    progress_callback: Callable | None = None
+    progress_callback: Callable | None = None,
+    verbose: bool = False,
 ) -> dict
 ```
 
@@ -181,6 +200,7 @@ def run_validation_with_correction(
 - `max_iterations`: Max correction attempts (default: 3)
 - `quality_thresholds`: Custom thresholds (default: `completeness_score` ≥0.90, `accuracy_score` ≥0.95, `schema_compliance_score` ≥0.95)
 - `progress_callback`: Optional callback for UI updates
+- `verbose`: Show detailed iteration output instead of compact format (default: False)
 
 **Returns:**
 Dictionary with keys:
@@ -227,7 +247,8 @@ def run_appraisal_with_correction(
     file_manager: PipelineFileManager,
     max_iterations: int = 3,
     quality_thresholds: dict | None = None,
-    progress_callback: Callable[[str, str, dict], None] | None = None
+    progress_callback: Callable[[str, str, dict], None] | None = None,
+    verbose: bool = False,
 ) -> dict[str, Any]
 ```
 
@@ -239,6 +260,7 @@ def run_appraisal_with_correction(
 - `max_iterations`: Max correction attempts (default: 3)
 - `quality_thresholds`: Custom thresholds (default: `logical_consistency_score` ≥0.90, `completeness_score` ≥0.85, `evidence_support_score` ≥0.90, `schema_compliance_score` ≥0.95)
 - `progress_callback`: Optional callback for UI updates
+- `verbose`: Show detailed iteration output instead of compact format (default: False)
 
 **Returns:**
 Dictionary with keys:
@@ -293,12 +315,16 @@ def run_report_with_correction(
     extraction_result: dict[str, Any],
     appraisal_result: dict[str, Any],
     classification_result: dict[str, Any],
-    llm: BaseLLMProvider,
+    llm_provider: str,
     file_manager: PipelineFileManager,
     language: str = "en",
     max_iterations: int = 3,
     quality_thresholds: dict | None = None,
+    compile_pdf: bool = True,
+    enable_figures: bool = True,
+    renderer: str = "latex",
     progress_callback: Callable[[str, str, dict], None] | None = None,
+    verbose: bool = False,
 ) -> dict[str, Any]
 ```
 
@@ -306,12 +332,16 @@ def run_report_with_correction(
 - `extraction_result`: Validated extraction JSON
 - `appraisal_result`: Validated appraisal JSON
 - `classification_result`: Classification result (for publication_type + metadata)
-- `llm`: Instantiated LLM provider
+- `llm_provider`: LLM provider name (`"openai"` or `"claude"`)
 - `file_manager`: File manager for saving report iterations
 - `language`: Report language (`"en"`)
 - `max_iterations`: Max correction attempts (default: 3)
 - `quality_thresholds`: Custom thresholds (default: `accuracy_score` ≥0.95, `completeness_score` ≥0.85, `cross_reference_consistency_score` ≥0.90, `data_consistency_score` ≥0.90, `schema_compliance_score` ≥0.95)
+- `compile_pdf`: Compile report to PDF (default: True)
+- `enable_figures`: Generate figures in report (default: True)
+- `renderer`: Rendering engine (`"latex"` or `"weasyprint"`, default: `"latex"`)
 - `progress_callback`: Optional callback for UI updates
+- `verbose`: Show detailed iteration output instead of compact format (default: False)
 
 **Returns:**
 Dictionary with keys:
@@ -331,14 +361,12 @@ Blocks if upstream quality insufficient:
 **Example:**
 ```python
 from src.pipeline.orchestrator import run_report_with_correction
-from src.llm import get_llm_provider
 
-llm = get_llm_provider("openai")
 report_result = run_report_with_correction(
     extraction_result=extraction,
     appraisal_result=appraisal,
     classification_result=classification,
-    llm=llm,
+    llm_provider="openai",
     file_manager=file_mgr,
     language="en",
     max_iterations=3
@@ -1691,7 +1719,7 @@ CLI entry point for pipeline execution.
 
 #### Full Pipeline
 ```bash
-# Run complete 5-step pipeline with defaults
+# Run complete 6-step pipeline with defaults
 python run_pipeline.py paper.pdf
 
 # Use Claude with custom page limit
