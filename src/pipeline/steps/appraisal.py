@@ -507,6 +507,7 @@ def run_appraisal_with_correction(
     """
     Run critical appraisal with automatic iterative correction until quality is sufficient.
     """
+    _console.print("\n[bold magenta]═══ STEP 4: CRITICAL APPRAISAL ═══[/bold magenta]\n")
     classification_clean = _strip_metadata_for_pipeline(classification_result)
     publication_type = classification_clean.get("publication_type")
 
@@ -555,7 +556,7 @@ def run_appraisal_with_correction(
         degradation_window=2,
         step_name="APPRAISAL VALIDATION & CORRECTION",
         step_number=4,
-        show_banner=True,
+        show_banner=False,
         verbose=verbose,
     )
 
