@@ -438,11 +438,8 @@ def run_report_with_correction(
     verbose: bool = False,
 ) -> dict[str, Any]:
     """Run report generation with automatic iterative correction until quality is sufficient."""
-    # Display header (verbose only — compact mode uses loop_runner headers)
+    _console.print("\n[bold magenta]═══ STEP 5: REPORT GENERATION ═══[/bold magenta]\n")
     if verbose:
-        _console.print(
-            "\n[bold magenta]=== REPORT GENERATION WITH ITERATIVE CORRECTION ===[/bold magenta]\n"
-        )
         _console.print(f"[blue]Report language: {language}[/blue]")
         _console.print(f"[blue]Max iterations: {max_iterations}[/blue]\n")
 

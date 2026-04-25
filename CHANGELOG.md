@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Correction loop headers now appear **before** `Correcting...` instead of after the previous correction's result (GH #38)
+- Step headers for STEP 4 (Critical Appraisal) and STEP 5 (Report Generation) now print immediately when the step starts, before any LLM call, so the user always sees which step is running
+
 ### Security
 
 - Bump `python-dotenv` to `>=1.2.2` — fixes symlink-following arbitrary file overwrite (CVE, GH #15)

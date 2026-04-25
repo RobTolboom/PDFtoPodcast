@@ -287,11 +287,6 @@ class IterativeLoopRunner:
                 self.console.print(f"\n[bold cyan]─── Iteration {iteration_num} ───[/bold cyan]")
             elif iteration_num == 0:
                 self.console.print("\n[bold cyan]─── Initial Validation ───[/bold cyan]")
-            else:
-                self.console.print(
-                    f"\n[bold cyan]─── Correction {iteration_num} of "
-                    f"{self.config.max_iterations} ───[/bold cyan]"
-                )
 
             try:
                 # Call progress callback
@@ -427,6 +422,10 @@ class IterativeLoopRunner:
                         f"\n[yellow]Running correction (iteration {iteration_num})...[/yellow]"
                     )
                 else:
+                    self.console.print(
+                        f"\n[bold cyan]─── Correction {iteration_num + 1} of "
+                        f"{self.config.max_iterations} ───[/bold cyan]"
+                    )
                     self.console.print("  [dim]Correcting...[/dim]")
 
                 # Inject correction hints if available from previous failure
