@@ -1,7 +1,7 @@
 # --- Core ---
 openai>=1.51.0			# official OpenAI client (Responses API, JSON schema etc.)
 anthropic>=0.25.0		# Anthropic Claude API client
-python-dotenv>=1.0		# load .env files
+python-dotenv>=1.2.2		# load .env files
 jsonschema>=4.20		# JSON schema validation
 
 # --- Reliability ---
@@ -17,5 +17,8 @@ weasyprint>=68.0		# HTML/CSS to PDF fallback renderer (requires Cairo/Pango syst
 matplotlib>=3.8.0		# figure generation backend (Agg)
 
 # --- Security pins (transitive deps) ---
-pillow>=12.1.1			# CVE fix: out-of-bounds write loading PSD images
-protobuf>=6.33.5		# CVE fix: JSON recursion depth bypass
+pillow>=12.2.0			# CVE fix: FITS GZIP decompression bomb (#14); out-of-bounds write loading PSD images (#7)
+protobuf>=6.33.5		# CVE fix: JSON recursion depth bypass (#6)
+tornado>=6.5.5			# CVE fix: cookie attribute injection (#13), DoS multipart parts (#9), incomplete cookie validation (#8)
+Pygments>=2.20.0		# CVE fix: ReDoS via inefficient GUID regex (#12)
+requests>=2.33.0		# CVE fix: insecure temp file reuse in extract_zipped_paths (#11)
