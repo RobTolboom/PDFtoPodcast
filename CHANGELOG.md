@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Bump `python-dotenv` to `>=1.2.2` — fixes symlink-following arbitrary file overwrite (CVE, GH #15)
+- Bump `pillow` to `>=12.2.0` — fixes FITS GZIP decompression bomb (GH #14)
+- Pin `tornado>=6.5.5` — fixes cookie attribute injection (GH #13), DoS via excessive multipart parts (GH #9), and incomplete cookie attribute validation (GH #8)
+- Pin `Pygments>=2.20.0` — fixes ReDoS via inefficient GUID regex (GH #12)
+- Pin `requests>=2.33.0` — fixes insecure temp file reuse in `extract_zipped_paths` (GH #11)
+
 ### Added
 
 - **Podcast Show Summary** - Plain-text episode companion generated alongside the podcast transcript
