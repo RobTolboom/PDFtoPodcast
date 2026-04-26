@@ -8,7 +8,7 @@ Strategic development plan for PDFtoPodcast. *Status: planning* (March 2025)
 - CLI output ordering fixes and immediate step headers for all pipeline steps
 - Security dependency updates (python-dotenv, pillow, tornado, Pygments, requests)
 
-## Current focus (Q2 2025)
+## Current focus (Q2 2026)
 | Initiative | Goal | Notes |
 |------------|------|-------|
 | Appraisal summary | Provide LLM-assisted assessments of study quality (risk of bias, strengths, limitations). | Requires prompt extensions, schema updates for appraisal metadata, and validation scoring adjustments. |
