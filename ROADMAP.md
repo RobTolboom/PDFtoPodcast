@@ -2,11 +2,11 @@
 
 Strategic development plan for PDFtoPodcast. *Status: planning* (March 2025)
 
-## Current version (0.1.0)
-- Initial release: 6-step pipeline (Classification → Extraction → Validation/Correction → Appraisal → Report → Podcast)
-- Streamlit UI and CLI parity
-- Support for five publication types via schema-driven prompts
-- Iterative validation-correction loop with quality thresholds and best-iteration selection
+## Current version (0.2.0)
+- Podcast Show Summary: plain-text episode companion generated alongside the transcript
+- Iterative correction loop improvements: best-so-far rollback, early exit on degradation, deterministic schema repair, verbose/compact output modes
+- CLI output ordering fixes and immediate step headers for all pipeline steps
+- Security dependency updates (python-dotenv, pillow, tornado, Pygments, requests)
 
 ## Current focus (Q2 2025)
 | Initiative | Goal | Notes |
@@ -47,10 +47,11 @@ Community feedback influences priority. See guidance below to propose new items.
 - Major releases (x.0.0): reserved for substantial platform changes or breakpoints.
 
 Upcoming planned milestones (tentative):
-- v0.2 - batch processing, result caching
-- v0.3 - additional LLM providers, API server
+- v0.3 - batch processing, result caching
+- v0.4 - additional LLM providers, API server
 
 ## Past milestones
+- April 2026 - v0.2.0: podcast show summary, correction loop improvements, CLI output ordering fixes, security dependency updates.
 - February 2026 - v0.1.0: initial release with 6-step pipeline, critical appraisal, report generation, podcast generation, Streamlit UI, and CLI.
 
 This roadmap is a living document and will be revised as feedback and priorities evolve. Submit ideas via GitHub Issues or Discussions.
