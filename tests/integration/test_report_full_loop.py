@@ -30,6 +30,7 @@ import pytest
 
 from src.pipeline.file_manager import PipelineFileManager
 from src.pipeline.orchestrator import run_report_with_correction
+from src.pipeline.version import get_pipeline_version as _get_pipeline_version
 
 
 @pytest.fixture
@@ -159,7 +160,7 @@ def mock_report_response():
         "metadata": {
             "title": "Effect of Treatment X on Pain in RCT",
             "generation_timestamp": "2025-01-20T10:00:00Z",
-            "pipeline_version": "0.1.0",
+            "pipeline_version": _get_pipeline_version(),
         },
         "layout": {
             "language": "en",

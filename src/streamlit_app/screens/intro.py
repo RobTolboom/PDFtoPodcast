@@ -11,6 +11,8 @@ and navigation to start the pipeline.
 
 import streamlit as st
 
+from src.pipeline.version import get_pipeline_version
+
 
 def show_intro_screen():
     """
@@ -147,9 +149,9 @@ def show_intro_screen():
 
     # Footer
     st.markdown(
-        """
+        f"""
         <div style="text-align: center; padding: 2rem 0; color: #666; font-size: 0.9rem;">
-            <p>Developed by Tolboom Medical | © 2025 | Version 0.1.0</p>
+            <p>Developed by Tolboom Medical | © 2025–2026 | Version {get_pipeline_version()}</p>
         </div>
         """,
         unsafe_allow_html=True,
