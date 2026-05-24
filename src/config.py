@@ -116,8 +116,8 @@ class LLMSettings:
     # Higher effort = more thinking tokens, better quality, higher cost/latency
     reasoning_effort_classification: str = os.getenv("REASONING_EFFORT_CLASSIFICATION", "low")
     reasoning_effort_extraction: str = os.getenv("REASONING_EFFORT_EXTRACTION", "high")
-    reasoning_effort_validation: str = os.getenv("REASONING_EFFORT_VALIDATION", "medium")
-    reasoning_effort_correction: str = os.getenv("REASONING_EFFORT_CORRECTION", "medium")
+    reasoning_effort_validation: str = os.getenv("REASONING_EFFORT_VALIDATION", "high")
+    reasoning_effort_correction: str = os.getenv("REASONING_EFFORT_CORRECTION", "high")
     reasoning_effort_appraisal: str = os.getenv("REASONING_EFFORT_APPRAISAL", "high")
     reasoning_effort_report: str = os.getenv("REASONING_EFFORT_REPORT", "medium")
     reasoning_effort_podcast: str = os.getenv("REASONING_EFFORT_PODCAST", "medium")

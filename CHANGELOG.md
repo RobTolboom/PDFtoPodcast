@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Raise default reasoning effort for validation and correction steps to `high`** — more thinking budget for the validation→correction loop produces more precise error identification and better targeted fixes, improving completeness scores; overridable via `REASONING_EFFORT_VALIDATION` and `REASONING_EFFORT_CORRECTION` env vars
+
+### Changed
+
 - **Upgrade default OpenAI model from `gpt-5.1` to `gpt-5.5`** — GPT-5.5 (released 2026-04-24) reduces hallucinated claims by 52.5% on high-stakes medical prompts and improves structured output quality; overridable via `OPENAI_MODEL` env var
 
 ### Fixed
