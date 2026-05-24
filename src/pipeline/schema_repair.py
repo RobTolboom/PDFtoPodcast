@@ -281,7 +281,8 @@ def _repair_figures_key_values(figures: list[Any]) -> list[Any]:
 
     Iterates over ``figures`` (a list of FigureSummary objects).  For each
     figure, inspects ``key_values`` and flattens any value that is a depth-2+
-    nested object into a depth-1 representation using dot-separated keys.
+    nested object into a depth-1 representation using underscore-separated keys
+    (e.g. ``breakdown_a_x``).
 
     Args:
         figures: List of figure summary dicts (mutated in place).
