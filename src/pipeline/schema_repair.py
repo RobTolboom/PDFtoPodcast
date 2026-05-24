@@ -189,6 +189,22 @@ def _repair_object(
             )
         elif prop_type == "object":
             if isinstance(obj[key], dict):
+                # If this optional field's value is missing required sub-schema fields,
+                # remove the field entirely rather than keeping an invalid object.
+                # (e.g. sensitivity_analyses[n].effect with no "type"/"point" when no
+                # numeric estimate exists in the paper)
+                sub_required = resolved.get("required", [])
+                if key not in required_fields and sub_required:
+                    missing = [f for f in sub_required if f not in obj[key]]
+                    if missing:
+                        logger.info(
+                            "Removing optional field '%s': value missing required sub-fields %s",
+                            key,
+                            missing,
+                        )
+                        keys_to_remove.append(key)
+                        continue
+
                 nested_props = resolved.get("properties", {})
                 original_nested = original.get(key) if original else None
                 obj[key] = _repair_object(
