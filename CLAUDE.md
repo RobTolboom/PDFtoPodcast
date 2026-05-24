@@ -63,7 +63,7 @@
   <project_context>
     <architecture>
       <summary>6-step pipeline: Classification -> Extraction -> Validation/Correction -> Appraisal -> Report -> Podcast</summary>
-      <llm>OpenAI GPT-5.1 with strict: False structured output (schema as guidance only)</llm>
+      <llm>OpenAI GPT-5.5 with strict: False structured output (schema as guidance only)</llm>
       <entry_points>
         <cli>python run_pipeline.py paper.pdf</cli>
         <streamlit>streamlit run app.py</streamlit>

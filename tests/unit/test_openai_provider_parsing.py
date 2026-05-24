@@ -28,7 +28,7 @@ class DummyResponse:
         self.output = output or []
         self.usage = DummyUsage()
         self.status = "completed"
-        self.model = "gpt-5.1"
+        self.model = "gpt-5.5"
         self.id = "resp_123"
         self.created_at = 1234567890
 
@@ -60,7 +60,7 @@ class TestParseResponseOutput:
 
         assert result["a"] == 1
         assert result["usage"]["input_tokens"] == 1
-        assert result["_metadata"]["model"] == "gpt-5.1"
+        assert result["_metadata"]["model"] == "gpt-5.5"
 
     def test_repairs_unescaped_quotes_and_parses(self):
         provider = _make_provider()

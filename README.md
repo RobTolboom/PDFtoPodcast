@@ -272,7 +272,7 @@ OPENAI_API_KEY=sk-...
 ANTHROPIC_API_KEY=sk-ant-...
 
 # Optional: Model selection
-OPENAI_MODEL=gpt-5.1         # Default: gpt-5.1 (vision support)
+OPENAI_MODEL=gpt-5.5         # Default: gpt-5.5 (vision support)
 ANTHROPIC_MODEL=claude-sonnet-4-5-20250929  # Default: Sonnet 4.5
 
 # Optional: Token limits
@@ -619,7 +619,7 @@ git push
 ### OpenAI API Limits
 - **Provider limit:** 100 pages, 32 MB per PDF
 - **Pipeline default upload size:** 10 MB (adjust with `MAX_PDF_SIZE_MB`)
-- **Models:** gpt-5.1 (vision-capable model)
+- **Models:** gpt-5.5 (vision-capable model)
 - **Format:** Base64-encoded PDF
 
 ### Claude API Limits

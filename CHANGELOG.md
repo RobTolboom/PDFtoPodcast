@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Upgrade default OpenAI model from `gpt-5.1` to `gpt-5.5`** — GPT-5.5 (released 2026-04-24) reduces hallucinated claims by 52.5% on high-stakes medical prompts and improves structured output quality; overridable via `OPENAI_MODEL` env var
+
 ### Fixed
 
 - **Max correction iterations raised from 3 to 5** — default for both `IterativeLoopConfig.max_iterations` and the `--max-iterations` CLI flag changed from 3 to 5, giving the correction loop more attempts to reach the 95% schema compliance threshold before giving up
