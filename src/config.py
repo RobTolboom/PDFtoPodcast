@@ -16,7 +16,7 @@ Environment Variables:
 
     # OpenAI Configuration
     OPENAI_API_KEY: OpenAI API key
-    OPENAI_MODEL: Model name (default: gpt-5.1, supports structured outputs + reasoning)
+    OPENAI_MODEL: Model name (default: gpt-5.5, supports structured outputs + reasoning)
     OPENAI_MAX_TOKENS: Maximum output tokens (default: 128000)
 
     # Anthropic Configuration
@@ -34,7 +34,7 @@ Environment Variables:
 
 Example .env file:
     OPENAI_API_KEY=sk-...
-    OPENAI_MODEL=gpt-5.1
+    OPENAI_MODEL=gpt-5.5
     REASONING_EFFORT_EXTRACTION=high
     REASONING_EFFORT_APPRAISAL=high
     ANTHROPIC_API_KEY=sk-ant-...
@@ -44,7 +44,7 @@ Example .env file:
 Usage:
     >>> from src.config import llm_settings
     >>> llm_settings.openai_model
-    'gpt-5.1'
+    'gpt-5.5'
 """
 
 import os
@@ -81,7 +81,7 @@ class LLMSettings:
     Attributes:
         default_provider: Which LLM provider to use by default
         openai_api_key: OpenAI API key from OPENAI_API_KEY env var
-        openai_model: Model name (default: gpt-5.1, supports structured outputs + reasoning)
+        openai_model: Model name (default: gpt-5.5, supports structured outputs + reasoning)
         openai_max_tokens: Max output tokens for OpenAI (default: 128000)
         reasoning_effort_classification: Reasoning effort for classification (low/medium/high, default: low)
         reasoning_effort_extraction: Reasoning effort for extraction (low/medium/high, default: high)
@@ -105,9 +105,9 @@ class LLMSettings:
     # OpenAI configuration
     openai_api_key: str = os.getenv("OPENAI_API_KEY", "")
     openai_model: str = os.getenv(
-        "OPENAI_MODEL", "gpt-5.1"
-    )  # gpt-5.1 supports structured outputs + reasoning
-    # Set very high default (128K context window for gpt-5.1)
+        "OPENAI_MODEL", "gpt-5.5"
+    )  # gpt-5.5 supports structured outputs + reasoning
+    # Set very high default (128K context window for gpt-5.5)
     # Actual output limit depends on model (typically 4K-16K for completion)
     # OpenAI API will enforce model-specific limits automatically
     openai_max_tokens: int = int(os.getenv("OPENAI_MAX_TOKENS", "128000"))
@@ -148,7 +148,7 @@ class Settings:
     """
 
     api_key: str = os.getenv("OPENAI_API_KEY", "")
-    model: str = os.getenv("OPENAI_MODEL", "gpt-5.1")  # Updated from gpt-4.1 to valid model
+    model: str = os.getenv("OPENAI_MODEL", "gpt-5.5")  # Updated from gpt-4.1 to valid model
     max_tokens: int = int(os.getenv("MAX_TOKENS", "4096"))
 
 

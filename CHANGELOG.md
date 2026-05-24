@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Upgrade default OpenAI model from `gpt-5.1` to `gpt-5.5`** — GPT-5.5 (released 2026-04-24) reduces hallucinated claims by 52.5% on high-stakes medical prompts and improves structured output quality; overridable via `OPENAI_MODEL` env var
+
 ## [0.2.0] - 2026-04-26
 
 ### Fixed
