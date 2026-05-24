@@ -116,7 +116,7 @@ class IterativeLoopConfig:
     """
 
     metric_type: MetricType
-    max_iterations: int = 3
+    max_iterations: int = 5
     quality_thresholds: QualityThresholds | None = None
     degradation_window: int = 2
     step_name: str = "ITERATIVE LOOP"

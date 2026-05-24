@@ -631,7 +631,7 @@ def test_show_summary_validation_synopsis_too_long(
         "transcript": "This study examined mortality outcomes and found significant results. " * 90,
     }
     long_synopsis_summary = {
-        "synopsis": "A" * 501,  # 501 chars, above 500-char maximum
+        "synopsis": "A" * 751,  # 751 chars, above 750-char maximum
         "study_at_a_glance": [
             {"label": "Design", "content": "Randomized controlled trial"},
             {"label": "Result", "content": "Treatment showed improvement"},
@@ -665,6 +665,158 @@ def test_show_summary_validation_synopsis_too_long(
     summary_val = result["validation"]["summary_validation"]
     assert summary_val["status"] == "failed"
     assert any("Synopsis too long" in issue for issue in summary_val["critical_issues"])
+
+
+@patch("src.pipeline.podcast_logic.load_podcast_summary_prompt")
+@patch("src.pipeline.podcast_logic.load_schema")
+@patch("src.pipeline.podcast_logic.load_podcast_generation_prompt")
+@patch("src.pipeline.podcast_logic.get_llm_provider")
+def test_show_summary_synopsis_715_chars_passes(
+    mock_get_llm,
+    mock_load_prompt,
+    mock_load_schema,
+    mock_load_summary_prompt,
+    mock_file_manager,
+    mock_llm,
+):
+    """Synopsis of 715 chars (between old 500 limit and new 750 limit) should pass validation."""
+    mock_get_llm.return_value = mock_llm
+    mock_load_schema.return_value = {
+        "type": "object",
+        "properties": {
+            "show_summary": {
+                "type": "object",
+                "properties": {
+                    "synopsis": {"type": "string"},
+                    "study_at_a_glance": {"type": "array"},
+                    "citation": {"type": "string"},
+                },
+            }
+        },
+    }
+    mock_load_prompt.return_value = "Generate podcast"
+    mock_load_summary_prompt.return_value = "Generate show summary"
+
+    valid_transcript = {
+        "podcast_version": "v1.0",
+        "metadata": {"title": "Test Podcast", "word_count": 1000, "estimated_duration_minutes": 6},
+        "transcript": "This study examined mortality outcomes and found significant results. " * 90,
+    }
+    synopsis_715 = {
+        "synopsis": "A" * 715,  # 715 chars — between old 500 limit and new 750 limit
+        "study_at_a_glance": [
+            {"label": "Design", "content": "Randomized controlled trial"},
+            {"label": "Result", "content": "Treatment showed improvement"},
+            {"label": "Follow-up", "content": "12-month follow-up period"},
+        ],
+        "citation": "Smith et al. (2025). Journal of Medicine.",
+    }
+    mock_llm.generate_json_with_schema.side_effect = [valid_transcript, synopsis_715]
+
+    extraction = {
+        "interventions": [{"name": "Drug X"}],
+        "outcomes": {"primary": {"description": "mortality"}},
+    }
+    appraisal = {"grade": {"certainty_overall": "high"}}
+
+    result = run_podcast_generation(
+        extraction_result=extraction,
+        appraisal_result=appraisal,
+        classification_result={},
+        llm_provider="openai",
+        file_manager=mock_file_manager,
+    )
+
+    assert result["status"] == "success"
+    assert "show_summary" in result["podcast"]
+    summary_val = result["validation"]["summary_validation"]
+    assert not any("Synopsis too long" in issue for issue in summary_val.get("critical_issues", []))
+
+
+@patch("src.pipeline.podcast_logic.load_podcast_summary_prompt")
+@patch("src.pipeline.podcast_logic.load_schema")
+@patch("src.pipeline.podcast_logic.load_podcast_generation_prompt")
+@patch("src.pipeline.podcast_logic.get_llm_provider")
+def test_show_summary_llm_metadata_stripped_before_schema_validation(
+    mock_get_llm,
+    mock_load_prompt,
+    mock_load_schema,
+    mock_load_summary_prompt,
+    mock_file_manager,
+    mock_llm,
+):
+    """LLM provider fields (_metadata, usage) must be stripped before show_summary schema validation.
+
+    The LLM provider adds _metadata and usage to every JSON response. When the show_summary
+    schema has additionalProperties: false, these extra fields cause jsonschema validation to
+    fail with 'Additional properties are not allowed'. The fix strips them before validation.
+    """
+    mock_get_llm.return_value = mock_llm
+    # Use a schema with additionalProperties: false — this is what causes the real error
+    mock_load_schema.return_value = {
+        "type": "object",
+        "properties": {
+            "show_summary": {
+                "type": "object",
+                "required": ["citation", "synopsis", "study_at_a_glance"],
+                "additionalProperties": False,
+                "properties": {
+                    "citation": {"type": "string"},
+                    "synopsis": {"type": "string"},
+                    "study_at_a_glance": {"type": "array"},
+                },
+            }
+        },
+    }
+    mock_load_prompt.return_value = "Generate podcast"
+    mock_load_summary_prompt.return_value = "Generate show summary"
+
+    valid_transcript = {
+        "podcast_version": "v1.0",
+        "metadata": {"title": "Test Podcast", "word_count": 1000, "estimated_duration_minutes": 6},
+        "transcript": "This study examined mortality outcomes and found significant results. " * 90,
+    }
+    # LLM response includes _metadata and usage — exactly what the providers inject
+    summary_with_provider_metadata = {
+        "citation": "Smith et al. (2025). Journal of Medicine.",
+        "synopsis": (
+            "This study examined a novel treatment approach for patients with chronic disease "
+            "and found statistically significant improvements in mortality outcomes."
+        ),
+        "study_at_a_glance": [
+            {"label": "Design", "content": "RCT"},
+            {"label": "Result", "content": "Significant benefit"},
+            {"label": "Follow-up", "content": "12 months"},
+        ],
+        "_metadata": {"model": "gpt-5.1", "response_id": "abc123"},  # injected by provider
+        "usage": {"prompt_tokens": 1000, "completion_tokens": 100},  # injected by provider
+    }
+    mock_llm.generate_json_with_schema.side_effect = [
+        valid_transcript,
+        summary_with_provider_metadata,
+    ]
+
+    extraction = {
+        "interventions": [{"name": "Drug X"}],
+        "outcomes": {"primary": {"description": "mortality"}},
+    }
+    appraisal = {"grade": {"certainty_overall": "high"}}
+
+    result = run_podcast_generation(
+        extraction_result=extraction,
+        appraisal_result=appraisal,
+        classification_result={},
+        llm_provider="openai",
+        file_manager=mock_file_manager,
+    )
+
+    # Podcast should succeed — _metadata and usage must be stripped before validation
+    assert result["status"] == "success"
+    assert "show_summary" in result["podcast"]
+    summary_val = result["validation"]["summary_validation"]
+    assert not any(
+        "Additional properties" in issue for issue in summary_val.get("critical_issues", [])
+    )
 
 
 @patch("src.pipeline.podcast_logic.load_podcast_summary_prompt")

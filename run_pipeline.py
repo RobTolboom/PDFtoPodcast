@@ -134,8 +134,8 @@ def main():
     parser.add_argument(
         "--max-iterations",
         type=int,
-        default=3,
-        help="Maximum correction attempts for validation_correction step (default: 3)",
+        default=5,
+        help="Maximum correction attempts for validation_correction step (default: 5)",
     )
     parser.add_argument(
         "--completeness-threshold",

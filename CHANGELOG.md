@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Upgrade default OpenAI model from `gpt-5.1` to `gpt-5.5`** — GPT-5.5 (released 2026-04-24) reduces hallucinated claims by 52.5% on high-stakes medical prompts and improves structured output quality; overridable via `OPENAI_MODEL` env var
 
+### Fixed
+
+- **Max correction iterations raised from 3 to 5** — default for both `IterativeLoopConfig.max_iterations` and the `--max-iterations` CLI flag changed from 3 to 5, giving the correction loop more attempts to reach the 95% schema compliance threshold before giving up
+- **Show summary schema validation no longer fails on provider-injected fields** — `_metadata` and `usage` fields added by LLM providers are now stripped from the show summary response before jsonschema validation, preventing spurious "Additional properties are not allowed" failures when the schema has `additionalProperties: false`
+- **Podcast synopsis `maxLength` raised from 500 to 750 characters** — a 2–3 sentence synopsis for a complex interventional trial can legitimately exceed 500 characters; the manual length check in `podcast_logic.py` is updated to match
+- **`schema_repair.py` now removes incomplete optional object fields** — when an optional field (e.g. `sensitivity_analyses[n].effect`) is present but its value is a dict missing required sub-schema fields (e.g. `type` and `point`), the field is removed entirely rather than left as an invalid object; this deterministically fixes the `sensitivity_analyses/0/effect: 'type' is a required property` schema compliance error that occurred when a paper reported sensitivity analyses qualitatively without numeric estimates
+
 ## [0.2.0] - 2026-04-26
 
 ### Fixed

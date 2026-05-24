@@ -372,6 +372,126 @@ class TestRepairPatternViolations:
         assert "issn" not in result["metadata"]
         assert result["metadata"]["title"] == "Study Title"
 
+
+class TestRemoveIncompleteOptionalObjectFields:
+    """Test removal of optional object fields whose value is missing required sub-schema fields.
+
+    When an LLM produces an incomplete object (e.g., an effect object without the required
+    'type' and 'point' fields because no numeric estimate exists in the paper), the entire
+    optional field should be removed rather than leaving an invalid object in place.
+    """
+
+    EFFECT_SCHEMA = {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            "label": {"type": "string"},
+            "effect": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["type", "point"],
+                "properties": {
+                    "type": {"type": "string", "enum": ["RR", "OR", "HR", "MD", "Other"]},
+                    "point": {"type": "number"},
+                    "favors": {"type": "string"},
+                },
+            },
+        },
+    }
+
+    def test_optional_object_missing_all_required_subfields_removed(self):
+        """Optional object with none of its required sub-fields should be removed."""
+        data = {
+            "label": "Sensitivity by age",
+            "effect": {"favors": "control"},  # Missing required "type" and "point"
+        }
+
+        result = repair_schema_violations(data, self.EFFECT_SCHEMA, None)
+
+        assert "label" in result
+        assert "effect" not in result
+
+    def test_optional_object_missing_one_required_subfield_removed(self):
+        """Optional object missing even one required sub-field should be removed."""
+        data = {
+            "label": "Sensitivity by age",
+            "effect": {"type": "OR"},  # Has "type" but missing required "point"
+        }
+
+        result = repair_schema_violations(data, self.EFFECT_SCHEMA, None)
+
+        assert "effect" not in result
+
+    def test_optional_object_with_all_required_subfields_preserved(self):
+        """Optional object with all required sub-fields intact should not be removed."""
+        data = {
+            "label": "Sensitivity by age",
+            "effect": {"type": "OR", "point": 0.75, "favors": "intervention"},
+        }
+
+        result = repair_schema_violations(data, self.EFFECT_SCHEMA, None)
+
+        assert "effect" in result
+        assert result["effect"]["type"] == "OR"
+        assert result["effect"]["point"] == 0.75
+
+    def test_sensitivity_analysis_array_items_effect_removed(self):
+        """Reproduce the sensitivity_analyses/0/effect error from the pipeline run.
+
+        When qualitative sensitivity analyses produce an effect object with only
+        optional fields (e.g. 'favors'), the effect field should be removed entirely
+        because 'type' and 'point' are required by ContrastEffect schema.
+        """
+        schema = {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                "sensitivity_analyses": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "properties": {
+                            "label": {"type": "string"},
+                            "effect": {
+                                "type": "object",
+                                "additionalProperties": False,
+                                "required": ["type", "point"],
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
+                                        "enum": ["RR", "OR", "HR", "MD", "Other"],
+                                    },
+                                    "point": {"type": "number"},
+                                    "favors": {"type": "string"},
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        }
+        data = {
+            "sensitivity_analyses": [
+                {
+                    "label": "Sensitivity analysis by age",
+                    "effect": {"favors": "control_or_reference"},  # Missing "type" and "point"
+                },
+                {
+                    "label": "Sensitivity analysis per-protocol",
+                    "effect": {"type": "RR", "point": 0.82},  # Complete — should be kept
+                },
+            ],
+        }
+
+        result = repair_schema_violations(data, schema, None)
+
+        assert len(result["sensitivity_analyses"]) == 2
+        assert "effect" not in result["sensitivity_analyses"][0]
+        assert "label" in result["sensitivity_analyses"][0]
+        assert "effect" in result["sensitivity_analyses"][1]
+        assert result["sensitivity_analyses"][1]["effect"]["point"] == 0.82
+
     def test_pattern_in_array_item_refs(self):
         """Empty pattern fields in array items via $ref should be removed."""
         data = {
