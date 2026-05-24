@@ -54,3 +54,68 @@ class TestKeyValuesDepth1Objects:
         data = {"breakdown": {"sub": {"sub_sub": 1}}}
         with pytest.raises(ValidationError):
             validate(data, key_values_schema)
+
+
+@pytest.fixture(scope="module")
+def interventional_bundled_schema():
+    """Load the bundled interventional_trial schema (all $refs resolved inline)."""
+    with open("schemas/interventional_trial_bundled.json") as f:
+        return json.load(f)
+
+
+@pytest.fixture(scope="module")
+def contrast_result_schema_it(interventional_bundled_schema):
+    """Wrap ContrastResult as a standalone schema with $defs so $refs resolve."""
+    cr_def = interventional_bundled_schema["$defs"]["ContrastResult"]
+    return {"$defs": interventional_bundled_schema["$defs"], **cr_def}
+
+
+@pytest.fixture(scope="module")
+def observational_bundled_schema():
+    """Load the bundled observational_analytic schema."""
+    with open("schemas/observational_analytic_bundled.json") as f:
+        return json.load(f)
+
+
+@pytest.fixture(scope="module")
+def contrast_result_schema_oa(observational_bundled_schema):
+    """Wrap ContrastResult as a standalone schema with $defs so $refs resolve."""
+    cr_def = observational_bundled_schema["$defs"]["ContrastResult"]
+    return {"$defs": observational_bundled_schema["$defs"], **cr_def}
+
+
+class TestContrastResultEffectOptional:
+    """ContrastResult.effect must be optional in both pub-type schemas."""
+
+    def test_it_contrast_without_effect_valid(self, contrast_result_schema_it):
+        """interventional_trial: ContrastResult with no effect field must be valid."""
+        data = {"outcome_id": "O1", "comparison_id": "C1"}
+        validate(data, contrast_result_schema_it)  # should NOT raise after fix
+
+    def test_it_contrast_with_full_effect_valid(self, contrast_result_schema_it):
+        """interventional_trial: ContrastResult with a complete effect is still valid."""
+        data = {
+            "outcome_id": "O1",
+            "comparison_id": "C1",
+            "effect": {
+                "type": "RR",
+                "point": 0.57,
+                "p_value": "<0.001",
+                "favors": "treatment_or_exposure",
+            },
+        }
+        validate(data, contrast_result_schema_it)
+
+    def test_oa_contrast_without_effect_valid(self, contrast_result_schema_oa):
+        """observational_analytic: ContrastResult with no effect field must be valid."""
+        data = {"outcome_id": "O1", "comparison_id": "C1"}
+        validate(data, contrast_result_schema_oa)  # should NOT raise after fix
+
+    def test_oa_contrast_with_full_effect_valid(self, contrast_result_schema_oa):
+        """observational_analytic: ContrastResult with a complete effect is still valid."""
+        data = {
+            "outcome_id": "O1",
+            "comparison_id": "C1",
+            "effect": {"type": "HR", "point": 0.72, "favors": "treatment_or_exposure"},
+        }
+        validate(data, contrast_result_schema_oa)

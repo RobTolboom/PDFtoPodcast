@@ -2125,261 +2125,6 @@
         }
       }
     },
-    "FigureSummary": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "figure_id",
-        "caption"
-      ],
-      "properties": {
-        "figure_id": {
-          "type": "string"
-        },
-        "caption": {
-          "type": "string"
-        },
-        "key_values": {
-          "type": "object",
-          "description": "Scalar or categorical key-value pairs extracted from the figure. Values may be numbers, strings, or depth-1 objects (e.g. CONSORT exclusion breakdowns). Depth-2+ nesting is not allowed.",
-          "additionalProperties": {
-            "oneOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "string"
-              },
-              {
-                "type": "object",
-                "description": "Categorical breakdown — values must be scalars.",
-                "additionalProperties": {
-                  "oneOf": [
-                    {
-                      "type": "number"
-                    },
-                    {
-                      "type": "string"
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          "default": {}
-        },
-        "page": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "source": {
-          "$ref": "#/$defs/SourceRef"
-        }
-      }
-    },
-    "SourceRef": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Reference to a specific location within a document",
-      "properties": {
-        "anchor": {
-          "type": "string",
-          "description": "Free-text pointer like 'Table 2', 'Fig 1', or sentence quote"
-        },
-        "page": {
-          "type": "integer",
-          "minimum": 1,
-          "description": "Page number within the document"
-        },
-        "figure_id": {
-          "type": "string",
-          "description": "Identifier of a specific figure"
-        },
-        "table_id": {
-          "type": "string",
-          "description": "Identifier of a specific table"
-        }
-      }
-    },
-    "TruncationInfo": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "value": {
-          "type": "boolean",
-          "default": false
-        },
-        "reason": {
-          "type": "string",
-          "enum": [
-            "token_limit",
-            "page_limit",
-            "timeout",
-            "other"
-          ]
-        }
-      }
-    },
-    "ExternalId": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "source",
-        "id"
-      ],
-      "properties": {
-        "source": {
-          "type": "string",
-          "enum": [
-            "PMID",
-            "PMCID",
-            "DOI",
-            "NCT",
-            "ISRCTN",
-            "EudraCT",
-            "EU-CTR",
-            "CTIS",
-            "UMIN",
-            "JPRN",
-            "DRKS",
-            "ChiCTR",
-            "ANZCTR",
-            "arXiv",
-            "bioRxiv",
-            "medRxiv",
-            "PubPeer",
-            "ISBN",
-            "ISSN",
-            "Handle",
-            "URN",
-            "Other"
-          ],
-          "description": "External identifier source system including preprint servers and academic publishers"
-        },
-        "id": {
-          "type": "string",
-          "description": "Identifier value within the source system",
-          "examples": [
-            "1234.5678",
-            "2023.01.001",
-            "10.1101/2023.01.01.123456",
-            "978-0-123456-78-9"
-          ]
-        },
-        "url": {
-          "type": "string",
-          "format": "uri",
-          "description": "Optional direct URL to the external resource"
-        },
-        "version": {
-          "type": "string",
-          "description": "Version number for preprints or versioned documents"
-        }
-      },
-      "allOf": [
-        {
-          "if": {
-            "properties": {
-              "source": {
-                "const": "arXiv"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "id": {
-                "pattern": "^(\\d{4}\\.\\d{4,5}|[a-z-]+/\\d{7})$",
-                "description": "arXiv identifier (new: YYMM.NNNN or old: subject-class/YYMMnnn)"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "source": {
-                "const": "ISBN"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "id": {
-                "pattern": "^(?:978|979)[0-9]{10}$|^[0-9]{9}[0-9X]$",
-                "description": "ISBN-10 or ISBN-13 format"
-              }
-            }
-          }
-        }
-      ]
-    },
-    "Passage": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "text"
-      ],
-      "properties": {
-        "text": {
-          "type": "string",
-          "description": "Extracted text content"
-        },
-        "page": {
-          "type": "integer",
-          "minimum": 1,
-          "description": "Page number where text was found"
-        },
-        "bbox": {
-          "$ref": "#/$defs/BoundingBox"
-        },
-        "anchor": {
-          "type": "string",
-          "description": "Human-readable location reference"
-        },
-        "ocr_confidence": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1,
-          "description": "OCR confidence score for this text passage"
-        },
-        "extraction_method": {
-          "type": "string",
-          "enum": [
-            "ocr",
-            "text_layer",
-            "manual"
-          ],
-          "description": "Method used to extract this text"
-        }
-      }
-    },
-    "ExtractionWarning": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "code",
-        "message"
-      ],
-      "properties": {
-        "code": {
-          "type": "string",
-          "enum": [
-            "TABLE_PARSE_FAIL",
-            "AMBIGUOUS_UNIT",
-            "CI_PARSE_FAIL",
-            "MISSING_ARM_ID",
-            "MISSING_GROUP_ID",
-            "OTHER"
-          ]
-        },
-        "message": {
-          "type": "string"
-        },
-        "source": {
-          "$ref": "#/$defs/SourceRef"
-        }
-      }
-    },
     "Metadata": {
       "type": "object",
       "additionalProperties": false,
@@ -2614,6 +2359,207 @@
         "he-IL"
       ]
     },
+    "TruncationInfo": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "type": "boolean",
+          "default": false
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "token_limit",
+            "page_limit",
+            "timeout",
+            "other"
+          ]
+        }
+      }
+    },
+    "SourceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Reference to a specific location within a document",
+      "properties": {
+        "anchor": {
+          "type": "string",
+          "description": "Free-text pointer like 'Table 2', 'Fig 1', or sentence quote"
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Page number within the document"
+        },
+        "figure_id": {
+          "type": "string",
+          "description": "Identifier of a specific figure"
+        },
+        "table_id": {
+          "type": "string",
+          "description": "Identifier of a specific table"
+        }
+      }
+    },
+    "ExternalId": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "id"
+      ],
+      "properties": {
+        "source": {
+          "type": "string",
+          "enum": [
+            "PMID",
+            "PMCID",
+            "DOI",
+            "NCT",
+            "ISRCTN",
+            "EudraCT",
+            "EU-CTR",
+            "CTIS",
+            "UMIN",
+            "JPRN",
+            "DRKS",
+            "ChiCTR",
+            "ANZCTR",
+            "arXiv",
+            "bioRxiv",
+            "medRxiv",
+            "PubPeer",
+            "ISBN",
+            "ISSN",
+            "Handle",
+            "URN",
+            "Other"
+          ],
+          "description": "External identifier source system including preprint servers and academic publishers"
+        },
+        "id": {
+          "type": "string",
+          "description": "Identifier value within the source system",
+          "examples": [
+            "1234.5678",
+            "2023.01.001",
+            "10.1101/2023.01.01.123456",
+            "978-0-123456-78-9"
+          ]
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Optional direct URL to the external resource"
+        },
+        "version": {
+          "type": "string",
+          "description": "Version number for preprints or versioned documents"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "source": {
+                "const": "arXiv"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "id": {
+                "pattern": "^(\\d{4}\\.\\d{4,5}|[a-z-]+/\\d{7})$",
+                "description": "arXiv identifier (new: YYMM.NNNN or old: subject-class/YYMMnnn)"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "source": {
+                "const": "ISBN"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "id": {
+                "pattern": "^(?:978|979)[0-9]{10}$|^[0-9]{9}[0-9X]$",
+                "description": "ISBN-10 or ISBN-13 format"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "ParsingContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "parser_name",
+        "parsing_timestamp"
+      ],
+      "properties": {
+        "parser_name": {
+          "type": "string",
+          "description": "Name of the parsing tool/library used"
+        },
+        "parser_version": {
+          "type": "string",
+          "description": "Version of the parsing tool"
+        },
+        "parsing_timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When parsing was performed"
+        },
+        "language_detected": {
+          "$ref": "#/$defs/LanguageCode",
+          "description": "Detected language of the document"
+        },
+        "ocr_engine": {
+          "type": "string",
+          "description": "OCR engine used (if applicable)"
+        },
+        "ocr_quality_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Overall OCR quality assessment"
+        },
+        "pdf_producer": {
+          "type": "string",
+          "description": "Software that generated the PDF"
+        },
+        "page_count": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Total pages in document"
+        },
+        "sections_detected": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Document sections automatically detected"
+        },
+        "parsing_warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Warnings encountered during parsing"
+        },
+        "ai_processing": {
+          "$ref": "#/$defs/AIProcessingMetadata"
+        }
+      }
+    },
     "Registration": {
       "type": "object",
       "additionalProperties": false,
@@ -2744,204 +2690,6 @@
             }
           }
         }
-      ]
-    },
-    "SupplementFile": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "label"
-      ],
-      "properties": {
-        "label": {
-          "type": "string"
-        },
-        "filename": {
-          "type": "string"
-        },
-        "url": {
-          "type": "string",
-          "format": "uri"
-        },
-        "doi": {
-          "type": "string",
-          "pattern": "^10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+$"
-        },
-        "content_type": {
-          "type": "string"
-        },
-        "file_size": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "File size in bytes"
-        },
-        "checksum": {
-          "$ref": "#/$defs/DataIntegrity"
-        }
-      }
-    },
-    "ParsingContext": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "parser_name",
-        "parsing_timestamp"
-      ],
-      "properties": {
-        "parser_name": {
-          "type": "string",
-          "description": "Name of the parsing tool/library used"
-        },
-        "parser_version": {
-          "type": "string",
-          "description": "Version of the parsing tool"
-        },
-        "parsing_timestamp": {
-          "type": "string",
-          "format": "date-time",
-          "description": "When parsing was performed"
-        },
-        "language_detected": {
-          "$ref": "#/$defs/LanguageCode",
-          "description": "Detected language of the document"
-        },
-        "ocr_engine": {
-          "type": "string",
-          "description": "OCR engine used (if applicable)"
-        },
-        "ocr_quality_score": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 1,
-          "description": "Overall OCR quality assessment"
-        },
-        "pdf_producer": {
-          "type": "string",
-          "description": "Software that generated the PDF"
-        },
-        "page_count": {
-          "type": "integer",
-          "minimum": 1,
-          "description": "Total pages in document"
-        },
-        "sections_detected": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [],
-          "description": "Document sections automatically detected"
-        },
-        "parsing_warnings": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [],
-          "description": "Warnings encountered during parsing"
-        },
-        "ai_processing": {
-          "$ref": "#/$defs/AIProcessingMetadata"
-        }
-      }
-    },
-    "BoundingBox": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "x",
-        "y",
-        "width",
-        "height"
-      ],
-      "properties": {
-        "x": {
-          "type": "number",
-          "minimum": 0,
-          "description": "Left coordinate (points from PDF origin)"
-        },
-        "y": {
-          "type": "number",
-          "minimum": 0,
-          "description": "Bottom coordinate (points from PDF origin)"
-        },
-        "width": {
-          "type": "number",
-          "minimum": 0,
-          "description": "Width in points"
-        },
-        "height": {
-          "type": "number",
-          "minimum": 0,
-          "description": "Height in points"
-        },
-        "coordinate_system": {
-          "type": "string",
-          "enum": [
-            "pdf_points",
-            "screen_pixels"
-          ],
-          "default": "pdf_points",
-          "description": "Coordinate system used for measurements"
-        }
-      }
-    },
-    "Author": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Author information for academic publications",
-      "required": [
-        "last_name"
-      ],
-      "properties": {
-        "last_name": {
-          "type": "string",
-          "description": "Author's family name"
-        },
-        "initials": {
-          "type": "string",
-          "description": "Author's first/middle name initials"
-        },
-        "given_names": {
-          "type": "string",
-          "description": "Author's full first and middle names"
-        },
-        "orcid": {
-          "type": "string",
-          "pattern": "^(https://orcid\\.org/)?0000-00(0[2-9]|[1-9]\\d)-\\d{4}-\\d{3}[\\dX]$",
-          "description": "ORCID identifier with checksum validation (optionally with URL prefix)",
-          "examples": [
-            "0000-0002-1825-0097",
-            "https://orcid.org/0000-0002-1825-0097"
-          ]
-        },
-        "affiliations": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [],
-          "description": "Author's institutional affiliations"
-        },
-        "corresponding": {
-          "type": "boolean",
-          "default": false,
-          "description": "Whether this author is the corresponding author"
-        },
-        "email": {
-          "$ref": "#/$defs/EmailAddress",
-          "description": "Contact email address (typically for corresponding authors)"
-        }
-      }
-    },
-    "EmailAddress": {
-      "type": "string",
-      "format": "email",
-      "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
-      "description": "Valid email address for correspondence",
-      "examples": [
-        "researcher@university.edu",
-        "corresponding.author@hospital.org"
       ]
     },
     "AIProcessingMetadata": {
@@ -3232,6 +2980,284 @@
         }
       }
     },
+    "ExtractionWarning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "TABLE_PARSE_FAIL",
+            "AMBIGUOUS_UNIT",
+            "CI_PARSE_FAIL",
+            "MISSING_ARM_ID",
+            "MISSING_GROUP_ID",
+            "OTHER"
+          ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        }
+      }
+    },
+    "Author": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Author information for academic publications",
+      "required": [
+        "last_name"
+      ],
+      "properties": {
+        "last_name": {
+          "type": "string",
+          "description": "Author's family name"
+        },
+        "initials": {
+          "type": "string",
+          "description": "Author's first/middle name initials"
+        },
+        "given_names": {
+          "type": "string",
+          "description": "Author's full first and middle names"
+        },
+        "orcid": {
+          "type": "string",
+          "pattern": "^(https://orcid\\.org/)?0000-00(0[2-9]|[1-9]\\d)-\\d{4}-\\d{3}[\\dX]$",
+          "description": "ORCID identifier with checksum validation (optionally with URL prefix)",
+          "examples": [
+            "0000-0002-1825-0097",
+            "https://orcid.org/0000-0002-1825-0097"
+          ]
+        },
+        "affiliations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Author's institutional affiliations"
+        },
+        "corresponding": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this author is the corresponding author"
+        },
+        "email": {
+          "$ref": "#/$defs/EmailAddress",
+          "description": "Contact email address (typically for corresponding authors)"
+        }
+      }
+    },
+    "EmailAddress": {
+      "type": "string",
+      "format": "email",
+      "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
+      "description": "Valid email address for correspondence",
+      "examples": [
+        "researcher@university.edu",
+        "corresponding.author@hospital.org"
+      ]
+    },
+    "Passage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "text"
+      ],
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "Extracted text content"
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Page number where text was found"
+        },
+        "bbox": {
+          "$ref": "#/$defs/BoundingBox"
+        },
+        "anchor": {
+          "type": "string",
+          "description": "Human-readable location reference"
+        },
+        "ocr_confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "OCR confidence score for this text passage"
+        },
+        "extraction_method": {
+          "type": "string",
+          "enum": [
+            "ocr",
+            "text_layer",
+            "manual"
+          ],
+          "description": "Method used to extract this text"
+        }
+      }
+    },
+    "FigureSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "figure_id",
+        "caption"
+      ],
+      "properties": {
+        "figure_id": {
+          "type": "string"
+        },
+        "caption": {
+          "type": "string"
+        },
+        "key_values": {
+          "type": "object",
+          "description": "Scalar or categorical key-value pairs extracted from the figure. Values may be numbers, strings, or depth-1 objects (e.g. CONSORT exclusion breakdowns). Depth-2+ nesting is not allowed.",
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "description": "Categorical breakdown — values must be scalars.",
+                "additionalProperties": {
+                  "oneOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "default": {}
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        }
+      }
+    },
+    "SupplementFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label"
+      ],
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "filename": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "doi": {
+          "type": "string",
+          "pattern": "^10\\.\\d{4,9}/[-._;()/:A-Za-z0-9]+$"
+        },
+        "content_type": {
+          "type": "string"
+        },
+        "file_size": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "File size in bytes"
+        },
+        "checksum": {
+          "$ref": "#/$defs/DataIntegrity"
+        }
+      }
+    },
+    "EffectCI": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Confidence interval for effect estimates",
+      "required": [
+        "lower",
+        "upper"
+      ],
+      "properties": {
+        "level": {
+          "type": "number",
+          "minimum": 50,
+          "maximum": 99.99,
+          "default": 95,
+          "description": "Confidence level as percentage (e.g., 95, 97.5, 99)"
+        },
+        "lower": {
+          "type": "number",
+          "description": "Lower bound of confidence interval"
+        },
+        "upper": {
+          "type": "number",
+          "description": "Upper bound of confidence interval"
+        }
+      }
+    },
+    "BoundingBox": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
+      "properties": {
+        "x": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Left coordinate (points from PDF origin)"
+        },
+        "y": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Bottom coordinate (points from PDF origin)"
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Width in points"
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Height in points"
+        },
+        "coordinate_system": {
+          "type": "string",
+          "enum": [
+            "pdf_points",
+            "screen_pixels"
+          ],
+          "default": "pdf_points",
+          "description": "Coordinate system used for measurements"
+        }
+      }
+    },
     "DataIntegrity": {
       "type": "object",
       "additionalProperties": false,
@@ -3430,32 +3456,6 @@
           }
         }
       ]
-    },
-    "EffectCI": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Confidence interval for effect estimates",
-      "required": [
-        "lower",
-        "upper"
-      ],
-      "properties": {
-        "level": {
-          "type": "number",
-          "minimum": 50,
-          "maximum": 99.99,
-          "default": 95,
-          "description": "Confidence level as percentage (e.g., 95, 97.5, 99)"
-        },
-        "lower": {
-          "type": "number",
-          "description": "Lower bound of confidence interval"
-        },
-        "upper": {
-          "type": "number",
-          "description": "Upper bound of confidence interval"
-        }
-      }
     }
   }
 }
