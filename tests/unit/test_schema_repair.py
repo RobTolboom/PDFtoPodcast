@@ -763,6 +763,133 @@ class TestDropMalformedJsonFragments:
 
 
 # ---------------------------------------------------------------------------
+# Task 3: Interaction test — partial ContrastResult.effect removed by repair
+# ---------------------------------------------------------------------------
+
+
+class TestContrastResultPartialEffectRemoved:
+    """Verify that a partial ContrastResult.effect is removed by repair.
+
+    This is the load-bearing correctness test for making ContrastResult.effect
+    optional (PR #45 Change 2).  The argument is: once 'effect' is not required,
+    a partial effect object missing 'type'/'point' is removed deterministically
+    by _repair_object without consuming a correction iteration.
+
+    The schema mirrors the actual structure in interventional_trial_bundled.json.
+    """
+
+    # Minimal schema that mirrors ContrastResult / ContrastEffect in the bundled schema.
+    # effect is NOT in required — mirrors the Change 2 fix.
+    CONTRAST_SCHEMA = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": [],
+        "properties": {
+            "contrasts": {
+                "type": "array",
+                "items": {
+                    "$ref": "#/$defs/ContrastResult",
+                },
+            },
+        },
+        "$defs": {
+            "ContrastResult": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["outcome_id", "comparison_id"],  # effect intentionally absent
+                "properties": {
+                    "outcome_id": {"type": "string"},
+                    "comparison_id": {"type": "string"},
+                    "effect": {
+                        "$ref": "#/$defs/ContrastEffect",
+                    },
+                },
+            },
+            "ContrastEffect": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["type", "point"],
+                "properties": {
+                    "type": {"type": "string"},
+                    "point": {"type": "number"},
+                    "p_value": {"type": "number"},
+                    "favors": {"type": "string"},
+                },
+            },
+        },
+    }
+
+    def test_partial_effect_removed_when_optional(self):
+        """A ContrastResult with only p_value+favors in effect should have effect removed.
+
+        This is the concrete test for the correctness argument in Change 2.
+        The LLM produces {"p_value": ">0.05", "favors": "neutral"} with no
+        'type' or 'point'.  repair_schema_violations must remove 'effect'
+        entirely because the sub-object is missing required fields.
+        """
+        data = {
+            "contrasts": [
+                {
+                    "outcome_id": "O1",
+                    "comparison_id": "C1",
+                    "effect": {
+                        "p_value": 0.07,
+                        "favors": "neutral",
+                        # Missing required 'type' and 'point'
+                    },
+                },
+            ],
+        }
+        result = repair_schema_violations(data, self.CONTRAST_SCHEMA, None)
+
+        contrast = result["contrasts"][0]
+        assert (
+            "effect" not in contrast
+        ), "Partial effect (no 'type'/'point') must be removed by repair"
+        assert contrast["outcome_id"] == "O1"
+        assert contrast["comparison_id"] == "C1"
+
+    def test_complete_effect_preserved(self):
+        """A ContrastResult with a complete effect object must be kept unchanged."""
+        data = {
+            "contrasts": [
+                {
+                    "outcome_id": "O2",
+                    "comparison_id": "C1",
+                    "effect": {
+                        "type": "RR",
+                        "point": 0.57,
+                        "favors": "treatment_or_exposure",
+                    },
+                },
+            ],
+        }
+        result = repair_schema_violations(data, self.CONTRAST_SCHEMA, None)
+
+        contrast = result["contrasts"][0]
+        assert "effect" in contrast
+        assert contrast["effect"]["type"] == "RR"
+        assert contrast["effect"]["point"] == 0.57
+
+    def test_contrast_without_effect_valid(self):
+        """A ContrastResult without any effect field is valid (effect is optional)."""
+        data = {
+            "contrasts": [
+                {
+                    "outcome_id": "O3",
+                    "comparison_id": "C1",
+                    # No 'effect' key at all
+                },
+            ],
+        }
+        result = repair_schema_violations(data, self.CONTRAST_SCHEMA, None)
+
+        contrast = result["contrasts"][0]
+        assert "effect" not in contrast
+        assert contrast["outcome_id"] == "O3"
+
+
+# ---------------------------------------------------------------------------
 # Task 5: flattening depth-2+ key_values objects in figures_summary
 # ---------------------------------------------------------------------------
 
