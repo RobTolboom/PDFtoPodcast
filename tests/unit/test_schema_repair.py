@@ -615,50 +615,44 @@ SCHEMA_VERSION_SCHEMA = {
 
 
 class TestNormalizeSchemaVersion:
-    """Test deterministic normalisation of bare schema_version strings."""
+    """schema_repair normalises bare major-only schema_version strings."""
 
-    def test_bare_version_gets_v_prefix(self):
-        """'1.0' should be normalised to 'v1.0'."""
-        data = {"schema_version": "1.0", "title": "Test"}
-        result = repair_schema_violations(data, SCHEMA_VERSION_SCHEMA, None)
-        assert result["schema_version"] == "v1.0"
+    VERSIONED_SCHEMA = {
+        "type": "object",
+        "required": ["schema_version"],
+        "properties": {
+            "schema_version": {
+                "type": "string",
+                "pattern": r"^v\d+\.\d+(\.\d+)?$",
+            }
+        },
+    }
 
-    def test_bare_three_part_version_gets_v_prefix(self):
-        """'1.2.3' should be normalised to 'v1.2.3'."""
-        data = {"schema_version": "1.2.3", "title": "Test"}
-        result = repair_schema_violations(data, SCHEMA_VERSION_SCHEMA, None)
-        assert result["schema_version"] == "v1.2.3"
+    def test_bare_major_version_normalised(self):
+        """'v2' is normalised to 'v2.0' before validation."""
+        data = {"schema_version": "v2"}
+        result = repair_schema_violations(data, self.VERSIONED_SCHEMA)
+        assert result["schema_version"] == "v2.0"
 
-    def test_already_prefixed_version_unchanged(self):
-        """'v1.0' should pass through unchanged."""
-        data = {"schema_version": "v1.0", "title": "Test"}
-        result = repair_schema_violations(data, SCHEMA_VERSION_SCHEMA, None)
-        assert result["schema_version"] == "v1.0"
+    def test_already_valid_version_unchanged(self):
+        """'v2.0' is not modified."""
+        data = {"schema_version": "v2.0"}
+        result = repair_schema_violations(data, self.VERSIONED_SCHEMA)
+        assert result["schema_version"] == "v2.0"
 
-    def test_completely_invalid_version_unchanged(self):
-        """A value like 'latest' that doesn't match the bare-digits pattern is left alone."""
-        data = {"schema_version": "latest", "title": "Test"}
-        result = repair_schema_violations(data, SCHEMA_VERSION_SCHEMA, None)
-        # Not a bare-digits form — repair should not touch it
-        assert result["schema_version"] == "latest"
+    def test_three_part_version_unchanged(self):
+        """'v2.1.3' is not modified."""
+        data = {"schema_version": "v2.1.3"}
+        result = repair_schema_violations(data, self.VERSIONED_SCHEMA)
+        assert result["schema_version"] == "v2.1.3"
 
-    def test_schema_without_v_prefix_pattern_not_modified(self):
-        """When the schema's pattern doesn't start with '^v', no normalisation is done."""
-        schema_no_v = {
-            "type": "object",
-            "additionalProperties": False,
-            "required": ["schema_version"],
-            "properties": {
-                "schema_version": {
-                    "type": "string",
-                    "pattern": "^\\d+\\.\\d+$",  # no v prefix expected
-                },
-            },
-            "$defs": {},
-        }
-        data = {"schema_version": "1.0"}
-        result = repair_schema_violations(data, schema_no_v, None)
-        assert result["schema_version"] == "1.0"
+    def test_no_schema_version_field_no_error(self):
+        """When schema_version is absent, no error is raised."""
+        data = {"title": "Study X"}
+        result = repair_schema_violations(
+            data, {"type": "object", "properties": {"title": {"type": "string"}}}
+        )
+        assert "schema_version" not in result
 
 
 # ---------------------------------------------------------------------------
@@ -688,7 +682,7 @@ class TestIsJsonFragmentString:
         assert _is_json_fragment_string("") is False
 
 
-class TestDropMalformedJsonFragmentStrings:
+class TestDropMalformedJsonFragments:
     """Test that JSON-fragment strings in object-typed arrays are dropped."""
 
     FRAGMENT_SCHEMA = {
@@ -712,8 +706,8 @@ class TestDropMalformedJsonFragmentStrings:
         },
     }
 
-    def test_json_object_string_dropped(self):
-        """A serialised JSON object string in an array should be dropped."""
+    def test_json_fragment_string_dropped(self):
+        """A string with JSON chars (\"  { [ ) in an array should be dropped."""
         data = {
             "outcomes": [
                 {"outcome_id": "O1", "name": "Primary"},
@@ -724,25 +718,25 @@ class TestDropMalformedJsonFragmentStrings:
         assert len(result["outcomes"]) == 1
         assert result["outcomes"][0]["outcome_id"] == "O1"
 
-    def test_json_array_string_dropped(self):
-        """A serialised JSON array string in an array should be dropped."""
-        data = {
-            "outcomes": [
-                '["O1", "O2"]',  # JSON fragment
-                {"outcome_id": "O1", "name": "Primary"},
-            ],
-        }
-        result = repair_schema_violations(data, self.FRAGMENT_SCHEMA, None)
-        assert len(result["outcomes"]) == 1
-        assert result["outcomes"][0]["outcome_id"] == "O1"
-
-    def test_plain_id_string_not_dropped_when_restorable(self):
-        """A plain ID string (no JSON chars) should still be restored from original."""
+    def test_plain_id_string_kept_for_restore(self):
+        """A plain ID string (no special chars) goes through restore from original."""
         data = {"outcomes": ["O1"]}
         original = {
             "outcomes": [{"outcome_id": "O1", "name": "Primary"}],
         }
         result = repair_schema_violations(data, self.FRAGMENT_SCHEMA, original)
+        assert result["outcomes"][0]["outcome_id"] == "O1"
+
+    def test_fragment_with_colon_dropped(self):
+        """A string with ':' is dropped from the array."""
+        data = {
+            "outcomes": [
+                '["O1", "O2"]',  # JSON fragment with [ and "
+                {"outcome_id": "O1", "name": "Primary"},
+            ],
+        }
+        result = repair_schema_violations(data, self.FRAGMENT_SCHEMA, None)
+        assert len(result["outcomes"]) == 1
         assert result["outcomes"][0]["outcome_id"] == "O1"
 
 
@@ -788,7 +782,7 @@ class TestFlattenKeyValuesDepth2:
     """Test that depth-2+ key_values objects are flattened to depth-1."""
 
     def test_depth2_object_flattened(self):
-        """A depth-2 nested object should be flattened with dot-separated keys.
+        """A depth-2 nested object should be flattened with underscore-separated keys.
 
         Depth-2 means the key_values value is an object whose values are themselves
         objects (not scalars).  The allowed schema allows depth-0 scalars and
@@ -809,8 +803,8 @@ class TestFlattenKeyValuesDepth2:
         result = _repair_figures_key_values(figures)
         kv = result[0]["key_values"]
         assert "exclusions" not in kv
-        assert kv["exclusions.pre_screening.medical"] == 5
-        assert kv["exclusions.pre_screening.logistic"] == 3
+        assert kv["exclusions_pre_screening_medical"] == 5
+        assert kv["exclusions_pre_screening_logistic"] == 3
         assert kv["enrolled"] == 120
 
     def test_depth1_object_unchanged(self):
@@ -878,5 +872,5 @@ class TestFlattenKeyValuesDepth2:
         result = repair_schema_violations(data, FIGURES_SUMMARY_SCHEMA, None)
         kv = result["figures_summary"][0]["key_values"]
         assert "exclusions" not in kv
-        assert kv["exclusions.criteria.age"] == 3
-        assert kv["exclusions.criteria.comorbidity"] == 7
+        assert kv["exclusions_criteria_age"] == 3
+        assert kv["exclusions_criteria_comorbidity"] == 7

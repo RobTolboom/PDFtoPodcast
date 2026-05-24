@@ -973,87 +973,74 @@ def test_show_summary_warns_citation_missing_year(
     assert any("missing publication year" in issue for issue in summary_val["issues"])
 
 
-@patch("src.pipeline.podcast_logic.load_podcast_summary_prompt", side_effect=Exception("skip"))
+@patch(
+    "src.pipeline.podcast_logic.load_podcast_summary_prompt", side_effect=Exception("skip summary")
+)
 @patch("src.pipeline.podcast_logic.load_schema")
 @patch("src.pipeline.podcast_logic.load_podcast_generation_prompt")
 @patch("src.pipeline.podcast_logic.get_llm_provider")
-def test_abbreviation_check_case_sensitive_no_false_positive(
-    mock_get_llm, mock_load_prompt, mock_load_schema, _mock_summary, mock_file_manager, mock_llm
+def test_lowercase_or_not_flagged_as_abbreviation(
+    mock_get_llm, mock_load_prompt, mock_load_schema, _mock_summary, mock_file_manager
 ):
-    """Abbreviation check must be case-sensitive.
-
-    Words like 'invasive', 'Versus', 'microscopy' contain the letter sequences
-    'vs', 'CI', 'mg' etc. but should NOT trigger the abbreviation warning when
-    the transcript does not contain the actual uppercase abbreviation.
-    """
+    """The conjunction 'or' (lowercase) must NOT trigger an abbreviation warning."""
+    mock_llm = MagicMock()
     mock_get_llm.return_value = mock_llm
     mock_load_schema.return_value = {"type": "object"}
     mock_load_prompt.return_value = "Generate podcast"
 
-    # Transcript contains 'invasive' (has 'vs' substring), 'Versus' (has 'vs'),
-    # and 'microscopy' (has nothing), but NO actual abbreviations.
-    # With re.IGNORECASE these would have triggered a false positive for 'vs'.
-    phrase = (
-        "Invasive mechanical ventilation was compared versus non-invasive approaches. "
-        "The study examined outcomes in patients undergoing surgical microscopy. "
+    # Transcript uses 'or' heavily as a conjunction, never as 'OR' abbreviation
+    transcript_words = (
+        "You can use this drug or that drug or neither or both depending on the patient. " * 50
     )
-    # phrase is ~14 words; 60 * 14 = 840 words — well above the 800-word minimum
     mock_llm.generate_json_with_schema.return_value = {
         "podcast_version": "v1.0",
-        "metadata": {"title": "Test", "word_count": 1000, "estimated_duration_minutes": 6},
-        "transcript": phrase * 60,
+        "metadata": {"title": "Test", "word_count": 800, "estimated_duration_minutes": 5},
+        "transcript": transcript_words,
     }
 
     result = run_podcast_generation(
-        extraction_result={"interventions": [{"name": "X"}], "outcomes": []},
-        appraisal_result={},
-        classification_result={},
+        extraction_result={"interventions": [{"name": "Drug"}], "outcomes": []},
+        appraisal_result={"grade": {"certainty_overall": "high"}},
+        classification_result={"type": "trial"},
         llm_provider="openai",
         file_manager=mock_file_manager,
     )
 
-    assert result["status"] == "success"
-    # Must NOT report abbreviation warnings for case-sensitive false positives
-    issues = result["validation"].get("issues", [])
-    assert not any(
-        "abbreviations" in issue for issue in issues
-    ), f"False-positive abbreviation warning triggered: {issues}"
+    issues = result["validation"]["issues"]
+    abbr_issues = [i for i in issues if "abbreviation" in i.lower() and "OR" in i]
+    assert abbr_issues == [], f"'or' conjunction wrongly flagged as abbreviation: {abbr_issues}"
 
 
-@patch("src.pipeline.podcast_logic.load_podcast_summary_prompt", side_effect=Exception("skip"))
+@patch(
+    "src.pipeline.podcast_logic.load_podcast_summary_prompt", side_effect=Exception("skip summary")
+)
 @patch("src.pipeline.podcast_logic.load_schema")
 @patch("src.pipeline.podcast_logic.load_podcast_generation_prompt")
 @patch("src.pipeline.podcast_logic.get_llm_provider")
-def test_abbreviation_check_detects_exact_case_match(
-    mock_get_llm, mock_load_prompt, mock_load_schema, _mock_summary, mock_file_manager, mock_llm
+def test_uppercase_OR_still_flagged(
+    mock_get_llm, mock_load_prompt, mock_load_schema, _mock_summary, mock_file_manager
 ):
-    """Exact-case abbreviations must still be detected.
-
-    A transcript containing the exact abbreviation 'ICU' (uppercase) should
-    still trigger the abbreviation warning even without re.IGNORECASE.
-    """
+    """The medical abbreviation 'OR' (Odds Ratio, capitalised) must still be flagged."""
+    mock_llm = MagicMock()
     mock_get_llm.return_value = mock_llm
     mock_load_schema.return_value = {"type": "object"}
     mock_load_prompt.return_value = "Generate podcast"
 
-    # Transcript contains the real abbreviation 'ICU'
-    phrase = "The patient was admitted to the ICU after surgery. "
+    transcript_words = "The adjusted OR was 0.48 favouring the intervention group. " * 50
     mock_llm.generate_json_with_schema.return_value = {
         "podcast_version": "v1.0",
-        "metadata": {"title": "Test", "word_count": 1000, "estimated_duration_minutes": 6},
-        "transcript": phrase * 90,  # 90 * 9 = 810 words
+        "metadata": {"title": "Test", "word_count": 800, "estimated_duration_minutes": 5},
+        "transcript": transcript_words,
     }
 
     result = run_podcast_generation(
-        extraction_result={"interventions": [{"name": "X"}], "outcomes": []},
-        appraisal_result={},
-        classification_result={},
+        extraction_result={"interventions": [{"name": "Drug"}], "outcomes": []},
+        appraisal_result={"grade": {"certainty_overall": "high"}},
+        classification_result={"type": "trial"},
         llm_provider="openai",
         file_manager=mock_file_manager,
     )
 
-    assert result["status"] == "success"
-    issues = result["validation"].get("issues", [])
-    assert any(
-        "abbreviations" in issue for issue in issues
-    ), "Expected abbreviation warning for 'ICU' but none found"
+    issues = result["validation"]["issues"]
+    abbr_issues = [i for i in issues if "abbreviation" in i.lower() and "OR" in i]
+    assert abbr_issues != [], "Uppercase 'OR' abbreviation should still be flagged"

@@ -45,17 +45,13 @@ def repair_schema_violations(
     result = deepcopy(data)
 
     # Normalize schema_version before anything else (required field, safe to fix)
-    result = _normalize_schema_version(result, schema)
+    _normalize_schema_version(result)
 
     # Resolve top-level schema properties (handle $defs inlining in bundled schemas)
     schema_props = schema.get("properties", {})
     schema_defs = schema.get("$defs", {})
 
     result = _repair_object(result, schema_props, schema_defs, schema, original)
-
-    # Flatten depth-2+ key_values in figures_summary (all extraction schema types)
-    if "figures_summary" in result and isinstance(result["figures_summary"], list):
-        result["figures_summary"] = _repair_figures_key_values(result["figures_summary"])
 
     # Remove disallowed top-level properties
     if schema.get("additionalProperties") is False:
@@ -65,53 +61,23 @@ def repair_schema_violations(
             logger.info("Removing disallowed top-level property: %s", key)
             del result[key]
 
+    # Flatten depth-2+ key_values in figures_summary (all extraction schema types)
+    if "figures_summary" in result and isinstance(result["figures_summary"], list):
+        _repair_figures_key_values(result["figures_summary"])
+
     return result
 
 
-def _normalize_schema_version(data: dict[str, Any], schema: dict[str, Any]) -> dict[str, Any]:
-    """Normalise bare schema_version strings to the expected v-prefixed format.
+def _normalize_schema_version(data: dict[str, Any]) -> None:
+    """Normalise bare major-only schema_version to major.minor format.
 
-    The LLM sometimes produces "1.0" or "1.2.3" instead of "v1.0" / "v1.2.3".
-    This is safe to fix deterministically because the pattern is unambiguous
-    and schema_version is a required field in all extraction schemas.
-
-    Only applied when:
-    - The schema defines schema_version as a string with a v-prefixed pattern.
-    - The current value is a string that matches the digits-only form.
-
-    Args:
-        data: Extraction dict (will be mutated in-place and returned).
-        schema: Bundled JSON schema for the extraction type.
-
-    Returns:
-        The (possibly mutated) data dict.
+    Converts e.g. 'v2' → 'v2.0' so the value matches the required
+    pattern ^v\\d+\\.\\d+(\\.\\d+)?$. Modifies data in-place.
     """
-    sv_schema = schema.get("properties", {}).get("schema_version", {})
-    expected_pattern = sv_schema.get("pattern", "")
-
-    # Only act when schema expects a v-prefixed semver pattern
-    if not expected_pattern.startswith("^v"):
-        return data
-
-    current = data.get("schema_version")
-    if not isinstance(current, str):
-        return data
-
-    # Already valid — nothing to do
-    if re.match(expected_pattern, current):
-        return data
-
-    # Bare digits form "1.0" or "1.2.3" — add the missing "v" prefix
-    if re.match(r"^\d+\.\d+(\.\d+)?$", current):
-        fixed = f"v{current}"
-        logger.info(
-            "Normalised schema_version '%s' → '%s'",
-            current,
-            fixed,
-        )
-        data["schema_version"] = fixed
-
-    return data
+    sv = data.get("schema_version", "")
+    if isinstance(sv, str) and re.match(r"^v\d+$", sv):
+        data["schema_version"] = sv + ".0"
+        logger.info("Normalised schema_version: %s -> %s", sv, data["schema_version"])
 
 
 def _resolve_ref(ref: str, schema_defs: dict[str, Any]) -> dict[str, Any]:
@@ -286,7 +252,7 @@ def _flatten_key_values_entry(value: Any, prefix: str = "") -> dict[str, Any]:
     """Recursively flatten a depth-2+ nested object to depth-1 by joining key paths.
 
     Given ``{"a": {"b": 1, "c": 2}, "d": 3}`` this produces
-    ``{"a.b": 1, "a.c": 2, "d": 3}``.
+    ``{"a_b": 1, "a_c": 2, "d": 3}``.
 
     Args:
         value: The value to flatten (object or scalar).
@@ -301,7 +267,7 @@ def _flatten_key_values_entry(value: Any, prefix: str = "") -> dict[str, Any]:
 
     result: dict[str, Any] = {}
     for k, v in value.items():
-        full_key = f"{prefix}.{k}" if prefix else k
+        full_key = f"{prefix}_{k}" if prefix else k
         if isinstance(v, dict):
             # Depth-2+: recurse to flatten further
             result.update(_flatten_key_values_entry(v, full_key))
@@ -338,7 +304,7 @@ def _repair_figures_key_values(figures: list[Any]) -> list[Any]:
                     flat = _flatten_key_values_entry(v)
                     # Prefix each flattened key with the parent key
                     for flat_k, flat_v in flat.items():
-                        repaired_kv[f"{k}.{flat_k}"] = flat_v
+                        repaired_kv[f"{k}_{flat_k}"] = flat_v
                     logger.info(
                         "Flattened depth-2+ key_values entry '%s' into %d sub-keys",
                         k,
