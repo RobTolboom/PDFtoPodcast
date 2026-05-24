@@ -739,6 +739,28 @@ class TestDropMalformedJsonFragments:
         assert len(result["outcomes"]) == 1
         assert result["outcomes"][0]["outcome_id"] == "O1"
 
+    def test_fragment_drop_logged_at_warning(self, caplog):
+        """Dropping a JSON-fragment string must be logged at WARNING level.
+
+        Dropping array items is a data-loss event and must be visible even
+        in default logging configurations (WARNING threshold).
+        """
+        import logging
+
+        data = {
+            "outcomes": [
+                '{"outcome_id": "O2", "name": "Secondary"}',  # JSON fragment
+                {"outcome_id": "O1", "name": "Primary"},
+            ],
+        }
+        with caplog.at_level(logging.WARNING, logger="src.pipeline.schema_repair"):
+            repair_schema_violations(data, self.FRAGMENT_SCHEMA, None)
+
+        warning_messages = [r.message for r in caplog.records if r.levelno == logging.WARNING]
+        assert any(
+            "Dropping" in msg for msg in warning_messages
+        ), f"Expected a WARNING log containing 'Dropping', got: {warning_messages}"
+
 
 # ---------------------------------------------------------------------------
 # Task 5: flattening depth-2+ key_values objects in figures_summary

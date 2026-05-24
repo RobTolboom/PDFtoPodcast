@@ -383,7 +383,7 @@ def _repair_array(
             # First: drop obvious JSON-fragment strings (e.g. '{"key": "val"}' or '[...]')
             # that the LLM sometimes inserts instead of a proper object.
             if _is_json_fragment_string(item):
-                logger.info(
+                logger.warning(
                     "Dropping malformed JSON-fragment string in array (id_field=%s): %.80r",
                     id_field,
                     item,
