@@ -1601,6 +1601,85 @@
         }
       }
     },
+    "FigureSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "figure_id",
+        "caption"
+      ],
+      "properties": {
+        "figure_id": {
+          "type": "string"
+        },
+        "caption": {
+          "type": "string"
+        },
+        "key_values": {
+          "type": "object",
+          "description": "Scalar or categorical key-value pairs extracted from the figure. Values may be numbers, strings, or depth-1 objects (e.g. CONSORT exclusion breakdowns). Depth-2+ nesting is not allowed.",
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "description": "Categorical breakdown — values must be scalars.",
+                "additionalProperties": {
+                  "oneOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          "default": {}
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        }
+      }
+    },
+    "CountryCode": {
+      "$ref": "#/$defs/CountryCodeAlpha2"
+    },
+    "SourceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Reference to a specific location within a document",
+      "properties": {
+        "anchor": {
+          "type": "string",
+          "description": "Free-text pointer like 'Table 2', 'Fig 1', or sentence quote"
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Page number within the document"
+        },
+        "figure_id": {
+          "type": "string",
+          "description": "Identifier of a specific figure"
+        },
+        "table_id": {
+          "type": "string",
+          "description": "Identifier of a specific table"
+        }
+      }
+    },
     "RiskOfBias": {
       "type": "object",
       "additionalProperties": false,
@@ -1877,8 +1956,10 @@
         }
       ]
     },
-    "CountryCode": {
-      "$ref": "#/$defs/CountryCodeAlpha2"
+    "CountryCodeAlpha2": {
+      "type": "string",
+      "pattern": "^[A-Z]{2}$",
+      "description": "ISO 3166-1 alpha-2 country code (e.g., 'NL', 'US')."
     },
     "ISO8601Duration": {
       "$anchor": "duration",
@@ -1894,6 +1975,25 @@
         "PT2H30M",
         "P1Y2M3DT4H5M6.789S"
       ]
+    },
+    "TruncationInfo": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "value": {
+          "type": "boolean",
+          "default": false
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "token_limit",
+            "page_limit",
+            "timeout",
+            "other"
+          ]
+        }
+      }
     },
     "EffectCI": {
       "type": "object",
@@ -1918,94 +2018,6 @@
         "upper": {
           "type": "number",
           "description": "Upper bound of confidence interval"
-        }
-      }
-    },
-    "ExtractionWarning": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "code",
-        "message"
-      ],
-      "properties": {
-        "code": {
-          "type": "string",
-          "enum": [
-            "TABLE_PARSE_FAIL",
-            "AMBIGUOUS_UNIT",
-            "CI_PARSE_FAIL",
-            "MISSING_ARM_ID",
-            "MISSING_GROUP_ID",
-            "OTHER"
-          ]
-        },
-        "message": {
-          "type": "string"
-        },
-        "source": {
-          "$ref": "#/$defs/SourceRef"
-        }
-      }
-    },
-    "SourceRef": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Reference to a specific location within a document",
-      "properties": {
-        "anchor": {
-          "type": "string",
-          "description": "Free-text pointer like 'Table 2', 'Fig 1', or sentence quote"
-        },
-        "page": {
-          "type": "integer",
-          "minimum": 1,
-          "description": "Page number within the document"
-        },
-        "figure_id": {
-          "type": "string",
-          "description": "Identifier of a specific figure"
-        },
-        "table_id": {
-          "type": "string",
-          "description": "Identifier of a specific table"
-        }
-      }
-    },
-    "FigureSummary": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "figure_id",
-        "caption"
-      ],
-      "properties": {
-        "figure_id": {
-          "type": "string"
-        },
-        "caption": {
-          "type": "string"
-        },
-        "key_values": {
-          "type": "object",
-          "additionalProperties": {
-            "oneOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "string"
-              }
-            ]
-          },
-          "default": {}
-        },
-        "page": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "source": {
-          "$ref": "#/$defs/SourceRef"
         }
       }
     },
@@ -2064,6 +2076,33 @@
         },
         "adjudication": {
           "$ref": "#/$defs/Adjudication"
+        },
+        "source": {
+          "$ref": "#/$defs/SourceRef"
+        }
+      }
+    },
+    "ExtractionWarning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "TABLE_PARSE_FAIL",
+            "AMBIGUOUS_UNIT",
+            "CI_PARSE_FAIL",
+            "MISSING_ARM_ID",
+            "MISSING_GROUP_ID",
+            "OTHER"
+          ]
+        },
+        "message": {
+          "type": "string"
         },
         "source": {
           "$ref": "#/$defs/SourceRef"
@@ -2287,6 +2326,155 @@
         }
       ]
     },
+    "LanguageCode": {
+      "type": "string",
+      "pattern": "^[a-z]{2,3}(-[A-Z]{2})?(-[a-z]{2,8})*$",
+      "description": "BCP 47 language tag supporting language, region, and variants (e.g., 'en-US', 'zh-Hans-CN', 'ar-EG')",
+      "examples": [
+        "en",
+        "en-US",
+        "en-GB",
+        "de-DE",
+        "fr-FR",
+        "es-ES",
+        "zh-Hans",
+        "zh-Hant",
+        "ar-EG",
+        "he-IL"
+      ]
+    },
+    "Registration": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Clinical trial or study registration information",
+      "properties": {
+        "registry": {
+          "type": "string",
+          "enum": [
+            "ClinicalTrials.gov",
+            "ISRCTN",
+            "EudraCT",
+            "EU-CTR",
+            "CTIS",
+            "ChiCTR",
+            "ANZCTR",
+            "UMIN-CTR",
+            "JPRN",
+            "PACTR",
+            "IRCT",
+            "DRKS",
+            "TCTR",
+            "SLCTR",
+            "RPCEC",
+            "REBEC",
+            "Other"
+          ],
+          "description": "Clinical trial registry (includes major international and regional registries)"
+        },
+        "identifier": {
+          "type": "string",
+          "description": "Registration identifier within the registry",
+          "examples": [
+            "NCT04123456",
+            "ISRCTN12345678",
+            "2020-001234-56",
+            "UMIN000012345"
+          ]
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Direct URL to the registration record"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "registry": {
+                "const": "ClinicalTrials.gov"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "identifier": {
+                "pattern": "^NCT\\d{8}$",
+                "description": "ClinicalTrials.gov identifier format: NCT followed by 8 digits"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "registry": {
+                "const": "ISRCTN"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "identifier": {
+                "pattern": "^ISRCTN\\d{8}$",
+                "description": "ISRCTN identifier format: ISRCTN followed by 8 digits"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "registry": {
+                "const": "EudraCT"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "identifier": {
+                "pattern": "^\\d{4}-\\d{6}-\\d{2}$",
+                "description": "EudraCT identifier format: YYYY-NNNNNN-NN"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "registry": {
+                "const": "UMIN-CTR"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "identifier": {
+                "pattern": "^UMIN\\d{9}$",
+                "description": "UMIN-CTR identifier format: UMIN followed by 9 digits"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "registry": {
+                "const": "ChiCTR"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "identifier": {
+                "pattern": "^ChiCTR\\d{10}$",
+                "description": "ChiCTR identifier format: ChiCTR followed by 10 digits"
+              }
+            }
+          }
+        }
+      ]
+    },
     "SupplementFile": {
       "type": "object",
       "additionalProperties": false,
@@ -2318,6 +2506,22 @@
         },
         "checksum": {
           "$ref": "#/$defs/DataIntegrity"
+        }
+      }
+    },
+    "Adjudication": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "needed": {
+          "type": "boolean",
+          "default": false
+        },
+        "adjudicator": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
         }
       }
     },
@@ -2385,42 +2589,6 @@
           "$ref": "#/$defs/AIProcessingMetadata"
         }
       }
-    },
-    "TruncationInfo": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "value": {
-          "type": "boolean",
-          "default": false
-        },
-        "reason": {
-          "type": "string",
-          "enum": [
-            "token_limit",
-            "page_limit",
-            "timeout",
-            "other"
-          ]
-        }
-      }
-    },
-    "LanguageCode": {
-      "type": "string",
-      "pattern": "^[a-z]{2,3}(-[A-Z]{2})?(-[a-z]{2,8})*$",
-      "description": "BCP 47 language tag supporting language, region, and variants (e.g., 'en-US', 'zh-Hans-CN', 'ar-EG')",
-      "examples": [
-        "en",
-        "en-US",
-        "en-GB",
-        "de-DE",
-        "fr-FR",
-        "es-ES",
-        "zh-Hans",
-        "zh-Hant",
-        "ar-EG",
-        "he-IL"
-      ]
     },
     "AIProcessingMetadata": {
       "type": "object",
@@ -2710,27 +2878,6 @@
         }
       }
     },
-    "CountryCodeAlpha2": {
-      "type": "string",
-      "pattern": "^[A-Z]{2}$",
-      "description": "ISO 3166-1 alpha-2 country code (e.g., 'NL', 'US')."
-    },
-    "Adjudication": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "needed": {
-          "type": "boolean",
-          "default": false
-        },
-        "adjudicator": {
-          "type": "string"
-        },
-        "notes": {
-          "type": "string"
-        }
-      }
-    },
     "DataIntegrity": {
       "type": "object",
       "additionalProperties": false,
@@ -2930,6 +3077,54 @@
         }
       ]
     },
+    "Author": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Author information for academic publications",
+      "required": [
+        "last_name"
+      ],
+      "properties": {
+        "last_name": {
+          "type": "string",
+          "description": "Author's family name"
+        },
+        "initials": {
+          "type": "string",
+          "description": "Author's first/middle name initials"
+        },
+        "given_names": {
+          "type": "string",
+          "description": "Author's full first and middle names"
+        },
+        "orcid": {
+          "type": "string",
+          "pattern": "^(https://orcid\\.org/)?0000-00(0[2-9]|[1-9]\\d)-\\d{4}-\\d{3}[\\dX]$",
+          "description": "ORCID identifier with checksum validation (optionally with URL prefix)",
+          "examples": [
+            "0000-0002-1825-0097",
+            "https://orcid.org/0000-0002-1825-0097"
+          ]
+        },
+        "affiliations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Author's institutional affiliations"
+        },
+        "corresponding": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this author is the corresponding author"
+        },
+        "email": {
+          "$ref": "#/$defs/EmailAddress",
+          "description": "Contact email address (typically for corresponding authors)"
+        }
+      }
+    },
     "ExternalId": {
       "type": "object",
       "additionalProperties": false,
@@ -3017,186 +3212,6 @@
               "id": {
                 "pattern": "^(?:978|979)[0-9]{10}$|^[0-9]{9}[0-9X]$",
                 "description": "ISBN-10 or ISBN-13 format"
-              }
-            }
-          }
-        }
-      ]
-    },
-    "Author": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Author information for academic publications",
-      "required": [
-        "last_name"
-      ],
-      "properties": {
-        "last_name": {
-          "type": "string",
-          "description": "Author's family name"
-        },
-        "initials": {
-          "type": "string",
-          "description": "Author's first/middle name initials"
-        },
-        "given_names": {
-          "type": "string",
-          "description": "Author's full first and middle names"
-        },
-        "orcid": {
-          "type": "string",
-          "pattern": "^(https://orcid\\.org/)?0000-00(0[2-9]|[1-9]\\d)-\\d{4}-\\d{3}[\\dX]$",
-          "description": "ORCID identifier with checksum validation (optionally with URL prefix)",
-          "examples": [
-            "0000-0002-1825-0097",
-            "https://orcid.org/0000-0002-1825-0097"
-          ]
-        },
-        "affiliations": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [],
-          "description": "Author's institutional affiliations"
-        },
-        "corresponding": {
-          "type": "boolean",
-          "default": false,
-          "description": "Whether this author is the corresponding author"
-        },
-        "email": {
-          "$ref": "#/$defs/EmailAddress",
-          "description": "Contact email address (typically for corresponding authors)"
-        }
-      }
-    },
-    "Registration": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Clinical trial or study registration information",
-      "properties": {
-        "registry": {
-          "type": "string",
-          "enum": [
-            "ClinicalTrials.gov",
-            "ISRCTN",
-            "EudraCT",
-            "EU-CTR",
-            "CTIS",
-            "ChiCTR",
-            "ANZCTR",
-            "UMIN-CTR",
-            "JPRN",
-            "PACTR",
-            "IRCT",
-            "DRKS",
-            "TCTR",
-            "SLCTR",
-            "RPCEC",
-            "REBEC",
-            "Other"
-          ],
-          "description": "Clinical trial registry (includes major international and regional registries)"
-        },
-        "identifier": {
-          "type": "string",
-          "description": "Registration identifier within the registry",
-          "examples": [
-            "NCT04123456",
-            "ISRCTN12345678",
-            "2020-001234-56",
-            "UMIN000012345"
-          ]
-        },
-        "url": {
-          "type": "string",
-          "format": "uri",
-          "description": "Direct URL to the registration record"
-        }
-      },
-      "allOf": [
-        {
-          "if": {
-            "properties": {
-              "registry": {
-                "const": "ClinicalTrials.gov"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "identifier": {
-                "pattern": "^NCT\\d{8}$",
-                "description": "ClinicalTrials.gov identifier format: NCT followed by 8 digits"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "registry": {
-                "const": "ISRCTN"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "identifier": {
-                "pattern": "^ISRCTN\\d{8}$",
-                "description": "ISRCTN identifier format: ISRCTN followed by 8 digits"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "registry": {
-                "const": "EudraCT"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "identifier": {
-                "pattern": "^\\d{4}-\\d{6}-\\d{2}$",
-                "description": "EudraCT identifier format: YYYY-NNNNNN-NN"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "registry": {
-                "const": "UMIN-CTR"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "identifier": {
-                "pattern": "^UMIN\\d{9}$",
-                "description": "UMIN-CTR identifier format: UMIN followed by 9 digits"
-              }
-            }
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "registry": {
-                "const": "ChiCTR"
-              }
-            }
-          },
-          "then": {
-            "properties": {
-              "identifier": {
-                "pattern": "^ChiCTR\\d{10}$",
-                "description": "ChiCTR identifier format: ChiCTR followed by 10 digits"
               }
             }
           }
