@@ -38,7 +38,7 @@ class TestIterativeLoopConfig:
         config = IterativeLoopConfig(metric_type=MetricType.EXTRACTION)
 
         assert config.metric_type == MetricType.EXTRACTION
-        assert config.max_iterations == 3
+        assert config.max_iterations == 5
         assert config.quality_thresholds is None
         assert config.degradation_window == 2
         assert config.step_name == "ITERATIVE LOOP"

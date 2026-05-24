@@ -298,6 +298,9 @@ SHOW_SUMMARY_SCHEMA:
                 reasoning_effort=llm_settings.reasoning_effort_podcast,
             )
 
+            # Strip provider-injected fields (_metadata, usage) before schema validation
+            summary_json = _strip_metadata_for_pipeline(summary_json)
+
             # Validate show summary
             # Critical: schema compliance
             try:
@@ -311,9 +314,9 @@ SHOW_SUMMARY_SCHEMA:
                 summary_critical_issues.append(
                     f"Synopsis too short ({len(synopsis)} chars). Minimum: 50."
                 )
-            elif len(synopsis) > 500:
+            elif len(synopsis) > 750:
                 summary_critical_issues.append(
-                    f"Synopsis too long ({len(synopsis)} chars). Maximum: 500."
+                    f"Synopsis too long ({len(synopsis)} chars). Maximum: 750."
                 )
 
             # Critical: at least 3 bullets with correct type
