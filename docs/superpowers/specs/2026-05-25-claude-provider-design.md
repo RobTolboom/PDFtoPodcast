@@ -177,7 +177,7 @@ All tests use `unittest.mock.patch` — no real API calls.
 ## Acceptance Criteria
 
 - [ ] `LLM_PROVIDER=claude` pipeline run completes successfully on a real medical PDF
-- [ ] Second pipeline step reuses the `file_id` from the first (verified via log: "Reusing uploaded file")
+- [ ] Within a step's correction loop, a second call with the same PDF path reuses the cached `file_id` (verified via log: "Reusing uploaded file")
 - [ ] `reasoning_effort` values from config are passed as `effort` in `output_config`
 - [ ] `thinking` blocks appear in DEBUG logs (via `display: "summarized"`)
 - [ ] All unit tests pass: `make test-fast`
