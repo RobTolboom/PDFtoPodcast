@@ -33,6 +33,7 @@
   <feature_planning>
     <planning_phase>
       <rule>Create a planning markdown in the "docs/plans" directory with goal, scope, task list, risks, and acceptance criteria.</rule>
+      <rule>When using the superpowers plugin (brainstorming → writing-plans → subagent-driven-development), plans are written to "docs/superpowers/plans/YYYY-MM-DD-feature.md" and design specs to "docs/superpowers/specs/YYYY-MM-DD-feature-design.md". Both conventions coexist; the superpowers namespace takes precedence when those skills are in use.</rule>
     </planning_phase>
     <development>
       <rule>Never commit directly to main. Always create a feature/bugfix/release branch first.</rule>
