@@ -44,6 +44,9 @@ def repair_schema_violations(
     """
     result = deepcopy(data)
 
+    # Normalize schema_version before anything else (required field, safe to fix)
+    _normalize_schema_version(result)
+
     # Resolve top-level schema properties (handle $defs inlining in bundled schemas)
     schema_props = schema.get("properties", {})
     schema_defs = schema.get("$defs", {})
@@ -58,7 +61,23 @@ def repair_schema_violations(
             logger.info("Removing disallowed top-level property: %s", key)
             del result[key]
 
+    # Flatten depth-2+ key_values in figures_summary (all extraction schema types)
+    if "figures_summary" in result and isinstance(result["figures_summary"], list):
+        _repair_figures_key_values(result["figures_summary"])
+
     return result
+
+
+def _normalize_schema_version(data: dict[str, Any]) -> None:
+    """Normalise bare major-only schema_version to major.minor format.
+
+    Converts e.g. 'v2' → 'v2.0' so the value matches the required
+    pattern ^v\\d+\\.\\d+(\\.\\d+)?$. Modifies data in-place.
+    """
+    sv = data.get("schema_version", "")
+    if isinstance(sv, str) and re.match(r"^v\d+$", sv):
+        data["schema_version"] = sv + ".0"
+        logger.info("Normalised schema_version: %s -> %s", sv, data["schema_version"])
 
 
 def _resolve_ref(ref: str, schema_defs: dict[str, Any]) -> dict[str, Any]:
@@ -229,6 +248,92 @@ def _repair_object(
     return obj
 
 
+def _flatten_key_values_entry(value: Any, prefix: str = "") -> dict[str, Any]:
+    """Recursively flatten a depth-2+ nested object to depth-1 by joining key paths.
+
+    Given ``{"a": {"b": 1, "c": 2}, "d": 3}`` this produces
+    ``{"a_b": 1, "a_c": 2, "d": 3}``.
+
+    Args:
+        value: The value to flatten (object or scalar).
+        prefix: Current key path prefix (used during recursion).
+
+    Returns:
+        A flat dict with string keys and scalar (number/string) values.
+    """
+    if not isinstance(value, dict):
+        # Scalar leaf — wrap in a dict so callers get a consistent return type
+        return {prefix: value} if prefix else {}
+
+    result: dict[str, Any] = {}
+    for k, v in value.items():
+        full_key = f"{prefix}_{k}" if prefix else k
+        if isinstance(v, dict):
+            # Depth-2+: recurse to flatten further
+            result.update(_flatten_key_values_entry(v, full_key))
+        else:
+            result[full_key] = v
+    return result
+
+
+def _repair_figures_key_values(figures: list[Any]) -> list[Any]:
+    """Flatten depth-2+ ``key_values`` objects inside each figure summary.
+
+    Iterates over ``figures`` (a list of FigureSummary objects).  For each
+    figure, inspects ``key_values`` and flattens any value that is a depth-2+
+    nested object into a depth-1 representation using dot-separated keys.
+
+    Args:
+        figures: List of figure summary dicts (mutated in place).
+
+    Returns:
+        The same list, with depth-2+ key_values values flattened.
+    """
+    for fig in figures:
+        if not isinstance(fig, dict):
+            continue
+        kv = fig.get("key_values")
+        if not isinstance(kv, dict):
+            continue
+        repaired_kv: dict[str, Any] = {}
+        changed = False
+        for k, v in kv.items():
+            if isinstance(v, dict):
+                # Check if any nested value is itself a dict (depth-2+)
+                if any(isinstance(vv, dict) for vv in v.values()):
+                    flat = _flatten_key_values_entry(v)
+                    # Prefix each flattened key with the parent key
+                    for flat_k, flat_v in flat.items():
+                        repaired_kv[f"{k}_{flat_k}"] = flat_v
+                    logger.info(
+                        "Flattened depth-2+ key_values entry '%s' into %d sub-keys",
+                        k,
+                        len(flat),
+                    )
+                    changed = True
+                else:
+                    repaired_kv[k] = v
+            else:
+                repaired_kv[k] = v
+        if changed:
+            fig["key_values"] = repaired_kv
+    return figures
+
+
+_JSON_FRAGMENT_RE = re.compile(r'[{}[\]":]')
+
+
+def _is_json_fragment_string(s: str) -> bool:
+    """Return True when *s* looks like a serialised JSON fragment rather than an ID.
+
+    The LLM occasionally serialises an object or array into a string and inserts
+    that string into an array that should contain objects.  Such strings contain
+    at least one of the characters ``{ } [ ] " :``.  A legitimate ID string
+    (e.g. "O1", "arm_A") never contains these characters.
+    """
+    return bool(_JSON_FRAGMENT_RE.search(s))
+
+
 def _repair_array(
     arr: Any,
     array_schema: dict[str, Any],
@@ -273,7 +378,17 @@ def _repair_array(
                     del item[dk]
             repaired.append(item)
         elif isinstance(item, str) and id_field:
-            # Item is a string but should be an object - try to restore
+            # Item is a string but should be an object.
+            # First: drop obvious JSON-fragment strings (e.g. '{"key": "val"}' or '[...]')
+            # that the LLM sometimes inserts instead of a proper object.
+            if _is_json_fragment_string(item):
+                logger.info(
+                    "Dropping malformed JSON-fragment string in array (id_field=%s): %.80r",
+                    id_field,
+                    item,
+                )
+                continue
+            # Try to restore from original extraction
             if item in original_lookup:
                 logger.info("Restored array item from original: %s=%s", id_field, item)
                 repaired.append(deepcopy(original_lookup[item]))

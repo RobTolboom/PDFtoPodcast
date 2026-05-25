@@ -971,3 +971,76 @@ def test_show_summary_warns_citation_missing_year(
     summary_val = result["validation"]["summary_validation"]
     assert summary_val["status"] == "warnings"
     assert any("missing publication year" in issue for issue in summary_val["issues"])
+
+
+@patch(
+    "src.pipeline.podcast_logic.load_podcast_summary_prompt", side_effect=Exception("skip summary")
+)
+@patch("src.pipeline.podcast_logic.load_schema")
+@patch("src.pipeline.podcast_logic.load_podcast_generation_prompt")
+@patch("src.pipeline.podcast_logic.get_llm_provider")
+def test_lowercase_or_not_flagged_as_abbreviation(
+    mock_get_llm, mock_load_prompt, mock_load_schema, _mock_summary, mock_file_manager
+):
+    """The conjunction 'or' (lowercase) must NOT trigger an abbreviation warning."""
+    mock_llm = MagicMock()
+    mock_get_llm.return_value = mock_llm
+    mock_load_schema.return_value = {"type": "object"}
+    mock_load_prompt.return_value = "Generate podcast"
+
+    # Transcript uses 'or' heavily as a conjunction, never as 'OR' abbreviation
+    transcript_words = (
+        "You can use this drug or that drug or neither or both depending on the patient. " * 50
+    )
+    mock_llm.generate_json_with_schema.return_value = {
+        "podcast_version": "v1.0",
+        "metadata": {"title": "Test", "word_count": 800, "estimated_duration_minutes": 5},
+        "transcript": transcript_words,
+    }
+
+    result = run_podcast_generation(
+        extraction_result={"interventions": [{"name": "Drug"}], "outcomes": []},
+        appraisal_result={"grade": {"certainty_overall": "high"}},
+        classification_result={"type": "trial"},
+        llm_provider="openai",
+        file_manager=mock_file_manager,
+    )
+
+    issues = result["validation"]["issues"]
+    abbr_issues = [i for i in issues if "abbreviation" in i.lower() and "OR" in i]
+    assert abbr_issues == [], f"'or' conjunction wrongly flagged as abbreviation: {abbr_issues}"
+
+
+@patch(
+    "src.pipeline.podcast_logic.load_podcast_summary_prompt", side_effect=Exception("skip summary")
+)
+@patch("src.pipeline.podcast_logic.load_schema")
+@patch("src.pipeline.podcast_logic.load_podcast_generation_prompt")
+@patch("src.pipeline.podcast_logic.get_llm_provider")
+def test_uppercase_OR_still_flagged(
+    mock_get_llm, mock_load_prompt, mock_load_schema, _mock_summary, mock_file_manager
+):
+    """The medical abbreviation 'OR' (Odds Ratio, capitalised) must still be flagged."""
+    mock_llm = MagicMock()
+    mock_get_llm.return_value = mock_llm
+    mock_load_schema.return_value = {"type": "object"}
+    mock_load_prompt.return_value = "Generate podcast"
+
+    transcript_words = "The adjusted OR was 0.48 favouring the intervention group. " * 50
+    mock_llm.generate_json_with_schema.return_value = {
+        "podcast_version": "v1.0",
+        "metadata": {"title": "Test", "word_count": 800, "estimated_duration_minutes": 5},
+        "transcript": transcript_words,
+    }
+
+    result = run_podcast_generation(
+        extraction_result={"interventions": [{"name": "Drug"}], "outcomes": []},
+        appraisal_result={"grade": {"certainty_overall": "high"}},
+        classification_result={"type": "trial"},
+        llm_provider="openai",
+        file_manager=mock_file_manager,
+    )
+
+    issues = result["validation"]["issues"]
+    abbr_issues = [i for i in issues if "abbreviation" in i.lower() and "OR" in i]
+    assert abbr_issues != [], "Uppercase 'OR' abbreviation should still be flagged"

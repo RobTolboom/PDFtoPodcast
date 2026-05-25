@@ -6,7 +6,11 @@ Tests deterministic post-correction schema repair logic.
 
 import pytest
 
-from src.pipeline.schema_repair import repair_schema_violations
+from src.pipeline.schema_repair import (
+    _is_json_fragment_string,
+    _repair_figures_key_values,
+    repair_schema_violations,
+)
 
 pytestmark = pytest.mark.unit
 
@@ -589,3 +593,284 @@ class TestRepairEnumViolations:
         }
         result = repair_schema_violations(data, PATTERN_SCHEMA, None)
         assert result["truncated"]["reason"] == "token_limit"
+
+
+# ---------------------------------------------------------------------------
+# Task 3: schema_version normalisation
+# ---------------------------------------------------------------------------
+
+SCHEMA_VERSION_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["schema_version"],
+    "properties": {
+        "schema_version": {
+            "type": "string",
+            "pattern": "^v\\d+\\.\\d+(\\.\\d+)?$",
+        },
+        "title": {"type": "string"},
+    },
+    "$defs": {},
+}
+
+
+class TestNormalizeSchemaVersion:
+    """schema_repair normalises bare major-only schema_version strings."""
+
+    VERSIONED_SCHEMA = {
+        "type": "object",
+        "required": ["schema_version"],
+        "properties": {
+            "schema_version": {
+                "type": "string",
+                "pattern": r"^v\d+\.\d+(\.\d+)?$",
+            }
+        },
+    }
+
+    def test_bare_major_version_normalised(self):
+        """'v2' is normalised to 'v2.0' before validation."""
+        data = {"schema_version": "v2"}
+        result = repair_schema_violations(data, self.VERSIONED_SCHEMA)
+        assert result["schema_version"] == "v2.0"
+
+    def test_already_valid_version_unchanged(self):
+        """'v2.0' is not modified."""
+        data = {"schema_version": "v2.0"}
+        result = repair_schema_violations(data, self.VERSIONED_SCHEMA)
+        assert result["schema_version"] == "v2.0"
+
+    def test_three_part_version_unchanged(self):
+        """'v2.1.3' is not modified."""
+        data = {"schema_version": "v2.1.3"}
+        result = repair_schema_violations(data, self.VERSIONED_SCHEMA)
+        assert result["schema_version"] == "v2.1.3"
+
+    def test_no_schema_version_field_no_error(self):
+        """When schema_version is absent, no error is raised."""
+        data = {"title": "Study X"}
+        result = repair_schema_violations(
+            data, {"type": "object", "properties": {"title": {"type": "string"}}}
+        )
+        assert "schema_version" not in result
+
+
+# ---------------------------------------------------------------------------
+# Task 4: dropping malformed JSON-fragment strings from arrays
+# ---------------------------------------------------------------------------
+
+
+class TestIsJsonFragmentString:
+    """Unit tests for the _is_json_fragment_string helper."""
+
+    def test_json_object_string_detected(self):
+        assert _is_json_fragment_string('{"key": "val"}') is True
+
+    def test_json_array_string_detected(self):
+        assert _is_json_fragment_string('["a", "b"]') is True
+
+    def test_colon_detected(self):
+        assert _is_json_fragment_string("key: value") is True
+
+    def test_plain_id_string_not_detected(self):
+        assert _is_json_fragment_string("O1") is False
+
+    def test_alphanumeric_id_not_detected(self):
+        assert _is_json_fragment_string("arm_A") is False
+
+    def test_empty_string_not_detected(self):
+        assert _is_json_fragment_string("") is False
+
+
+class TestDropMalformedJsonFragments:
+    """Test that JSON-fragment strings in object-typed arrays are dropped."""
+
+    FRAGMENT_SCHEMA = {
+        "type": "object",
+        "additionalProperties": False,
+        "properties": {
+            "outcomes": {
+                "type": "array",
+                "items": {"$ref": "#/$defs/Outcome"},
+            },
+        },
+        "$defs": {
+            "Outcome": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "outcome_id": {"type": "string"},
+                    "name": {"type": "string"},
+                },
+            },
+        },
+    }
+
+    def test_json_fragment_string_dropped(self):
+        """A string with JSON chars (\"  { [ ) in an array should be dropped."""
+        data = {
+            "outcomes": [
+                {"outcome_id": "O1", "name": "Primary"},
+                '{"outcome_id": "O2", "name": "Secondary"}',  # JSON fragment
+            ],
+        }
+        result = repair_schema_violations(data, self.FRAGMENT_SCHEMA, None)
+        assert len(result["outcomes"]) == 1
+        assert result["outcomes"][0]["outcome_id"] == "O1"
+
+    def test_plain_id_string_kept_for_restore(self):
+        """A plain ID string (no special chars) goes through restore from original."""
+        data = {"outcomes": ["O1"]}
+        original = {
+            "outcomes": [{"outcome_id": "O1", "name": "Primary"}],
+        }
+        result = repair_schema_violations(data, self.FRAGMENT_SCHEMA, original)
+        assert result["outcomes"][0]["outcome_id"] == "O1"
+
+    def test_fragment_with_colon_dropped(self):
+        """A string with ':' is dropped from the array."""
+        data = {
+            "outcomes": [
+                '["O1", "O2"]',  # JSON fragment with [ and "
+                {"outcome_id": "O1", "name": "Primary"},
+            ],
+        }
+        result = repair_schema_violations(data, self.FRAGMENT_SCHEMA, None)
+        assert len(result["outcomes"]) == 1
+        assert result["outcomes"][0]["outcome_id"] == "O1"
+
+
+# ---------------------------------------------------------------------------
+# Task 5: flattening depth-2+ key_values objects in figures_summary
+# ---------------------------------------------------------------------------
+
+FIGURES_SUMMARY_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "properties": {
+        "figures_summary": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "figure_id": {"type": "string"},
+                    "key_values": {
+                        "type": "object",
+                        "additionalProperties": {
+                            "oneOf": [
+                                {"type": "number"},
+                                {"type": "string"},
+                                {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "oneOf": [{"type": "number"}, {"type": "string"}]
+                                    },
+                                },
+                            ]
+                        },
+                    },
+                },
+            },
+        },
+    },
+    "$defs": {},
+}
+
+
+class TestFlattenKeyValuesDepth2:
+    """Test that depth-2+ key_values objects are flattened to depth-1."""
+
+    def test_depth2_object_flattened(self):
+        """A depth-2 nested object should be flattened with underscore-separated keys.
+
+        Depth-2 means the key_values value is an object whose values are themselves
+        objects (not scalars).  The allowed schema allows depth-0 scalars and
+        depth-1 objects (values are scalars).  Depth-2+ must be flattened.
+        """
+        figures = [
+            {
+                "figure_id": "F1",
+                "key_values": {
+                    # depth-2: exclusions -> category -> {subtype: count}
+                    "exclusions": {
+                        "pre_screening": {"medical": 5, "logistic": 3},
+                    },
+                    "enrolled": 120,
+                },
+            }
+        ]
+        result = _repair_figures_key_values(figures)
+        kv = result[0]["key_values"]
+        assert "exclusions" not in kv
+        assert kv["exclusions_pre_screening_medical"] == 5
+        assert kv["exclusions_pre_screening_logistic"] == 3
+        assert kv["enrolled"] == 120
+
+    def test_depth1_object_unchanged(self):
+        """A depth-1 object value (all scalar values) should be left unchanged.
+
+        Depth-1 objects are explicitly allowed by the schema: the value is an
+        object whose own values are all scalars (numbers or strings).
+        """
+        figures = [
+            {
+                "figure_id": "F1",
+                "key_values": {
+                    "breakdown": {"a": 1, "b": 2},  # depth-1: scalar values — allowed
+                    "total": 100,
+                },
+            }
+        ]
+        result = _repair_figures_key_values(figures)
+        kv = result[0]["key_values"]
+        assert kv["breakdown"] == {"a": 1, "b": 2}  # unchanged
+        assert kv["total"] == 100
+
+    def test_scalar_values_unchanged(self):
+        """Scalar key_values should pass through unchanged."""
+        figures = [
+            {
+                "figure_id": "F1",
+                "key_values": {"n": 42, "label": "CONSORT"},
+            }
+        ]
+        result = _repair_figures_key_values(figures)
+        assert result[0]["key_values"] == {"n": 42, "label": "CONSORT"}
+
+    def test_no_figures_summary_no_error(self):
+        """Data without figures_summary should not cause errors."""
+        data = {"title": "Test"}
+        schema = {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {"title": {"type": "string"}},
+            "$defs": {},
+        }
+        result = repair_schema_violations(data, schema, None)
+        assert result == {"title": "Test"}
+
+    def test_depth2_via_repair_schema_violations(self):
+        """End-to-end: depth-2 key_values flattened via repair_schema_violations.
+
+        'exclusions' maps to an object whose values are themselves objects (depth-2).
+        The repair must flatten to depth-1.
+        """
+        data = {
+            "figures_summary": [
+                {
+                    "figure_id": "F1",
+                    "key_values": {
+                        "exclusions": {
+                            # depth-2: value is an object with object values
+                            "criteria": {"age": 3, "comorbidity": 7},
+                        },
+                    },
+                }
+            ]
+        }
+        result = repair_schema_violations(data, FIGURES_SUMMARY_SCHEMA, None)
+        kv = result["figures_summary"][0]["key_values"]
+        assert "exclusions" not in kv
+        assert kv["exclusions_criteria_age"] == 3
+        assert kv["exclusions_criteria_comorbidity"] == 7

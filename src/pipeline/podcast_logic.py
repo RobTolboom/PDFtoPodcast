@@ -174,8 +174,10 @@ PODCAST_SCHEMA:
         ]
         found_abbrs = []
         for abbr in common_abbrs:
-            # Use word boundaries to avoid false positives like "FORM" matching "OR"
-            if re.search(rf"\b{re.escape(abbr)}\b", transcript, re.IGNORECASE):
+            # Use word boundaries without IGNORECASE: abbreviations are case-sensitive.
+            # re.IGNORECASE caused false positives such as "vs" matching words like
+            # "invasive" or "Versus", and "eg" matching "egg" or "suggest".
+            if re.search(rf"\b{re.escape(abbr)}\b", transcript):
                 found_abbrs.append(abbr)
         if found_abbrs:
             validation_issues.append(f"Found potential abbreviations: {', '.join(found_abbrs)}")

@@ -1314,8 +1314,7 @@
       "additionalProperties": false,
       "required": [
         "outcome_id",
-        "comparison_id",
-        "effect"
+        "comparison_id"
       ],
       "properties": {
         "outcome_id": {
@@ -1398,7 +1397,8 @@
           ]
         },
         "effect": {
-          "$ref": "common.schema.json#/$defs/ContrastEffect"
+          "$ref": "common.schema.json#/$defs/ContrastEffect",
+          "description": "Include when the paper reports a quantified effect estimate (RR, OR, HR, MD, etc.). Omit when only a p-value or narrative significance statement is available with no point estimate."
         },
         "provenance": {
           "$ref": "common.schema.json#/$defs/Provenance"

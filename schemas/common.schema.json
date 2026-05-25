@@ -886,7 +886,27 @@
       "properties": {
         "figure_id": { "type": "string" },
         "caption": { "type": "string" },
-        "key_values": { "type": "object", "additionalProperties": { "oneOf": [{ "type": "number" }, { "type": "string" }] }, "default": {} },
+        "key_values": {
+          "type": "object",
+          "description": "Scalar or categorical key-value pairs extracted from the figure. Values may be numbers, strings, or depth-1 objects (e.g. CONSORT exclusion breakdowns). Depth-2+ nesting is not allowed.",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "number" },
+              { "type": "string" },
+              {
+                "type": "object",
+                "description": "Categorical breakdown — values must be scalars.",
+                "additionalProperties": {
+                  "oneOf": [
+                    { "type": "number" },
+                    { "type": "string" }
+                  ]
+                }
+              }
+            ]
+          },
+          "default": {}
+        },
         "page": { "type": "integer", "minimum": 1 },
         "source": { "$ref": "#/$defs/SourceRef" }
       }
