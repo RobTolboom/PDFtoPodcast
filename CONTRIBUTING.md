@@ -51,7 +51,7 @@ Welcome—this document outlines how to set up a development environment, follow
    ```
 
 ## Workflow overview
-- Default branch is `main` (protected). Create short-lived topic branches: `feature/...`, `fix/...`, `docs/...`, `refactor/...`, `test/...`.
+- Default branch is `main` (protected). Create short-lived topic branches: `feature/...` (or `feat/...`), `fix/...`, `docs/...`, `refactor/...`, `test/...`, `chore/...`, `release/...`.
 - For substantial work, add a planning note under `docs/plans/` describing scope, tasks, and risks (see `docs/plans/README.md`).
 - Sync often: `git checkout main && git pull origin main` before branching or rebasing.
 - Commit early and often using Conventional Commit messages (`feat: ...`, `fix: ...`, etc.).
