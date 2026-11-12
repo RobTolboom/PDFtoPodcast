@@ -65,12 +65,10 @@ jobs:
     - name: Run unit tests
       run: |
         pytest tests/unit/ -v --maxfail=5
-      continue-on-error: true  # Don't fail until tests are implemented
 
     - name: Run integration tests
       run: |
         pytest tests/integration/ -v --maxfail=5
-      continue-on-error: true  # Don't fail until tests are implemented
       # Note: Integration tests may need API keys (not run in CI by default)
 
   coverage:

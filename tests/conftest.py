@@ -40,13 +40,22 @@ Note:
     - Schemas are minimal but valid JSON Schema Draft 2020-12
 """
 
+import os
 from pathlib import Path
 from typing import Any
 from unittest.mock import Mock
 
 import pytest
 
-from src.schemas_loader import load_schema
+# Force placeholder API keys before anything from `src` is imported.
+# `src.config` reads the keys at import time and `load_dotenv()` never overrides
+# variables that are already set, so this guarantees the test suite can never use
+# a real key from a developer's `.env`, and that provider construction works in CI
+# where no keys are configured.
+os.environ["OPENAI_API_KEY"] = "test-openai-key-not-real"
+os.environ["ANTHROPIC_API_KEY"] = "test-anthropic-key-not-real"
+
+from src.schemas_loader import load_schema  # noqa: E402
 
 
 @pytest.fixture

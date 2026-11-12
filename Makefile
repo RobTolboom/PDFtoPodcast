@@ -1,12 +1,15 @@
 # Makefile for PDFtoPodcast Development
 # Common development commands for building, testing, and maintaining the project
 
-.PHONY: help install install-dev test test-coverage lint format typecheck check clean run docs
+.PHONY: help install install-dev test test-coverage lint format typecheck typecheck-report check clean run docs
 
 # Variables
 PYTHON := python
 PIP := pip
 VENV := .venv/bin
+# Prefer the project virtualenv; fall back to whatever is on PATH
+PYTEST := $(if $(wildcard $(VENV)/pytest),$(VENV)/pytest,pytest)
+MYPY := $(if $(wildcard $(VENV)/mypy),$(VENV)/mypy,mypy)
 
 # Default target - show help
 help:
@@ -86,12 +89,18 @@ lint-fix:
 
 typecheck:
 	@echo "Running mypy type checker..."
-	@if command -v mypy >/dev/null 2>&1; then \
-		mypy src/ --ignore-missing-imports --check-untyped-defs; \
-		echo "✅ Type checking complete"; \
-	else \
-		echo "⚠️  mypy not installed, skipping type check"; \
+	@if ! command -v $(MYPY) >/dev/null 2>&1; then \
+		echo "❌ mypy not found. Run: make install-dev"; \
+		exit 1; \
 	fi
+	$(MYPY) src/ --ignore-missing-imports --check-untyped-defs
+	@echo "✅ Type checking complete"
+
+# Non-blocking variant used by `make ci`: reports type errors without failing
+typecheck-report:
+	@echo "Running mypy type checker (non-blocking)..."
+	@$(MYPY) src/ --ignore-missing-imports --check-untyped-defs || \
+		echo "⚠️  mypy reported errors (not blocking in ci); run 'make typecheck' for the strict check"
 
 check: format lint typecheck
 	@echo "✅ All quality checks passed"
@@ -100,7 +109,7 @@ check: format lint typecheck
 test:
 	@echo "Running all tests..."
 	@if [ -d tests ]; then \
-		pytest tests/ -v || echo "⚠️  Tests not yet implemented"; \
+		$(PYTEST) tests/ -v; \
 	else \
 		echo "⚠️  Tests directory not found"; \
 	fi
@@ -108,7 +117,7 @@ test:
 test-unit:
 	@echo "Running unit tests..."
 	@if [ -d tests ]; then \
-		pytest tests/ -v -m "unit"; \
+		$(PYTEST) tests/ -v -m "unit"; \
 	else \
 		echo "⚠️  Tests directory not found"; \
 	fi
@@ -116,7 +125,7 @@ test-unit:
 test-integration:
 	@echo "Running integration tests..."
 	@if [ -d tests ]; then \
-		pytest tests/ -v -m "integration"; \
+		$(PYTEST) tests/ -v -m "integration"; \
 	else \
 		echo "⚠️  Tests directory not found"; \
 	fi
@@ -124,7 +133,7 @@ test-integration:
 test-coverage:
 	@echo "Running tests with coverage..."
 	@if [ -d tests ]; then \
-		pytest tests/ -v --cov=src --cov-report=term-missing --cov-report=html; \
+		$(PYTEST) tests/ -v --cov=src --cov-report=term-missing --cov-report=html; \
 		echo "Coverage report: htmlcov/index.html"; \
 	else \
 		echo "⚠️  Tests directory not found"; \
@@ -133,7 +142,7 @@ test-coverage:
 test-fast:
 	@echo "Running fast tests (unit tests, excluding slow)..."
 	@if [ -d tests ]; then \
-		pytest tests/ -v -m "unit and not slow"; \
+		$(PYTEST) tests/ -v -m "unit and not slow"; \
 	else \
 		echo "⚠️  Tests directory not found"; \
 	fi
@@ -214,7 +223,7 @@ commit: lint-fix format
 	@echo "👉 Ready to commit with: git commit -m '...'"
 
 # CI/CD simulation
-ci: check test
+ci: format lint typecheck-report test
 	@echo "✅ CI checks passed - ready to push"
 
 # Pre-commit hook simulation
